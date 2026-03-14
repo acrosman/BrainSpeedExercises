@@ -30,8 +30,10 @@ BrainSpeedExercises/
 ├── .eslint.config.js         # ESLint flat config (shared rules)
 ├── jest.config.js            # Jest root config
 ├── README.md
-├── INSTRUCTIONS.md           # ← this file
-├── PROMPTS.md                # Copilot / AI prompts for each feature
+│
+├── .github/
+│   ├── copilot-instructions.md   # ← this file
+│   └── prompts/                  # AI/Copilot prompts for each feature
 │
 ├── app/                      # Renderer-process root
 │   ├── preload.js            # Context-bridge (security layer)
@@ -190,7 +192,7 @@ npm run test:coverage  # coverage report (must remain at 100% functions)
 ### Coverage Requirements
 
 - **100% function coverage** is enforced via Jest's `coverageThreshold` in `jest.config.js`.
-- Branches, lines, and statements targets are set to 80 % minimum.
+- Branches, lines, and statements targets are set to 80% minimum.
 - Tests live alongside the code they test (e.g. `progressManager.test.js` sits next to `progressManager.js`; game tests live in `app/games/<game-name>/tests/`).
 
 ### What to Test
@@ -245,4 +247,4 @@ Follow Electron's security checklist for every change:
 3. `npm test` — run the full test suite (must pass with 100% function coverage).
 4. `npm start` — launch the Electron app in development mode.
 
-For adding a new game, see the **Game Plugin Architecture** prompt in `PROMPTS.md`.
+For adding a new game, see the **Game Plugin Architecture** prompt in `.github/prompts/`.

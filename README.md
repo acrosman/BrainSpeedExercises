@@ -50,7 +50,7 @@ BrainSpeedExercises is an Electron application split into a **main process** (`m
 
 Games are **plugins**: each game lives entirely in `app/games/<game-name>/` and is discovered at runtime by a manifest scanner. The renderer requests the game list over IPC, displays a selection screen, then dynamically loads the chosen game's HTML fragment and JavaScript module into a container element. Progress is persisted to a per-player JSON file in Electron's `userData` directory and is never exposed directly to renderer code.
 
-See [`INSTRUCTIONS.md`](./INSTRUCTIONS.md) for the full architecture reference.
+See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for the full architecture reference.
 
 ## Adding a New Game
 
