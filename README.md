@@ -1,24 +1,82 @@
-# ElectronSimpleStarter
-Like bread starter, this is the very basic starter for an Electron project.
+# BrainSpeedExercises
 
-Basically I got frustrated with starters that were insecure or overly opinionated. So I created this one to help me get started more quickly on projects with some basic reminders and examples in place for how to build a secure app, without also imposing a bunch of extra material for interface design and testing.
+A desktop application for brain-speed training — pick a game, play it, and track your progress over time.
 
-Interface design systems and testing kits are really important to making your project successful,but my goal with this starter kit is to be unopinionated about those things (in part because to-date I don't have a strong opinion about them).
+## Features
 
-Suggestions and PRs welcome, although suggesting specific add-ons an libraries will need to show they are the only viable option not one of many.
+- Central game-selection screen with a keyboard-navigable game grid
+- Plugin-based game architecture — each game is fully self-contained in its own folder
+- Automatic progress saving per player (JSON file persistence via Electron's `userData` path)
+- WCAG 2.2 Level AA accessibility throughout the UI
+- 100% function test coverage enforced by Jest on every pull request
+- ESLint (Airbnb-base) linting required on all code
 
-This is not meant as a project to use for a tutorial, although maybe I'll get there sometime in the future.  This is really meant to put in place the very basic plumbing you need to meed the current security practices for Electron projects.
+## Prerequisites
 
-_You are responsible for the security of your own project._ There is definitly a risk I'll get behind on updates, or simply mis-implement something. Care for your project the way you hope others will care for theirs. As you gain confidence and experience with Electron you should understand and follow all the [guideance from the project's maintainers](https://www.electronjs.org/docs/tutorial/security) (even when their quick start doesn't).
+- Node.js ≥ 20 LTS
+- npm ≥ 10
 
-## Using this Template:
+## Installation
 
-1. Click the "Use this template" button at the top right.
-1. Enter the name for your new repository, and click the "Create repository from template".
-1. Follow Github's directions to clone the repository your machine.
-1. Open a shell in your project directory (or open the project in your IDE and it's built in command prompt) and run: `npm i`
-1. Edit the project.json file to remove my name and repository information, add yours, and then you're off to the races to build your own app.
+```bash
+git clone https://github.com/acrosman/BrainSpeedExercises.git
+cd BrainSpeedExercises
+npm install
+```
 
-## Similar Projects
-* [Main Electrong Quick Start](https://github.com/electron/electron-quick-start): Tied to lots of tutorials, but tends to be behind on the security best practices.
-* [secure-electron-template](https://github.com/reZach/secure-electron-template): This is an excellent template, and the source of inspriation for much of this one, but it's more opintionated than I wanted (and I disagree with some choices).
+## Running the App
+
+```bash
+npm start
+```
+
+## Running Tests
+
+```bash
+npm test                  # run all tests
+npm run test:coverage     # with coverage report (100% function coverage required)
+```
+
+## Linting
+
+```bash
+npm run lint              # check for style issues
+npm run lint:fix          # auto-fix fixable issues
+```
+
+## Architecture Overview
+
+BrainSpeedExercises is an Electron application split into a **main process** (`main.js`) and a **renderer process** (`app/`). The main process owns all privileged operations: loading game manifests, reading and writing progress files, and registering IPC handlers. The renderer process handles all UI, communicating with the main process exclusively through the typed IPC channel allowlist exposed by `app/preload.js`.
+
+Games are **plugins**: each game lives entirely in `app/games/<game-name>/` and is discovered at runtime by a manifest scanner. The renderer requests the game list over IPC, displays a selection screen, then dynamically loads the chosen game's HTML fragment and JavaScript module into a container element. Progress is persisted to a per-player JSON file in Electron's `userData` directory and is never exposed directly to renderer code.
+
+See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for the full architecture reference.
+
+## Adding a New Game
+
+1. Copy `app/games/_template/` to `app/games/<your-game-name>/`.
+2. Edit `manifest.json` — set a unique `id`, `name`, `description`, and `thumbnail`.
+3. Implement game logic in `game.js` (pure functions, no DOM access) and the plugin lifecycle (`init`, `start`, `stop`, `reset`) in `index.js`.
+4. Write the game's HTML markup in `interface.html` and scoped styles in `style.css`.
+5. Add full Jest tests in `tests/` — all functions must be covered.
+6. Run `npm test` and `npm run lint` — both must pass before committing.
+
+## Accessibility
+
+All UI in this project targets **WCAG 2.2 Level AA**. This means every interactive element is reachable by keyboard, all text meets color-contrast requirements (≥ 4.5:1 for normal text), custom widgets carry appropriate ARIA roles and properties, and dynamic results such as scores use `aria-live` regions so screen-reader users receive updates without losing their place. See `INSTRUCTIONS.md` for the full checklist.
+
+## Security
+
+The Electron window is hardened with `contextIsolation: true`, `nodeIntegration: false`, a strict `default-src 'self'` Content Security Policy, and a navigation/redirect block. All IPC communication goes through an explicit channel allowlist in `app/preload.js`. Run `npm audit` before every merge to catch supply-chain vulnerabilities.
+
+## Contributing
+
+See [`contributing.md`](./contributing.md) for guidelines. All pull requests must:
+
+- include tests for every new or changed function,
+- pass `npm run lint` with no errors, and
+- pass `npm run test:coverage` with function coverage at 100%.
+
+## License
+
+MIT
