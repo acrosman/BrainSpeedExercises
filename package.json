@@ -1,0 +1,34 @@
+{
+  "name": "electronsimplestarter",
+  "version": "1.0.0",
+  "description": "Electron Starter Template",
+  "main": "main.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acrosman/ElectronSimpleStarter.git"
+  },
+  "keywords": [
+    "Electron",
+    "Starter",
+    "Template"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "lint": "eslint --ignore-path .gitignore src",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "electron": "^38"
+  },
+  "devDependencies": {
+    "electron-debug": "^4",
+    "eslint": "^9"
+  },
+  "author": "Aaron Crosman",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/acrosman/ElectronSimpleStarter/issues"
+  },
+  "homepage": "https://github.com/acrosman/ElectronSimpleStarter#readme"
+}
