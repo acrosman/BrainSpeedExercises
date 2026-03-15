@@ -1,0 +1,9 @@
+{
+  "id": "fast-piggie",
+  "name": "Fast Piggie",
+  "description": "Spot the different guinea pig before they disappear!",
+  "version": "0.1.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.png",
+  "author": "BrainSpeed Exercises"
+}
