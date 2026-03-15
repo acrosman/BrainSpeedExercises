@@ -9,8 +9,11 @@ import {
   checkAnswer,
   calculateWedgeIndex,
   addScore,
+  addMiss,
   getScore,
   getRoundsPlayed,
+  getLevel,
+  getConsecutiveCorrect,
   getCurrentDifficulty,
   isRunning,
 } from '../game.js';
@@ -42,6 +45,22 @@ describe('initGame()', () => {
     addScore();
     initGame();
     expect(getScore()).toBe(0);
+  });
+
+  it('resets getLevel() to 0', () => {
+    expect(getLevel()).toBe(0);
+  });
+
+  it('resets getConsecutiveCorrect() to 0', () => {
+    expect(getConsecutiveCorrect()).toBe(0);
+  });
+
+  it('resets getLevel() to 0 even after three addScore() calls', () => {
+    addScore();
+    addScore();
+    addScore();
+    initGame();
+    expect(getLevel()).toBe(0);
   });
 });
 
@@ -111,9 +130,88 @@ describe('addScore() / getScore() / getRoundsPlayed()', () => {
   it('getRoundsPlayed() starts at 0 after initGame()', () => {
     expect(getRoundsPlayed()).toBe(0);
   });
+
+  it('getConsecutiveCorrect() increments on addScore()', () => {
+    addScore();
+    addScore();
+    expect(getConsecutiveCorrect()).toBe(2);
+  });
+
+  it('getLevel() does not advance until 3 consecutive correct answers', () => {
+    addScore();
+    addScore();
+    expect(getLevel()).toBe(0);
+  });
+
+  it('getLevel() advances to 1 after 3 consecutive addScore() calls', () => {
+    addScore();
+    addScore();
+    addScore();
+    expect(getLevel()).toBe(1);
+  });
+
+  it('getConsecutiveCorrect() resets to 0 after level advances', () => {
+    addScore();
+    addScore();
+    addScore();
+    expect(getConsecutiveCorrect()).toBe(0);
+  });
+
+  it('getLevel() advances to 2 after 6 consecutive addScore() calls', () => {
+    for (let i = 0; i < 6; i += 1) addScore();
+    expect(getLevel()).toBe(2);
+  });
 });
 
-describe('generateRound(roundNumber)', () => {
+describe('addMiss()', () => {
+  it('increments getRoundsPlayed() by 1', () => {
+    addMiss();
+    expect(getRoundsPlayed()).toBe(1);
+  });
+
+  it('does not increment getScore()', () => {
+    addMiss();
+    expect(getScore()).toBe(0);
+  });
+
+  it('resets getConsecutiveCorrect() to 0', () => {
+    addScore();
+    addScore();
+    addMiss();
+    expect(getConsecutiveCorrect()).toBe(0);
+  });
+
+  it('prevents level advancement when a miss breaks the streak', () => {
+    addScore();
+    addScore();
+    addMiss();
+    addScore();
+    addScore();
+    expect(getLevel()).toBe(0);
+  });
+
+  it('does not reset getLevel()', () => {
+    addScore();
+    addScore();
+    addScore(); // level → 1
+    addMiss();
+    expect(getLevel()).toBe(1);
+  });
+});
+
+describe('getLevel()', () => {
+  it('returns 0 after initGame()', () => {
+    expect(getLevel()).toBe(0);
+  });
+});
+
+describe('getConsecutiveCorrect()', () => {
+  it('returns 0 after initGame()', () => {
+    expect(getConsecutiveCorrect()).toBe(0);
+  });
+});
+
+describe('generateRound(level)', () => {
   let randomSpy;
 
   beforeEach(() => {
@@ -125,15 +223,15 @@ describe('generateRound(roundNumber)', () => {
   });
 
   it.each([
-    [0, 6, 2000],
-    [3, 8, 1800],
-    [6, 10, 1600],
-    [9, 12, 1400],
-    [12, 14, 1200],
-    [15, 14, 1000],
-    [30, 14, 500],
-    [100, 14, 500],
-  ])('roundNumber=%i → wedgeCount=%i, displayDurationMs=%i',
+    [0, 6, 1200],
+    [1, 7, 900],
+    [2, 8, 600],
+    [3, 9, 300],
+    [4, 10, 300],
+    [5, 11, 300],
+    [8, 14, 300],
+    [100, 14, 300],
+  ])('level=%i → wedgeCount=%i, displayDurationMs=%i',
     (roundNumber, wedgeCount, displayDurationMs) => {
       const result = generateRound(roundNumber);
       expect(result.wedgeCount).toBe(wedgeCount);
@@ -259,25 +357,36 @@ describe('calculateWedgeIndex()', () => {
 });
 
 describe('getCurrentDifficulty()', () => {
-  it('returns { wedgeCount: 6, displayDurationMs: 2000 } after initGame()', () => {
-    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 6, displayDurationMs: 2000 });
+  it('returns { wedgeCount: 6, displayDurationMs: 1200 } after initGame()', () => {
+    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 6, displayDurationMs: 1200 });
   });
 
-  it('returns { wedgeCount: 8, displayDurationMs: 1800 } after 3 addScore() calls', () => {
-    addScore();
-    addScore();
-    addScore();
-    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 8, displayDurationMs: 1800 });
+  it('returns wedgeCount:7, displayDurationMs:900 after 3 consecutive '
+    + 'addScore() calls (level 1)', () => {
+      addScore();
+      addScore();
+      addScore();
+      expect(getCurrentDifficulty()).toEqual({ wedgeCount: 7, displayDurationMs: 900 });
+    });
+
+  it('returns wedgeCount:9, displayDurationMs:300 after 9 consecutive '
+    + 'addScore() calls (level 3)', () => {
+      for (let i = 0; i < 9; i += 1) addScore();
+      expect(getCurrentDifficulty()).toEqual({ wedgeCount: 9, displayDurationMs: 300 });
+    });
+
+  it('returns { wedgeCount: 14, displayDurationMs: 300 } after reaching level 8 or beyond', () => {
+    for (let i = 0; i < 24; i += 1) addScore();
+    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 14, displayDurationMs: 300 });
   });
 
-  it('returns { wedgeCount: 14, displayDurationMs: 1200 } after 12 addScore() calls', () => {
-    for (let i = 0; i < 12; i += 1) addScore();
-    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 14, displayDurationMs: 1200 });
-  });
-
-  it('returns { wedgeCount: 14, displayDurationMs: 500 } after 30 addScore() calls', () => {
-    for (let i = 0; i < 30; i += 1) addScore();
-    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 14, displayDurationMs: 500 });
+  it('level does not advance when streak is broken by addMiss()', () => {
+    addScore();
+    addScore();
+    addMiss();
+    addScore();
+    addScore();
+    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 6, displayDurationMs: 1200 });
   });
 });
 

@@ -17,8 +17,11 @@ jest.unstable_mockModule('../game.js', () => ({
   checkAnswer: jest.fn(() => true),
   calculateWedgeIndex: jest.fn(() => 2),
   addScore: jest.fn(),
+  addMiss: jest.fn(),
   getScore: jest.fn(() => 3),
   getRoundsPlayed: jest.fn(() => 5),
+  getLevel: jest.fn(() => 0),
+  getConsecutiveCorrect: jest.fn(() => 0),
   getCurrentDifficulty: jest.fn(() => ({
     wedgeCount: 6,
     displayDurationMs: 2000,
@@ -485,6 +488,11 @@ describe('_handleClick — wrong answer (checkAnswer returns false)', () => {
   it('does NOT call game.addScore()', () => {
     fireClick();
     expect(game.addScore).not.toHaveBeenCalled();
+  });
+
+  it('calls game.addMiss()', () => {
+    fireClick();
+    expect(game.addMiss).toHaveBeenCalled();
   });
 
   it('calls playFailureSound (createOscillator called on audio context)', () => {

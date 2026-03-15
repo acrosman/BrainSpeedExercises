@@ -195,7 +195,7 @@ function _runRound() {
 
   _clickEnabled = false;
   _selectedWedge = -1;
-  _currentRound = game.generateRound(game.getRoundsPlayed());
+  _currentRound = game.generateRound(game.getLevel());
 
   const { wedgeCount, displayDurationMs, outlierWedgeIndex } = _currentRound;
   const { width, height } = _canvas;
@@ -317,6 +317,7 @@ function _resolveRound(wedge) {
       wedgeCount,
       'rgba(255, 193, 7, 0.65)',
     );
+    game.addMiss();
     playFailureSound(audioCtx);
     _triggerFlash('wrong');
     _feedbackEl.textContent = 'Not quite — the different piggie is highlighted.';

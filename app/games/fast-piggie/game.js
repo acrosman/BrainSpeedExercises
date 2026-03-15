@@ -2,12 +2,16 @@ let score = 0;
 let roundsPlayed = 0;
 let running = false;
 let startTime = null;
+let level = 0;
+let consecutiveCorrect = 0;
 
 export function initGame() {
   score = 0;
   roundsPlayed = 0;
   running = false;
   startTime = null;
+  level = 0;
+  consecutiveCorrect = 0;
 }
 
 export function startGame() {
@@ -27,10 +31,9 @@ export function stopGame() {
   return { score, roundsPlayed, duration };
 }
 
-export function generateRound(roundNumber) {
-  const tier = Math.floor(roundNumber / 3);
-  const wedgeCount = Math.min(6 + tier * 2, 14);
-  const displayDurationMs = Math.max(2000 - tier * 200, 500);
+export function generateRound(currentLevel) {
+  const wedgeCount = Math.min(6 + currentLevel, 14);
+  const displayDurationMs = Math.max(1200 - currentLevel * 300, 300);
   const outlierWedgeIndex = Math.floor(Math.random() * wedgeCount);
   return { wedgeCount, displayDurationMs, outlierWedgeIndex };
 }
@@ -52,6 +55,16 @@ export function calculateWedgeIndex(clickX, clickY, centerX, centerY, radius, we
 export function addScore() {
   score += 1;
   roundsPlayed += 1;
+  consecutiveCorrect += 1;
+  if (consecutiveCorrect >= 3) {
+    level += 1;
+    consecutiveCorrect = 0;
+  }
+}
+
+export function addMiss() {
+  roundsPlayed += 1;
+  consecutiveCorrect = 0;
 }
 
 export function getScore() {
@@ -62,10 +75,17 @@ export function getRoundsPlayed() {
   return roundsPlayed;
 }
 
+export function getLevel() {
+  return level;
+}
+
+export function getConsecutiveCorrect() {
+  return consecutiveCorrect;
+}
+
 export function getCurrentDifficulty() {
-  const tier = Math.floor(score / 3);
-  const wedgeCount = Math.min(6 + tier * 2, 14);
-  const displayDurationMs = Math.max(2000 - tier * 200, 500);
+  const wedgeCount = Math.min(6 + level, 14);
+  const displayDurationMs = Math.max(1200 - level * 300, 300);
   return { wedgeCount, displayDurationMs };
 }
 
