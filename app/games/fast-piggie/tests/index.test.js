@@ -718,3 +718,86 @@ describe('reset() timer cleanup', () => {
     expect(() => plugin.reset()).not.toThrow();
   });
 });
+
+// ===========================================================================
+// Progress saving
+// ===========================================================================
+describe('progress saving', () => {
+  it('calls window.api.invoke("progress:load") then ("progress:save") on stop', async () => {
+    const mockProgress = { playerId: 'default', games: {} };
+    const mockApi = {
+      invoke: jest
+        .fn()
+        .mockResolvedValueOnce(mockProgress)
+        .mockResolvedValueOnce(undefined),
+    };
+    globalThis.api = mockApi;
+
+    plugin.init(buildContainer());
+    plugin.start();
+    plugin.stop();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mockApi.invoke).toHaveBeenCalledWith('progress:load', 'default');
+    expect(mockApi.invoke).toHaveBeenCalledWith(
+      'progress:save',
+      'default',
+      expect.objectContaining({
+        games: expect.objectContaining({
+          'fast-piggie': expect.objectContaining({
+            sessionsPlayed: 1,
+            lastPlayed: expect.any(String),
+          }),
+        }),
+      }),
+    );
+
+    delete globalThis.api;
+  });
+
+  it('does not throw if progress:load rejects', async () => {
+    const mockApi = {
+      invoke: jest.fn().mockRejectedValue(new Error('IPC error')),
+    };
+    globalThis.api = mockApi;
+
+    plugin.init(buildContainer());
+    plugin.start();
+    expect(() => plugin.stop()).not.toThrow();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    delete globalThis.api;
+  });
+
+  it('preserves existing highScore when new score is lower', async () => {
+    const mockProgress = {
+      playerId: 'default',
+      games: {
+        'fast-piggie': { highScore: 10, sessionsPlayed: 3, lastPlayed: null },
+      },
+    };
+    const mockApi = {
+      invoke: jest
+        .fn()
+        .mockResolvedValueOnce(mockProgress)
+        .mockResolvedValueOnce(undefined),
+    };
+    globalThis.api = mockApi;
+
+    plugin.init(buildContainer());
+    plugin.start();
+    plugin.stop();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const saveCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:save');
+    expect(saveCall[2].games['fast-piggie'].highScore).toBe(10);
+
+    delete globalThis.api;
+  });
+});

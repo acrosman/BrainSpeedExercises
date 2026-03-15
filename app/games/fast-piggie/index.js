@@ -323,7 +323,36 @@ export default {
     }
     _clickEnabled = false;
     const result = game.stopGame();
-    _feedbackEl.textContent = `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
+
+    // Persist progress (guard for test environment where window.api is absent)
+    if (typeof window !== 'undefined' && window.api) {
+      window.api.invoke('progress:load', 'default')
+        .then((existing) => {
+          const gameEntry = (existing.games && existing.games['fast-piggie']) || {
+            highScore: 0,
+            sessionsPlayed: 0,
+            lastPlayed: null,
+          };
+          const updated = {
+            ...existing,
+            games: {
+              ...existing.games,
+              'fast-piggie': {
+                highScore: Math.max(gameEntry.highScore, result.score),
+                sessionsPlayed: gameEntry.sessionsPlayed + 1,
+                lastPlayed: new Date().toISOString(),
+              },
+            },
+          };
+          return window.api.invoke('progress:save', 'default', updated);
+        })
+        .catch(() => {
+          // Progress save failure is non-fatal — game continues normally
+        });
+    }
+
+    _feedbackEl.textContent =
+      `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
     _continueBtn.hidden = true;
     _stopBtn.hidden = true;
     return result;
