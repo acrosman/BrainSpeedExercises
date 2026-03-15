@@ -1,6 +1,6 @@
 # BrainSpeedExercises
 
-A desktop application for brain-speed training — pick a game, play it, and track your progress over time.
+A desktop application for brain-speed training — pick a game, play it, and track your progress over time. Inspired by the research in [this study on dementia](https://www.npr.org/2026/02/18/nx-s1-5716010/brain-training-exercise-cut-dementia-risk-decades).
 
 ## Features
 
@@ -13,7 +13,7 @@ A desktop application for brain-speed training — pick a game, play it, and tra
 
 ## Prerequisites
 
-- Node.js ≥ 20 LTS
+- Node.js ≥ 24 LTS
 - npm ≥ 10
 
 ## Installation
