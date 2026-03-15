@@ -1,4 +1,8 @@
-# BrainSpeedExercises
+# Brain Speed Exercises
+
+![Testing Status](https://github.com/acrosman/BrainSpeedExercises/actions/workflows/test.yml/badge.svg)
+![Lint Status](https://github.com/acrosman/BrainSpeedExercises/actions/workflows/lint.yml/badge.svg)
+![CodeQL Status](https://github.com/acrosman/BrainSpeedExercises/actions/workflows/codeql-analysis.yml/badge.svg)
 
 A desktop application for brain-speed training — pick a game, play it, and track your progress over time. Inspired by the research in [this study on dementia](https://www.npr.org/2026/02/18/nx-s1-5716010/brain-training-exercise-cut-dementia-risk-decades).
 
