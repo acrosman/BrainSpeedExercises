@@ -1,29 +1,38 @@
 {
-  "name": "electronsimplestarter",
+  "name": "brainspeedexercises",
   "version": "1.0.0",
-  "description": "Electron Starter Template",
+  "description": "Brain Speed Exercises",
   "main": "main.js",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/acrosman/ElectronSimpleStarter.git"
+    "url": "git+https://github.com/acrosman/BrainSpeedExercises.git"
   },
   "keywords": [
     "Electron",
-    "Starter",
-    "Template"
+    "Brain",
+    "Health",
+    "Games"
   ],
   "scripts": {
     "start": "electron .",
-    "lint": "eslint --ignore-path .gitignore src",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint app main.js",
+    "lint:fix": "eslint --fix app main.js",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage"
   },
   "dependencies": {
     "electron": "^38"
   },
+  "overrides": {
+    "yauzl": "^3.2.1"
+  },
   "devDependencies": {
     "electron-debug": "^4",
-    "eslint": "^9"
+    "eslint": "^9",
+    "jest": "^30",
+    "jest-environment-jsdom": "^30"
   },
   "author": "Aaron Crosman",
   "license": "MIT",

@@ -1,0 +1,149 @@
+/* ── Reset / Base ───────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  background-color: #f8f9fa;
+  color: #212529; /* contrast ratio ~14.5:1 on #f8f9fa */
+}
+
+/* ── Skip Navigation ────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -3rem;
+  left: 0;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: #212529;
+  color: #f8f9fa;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 0 0 4px 0;
+  transition: top 0.1s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ── Screen-reader only utility ─────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Focus Styles ───────────────────────────────────────────── */
+*:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 2px;
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+header {
+  padding: 1rem 1.5rem;
+  background-color: #212529;
+  color: #f8f9fa;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+nav[aria-label='Game selection'] {
+  padding: 0.5rem 1.5rem;
+  background-color: #343a40;
+}
+
+main {
+  padding: 1.5rem;
+}
+
+footer {
+  padding: 1rem 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #495057; /* contrast ratio ~7.3:1 on #f8f9fa */
+  border-top: 1px solid #dee2e6;
+}
+
+/* ── Game Selector Grid ─────────────────────────────────────── */
+#game-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ── Game Card ──────────────────────────────────────────────── */
+.game-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.15s ease;
+}
+
+.game-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.game-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+.game-card h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0.75rem 1rem 0.25rem;
+  color: #212529; /* contrast ratio ~16:1 on #ffffff */
+}
+
+.game-card p {
+  flex: 1;
+  margin: 0 1rem 0.75rem;
+  font-size: 0.9rem;
+  color: #495057; /* contrast ratio ~7.3:1 on #ffffff */
+}
+
+.game-card button {
+  margin: 0 1rem 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #005fcc;
+  color: #ffffff; /* contrast ratio ~5.6:1 on #005fcc */
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.15s ease;
+}
+
+.game-card button:hover {
+  background-color: #004aa3;
+}
+
+.game-card button:active {
+  background-color: #003880;
+}
