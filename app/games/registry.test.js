@@ -136,6 +136,16 @@ describe('scanGamesDirectory', () => {
 
     expect(result).toEqual([]);
   });
+
+  test('resolves thumbnail path relative to the games directory', async () => {
+    const manifestWithThumbnail = { ...validManifest, thumbnail: 'images/thumbnail.png' };
+    mockReaddir.mockResolvedValue([dirent('test-game')]);
+    mockReadFile.mockResolvedValue(JSON.stringify(manifestWithThumbnail));
+
+    const result = await scanGamesDirectory(GAMES_PATH);
+
+    expect(result[0].thumbnail).toBe('games/test-game/images/thumbnail.png');
+  });
 });
 
 // ─── loadGame ────────────────────────────────────────────────────────────────

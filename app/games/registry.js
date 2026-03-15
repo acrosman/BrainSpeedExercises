@@ -30,6 +30,9 @@ export async function scanGamesDirectory(gamesPath) {
             );
             return null;
           }
+          if (manifest.thumbnail) {
+            manifest.thumbnail = `games/${dir.name}/${manifest.thumbnail}`;
+          }
           return manifest;
         } catch (err) {
           console.warn(`Skipping game "${dir.name}": ${err.message}`);
