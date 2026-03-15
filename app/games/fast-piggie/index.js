@@ -1,3 +1,13 @@
+
+/**
+ * index.js — Fast Piggie game plugin entry point for BrainSpeedExercises.
+ *
+ * Handles all DOM, rendering, and event logic for the Fast Piggie game UI.
+ * Exports the plugin contract for dynamic loading by the app shell.
+ *
+ * @file Fast Piggie game plugin (UI/controller layer).
+ */
+
 import * as game from './game.js';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
@@ -21,6 +31,11 @@ function cropToCanvas(img, sx, sw, sh) {
   return canvas;
 }
 
+/**
+ * Loads and splits the piggie sprite image into two halves for the game.
+ * @param {string} src - Image source URL.
+ * @returns {Promise<Array<{image: HTMLCanvasElement, sx: number, sw: number, sh: number}>>}
+ */
 export function loadImages(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -38,6 +53,17 @@ export function loadImages(src) {
   });
 }
 
+/**
+ * Draws the game board with wedges and (optionally) images.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} width
+ * @param {number} height
+ * @param {number} wedgeCount
+ * @param {number} imageCount
+ * @param {Array} images
+ * @param {number} outlierIndex
+ * @param {boolean} showImages
+ */
 export function drawBoard(
   ctx, width, height, wedgeCount, imageCount, images, outlierIndex, showImages,
 ) {
@@ -76,10 +102,26 @@ export function drawBoard(
   }
 }
 
+/**
+ * Clears the board and removes all images.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} width
+ * @param {number} height
+ * @param {number} wedgeCount
+ */
 export function clearImages(ctx, width, height, wedgeCount) {
   drawBoard(ctx, width, height, wedgeCount, wedgeCount, [null, null], -1, false);
 }
 
+/**
+ * Highlights a specific wedge on the board.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} width
+ * @param {number} height
+ * @param {number} wedgeIndex
+ * @param {number} wedgeCount
+ * @param {string} color
+ */
 export function highlightWedge(ctx, width, height, wedgeIndex, wedgeCount, color) {
   const cx = width / 2;
   const cy = height / 2;
@@ -120,14 +162,24 @@ let _roundTimer = null; // setTimeout handle
 
 let _audioCtx = null;
 
+/**
+ * Creates or returns the singleton AudioContext for sound effects.
+ * @returns {AudioContext}
+ */
 export function createAudioContext() {
   if (!_audioCtx) {
-
     _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   return _audioCtx;
 }
 
+/**
+ * Plays a single tone for sound feedback.
+ * @param {AudioContext} audioCtx
+ * @param {number} frequency
+ * @param {number} startTime
+ * @param {number} duration
+ */
 function playTone(audioCtx, frequency, startTime, duration) {
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -147,23 +199,38 @@ function playTone(audioCtx, frequency, startTime, duration) {
   osc.stop(startTime + duration);
 }
 
+/**
+ * Plays the success sound sequence.
+ * @param {AudioContext} audioCtx
+ */
 export function playSuccessSound(audioCtx) {
   const now = audioCtx.currentTime;
   playTone(audioCtx, 440, now, 0.15);
   playTone(audioCtx, 660, now + 0.16, 0.15);
 }
 
+/**
+ * Plays the failure sound sequence.
+ * @param {AudioContext} audioCtx
+ */
 export function playFailureSound(audioCtx) {
   const now = audioCtx.currentTime;
   playTone(audioCtx, 330, now, 0.15);
   playTone(audioCtx, 220, now + 0.16, 0.15);
 }
 
+/**
+ * Updates the score and round count in the UI.
+ */
 function _updateStats() {
   if (_scoreEl) _scoreEl.textContent = game.getScore();
   if (_roundEl) _roundEl.textContent = game.getRoundsPlayed();
 }
 
+/**
+ * Triggers a visual flash for correct/wrong answers.
+ * @param {string} type - 'correct' or 'wrong'
+ */
 function _triggerFlash(type) {
   if (!_flashEl) return;
   _flashEl.classList.remove('fp-flash--correct', 'fp-flash--wrong');
@@ -177,6 +244,9 @@ function _triggerFlash(type) {
   }, 600);
 }
 
+/**
+ * Highlights the currently selected wedge for keyboard navigation.
+ */
 function _highlightKeyboardSelection() {
   if (!_currentRound || _selectedWedge < 0) return;
   const { wedgeCount } = _currentRound;
@@ -192,6 +262,9 @@ function _highlightKeyboardSelection() {
   );
 }
 
+/**
+ * Starts a new round and handles image display/hide timing.
+ */
 function _runRound() {
   if (!game.isRunning()) return;
 
@@ -215,6 +288,10 @@ function _runRound() {
   }, displayDurationMs);
 }
 
+/**
+ * Handles keyboard navigation and selection.
+ * @param {KeyboardEvent} event
+ */
 function _handleKeydown(event) {
   if (!_clickEnabled || !_currentRound) return;
   const { wedgeCount } = _currentRound;
@@ -233,6 +310,11 @@ function _handleKeydown(event) {
   }
 }
 
+/**
+ * Calculates which wedge was clicked or hovered.
+ * @param {MouseEvent} event
+ * @returns {number}
+ */
 function _getCanvasWedge(event) {
   const rect = _canvas.getBoundingClientRect();
   const scaleX = _canvas.width / rect.width;
@@ -250,6 +332,10 @@ function _getCanvasWedge(event) {
   );
 }
 
+/**
+ * Handles mouse movement for wedge highlighting.
+ * @param {MouseEvent} event
+ */
 function _handleMouseMove(event) {
   if (!_clickEnabled || !_currentRound) return;
   const wedge = _getCanvasWedge(event);
@@ -264,6 +350,9 @@ function _handleMouseMove(event) {
   }
 }
 
+/**
+ * Handles mouse leaving the canvas (removes highlight).
+ */
 function _handleMouseLeave() {
   if (!_clickEnabled || !_currentRound) return;
   _hoveredWedge = -1;
@@ -272,6 +361,10 @@ function _handleMouseLeave() {
   clearImages(_ctx, width, height, wedgeCount);
 }
 
+/**
+ * Handles mouse click on the canvas.
+ * @param {MouseEvent} event
+ */
 function _handleClick(event) {
   if (!_clickEnabled || !_currentRound) return;
   const wedge = _getCanvasWedge(event);
@@ -279,6 +372,10 @@ function _handleClick(event) {
   _resolveRound(wedge);
 }
 
+/**
+ * Resolves the round after a wedge is selected, updates state and feedback.
+ * @param {number} wedge
+ */
 function _resolveRound(wedge) {
   _clickEnabled = false;
 
@@ -329,9 +426,17 @@ function _resolveRound(wedge) {
   _continueBtn.hidden = false;
 }
 
+/**
+ * Fast Piggie plugin contract for dynamic loading by the app shell.
+ * Implements { name, init, start, stop, reset }.
+ */
 export default {
   name: 'Fast Piggie',
 
+  /**
+   * Initialise the plugin and bind DOM events.
+   * @param {HTMLElement} container
+   */
   init(container) {
     _instructionsEl = container.querySelector('#fp-instructions');
     _gameAreaEl = container.querySelector('#fp-game-area');
@@ -366,6 +471,9 @@ export default {
     _stopBtn.addEventListener('click', () => this.stop());
   },
 
+  /**
+   * Start the game and first round.
+   */
   start() {
     if (_instructionsEl) _instructionsEl.hidden = true;
     if (_gameAreaEl) _gameAreaEl.hidden = false;
@@ -375,6 +483,10 @@ export default {
     _runRound();
   },
 
+  /**
+   * Stop the game, persist progress, and show final score.
+   * @returns {object} Game result
+   */
   stop() {
     if (_roundTimer) {
       clearTimeout(_roundTimer);
@@ -417,6 +529,9 @@ export default {
     return result;
   },
 
+  /**
+   * Reset the game to its initial state.
+   */
   reset() {
     if (_roundTimer) {
       clearTimeout(_roundTimer);

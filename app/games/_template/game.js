@@ -1,6 +1,11 @@
+
 /**
- * Pure game-logic module for the template game.
- * No DOM access — every function is easily unit-tested.
+ * game.js — Pure game logic for the template game.
+ *
+ * Contains all state and logic for the template game, with no DOM access.
+ * All functions are pure and easily unit-testable.
+ *
+ * @file Template game logic module.
  */
 
 /** @type {number} */

@@ -1,3 +1,14 @@
+/**
+ * main.js — Electron main process entry point for BrainSpeedExercises.
+ *
+ * Responsibilities:
+ * - Create and manage BrowserWindow instances.
+ * - Register all IPC handlers (ipcMain.handle).
+ * - Load the game plugin registry at startup.
+ * - Proxy save/load requests from the renderer to the progress manager.
+ *
+ * @file Main process bootstrap and IPC wiring for BrainSpeedExercises.
+ */
 import { app, BrowserWindow, ipcMain, session, screen } from 'electron';
 import debug from 'electron-debug';
 import { readFile } from 'fs/promises';
@@ -5,7 +16,9 @@ import path from 'path';
 import { loadProgress, saveProgress, resetProgress } from './app/progress/progressManager.js';
 import { scanGamesDirectory, loadGame } from './app/games/registry.js';
 
-// Developer Dependencies.
+debug();
+
+// Developer mode flag.
 const isDev = !app.isPackaged;
 
 debug();
@@ -19,6 +32,9 @@ let mainWindow;
 
 /**
  * Create the main application window.
+ *
+ * @function
+ * @returns {void}
  */
 function createWindow() {
   const display = screen.getPrimaryDisplay();
@@ -52,9 +68,10 @@ function createWindow() {
   });
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+/**
+ * App ready event handler. Initializes the main window.
+ * @event
+ */
 app.on('ready', createWindow);
 
 // Quit when all windows are closed.

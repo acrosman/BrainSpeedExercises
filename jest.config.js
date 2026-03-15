@@ -1,3 +1,10 @@
+/**
+ * jest.config.js — Jest configuration for BrainSpeedExercises.
+ *
+ * Configures test environment, coverage thresholds, and file patterns for the test suite.
+ *
+ * @file Jest configuration.
+ */
 export default {
   testEnvironment: 'jsdom',
   transform: {},

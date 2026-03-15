@@ -1,7 +1,18 @@
+
+/**
+ * registry.js — Game plugin registry for BrainSpeedExercises.
+ *
+ * Scans the games directory for valid plugins and loads game modules by ID.
+ * Used by the main process to provide game manifests and plugin entry points.
+ *
+ * @file Game plugin registry and loader.
+ */
+
 import fs from 'fs/promises';
 import path from 'path';
 
 const REQUIRED_FIELDS = ['id', 'name', 'description', 'entryPoint'];
+
 
 /**
  * Scans the games directory and returns an array of valid game manifests.

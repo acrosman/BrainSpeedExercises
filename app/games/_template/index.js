@@ -1,3 +1,13 @@
+
+/**
+ * index.js — Template game plugin entry point for BrainSpeedExercises.
+ *
+ * Example implementation of the plugin contract for new games.
+ * Handles DOM and plugin lifecycle for a minimal game.
+ *
+ * @file Template game plugin (UI/controller layer).
+ */
+
 import { initGame, startGame, stopGame, getScore } from './game.js';
 
 /** Human-readable name returned as part of the plugin contract. */

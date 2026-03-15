@@ -1,3 +1,12 @@
+/**
+ * progressManager.js — Player progress persistence for BrainSpeedExercises.
+ *
+ * Handles saving, loading, and resetting player progress as JSON files in the user data directory.
+ * All access is via IPC from the main process; never called directly from the renderer.
+ *
+ * @file Player progress persistence subsystem.
+ */
+
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
@@ -11,6 +20,12 @@ function validatePlayerId(playerId) {
   }
 }
 
+/**
+ * Loads player progress from disk, or returns a default structure if not found.
+ * @param {string} playerId
+ * @returns {Promise<Object>} Player progress data
+ * @throws {Error} If playerId is invalid or file is corrupt
+ */
 export async function loadProgress(playerId) {
   validatePlayerId(playerId);
   const filePath = path.join(app.getPath('userData'), `${playerId}.json`);
@@ -29,6 +44,13 @@ export async function loadProgress(playerId) {
   }
 }
 
+/**
+ * Saves player progress to disk, using a temporary file for atomicity.
+ * @param {string} playerId
+ * @param {Object} data
+ * @returns {Promise<void>}
+ * @throws {Error} If playerId is invalid or write fails
+ */
 export async function saveProgress(playerId, data) {
   validatePlayerId(playerId);
   const filePath = path.join(app.getPath('userData'), `${playerId}.json`);
@@ -38,6 +60,12 @@ export async function saveProgress(playerId, data) {
   await fs.rename(tmpPath, filePath);
 }
 
+/**
+ * Deletes the player's progress file from disk.
+ * @param {string} playerId
+ * @returns {Promise<void>}
+ * @throws {Error} If playerId is invalid or unlink fails
+ */
 export async function resetProgress(playerId) {
   validatePlayerId(playerId);
   const filePath = path.join(app.getPath('userData'), `${playerId}.json`);

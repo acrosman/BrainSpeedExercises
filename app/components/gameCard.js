@@ -1,4 +1,12 @@
 /**
+ * gameCard.js — UI component for rendering a game selection card.
+ *
+ * Exports a function to create a WCAG-compliant game card element for the selector screen.
+ *
+ * @file Game card UI component for BrainSpeedExercises.
+ */
+
+/**
  * Creates a game card element for the game-selection screen.
  *
  * @param {object} manifest - Game manifest from the plugin registry.
@@ -31,6 +39,10 @@ export function createGameCard(manifest) {
   button.textContent = `Play ${manifest.name}`;
   button.setAttribute('aria-label', `Play ${manifest.name}`);
 
+  /**
+   * Dispatches a custom event when the game card button is clicked.
+   * @fires CustomEvent#game:select
+   */
   button.addEventListener('click', () => {
     const event = new CustomEvent('game:select', {
       bubbles: true,
