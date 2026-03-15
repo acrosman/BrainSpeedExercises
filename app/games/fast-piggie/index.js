@@ -74,3 +74,44 @@ export function highlightWedge(ctx, width, height, wedgeIndex, wedgeCount, color
   ctx.fillStyle = color;
   ctx.fill();
 }
+
+let _audioCtx = null;
+
+export function createAudioContext() {
+  if (!_audioCtx) {
+
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return _audioCtx;
+}
+
+function playTone(audioCtx, frequency, startTime, duration) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(frequency, startTime);
+
+  // Gentle envelope: ramp up then down to avoid clicks
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(0.35, startTime + 0.02);
+  gain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+  osc.start(startTime);
+  osc.stop(startTime + duration);
+}
+
+export function playSuccessSound(audioCtx) {
+  const now = audioCtx.currentTime;
+  playTone(audioCtx, 440, now, 0.15);
+  playTone(audioCtx, 660, now + 0.16, 0.15);
+}
+
+export function playFailureSound(audioCtx) {
+  const now = audioCtx.currentTime;
+  playTone(audioCtx, 330, now, 0.15);
+  playTone(audioCtx, 220, now + 0.16, 0.15);
+}
