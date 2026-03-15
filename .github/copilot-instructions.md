@@ -171,11 +171,9 @@ Fix auto-fixable issues: `npm run lint:fix`
 
 ### Framework: Jest
 
-```
-npm test            # run all tests
-npm run test:watch  # watch mode
-npm run test:coverage  # coverage report (must remain at 100% functions)
-```
+All tests use the jest framework. The root `jest.config.js` sets up the testing environment, including moduleNameMapper for asset imports and a custom test environment that mocks Electron APIs.
+
+Use the vscode built-in test runner whenever possible.
 
 ### Coverage Requirements
 
@@ -219,8 +217,8 @@ Use semantic HTML elements (`<button>`, `<nav>`, `<main>`, `<section>`, `<articl
 
 Follow Electron's security checklist for every change:
 
-1. `nodeIntegration: false` — already set in `main.js`.
-2. `contextIsolation: true` — already set.
+1. `nodeIntegration: false`
+2. `contextIsolation: true`
 3. No `eval()` or `new Function()` in renderer code.
 4. Content-Security-Policy header set in `index.html` (`default-src 'self'`).
 5. All new IPC channels must be added to the allowlist in `preload.js`.
