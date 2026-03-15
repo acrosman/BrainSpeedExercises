@@ -921,15 +921,17 @@ describe('progress saving', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(mockApi.invoke).toHaveBeenCalledWith('progress:load', 'default');
+    expect(mockApi.invoke).toHaveBeenCalledWith('progress:load', { playerId: 'default' });
     expect(mockApi.invoke).toHaveBeenCalledWith(
       'progress:save',
-      'default',
       expect.objectContaining({
-        games: expect.objectContaining({
-          'fast-piggie': expect.objectContaining({
-            sessionsPlayed: 1,
-            lastPlayed: expect.any(String),
+        playerId: 'default',
+        data: expect.objectContaining({
+          games: expect.objectContaining({
+            'fast-piggie': expect.objectContaining({
+              sessionsPlayed: 1,
+              lastPlayed: expect.any(String),
+            }),
           }),
         }),
       }),
@@ -950,6 +952,60 @@ describe('progress saving', () => {
 
     await Promise.resolve();
     await Promise.resolve();
+
+    delete globalThis.api;
+  });
+
+  it('passes playerId as an object property to progress:load (not a plain string)', async () => {
+    const mockProgress = { playerId: 'default', games: {} };
+    const mockApi = {
+      invoke: jest
+        .fn()
+        .mockResolvedValueOnce(mockProgress)
+        .mockResolvedValueOnce(undefined),
+    };
+    globalThis.api = mockApi;
+
+    plugin.init(buildContainer());
+    plugin.start();
+    plugin.stop();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const loadCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:load');
+    expect(typeof loadCall[1]).toBe('object');
+    expect(loadCall[1]).toHaveProperty('playerId');
+    expect(typeof loadCall[1].playerId).toBe('string');
+    expect(loadCall[1].playerId.length).toBeGreaterThan(0);
+
+    delete globalThis.api;
+  });
+
+  it('passes playerId and data as object properties to progress:save', async () => {
+    const mockProgress = { playerId: 'default', games: {} };
+    const mockApi = {
+      invoke: jest
+        .fn()
+        .mockResolvedValueOnce(mockProgress)
+        .mockResolvedValueOnce(undefined),
+    };
+    globalThis.api = mockApi;
+
+    plugin.init(buildContainer());
+    plugin.start();
+    plugin.stop();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const saveCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:save');
+    expect(typeof saveCall[1]).toBe('object');
+    expect(saveCall[1]).toHaveProperty('playerId');
+    expect(saveCall[1]).toHaveProperty('data');
+    expect(typeof saveCall[1].playerId).toBe('string');
+    expect(saveCall[1].playerId.length).toBeGreaterThan(0);
+    expect(typeof saveCall[1].data).toBe('object');
 
     delete globalThis.api;
   });
@@ -977,7 +1033,7 @@ describe('progress saving', () => {
     await Promise.resolve();
 
     const saveCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:save');
-    expect(saveCall[2].games['fast-piggie'].highScore).toBe(10);
+    expect(saveCall[1].data.games['fast-piggie'].highScore).toBe(10);
 
     delete globalThis.api;
   });

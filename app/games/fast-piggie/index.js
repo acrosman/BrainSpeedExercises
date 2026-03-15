@@ -382,7 +382,7 @@ export default {
 
     // Persist progress (guard for test environment where window.api is absent)
     if (typeof window !== 'undefined' && window.api) {
-      window.api.invoke('progress:load', 'default')
+      window.api.invoke('progress:load', { playerId: 'default' })
         .then((existing) => {
           const gameEntry = (existing.games && existing.games['fast-piggie']) || {
             highScore: 0,
@@ -400,7 +400,7 @@ export default {
               },
             },
           };
-          return window.api.invoke('progress:save', 'default', updated);
+          return window.api.invoke('progress:save', { playerId: 'default', data: updated });
         })
         .catch(() => {
           // Progress save failure is non-fatal — game continues normally
