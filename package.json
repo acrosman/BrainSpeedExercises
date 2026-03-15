@@ -16,8 +16,8 @@
   ],
   "scripts": {
     "start": "electron .",
-    "lint": "eslint app main.js",
-    "lint:fix": "eslint --fix app main.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
     "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage"
@@ -29,6 +29,10 @@
     "yauzl": "^3.2.1"
   },
   "devDependencies": {
+    "@babel/core": "^7",
+    "@babel/preset-env": "^7",
+    "@jest/globals": "^29",
+    "babel-jest": "^29",
     "electron-debug": "^4",
     "eslint": "^9",
     "jest": "^30",

@@ -1,6 +1,8 @@
 export default {
   testEnvironment: 'jsdom',
   transform: {},
+  extensionsToTreatAsEsm: ['.js'],
+  testMatch: ['**/*.test.js'],
   coverageThreshold: {
     global: {
       functions: 100,
@@ -11,8 +13,7 @@ export default {
   },
   collectCoverageFrom: [
     'app/**/*.js',
-    '!app/**/*.test.js',
-    '!app/preload.js',
-    '!app/interface.js',
+    '!app/games/_template/**',
+    '!**/*.test.js',
   ],
 };
