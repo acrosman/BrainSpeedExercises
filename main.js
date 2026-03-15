@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, session, screen } from 'electron';
 import debug from 'electron-debug';
 import path from 'path';
 import { loadProgress, saveProgress, resetProgress } from './app/progress/progressManager.js';
+import { scanGamesDirectory, loadGame } from './app/games/registry.js';
 
 // Developer Dependencies.
 const isDev = !app.isPackaged;
@@ -124,3 +125,13 @@ ipcMain.handle('progress:load', async (event, { playerId }) => loadProgress(play
 ipcMain.handle('progress:save', async (event, { playerId, data }) => saveProgress(playerId, data));
 
 ipcMain.handle('progress:reset', async (event, { playerId }) => resetProgress(playerId));
+
+const gamesPath = path.join(app.getAppPath(), 'app', 'games');
+
+ipcMain.handle('games:list', async () => scanGamesDirectory(gamesPath));
+
+ipcMain.handle('games:load', async (event, gameId) => {
+  const { manifest } = await loadGame(gamesPath, gameId);
+  const htmlPath = `file://${path.join(gamesPath, gameId, 'interface.html')}`;
+  return { manifest, htmlPath };
+});

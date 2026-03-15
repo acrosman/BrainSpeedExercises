@@ -1,0 +1,117 @@
+/* ── Template Game ────────────────────────────────────────────────────────── */
+/* All selectors are prefixed with .game-template to avoid collisions.        */
+
+.game-template {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: inherit;
+}
+
+/* Header */
+.game-template__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.game-template__title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #111;
+}
+
+.game-template__score {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #222;
+}
+
+/* Play area */
+.game-template__play-area {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+}
+
+.game-template__placeholder {
+  color: #666;
+  font-style: italic;
+}
+
+/* Status region */
+.game-template__status {
+  margin: 0 0 0.75rem;
+  min-height: 1.4em;
+  font-size: 1rem;
+  color: #444;
+}
+
+/* Controls */
+.game-template__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.game-template__buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Buttons — meets WCAG 2.2 AA contrast requirements */
+.game-template__btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.game-template__btn:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 2px;
+}
+
+.game-template__btn--start {
+  background: #005fcc;
+  color: #fff;
+  border-color: #004fa3;
+}
+
+.game-template__btn--start:hover {
+  background: #004fa3;
+}
+
+.game-template__btn--stop {
+  background: #c0392b;
+  color: #fff;
+  border-color: #922b21;
+}
+
+.game-template__btn--stop:hover {
+  background: #922b21;
+}
+
+.game-template__btn--reset {
+  background: #555;
+  color: #fff;
+  border-color: #333;
+}
+
+.game-template__btn--reset:hover {
+  background: #333;
+}

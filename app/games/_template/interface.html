@@ -1,0 +1,31 @@
+<!-- HTML fragment injected into #game-container by the renderer.
+     Do NOT include <html>, <head>, or <body> tags. -->
+
+<section class="game-template" aria-labelledby="game-template-heading">
+  <header class="game-template__header">
+    <h2 id="game-template-heading" class="game-template__title">Template Game</h2>
+    <p class="game-template__score" aria-live="polite" aria-atomic="true">Score: <span id="game-template-score">0</span>
+    </p>
+  </header>
+
+  <div class="game-template__play-area" role="main">
+    <!-- Replace this placeholder with your game's interactive content. -->
+    <p class="game-template__placeholder">Game content goes here.</p>
+  </div>
+
+  <footer class="game-template__controls">
+    <p class="game-template__status" aria-live="polite" aria-atomic="true">Press Start to play.</p>
+
+    <div class="game-template__buttons" role="group" aria-label="Game controls">
+      <button type="button" id="game-template-start" class="game-template__btn game-template__btn--start">
+        Start
+      </button>
+      <button type="button" id="game-template-stop" class="game-template__btn game-template__btn--stop">
+        Stop
+      </button>
+      <button type="button" id="game-template-reset" class="game-template__btn game-template__btn--reset">
+        Reset
+      </button>
+    </div>
+  </footer>
+</section>
