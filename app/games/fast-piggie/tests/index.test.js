@@ -73,6 +73,11 @@ HTMLCanvasElement.prototype.getBoundingClientRect = jest.fn(() => ({
 // 3 — Image mock (trigger onload synchronously)
 // ---------------------------------------------------------------------------
 globalThis.Image = class {
+  constructor() {
+    this.naturalWidth = 768;
+    this.naturalHeight = 512;
+  }
+
   set src(_) {
     if (this.onload) this.onload();
   }
@@ -191,7 +196,7 @@ describe('named exports', () => {
   });
 
   it('loadImages returns a Promise', () => {
-    const result = loadImages('a.png', 'b.png');
+    const result = loadImages('a.png');
     expect(result).toBeInstanceOf(Promise);
   });
 
@@ -534,10 +539,29 @@ describe('drawBoard()', () => {
   });
 
   it('calls ctx.drawImage when showImages is true and images are provided', () => {
-    const fakeImg = {};
+    const fakeImgEl = { naturalWidth: 768, naturalHeight: 512 };
+    const fakeWrappers = [
+      { image: fakeImgEl, sx: 0, sw: 384, sh: 512 },
+      { image: fakeImgEl, sx: 384, sw: 384, sh: 512 },
+    ];
     ctx2d.drawImage.mockClear();
-    drawBoard(ctx2d, 500, 500, 4, [fakeImg, fakeImg], 1, true);
+    drawBoard(ctx2d, 500, 500, 4, fakeWrappers, 1, true);
     expect(ctx2d.drawImage).toHaveBeenCalled();
+  });
+
+  it('calls ctx.drawImage with 9 arguments (sprite clipping)', () => {
+    const fakeImgEl = { naturalWidth: 768, naturalHeight: 512 };
+    const fakeWrappers = [
+      { image: fakeImgEl, sx: 0, sw: 384, sh: 512 },
+      { image: fakeImgEl, sx: 384, sw: 384, sh: 512 },
+    ];
+    ctx2d.drawImage.mockClear();
+    drawBoard(ctx2d, 500, 500, 4, fakeWrappers, 1, true);
+    expect(ctx2d.drawImage).toHaveBeenCalledWith(
+      expect.any(Object), expect.any(Number), 0,
+      384, 512,
+      expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number),
+    );
   });
 });
 
@@ -583,9 +607,20 @@ describe('playFailureSound()', () => {
 });
 
 describe('loadImages()', () => {
-  it('resolves with two Image elements when images load', async () => {
-    const imgs = await loadImages('a.png', 'b.png');
+  it('resolves with two wrapper objects when image loads', async () => {
+    const imgs = await loadImages('a.png');
     expect(imgs).toHaveLength(2);
+  });
+
+  it('each wrapper has image, sx, sw, sh properties', async () => {
+    const imgs = await loadImages('a.png');
+    expect(imgs[0]).toMatchObject({ image: expect.any(Object), sx: 0, sw: 384, sh: 512 });
+    expect(imgs[1]).toMatchObject({ image: expect.any(Object), sx: 384, sw: 384, sh: 512 });
+  });
+
+  it('returns a Promise', () => {
+    const result = loadImages('a.png');
+    expect(result).toBeInstanceOf(Promise);
   });
 });
 

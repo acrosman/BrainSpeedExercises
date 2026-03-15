@@ -1,15 +1,19 @@
 import * as game from './game.js';
 
-export function loadImages(commonSrc, outlierSrc) {
-  function load(src) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
-      img.src = src;
-    });
-  }
-  return Promise.all([load(commonSrc), load(outlierSrc)]);
+export function loadImages(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const halfW = img.naturalWidth / 2;
+      const h = img.naturalHeight;
+      resolve([
+        { image: img, sx: 0, sw: halfW, sh: h },
+        { image: img, sx: halfW, sw: halfW, sh: h },
+      ]);
+    };
+    img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+    img.src = src;
+  });
 }
 
 export function drawBoard(ctx, width, height, wedgeCount, images, outlierIndex, showImages) {
@@ -35,12 +39,18 @@ export function drawBoard(ctx, width, height, wedgeCount, images, outlierIndex, 
     ctx.stroke();
 
     if (showImages) {
-      const img = i === outlierIndex ? images[1] : images[0];
-      const midAngle = startAngle + angleStep / 2;
-      const imgCx = cx + Math.cos(midAngle) * radius * 0.6;
-      const imgCy = cy + Math.sin(midAngle) * radius * 0.6;
-      const imgSize = radius * 0.35;
-      ctx.drawImage(img, imgCx - imgSize / 2, imgCy - imgSize / 2, imgSize, imgSize);
+      const entry = i === outlierIndex ? images[1] : images[0];
+      if (entry && entry.image) {
+        const midAngle = startAngle + angleStep / 2;
+        const imgCx = cx + Math.cos(midAngle) * radius * 0.6;
+        const imgCy = cy + Math.sin(midAngle) * radius * 0.6;
+        const drawH = radius * 0.35;
+        const drawW = drawH * (entry.sw / entry.sh);
+        ctx.drawImage(
+          entry.image, entry.sx, 0, entry.sw, entry.sh,
+          imgCx - drawW / 2, imgCy - drawH / 2, drawW, drawH,
+        );
+      }
     }
   }
 }
@@ -293,7 +303,7 @@ export default {
 
     // Pre-load images
     const base = new URL('../fast-piggie/images/', import.meta.url).href;
-    loadImages(`${base}guinea-pig-common.png`, `${base}guinea-pig-outlier.png`)
+    loadImages(`${base}PiggiesSource.jpg`)
       .then((imgs) => {
         _images = imgs;
       })
