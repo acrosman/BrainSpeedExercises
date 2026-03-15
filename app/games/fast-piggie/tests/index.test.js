@@ -119,16 +119,21 @@ function buildContainer() {
   const div = document.createElement('div');
   div.innerHTML = `
     <section class="fast-piggie">
-      <canvas id="fp-canvas" width="500" height="500"></canvas>
-      <div class="fp-stats">
-        <span class="fp-stat">Round: <strong id="fp-round-count">0</strong></span>
-        <span class="fp-stat">Score: <strong id="fp-score">0</strong></span>
+      <div id="fp-instructions" class="fp-instructions">
+        <button id="fp-start-btn" class="fp-btn fp-btn--primary">Start Game</button>
       </div>
-      <div id="fp-feedback" role="status" aria-live="assertive" class="fp-feedback sr-only"></div>
-      <div id="fp-flash" class="fp-flash"></div>
-      <div class="fp-controls">
-        <button id="fp-continue-btn" class="fp-btn" hidden>Continue</button>
-        <button id="fp-stop-btn" class="fp-btn fp-btn--secondary">End Game</button>
+      <div id="fp-game-area" hidden>
+        <canvas id="fp-canvas" width="500" height="500"></canvas>
+        <div class="fp-stats">
+          <span class="fp-stat">Round: <strong id="fp-round-count">0</strong></span>
+          <span class="fp-stat">Score: <strong id="fp-score">0</strong></span>
+        </div>
+        <div id="fp-feedback" role="status" aria-live="assertive" class="fp-feedback sr-only"></div>
+        <div id="fp-flash" class="fp-flash"></div>
+        <div class="fp-controls">
+          <button id="fp-continue-btn" class="fp-btn" hidden>Continue</button>
+          <button id="fp-stop-btn" class="fp-btn fp-btn--secondary">End Game</button>
+        </div>
       </div>
     </section>
   `;
@@ -253,6 +258,13 @@ describe('init(container)', () => {
     expect(spy).toHaveBeenCalledWith('keydown', expect.any(Function));
   });
 
+  it('binds a click listener to #fp-start-btn', () => {
+    const btn = container.querySelector('#fp-start-btn');
+    const spy = jest.spyOn(btn, 'addEventListener');
+    plugin.init(container);
+    expect(spy).toHaveBeenCalledWith('click', expect.any(Function));
+  });
+
   it('binds a click listener to #fp-continue-btn', () => {
     const btn = container.querySelector('#fp-continue-btn');
     const spy = jest.spyOn(btn, 'addEventListener');
@@ -265,6 +277,20 @@ describe('init(container)', () => {
     const spy = jest.spyOn(btn, 'addEventListener');
     plugin.init(container);
     expect(spy).toHaveBeenCalledWith('click', expect.any(Function));
+  });
+
+  it('binds a mousemove listener to the canvas', () => {
+    const canvas = container.querySelector('#fp-canvas');
+    const spy = jest.spyOn(canvas, 'addEventListener');
+    plugin.init(container);
+    expect(spy).toHaveBeenCalledWith('mousemove', expect.any(Function));
+  });
+
+  it('binds a mouseleave listener to the canvas', () => {
+    const canvas = container.querySelector('#fp-canvas');
+    const spy = jest.spyOn(canvas, 'addEventListener');
+    plugin.init(container);
+    expect(spy).toHaveBeenCalledWith('mouseleave', expect.any(Function));
   });
 });
 
@@ -287,6 +313,20 @@ describe('start()', () => {
     btn.hidden = false; // ensure it starts visible
     plugin.start();
     expect(btn.hidden).toBe(true);
+  });
+
+  it('hides #fp-instructions', () => {
+    const instructions = container.querySelector('#fp-instructions');
+    instructions.hidden = false;
+    plugin.start();
+    expect(instructions.hidden).toBe(true);
+  });
+
+  it('shows #fp-game-area', () => {
+    const gameArea = container.querySelector('#fp-game-area');
+    gameArea.hidden = true;
+    plugin.start();
+    expect(gameArea.hidden).toBe(false);
   });
 });
 
@@ -356,6 +396,18 @@ describe('reset()', () => {
   it('calls ctx.clearRect(0, 0, 500, 500)', () => {
     plugin.reset();
     expect(ctx2d.clearRect).toHaveBeenCalledWith(0, 0, 500, 500);
+  });
+
+  it('shows #fp-instructions', () => {
+    plugin.reset();
+    const instructions = container.querySelector('#fp-instructions');
+    expect(instructions.hidden).toBe(false);
+  });
+
+  it('hides #fp-game-area', () => {
+    plugin.reset();
+    const gameArea = container.querySelector('#fp-game-area');
+    expect(gameArea.hidden).toBe(true);
   });
 });
 
@@ -515,6 +567,8 @@ describe('_handleKeydown', () => {
 
   it('Enter calls _resolveRound (game.checkAnswer called)', () => {
     const canvas = container.querySelector('#fp-canvas');
+    // Navigate to a wedge first, then confirm with Enter
+    canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(game.checkAnswer).toHaveBeenCalled();
   });
@@ -651,6 +705,8 @@ describe('_handleKeydown — ArrowLeft navigation', () => {
 
   it('Space key calls _resolveRound (game.checkAnswer called)', () => {
     const canvas = container.querySelector('#fp-canvas');
+    // Navigate to a wedge first, then confirm with Space
+    canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     canvas.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     expect(game.checkAnswer).toHaveBeenCalled();
   });
@@ -672,6 +728,96 @@ describe('_handleKeydown — guard when click not enabled', () => {
     const canvas = container.querySelector('#fp-canvas');
     canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(game.checkAnswer).not.toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// _handleMouseMove
+// ===========================================================================
+describe('_handleMouseMove', () => {
+  beforeEach(() => {
+    game.calculateWedgeIndex.mockReturnValue(2);
+    plugin.start();
+    jest.runAllTimers();
+    ctx2d.clearRect.mockClear();
+    ctx2d.fill.mockClear();
+  });
+
+  function fireMouseMove(clientX = 250, clientY = 200) {
+    container.querySelector('#fp-canvas').dispatchEvent(
+      new MouseEvent('mousemove', { clientX, clientY, bubbles: true }),
+    );
+  }
+
+  it('does nothing when _clickEnabled is false', () => {
+    plugin.reset();
+    plugin.start(); // timers not advanced — _clickEnabled stays false
+    ctx2d.clearRect.mockClear();
+    fireMouseMove();
+    expect(ctx2d.clearRect).not.toHaveBeenCalled();
+  });
+
+  it('redraws the board when hovering a new wedge', () => {
+    fireMouseMove();
+    expect(ctx2d.clearRect).toHaveBeenCalled();
+  });
+
+  it('highlights the hovered wedge (fill called for highlight)', () => {
+    const fillCallsBefore = ctx2d.fill.mock.calls.length;
+    fireMouseMove();
+    // drawBoard fills each wedge once, plus highlightWedge fills once more
+    expect(ctx2d.fill.mock.calls.length).toBeGreaterThan(fillCallsBefore);
+  });
+
+  it('does not redraw when the same wedge is hovered again', () => {
+    fireMouseMove();
+    ctx2d.clearRect.mockClear();
+    fireMouseMove(255, 205); // calculateWedgeIndex still returns 2
+    expect(ctx2d.clearRect).not.toHaveBeenCalled();
+  });
+
+  it('redraws when keyboard selection was active and mouse moves to same wedge', () => {
+    // Establish keyboard selection via ArrowRight
+    container.querySelector('#fp-canvas').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    );
+    ctx2d.clearRect.mockClear();
+    // Mouse moves to wedge 2 (_hoveredWedge is still -1 at this point)
+    fireMouseMove();
+    expect(ctx2d.clearRect).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// _handleMouseLeave
+// ===========================================================================
+describe('_handleMouseLeave', () => {
+  beforeEach(() => {
+    game.calculateWedgeIndex.mockReturnValue(2);
+    plugin.start();
+    jest.runAllTimers();
+    // Establish a hover state first
+    container.querySelector('#fp-canvas').dispatchEvent(
+      new MouseEvent('mousemove', { clientX: 250, clientY: 200, bubbles: true }),
+    );
+    ctx2d.clearRect.mockClear();
+  });
+
+  it('clears the hover highlight when the mouse leaves', () => {
+    container.querySelector('#fp-canvas').dispatchEvent(
+      new MouseEvent('mouseleave', { bubbles: true }),
+    );
+    expect(ctx2d.clearRect).toHaveBeenCalled();
+  });
+
+  it('does nothing when _clickEnabled is false', () => {
+    plugin.reset();
+    plugin.start(); // timers not advanced
+    ctx2d.clearRect.mockClear();
+    container.querySelector('#fp-canvas').dispatchEvent(
+      new MouseEvent('mouseleave', { bubbles: true }),
+    );
+    expect(ctx2d.clearRect).not.toHaveBeenCalled();
   });
 });
 

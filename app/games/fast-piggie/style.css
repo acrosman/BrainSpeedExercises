@@ -138,3 +138,49 @@
 [hidden] {
   display: none !important;
 }
+
+/* Instructions panel */
+.fp-instructions {
+  max-width: 520px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  text-align: left;
+}
+
+.fp-instructions h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.fp-instructions p {
+  margin: 0 0 0.75rem;
+}
+
+.fp-instructions ul {
+  margin: 0 0 1.25rem 1.25rem;
+  padding: 0;
+}
+
+.fp-instructions li {
+  margin-bottom: 0.4rem;
+}
+
+.fp-instructions kbd {
+  display: inline-block;
+  padding: 0 0.35em;
+  font-family: monospace;
+  font-size: 0.875em;
+  border: 1px solid #adb5bd;
+  border-radius: 3px;
+  background-color: #f1f3f5;
+}
+
+.fp-instructions .fp-btn {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 1.5rem;
+  font-size: 1.1rem;
+}

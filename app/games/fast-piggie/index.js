@@ -34,9 +34,6 @@ export function drawBoard(ctx, width, height, wedgeCount, images, outlierIndex, 
     ctx.closePath();
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    ctx.strokeStyle = '#343a40';
-    ctx.lineWidth = 2;
-    ctx.stroke();
 
     if (showImages) {
       const entry = i === outlierIndex ? images[1] : images[0];
@@ -79,18 +76,22 @@ export function highlightWedge(ctx, width, height, wedgeIndex, wedgeCount, color
 // DOM references — populated by init()
 let _canvas = null;
 let _ctx = null;
+let _startBtn = null;
 let _continueBtn = null;
 let _stopBtn = null;
 let _scoreEl = null;
 let _roundEl = null;
 let _feedbackEl = null;
 let _flashEl = null;
+let _instructionsEl = null;
+let _gameAreaEl = null;
 
 // Game state
 let _images = null; // [commonImage, outlierImage]
 let _currentRound = null; // { wedgeCount, displayDurationMs, outlierWedgeIndex }
 let _clickEnabled = false;
 let _selectedWedge = -1; // for keyboard navigation
+let _hoveredWedge = -1; // for mouse hover highlighting
 let _roundTimer = null; // setTimeout handle
 
 let _audioCtx = null;
@@ -184,10 +185,9 @@ function _runRound() {
   _roundTimer = setTimeout(() => {
     clearImages(_ctx, width, height, wedgeCount);
     _clickEnabled = true;
+    _hoveredWedge = -1;
+    _selectedWedge = -1;
     _canvas.focus();
-    // Reset keyboard selection
-    _selectedWedge = 0;
-    _highlightKeyboardSelection();
   }, displayDurationMs);
 }
 
@@ -209,33 +209,49 @@ function _handleKeydown(event) {
   }
 }
 
-function _handleClick(event) {
-  if (!_clickEnabled || !_currentRound) return;
-
+function _getCanvasWedge(event) {
   const rect = _canvas.getBoundingClientRect();
-  const clickX = event.clientX - rect.left;
-  const clickY = event.clientY - rect.top;
-
-  // Scale click coords to canvas drawing buffer
   const scaleX = _canvas.width / rect.width;
   const scaleY = _canvas.height / rect.height;
-
-  const { wedgeCount } = _currentRound;
   const cx = _canvas.width / 2;
   const cy = _canvas.height / 2;
   const radius = Math.min(_canvas.width, _canvas.height) / 2 - 10;
-
-  const wedge = game.calculateWedgeIndex(
-    clickX * scaleX,
-    clickY * scaleY,
+  return game.calculateWedgeIndex(
+    (event.clientX - rect.left) * scaleX,
+    (event.clientY - rect.top) * scaleY,
     cx,
     cy,
     radius,
-    wedgeCount,
+    _currentRound.wedgeCount,
   );
+}
 
+function _handleMouseMove(event) {
+  if (!_clickEnabled || !_currentRound) return;
+  const wedge = _getCanvasWedge(event);
+  if (wedge === _hoveredWedge && _selectedWedge < 0) return;
+  _hoveredWedge = wedge;
+  _selectedWedge = -1;
+  const { wedgeCount } = _currentRound;
+  const { width, height } = _canvas;
+  clearImages(_ctx, width, height, wedgeCount);
+  if (wedge !== -1) {
+    highlightWedge(_ctx, width, height, wedge, wedgeCount, 'rgba(0, 95, 204, 0.25)');
+  }
+}
+
+function _handleMouseLeave() {
+  if (!_clickEnabled || !_currentRound) return;
+  _hoveredWedge = -1;
+  const { wedgeCount } = _currentRound;
+  const { width, height } = _canvas;
+  clearImages(_ctx, width, height, wedgeCount);
+}
+
+function _handleClick(event) {
+  if (!_clickEnabled || !_currentRound) return;
+  const wedge = _getCanvasWedge(event);
   if (wedge === -1) return; // Outside circle — ignore
-
   _resolveRound(wedge);
 }
 
@@ -292,6 +308,9 @@ export default {
   name: 'Fast Piggie',
 
   init(container) {
+    _instructionsEl = container.querySelector('#fp-instructions');
+    _gameAreaEl = container.querySelector('#fp-game-area');
+    _startBtn = container.querySelector('#fp-start-btn');
     _canvas = container.querySelector('#fp-canvas');
     _ctx = _canvas.getContext('2d');
     _continueBtn = container.querySelector('#fp-continue-btn');
@@ -313,13 +332,18 @@ export default {
       });
 
     // Bind events
+    _startBtn.addEventListener('click', () => this.start());
     _canvas.addEventListener('click', _handleClick);
+    _canvas.addEventListener('mousemove', _handleMouseMove);
+    _canvas.addEventListener('mouseleave', _handleMouseLeave);
     _canvas.addEventListener('keydown', _handleKeydown);
     _continueBtn.addEventListener('click', () => _runRound());
     _stopBtn.addEventListener('click', () => this.stop());
   },
 
   start() {
+    if (_instructionsEl) _instructionsEl.hidden = true;
+    if (_gameAreaEl) _gameAreaEl.hidden = false;
     game.startGame();
     _updateStats();
     _continueBtn.hidden = true;
@@ -377,6 +401,7 @@ export default {
     _clickEnabled = false;
     _currentRound = null;
     _selectedWedge = -1;
+    _hoveredWedge = -1;
     if (_ctx && _canvas) {
       _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
     }
@@ -384,5 +409,7 @@ export default {
     _feedbackEl.textContent = '';
     _continueBtn.hidden = true;
     _stopBtn.hidden = false;
+    if (_instructionsEl) _instructionsEl.hidden = false;
+    if (_gameAreaEl) _gameAreaEl.hidden = true;
   },
 };
