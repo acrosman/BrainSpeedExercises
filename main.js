@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, session, screen } from 'electron';
 import debug from 'electron-debug';
+import { readFile } from 'fs/promises';
 import path from 'path';
 import { loadProgress, saveProgress, resetProgress } from './app/progress/progressManager.js';
 import { scanGamesDirectory, loadGame } from './app/games/registry.js';
@@ -70,15 +71,15 @@ app.on('window-all-closed', () => {
 app.on('web-contents-created', (event, contents) => {
   // Block navigation.
   // https://electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation
-  contents.on("will-navigate", (navEvent) => {
+  contents.on('will-navigate', (navEvent) => {
     navEvent.preventDefault();
   });
-  contents.on("will-redirect", (navEvent) => {
+  contents.on('will-redirect', (navEvent) => {
     navEvent.preventDefault();
   });
 
   // https://electronjs.org/docs/tutorial/security#11-verify-webview-options-before-creation
-  contents.on("will-attach-webview", (webEvent, webPreferences) => {
+  contents.on('will-attach-webview', (webEvent, webPreferences) => {
     // Strip away preload scripts.
     delete webPreferences.preload;
     delete webPreferences.preloadURL;
@@ -89,7 +90,7 @@ app.on('web-contents-created', (event, contents) => {
 
   // Block new windows from within the App
   // https://electronjs.org/docs/tutorial/security#13-disable-or-limit-creation-of-new-windows
-  contents.setWindowOpenHandler(() => ({ action: "deny" }));
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
   // Lock down session permissions.
   // https://www.electronjs.org/docs/tutorial/security#4-handle-session-permission-requests-from-remote-content
@@ -132,6 +133,9 @@ ipcMain.handle('games:list', async () => scanGamesDirectory(gamesPath));
 
 ipcMain.handle('games:load', async (event, gameId) => {
   const { manifest } = await loadGame(gamesPath, gameId);
-  const htmlPath = `file://${path.join(gamesPath, gameId, 'interface.html')}`;
-  return { manifest, htmlPath };
+  const htmlFilePath = path.join(gamesPath, gameId, 'interface.html');
+  const html = await readFile(htmlFilePath, 'utf8').catch(() => {
+    throw new Error(`Could not read interface HTML for game: ${gameId}`);
+  });
+  return { manifest, html };
 });

@@ -22,6 +22,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     gameSelector.remove();
     gameContainer.innerHTML = result.html;
 
-    announcer.textContent = `${result.name} loaded. Get ready to play!`;
+    announcer.textContent = `${result.manifest.name} loaded. Get ready to play!`;
+
+    // Dynamically import the game plugin and initialise it so that the
+    // instructions panel and start button become active.
+    const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
+    mod.default.init(gameContainer);
   });
 });

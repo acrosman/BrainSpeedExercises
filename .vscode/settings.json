@@ -1,0 +1,10 @@
+{
+  "jest.jestCommandLine": "node --experimental-vm-modules node_modules/.bin/jest",
+  "jest.autoRun": {
+    "watch": true,
+    "onStartup": [
+      "all-tests"
+    ]
+  },
+  "jest.showTerminalOnLaunch": false
+}

@@ -1,0 +1,56 @@
+<section class="fast-piggie" aria-labelledby="fp-title">
+
+  <h2 id="fp-title">Fast Piggie</h2>
+
+  <!-- Instructions panel: shown before the game starts -->
+  <div id="fp-instructions" class="fp-instructions">
+    <h3>How to Play</h3>
+    <p>A spinning wheel of guinea pigs will flash on screen briefly. One of them looks a little different — spot the odd
+      one out before they disappear!</p>
+    <ul>
+      <li>Watch the wheel carefully when it appears.</li>
+      <li>After the piggies vanish, click or tap the wedge where the different one was hiding.</li>
+      <li>Use arrow keys to navigate wedges and press <kbd>Enter</kbd> or <kbd>Space</kbd> to confirm.</li>
+      <li>Rounds get harder (more wedges, less time) as your score grows!</li>
+    </ul>
+    <button id="fp-start-btn" class="fp-btn fp-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <!-- Game area: hidden until the player clicks Start -->
+  <div id="fp-game-area" hidden>
+
+    <!-- Live stats bar: updates each round. polite = announced when idle -->
+    <div class="fp-stats" aria-live="polite" aria-atomic="true">
+      <span class="fp-stat">
+        Round: <strong id="fp-round-count">0</strong>
+      </span>
+      <span class="fp-stat">
+        Score: <strong id="fp-score">0</strong>
+      </span>
+    </div>
+
+    <!-- Game canvas: keyboard-accessible wedge board -->
+    <canvas id="fp-canvas" class="fp-canvas" width="500" height="500" tabindex="0" role="application"
+      aria-label="Game board. Use arrow keys to cycle through wedges, Enter or Space to select."></canvas>
+
+    <!-- Screen-reader-only feedback region: assertive = interrupts immediately -->
+    <div id="fp-feedback" role="status" aria-live="assertive" aria-atomic="true" class="fp-feedback sr-only"></div>
+
+    <!-- Visual flash overlay (toggled by JS via class names) -->
+    <div id="fp-flash" class="fp-flash" aria-hidden="true"></div>
+
+    <!-- Controls -->
+    <div class="fp-controls">
+      <button id="fp-continue-btn" class="fp-btn" hidden>
+        Continue
+      </button>
+      <button id="fp-stop-btn" class="fp-btn fp-btn--secondary">
+        End Game
+      </button>
+    </div>
+
+  </div>
+
+</section>

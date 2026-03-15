@@ -1,7 +1,6 @@
 export default {
   testEnvironment: 'jsdom',
   transform: {},
-  extensionsToTreatAsEsm: ['.js'],
   testMatch: ['**/*.test.js'],
   coverageThreshold: {
     global: {
