@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('api', {
       'games:load',
       'progress:save',
       'progress:load',
+      'progress:reset',
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);

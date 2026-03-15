@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, session, screen } from 'electron';
 import debug from 'electron-debug';
 import path from 'path';
+import { loadProgress, saveProgress, resetProgress } from './app/progress/progressManager.js';
 
 // Developer Dependencies.
 const isDev = !app.isPackaged;
@@ -117,3 +118,9 @@ ipcMain.on('sample_message', (event, args) => {
   });
   return true;
 });
+
+ipcMain.handle('progress:load', async (event, { playerId }) => loadProgress(playerId));
+
+ipcMain.handle('progress:save', async (event, { playerId, data }) => saveProgress(playerId, data));
+
+ipcMain.handle('progress:reset', async (event, { playerId }) => resetProgress(playerId));
