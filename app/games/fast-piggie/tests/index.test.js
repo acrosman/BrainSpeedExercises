@@ -11,6 +11,7 @@ jest.unstable_mockModule('../game.js', () => ({
   stopGame: jest.fn(() => ({ score: 3, roundsPlayed: 5, duration: 12000 })),
   generateRound: jest.fn(() => ({
     wedgeCount: 6,
+    imageCount: 3,
     displayDurationMs: 2000,
     outlierWedgeIndex: 2,
   })),
@@ -595,7 +596,7 @@ describe('_handleKeydown', () => {
 // ===========================================================================
 describe('drawBoard()', () => {
   it('calls ctx.clearRect then draws wedges', () => {
-    drawBoard(ctx2d, 500, 500, 4, [null, null], -1, false);
+    drawBoard(ctx2d, 500, 500, 4, 4, [null, null], -1, false);
     expect(ctx2d.clearRect).toHaveBeenCalledWith(0, 0, 500, 500);
     expect(ctx2d.beginPath).toHaveBeenCalled();
   });
@@ -607,7 +608,7 @@ describe('drawBoard()', () => {
       { image: fakeImgEl, sx: 384, sw: 384, sh: 512 },
     ];
     ctx2d.drawImage.mockClear();
-    drawBoard(ctx2d, 500, 500, 4, fakeWrappers, 1, true);
+    drawBoard(ctx2d, 500, 500, 4, 4, fakeWrappers, 1, true);
     expect(ctx2d.drawImage).toHaveBeenCalled();
   });
 
@@ -618,7 +619,7 @@ describe('drawBoard()', () => {
       { image: fakeImgEl, sx: 384, sw: 384, sh: 512 },
     ];
     ctx2d.drawImage.mockClear();
-    drawBoard(ctx2d, 500, 500, 4, fakeWrappers, 1, true);
+    drawBoard(ctx2d, 500, 500, 4, 4, fakeWrappers, 1, true);
     expect(ctx2d.drawImage).toHaveBeenCalledWith(
       expect.any(Object), expect.any(Number), 0,
       384, 512,

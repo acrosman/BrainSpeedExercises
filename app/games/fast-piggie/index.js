@@ -38,7 +38,9 @@ export function loadImages(src) {
   });
 }
 
-export function drawBoard(ctx, width, height, wedgeCount, images, outlierIndex, showImages) {
+export function drawBoard(
+  ctx, width, height, wedgeCount, imageCount, images, outlierIndex, showImages,
+) {
   ctx.clearRect(0, 0, width, height);
 
   const cx = width / 2;
@@ -57,7 +59,7 @@ export function drawBoard(ctx, width, height, wedgeCount, images, outlierIndex, 
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    if (showImages) {
+    if (showImages && i < imageCount) {
       const entry = i === outlierIndex ? images[1] : images[0];
       if (entry && entry.image) {
         const midAngle = startAngle + angleStep / 2;
@@ -75,7 +77,7 @@ export function drawBoard(ctx, width, height, wedgeCount, images, outlierIndex, 
 }
 
 export function clearImages(ctx, width, height, wedgeCount) {
-  drawBoard(ctx, width, height, wedgeCount, [null, null], -1, false);
+  drawBoard(ctx, width, height, wedgeCount, wedgeCount, [null, null], -1, false);
 }
 
 export function highlightWedge(ctx, width, height, wedgeIndex, wedgeCount, color) {
@@ -197,11 +199,11 @@ function _runRound() {
   _selectedWedge = -1;
   _currentRound = game.generateRound(game.getLevel());
 
-  const { wedgeCount, displayDurationMs, outlierWedgeIndex } = _currentRound;
+  const { wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex } = _currentRound;
   const { width, height } = _canvas;
 
   // Show images
-  drawBoard(_ctx, width, height, wedgeCount, _images, outlierWedgeIndex, true);
+  drawBoard(_ctx, width, height, wedgeCount, imageCount, _images, outlierWedgeIndex, true);
 
   // Hide images after displayDurationMs, then enable clicking
   _roundTimer = setTimeout(() => {

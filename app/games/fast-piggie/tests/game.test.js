@@ -223,18 +223,20 @@ describe('generateRound(level)', () => {
   });
 
   it.each([
-    [0, 6, 1200],
-    [1, 7, 900],
-    [2, 8, 600],
-    [3, 9, 300],
-    [4, 10, 300],
-    [5, 11, 300],
-    [8, 14, 300],
-    [100, 14, 300],
-  ])('level=%i → wedgeCount=%i, displayDurationMs=%i',
-    (roundNumber, wedgeCount, displayDurationMs) => {
+    [0, 6, 3, 1200],
+    [1, 6, 4, 800],
+    [2, 6, 5, 400],
+    [3, 6, 6, 200],
+    [4, 7, 7, 200],
+    [5, 8, 8, 200],
+    [8, 11, 11, 200],
+    [11, 14, 14, 200],
+    [100, 14, 14, 200],
+  ])('level=%i → wedgeCount=%i, imageCount=%i, displayDurationMs=%i',
+    (roundNumber, wedgeCount, imageCount, displayDurationMs) => {
       const result = generateRound(roundNumber);
       expect(result.wedgeCount).toBe(wedgeCount);
+      expect(result.imageCount).toBe(imageCount);
       expect(result.displayDurationMs).toBe(displayDurationMs);
     });
 
@@ -244,25 +246,25 @@ describe('generateRound(level)', () => {
     expect(getRoundsPlayed()).toBe(0);
   });
 
-  it('outlierWedgeIndex is in [0, wedgeCount) for Math.random() = 0', () => {
+  it('outlierWedgeIndex is in [0, imageCount) for Math.random() = 0', () => {
     randomSpy.mockReturnValue(0);
-    const { wedgeCount, outlierWedgeIndex } = generateRound(0);
+    const { imageCount, outlierWedgeIndex } = generateRound(0);
     expect(outlierWedgeIndex).toBeGreaterThanOrEqual(0);
-    expect(outlierWedgeIndex).toBeLessThan(wedgeCount);
+    expect(outlierWedgeIndex).toBeLessThan(imageCount);
   });
 
-  it('outlierWedgeIndex is in [0, wedgeCount) for Math.random() = 0.5', () => {
+  it('outlierWedgeIndex is in [0, imageCount) for Math.random() = 0.5', () => {
     randomSpy.mockReturnValue(0.5);
-    const { wedgeCount, outlierWedgeIndex } = generateRound(0);
+    const { imageCount, outlierWedgeIndex } = generateRound(0);
     expect(outlierWedgeIndex).toBeGreaterThanOrEqual(0);
-    expect(outlierWedgeIndex).toBeLessThan(wedgeCount);
+    expect(outlierWedgeIndex).toBeLessThan(imageCount);
   });
 
-  it('outlierWedgeIndex is in [0, wedgeCount) for Math.random() = 0.9999', () => {
+  it('outlierWedgeIndex is in [0, imageCount) for Math.random() = 0.9999', () => {
     randomSpy.mockReturnValue(0.9999);
-    const { wedgeCount, outlierWedgeIndex } = generateRound(0);
+    const { imageCount, outlierWedgeIndex } = generateRound(0);
     expect(outlierWedgeIndex).toBeGreaterThanOrEqual(0);
-    expect(outlierWedgeIndex).toBeLessThan(wedgeCount);
+    expect(outlierWedgeIndex).toBeLessThan(imageCount);
   });
 });
 
@@ -357,27 +359,42 @@ describe('calculateWedgeIndex()', () => {
 });
 
 describe('getCurrentDifficulty()', () => {
-  it('returns { wedgeCount: 6, displayDurationMs: 1200 } after initGame()', () => {
-    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 6, displayDurationMs: 1200 });
+  it('returns { wedgeCount: 6, imageCount: 3, displayDurationMs: 1200 } after initGame()', () => {
+    expect(getCurrentDifficulty()).toEqual({
+      wedgeCount: 6, imageCount: 3, displayDurationMs: 1200,
+    });
   });
 
-  it('returns wedgeCount:7, displayDurationMs:900 after 3 consecutive '
+  it('returns wedgeCount:6, imageCount:4, displayDurationMs:800 after 3 consecutive '
     + 'addScore() calls (level 1)', () => {
       addScore();
       addScore();
       addScore();
-      expect(getCurrentDifficulty()).toEqual({ wedgeCount: 7, displayDurationMs: 900 });
+      expect(getCurrentDifficulty()).toEqual({
+        wedgeCount: 6, imageCount: 4, displayDurationMs: 800,
+      });
     });
 
-  it('returns wedgeCount:9, displayDurationMs:300 after 9 consecutive '
+  it('returns wedgeCount:6, imageCount:6, displayDurationMs:200 after 9 consecutive '
     + 'addScore() calls (level 3)', () => {
       for (let i = 0; i < 9; i += 1) addScore();
-      expect(getCurrentDifficulty()).toEqual({ wedgeCount: 9, displayDurationMs: 300 });
+      expect(getCurrentDifficulty()).toEqual({
+        wedgeCount: 6, imageCount: 6, displayDurationMs: 200,
+      });
     });
 
-  it('returns { wedgeCount: 14, displayDurationMs: 300 } after reaching level 8 or beyond', () => {
+  it('returns { wedgeCount: 11, imageCount: 11, displayDurationMs: 200 } at level 8', () => {
     for (let i = 0; i < 24; i += 1) addScore();
-    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 14, displayDurationMs: 300 });
+    expect(getCurrentDifficulty()).toEqual({
+      wedgeCount: 11, imageCount: 11, displayDurationMs: 200,
+    });
+  });
+
+  it('returns { wedgeCount: 14, imageCount: 14, displayDurationMs: 200 } at level 11+', () => {
+    for (let i = 0; i < 33; i += 1) addScore();
+    expect(getCurrentDifficulty()).toEqual({
+      wedgeCount: 14, imageCount: 14, displayDurationMs: 200,
+    });
   });
 
   it('level does not advance when streak is broken by addMiss()', () => {
@@ -386,7 +403,9 @@ describe('getCurrentDifficulty()', () => {
     addMiss();
     addScore();
     addScore();
-    expect(getCurrentDifficulty()).toEqual({ wedgeCount: 6, displayDurationMs: 1200 });
+    expect(getCurrentDifficulty()).toEqual({
+      wedgeCount: 6, imageCount: 3, displayDurationMs: 1200,
+    });
   });
 });
 

@@ -32,10 +32,13 @@ export function stopGame() {
 }
 
 export function generateRound(currentLevel) {
-  const wedgeCount = Math.min(6 + currentLevel, 14);
-  const displayDurationMs = Math.max(1200 - currentLevel * 300, 300);
-  const outlierWedgeIndex = Math.floor(Math.random() * wedgeCount);
-  return { wedgeCount, displayDurationMs, outlierWedgeIndex };
+  const imageCount = Math.min(3 + currentLevel, 14);
+  const wedgeCount = Math.min(Math.max(6, imageCount), 14);
+  const displayDurationMs = Math.max(1200 - currentLevel * 400, 200);
+  const outlierWedgeIndex = Math.floor(Math.random() * imageCount);
+  return {
+    wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex,
+  };
 }
 
 export function checkAnswer(clickedWedge, outlierWedge) {
@@ -84,9 +87,10 @@ export function getConsecutiveCorrect() {
 }
 
 export function getCurrentDifficulty() {
-  const wedgeCount = Math.min(6 + level, 14);
-  const displayDurationMs = Math.max(1200 - level * 300, 300);
-  return { wedgeCount, displayDurationMs };
+  const imageCount = Math.min(3 + level, 14);
+  const wedgeCount = Math.min(Math.max(6, imageCount), 14);
+  const displayDurationMs = Math.max(1200 - level * 400, 200);
+  return { wedgeCount, imageCount, displayDurationMs };
 }
 
 export function isRunning() {
