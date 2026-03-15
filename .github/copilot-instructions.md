@@ -8,14 +8,14 @@ BrainSpeedExercises is an Electron desktop application that delivers a series of
 
 ## Technology Stack
 
-| Concern | Choice | Notes |
-|---|---|---|
-| Application shell | [Electron](https://www.electronjs.org/) | Latest stable — see `package.json` |
-| JavaScript module format | ES Modules (`"type": "module"`) | Already set in `package.json` |
-| Unit / integration tests | [Jest](https://jestjs.io/) | 100% function coverage required |
-| Linting | [ESLint](https://eslint.org/) (flat config) | Airbnb-style rules; see `.eslint.config.js` |
-| Accessibility standard | WCAG 2.2 Level AA | Required for all UI |
-| Progress persistence | Node `fs` (JSON flat-file) via IPC | No external database required |
+| Concern                  | Choice                                      | Notes                                       |
+| ------------------------ | ------------------------------------------- | ------------------------------------------- |
+| Application shell        | [Electron](https://www.electronjs.org/)     | Latest stable — see `package.json`          |
+| JavaScript module format | ES Modules (`"type": "module"`)             | Already set in `package.json`               |
+| Unit / integration tests | [Jest](https://jestjs.io/)                  | 100% function coverage required             |
+| Linting                  | [ESLint](https://eslint.org/) (flat config) | Airbnb-style rules; see `.eslint.config.js` |
+| Accessibility standard   | WCAG 2.2 Level AA                           | Required for all UI                         |
+| Progress persistence     | Node `fs` (JSON flat-file) via IPC          | No external database required               |
 
 > **Dependency policy:** All NPM packages are updated regularly. Pin to a major-version range (e.g. `"^38"`) rather than exact versions, and run `npm audit` on every PR.
 
@@ -73,20 +73,6 @@ app/games/<game-name>/
     └── index.test.js         # Integration tests for the plugin API
 ```
 
-**`manifest.json` schema:**
-
-```json
-{
-  "id": "unique-kebab-case-id",
-  "name": "Human-Readable Game Name",
-  "description": "One sentence description shown on the selector screen.",
-  "version": "1.0.0",
-  "thumbnail": "images/thumb.png",
-  "entryPoint": "index.js",
-  "wcagLevel": "AA"
-}
-```
-
 ---
 
 ## Architecture
@@ -94,6 +80,7 @@ app/games/<game-name>/
 ### 1 — Main Process (`main.js`)
 
 Responsibilities:
+
 - Create and manage `BrowserWindow` instances.
 - Register all IPC handlers (`ipcMain.handle`).
 - Load the game plugin registry at startup.
@@ -105,12 +92,12 @@ Exposes a strict allowlist of IPC channels via `contextBridge`. No Electron inte
 
 Valid channels (extend as needed):
 
-| Channel | Direction | Purpose |
-|---|---|---|
-| `games:list` | renderer → main | Request list of available game manifests |
-| `games:load` | renderer → main | Load a specific game by ID |
-| `progress:save` | renderer → main | Persist player progress |
-| `progress:load` | renderer → main | Retrieve player progress |
+| Channel         | Direction       | Purpose                                  |
+| --------------- | --------------- | ---------------------------------------- |
+| `games:list`    | renderer → main | Request list of available game manifests |
+| `games:load`    | renderer → main | Load a specific game by ID               |
+| `progress:save` | renderer → main | Persist player progress                  |
+| `progress:load` | renderer → main | Retrieve player progress                 |
 
 ### 3 — Renderer Process (`app/interface.js`)
 
@@ -166,6 +153,7 @@ When the renderer asks to load a game by ID, the main process:
 The project uses ESLint 9+ with the **flat config** format (`.eslint.config.js`).
 
 Rules summary:
+
 - Airbnb-style base: `eslint-config-airbnb-base`
 - Enforce `const`/`let` (no `var`)
 - Single quotes, trailing commas, semicolons required
@@ -197,13 +185,13 @@ npm run test:coverage  # coverage report (must remain at 100% functions)
 
 ### What to Test
 
-| Module | What to cover |
-|---|---|
-| `progressManager.js` | `loadProgress`, `saveProgress`, `resetProgress` — happy path + edge cases (missing file, corrupt JSON) |
-| `registry.js` | `scanGamesDirectory` — found manifests, missing directory, malformed manifest |
-| `game.js` (per game) | All exported functions; use mock timers for timed events |
-| `index.js` (per game) | Plugin lifecycle: `init`, `start`, `stop`, `reset` |
-| `components/*.js` | Render output for valid and invalid input |
+| Module                | What to cover                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `progressManager.js`  | `loadProgress`, `saveProgress`, `resetProgress` — happy path + edge cases (missing file, corrupt JSON) |
+| `registry.js`         | `scanGamesDirectory` — found manifests, missing directory, malformed manifest                          |
+| `game.js` (per game)  | All exported functions; use mock timers for timed events                                               |
+| `index.js` (per game) | Plugin lifecycle: `init`, `start`, `stop`, `reset`                                                     |
+| `components/*.js`     | Render output for valid and invalid input                                                              |
 
 ### Mocking Electron
 
