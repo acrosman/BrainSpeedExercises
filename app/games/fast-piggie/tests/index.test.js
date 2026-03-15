@@ -668,8 +668,8 @@ describe('loadImages()', () => {
 
   it('each wrapper has image, sx, sw, sh properties', async () => {
     const imgs = await loadImages('a.png');
-    expect(imgs[0]).toMatchObject({ image: expect.any(Object), sx: 0, sw: 384, sh: 512 });
-    expect(imgs[1]).toMatchObject({ image: expect.any(Object), sx: 384, sw: 384, sh: 512 });
+    expect(imgs[0]).toMatchObject({ image: expect.any(Object), sx: 0, sw: 382, sh: 512 });
+    expect(imgs[1]).toMatchObject({ image: expect.any(Object), sx: 0, sw: 382, sh: 512 });
   });
 
   it('returns a Promise', () => {

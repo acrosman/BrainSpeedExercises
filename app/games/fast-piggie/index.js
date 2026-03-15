@@ -1,14 +1,36 @@
 import * as game from './game.js';
 
+/** Number of pixels to trim from each side of the sprite-sheet centre seam. */
+const SPRITE_INSET = 2;
+
+/**
+ * Renders a cropped region of an image into a new offscreen canvas.
+ * By isolating each sprite half this way, browser interpolation cannot
+ * bleed seam pixels from the adjacent half when the image is drawn small.
+ * @param {HTMLImageElement} img - Source image.
+ * @param {number} sx - Source x offset in the image.
+ * @param {number} sw - Width of the region to copy.
+ * @param {number} sh - Height of the region to copy.
+ * @returns {HTMLCanvasElement}
+ */
+function cropToCanvas(img, sx, sw, sh) {
+  const canvas = document.createElement('canvas');
+  canvas.width = sw;
+  canvas.height = sh;
+  canvas.getContext('2d').drawImage(img, sx, 0, sw, sh, 0, 0, sw, sh);
+  return canvas;
+}
+
 export function loadImages(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const halfW = img.naturalWidth / 2;
       const h = img.naturalHeight;
+      const croppedW = halfW - SPRITE_INSET;
       resolve([
-        { image: img, sx: 0, sw: halfW, sh: h },
-        { image: img, sx: halfW, sw: halfW, sh: h },
+        { image: cropToCanvas(img, 0, croppedW, h), sx: 0, sw: croppedW, sh: h },
+        { image: cropToCanvas(img, halfW + SPRITE_INSET, croppedW, h), sx: 0, sw: croppedW, sh: h },
       ]);
     };
     img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
