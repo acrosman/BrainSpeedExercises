@@ -63,7 +63,7 @@ See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for t
 
 ## Accessibility
 
-All UI in this project targets **WCAG 2.2 Level AA**. This means every interactive element is reachable by keyboard, all text meets color-contrast requirements (≥ 4.5:1 for normal text), custom widgets carry appropriate ARIA roles and properties, and dynamic results such as scores use `aria-live` regions so screen-reader users receive updates without losing their place. See `INSTRUCTIONS.md` for the full checklist.
+All UI in this project targets **WCAG 2.2 Level AA**. This means every interactive element is reachable by keyboard, all text meets color-contrast requirements (≥ 4.5:1 for normal text), custom widgets carry appropriate ARIA roles and properties, and dynamic results such as scores use `aria-live` regions so screen-reader users receive updates without losing their place. See [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for the full checklist.
 
 ## Security
 
