@@ -14,9 +14,11 @@
  * @param {string} manifest.name - Human-readable game name.
  * @param {string} [manifest.description] - Short description of the game.
  * @param {string} [manifest.thumbnail] - Path to the thumbnail image.
+ * @param {object} [progress] - Optional progress data for the game.
+ * @param {number} [progress.highScore] - The player's high score for this game.
  * @returns {HTMLElement} An <article> element representing the game card.
  */
-export function createGameCard(manifest) {
+export function createGameCard(manifest, progress) {
   if (!manifest || !manifest.id || !manifest.name) {
     throw new Error('manifest must include id and name');
   }
@@ -33,6 +35,15 @@ export function createGameCard(manifest) {
 
   const description = document.createElement('p');
   description.textContent = manifest.description || '';
+
+  // If this is Fast Piggie and a high score is provided, show it
+  let scoreElem = null;
+  if (manifest.id === 'fast-piggie' && progress && typeof progress.highScore === 'number') {
+    scoreElem = document.createElement('p');
+    scoreElem.className = 'game-high-score';
+    scoreElem.textContent = `Top Score: ${progress.highScore}`;
+    scoreElem.setAttribute('aria-label', `Top Score for ${manifest.name}: ${progress.highScore}`);
+  }
 
   const button = document.createElement('button');
   button.type = 'button';
@@ -55,6 +66,7 @@ export function createGameCard(manifest) {
   article.appendChild(img);
   article.appendChild(heading);
   article.appendChild(description);
+  if (scoreElem) article.appendChild(scoreElem);
   article.appendChild(button);
 
   return article;

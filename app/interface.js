@@ -25,10 +25,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   announcer.className = 'sr-only';
   document.body.appendChild(announcer);
 
+  // Load player progress (default player)
+  let progress = {};
+  try {
+    progress = await window.api.invoke('progress:load', { playerId: 'default' });
+  } catch {
+    // If progress fails to load, fallback to empty
+    progress = {};
+  }
+
   // Fetch the list of available games and render game cards.
   const manifests = await window.api.invoke('games:list');
   manifests.forEach((manifest) => {
-    gameSelector.appendChild(createGameCard(manifest));
+    let gameProgress = undefined;
+    if (progress && progress.games && progress.games[manifest.id]) {
+      gameProgress = progress.games[manifest.id];
+    }
+    gameSelector.appendChild(createGameCard(manifest, gameProgress));
   });
 
   /**
@@ -60,9 +73,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       selector.setAttribute('aria-label', 'Available games');
       gameContainer.appendChild(selector);
       // Re-render game cards
-      window.api.invoke('games:list').then((manifests) => {
+      // Reload progress and game cards
+      Promise.all([
+        window.api.invoke('progress:load', { playerId: 'default' }),
+        window.api.invoke('games:list'),
+      ]).then(([progress, manifests]) => {
         manifests.forEach((manifest) => {
-          selector.appendChild(createGameCard(manifest));
+          let gameProgress = undefined;
+          if (progress && progress.games && progress.games[manifest.id]) {
+            gameProgress = progress.games[manifest.id];
+          }
+          selector.appendChild(createGameCard(manifest, gameProgress));
         });
       });
       // Re-attach event listener for game selection
