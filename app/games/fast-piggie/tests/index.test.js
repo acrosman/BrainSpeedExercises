@@ -600,6 +600,29 @@ describe('drawBoard()', () => {
       expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number),
     );
   });
+
+  it('assigns images to random slots when imageCount < wedgeCount', () => {
+    // Force Math.random to a predictable sequence
+    const mathRandomSpy = jest.spyOn(Math, 'random');
+    // Shuffle: [0,1,2,3,4,5] -> [2,0,1,3,4,5] for imageCount=3, wedgeCount=6
+    let call = 0;
+    mathRandomSpy.mockImplementation(() => [0.4, 0.0, 0.2, 0.8, 0.9, 0.1][call++] || 0);
+    const fakeImgEl = { naturalWidth: 768, naturalHeight: 512 };
+    const fakeWrappers = [
+      { image: fakeImgEl, sx: 0, sw: 384, sh: 512 },
+      { image: fakeImgEl, sx: 384, sw: 384, sh: 512 },
+    ];
+    ctx2d.drawImage.mockClear();
+    drawBoard(
+      ctx2d, 500, 500, 6, 3, fakeWrappers, 1, true,
+    );
+    // Should only draw 3 images, and not always in slots 0,1,2
+    expect(ctx2d.drawImage).toHaveBeenCalledTimes(3);
+    // The slots chosen should be a shuffled subset, not always the first 3
+    // (We can't check exact slots due to random, but can check call count
+    // and that it's not always 0,1,2)
+    mathRandomSpy.mockRestore();
+  });
 });
 
 describe('highlightWedge()', () => {

@@ -55,6 +55,7 @@ export function loadImages(src) {
 
 /**
  * Draws the game board with wedges and (optionally) images.
+ * When imageCount < wedgeCount, images are assigned to random slots.
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} width
  * @param {number} height
@@ -63,9 +64,11 @@ export function loadImages(src) {
  * @param {Array} images
  * @param {number} outlierIndex
  * @param {boolean} showImages
+ * @param {Array<number>} [slotAssignment] Optional: array of slot indices for images
  */
 export function drawBoard(
-  ctx, width, height, wedgeCount, imageCount, images, outlierIndex, showImages,
+  ctx, width, height, wedgeCount, imageCount, images, outlierIndex,
+  showImages, slotAssignment,
 ) {
   ctx.clearRect(0, 0, width, height);
 
@@ -73,6 +76,24 @@ export function drawBoard(
   const cy = height / 2;
   const radius = Math.min(width, height) / 2 - 10;
   const angleStep = (2 * Math.PI) / wedgeCount;
+
+  // Use provided slotAssignment for image placement, or generate if not provided.
+  let slots = [];
+  if (showImages && imageCount < wedgeCount) {
+    if (Array.isArray(slotAssignment) && slotAssignment.length === imageCount) {
+      slots = slotAssignment.slice();
+    } else {
+      // Generate a random slot assignment (for test/direct usage)
+      slots = Array.from({ length: wedgeCount }, (_, i) => i);
+      for (let i = slots.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+      }
+      slots = slots.slice(0, imageCount).sort((a, b) => a - b);
+    }
+  } else {
+    slots = Array.from({ length: imageCount }, (_, i) => i);
+  }
 
   for (let i = 0; i < wedgeCount; i += 1) {
     const startAngle = -Math.PI / 2 + i * angleStep;
@@ -85,18 +106,27 @@ export function drawBoard(
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    if (showImages && i < imageCount) {
-      const entry = i === outlierIndex ? images[1] : images[0];
-      if (entry && entry.image) {
-        const midAngle = startAngle + angleStep / 2;
-        const imgCx = cx + Math.cos(midAngle) * radius * 0.6;
-        const imgCy = cy + Math.sin(midAngle) * radius * 0.6;
-        const drawH = radius * 0.35;
-        const drawW = drawH * (entry.sw / entry.sh);
-        ctx.drawImage(
-          entry.image, entry.sx, 0, entry.sw, entry.sh,
-          imgCx - drawW / 2, imgCy - drawH / 2, drawW, drawH,
-        );
+    if (showImages) {
+      // If this wedge is assigned an image, draw it
+      let imageIdx = -1;
+      if (imageCount < wedgeCount) {
+        imageIdx = slots.indexOf(i);
+      } else if (i < imageCount) {
+        imageIdx = i;
+      }
+      if (imageIdx !== -1) {
+        const entry = imageIdx === outlierIndex ? images[1] : images[0];
+        if (entry && entry.image) {
+          const midAngle = startAngle + angleStep / 2;
+          const imgCx = cx + Math.cos(midAngle) * radius * 0.6;
+          const imgCy = cy + Math.sin(midAngle) * radius * 0.6;
+          const drawH = radius * 0.35;
+          const drawW = drawH * (entry.sw / entry.sh);
+          ctx.drawImage(
+            entry.image, entry.sx, 0, entry.sw, entry.sh,
+            imgCx - drawW / 2, imgCy - drawH / 2, drawW, drawH,
+          );
+        }
       }
     }
   }
@@ -153,7 +183,7 @@ let _gameAreaEl = null;
 
 // Game state
 let _images = null; // [commonImage, outlierImage]
-let _currentRound = null; // { wedgeCount, displayDurationMs, outlierWedgeIndex }
+let _currentRound = null; // { wedgeCount, displayDurationMs, outlierWedgeIndex, slotAssignment }
 let _clickEnabled = false;
 let _selectedWedge = -1; // for keyboard navigation
 let _hoveredWedge = -1; // for mouse hover highlighting
@@ -269,15 +299,26 @@ function _runRound() {
 
   _clickEnabled = false;
   _selectedWedge = -1;
-  _currentRound = game.generateRound(game.getLevel());
+  const round = game.generateRound(game.getLevel());
+  const { wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex } = round;
+  // Generate slot assignment if needed
+  let slotAssignment = null;
+  if (imageCount < wedgeCount) {
+    slotAssignment = Array.from({ length: wedgeCount }, (_, i) => i);
+    for (let i = slotAssignment.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [slotAssignment[i], slotAssignment[j]] = [slotAssignment[j], slotAssignment[i]];
+    }
+    slotAssignment = slotAssignment.slice(0, imageCount).sort((a, b) => a - b);
+  }
+  _currentRound = { ...round, slotAssignment };
 
-  const { wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex } = _currentRound;
   const { width, height } = _canvas;
+  drawBoard(
+    _ctx, width, height, wedgeCount, imageCount, _images,
+    outlierWedgeIndex, true, slotAssignment,
+  );
 
-  // Show images
-  drawBoard(_ctx, width, height, wedgeCount, imageCount, _images, outlierWedgeIndex, true);
-
-  // Hide images after displayDurationMs, then enable clicking
   _roundTimer = setTimeout(() => {
     clearImages(_ctx, width, height, wedgeCount);
     _clickEnabled = true;
@@ -378,9 +419,14 @@ function _handleClick(event) {
 function _resolveRound(wedge) {
   _clickEnabled = false;
 
-  const { wedgeCount, outlierWedgeIndex } = _currentRound;
+  const { wedgeCount, outlierWedgeIndex, slotAssignment, imageCount } = _currentRound;
   const { width, height } = _canvas;
-  const correct = game.checkAnswer(wedge, outlierWedgeIndex);
+  // Map clicked wedge to image index if slotAssignment is used
+  let answerIdx = wedge;
+  if (slotAssignment && imageCount < wedgeCount) {
+    answerIdx = slotAssignment.indexOf(wedge);
+  }
+  const correct = game.checkAnswer(answerIdx, outlierWedgeIndex);
 
   const audioCtx = createAudioContext();
 
