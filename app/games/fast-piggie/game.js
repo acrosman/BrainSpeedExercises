@@ -66,7 +66,7 @@ export function stopGame() {
 export function generateRound(currentLevel) {
   const imageCount = Math.min(3 + currentLevel, 14);
   const wedgeCount = Math.min(Math.max(6, imageCount), 14);
-  const displayDurationMs = Math.max(1200 - currentLevel * 400, 200);
+  const displayDurationMs = Math.max(1200 - currentLevel * 200, 50);
   const outlierWedgeIndex = Math.floor(Math.random() * imageCount);
   return {
     wedgeCount,
@@ -166,7 +166,7 @@ export function getConsecutiveCorrect() {
 export function getCurrentDifficulty() {
   const imageCount = Math.min(3 + level, 14);
   const wedgeCount = Math.min(Math.max(6, imageCount), 14);
-  const displayDurationMs = Math.max(1200 - level * 400, 200);
+  const displayDurationMs = Math.max(1200 - level * 200, 50);
   return { wedgeCount, imageCount, displayDurationMs };
 }
 
