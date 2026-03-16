@@ -150,7 +150,7 @@ When the renderer asks to load a game by ID, the main process:
 
 ## Coding Style
 
-All files and functions must include JSDoc comments. Use descriptive names for variables and functions.
+All files and functions must include JSDoc comments. Use descriptive names for variables and functions. Use US English spelling (e.g. "initialize" not "initialise").
 
 When files get too large, break them into smaller modules. For example, if `index.js` exceeds 500 lines, consider moving game logic to `game.js` and UI rendering to `render.js`.
 

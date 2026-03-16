@@ -1,3 +1,16 @@
+it('displays high score for Fast Piggie when provided', () => {
+  const manifest = {
+    id: 'fast-piggie',
+    name: 'Fast Piggie',
+    description: 'Test desc',
+    thumbnail: '/images/test.png',
+  };
+  const progress = { highScore: 42 };
+  const card = createGameCard(manifest, progress);
+  const scoreElem = card.querySelector('.game-high-score');
+  expect(scoreElem).not.toBeNull();
+  expect(scoreElem.textContent).toContain('42');
+});
 import { createGameCard } from './gameCard.js';
 
 const validManifest = {

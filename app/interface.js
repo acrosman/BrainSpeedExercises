@@ -25,10 +25,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   announcer.className = 'sr-only';
   document.body.appendChild(announcer);
 
+  // Load player progress (default player)
+  let progress = {};
+  try {
+    progress = await window.api.invoke('progress:load', { playerId: 'default' });
+  } catch {
+    // If progress fails to load, fallback to empty
+    progress = {};
+  }
+
   // Fetch the list of available games and render game cards.
   const manifests = await window.api.invoke('games:list');
   manifests.forEach((manifest) => {
-    gameSelector.appendChild(createGameCard(manifest));
+    let gameProgress = undefined;
+    if (progress && progress.games && progress.games[manifest.id]) {
+      gameProgress = progress.games[manifest.id];
+    }
+    gameSelector.appendChild(createGameCard(manifest, gameProgress));
   });
 
   /**
@@ -48,5 +61,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     // instructions panel and start button become active.
     const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
     mod.default.init(gameContainer);
+  });
+  // Listen for custom event to return to main menu from any game
+  window.addEventListener('bsx:return-to-main-menu', () => {
+    // Remove any game UI
+    gameContainer.innerHTML = '';
+    // Restore the game selector
+    if (!document.getElementById('game-selector')) {
+      const selector = document.createElement('section');
+      selector.id = 'game-selector';
+      selector.setAttribute('aria-label', 'Available games');
+      gameContainer.appendChild(selector);
+      // Re-render game cards
+      // Reload progress and game cards
+      Promise.all([
+        window.api.invoke('progress:load', { playerId: 'default' }),
+        window.api.invoke('games:list'),
+      ]).then(([progress, manifests]) => {
+        manifests.forEach((manifest) => {
+          let gameProgress = undefined;
+          if (progress && progress.games && progress.games[manifest.id]) {
+            gameProgress = progress.games[manifest.id];
+          }
+          selector.appendChild(createGameCard(manifest, gameProgress));
+        });
+      });
+      // Re-attach event listener for game selection
+      selector.addEventListener('game:select', async (event) => {
+        const { gameId } = event.detail;
+        const result = await window.api.invoke('games:load', gameId);
+        selector.remove();
+        gameContainer.innerHTML = result.html;
+        announcer.textContent = `${result.manifest.name} loaded. Get ready to play!`;
+        const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
+        mod.default.init(gameContainer);
+      });
+    }
+    announcer.textContent = 'Main menu loaded. Select a game.';
   });
 });

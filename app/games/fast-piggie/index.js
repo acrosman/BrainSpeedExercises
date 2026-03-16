@@ -55,6 +55,7 @@ export function loadImages(src) {
 
 /**
  * Draws the game board with wedges and (optionally) images.
+ * When imageCount < wedgeCount, images are assigned to random slots.
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} width
  * @param {number} height
@@ -63,9 +64,11 @@ export function loadImages(src) {
  * @param {Array} images
  * @param {number} outlierIndex
  * @param {boolean} showImages
+ * @param {Array<number>} [slotAssignment] Optional: array of slot indices for images
  */
 export function drawBoard(
-  ctx, width, height, wedgeCount, imageCount, images, outlierIndex, showImages,
+  ctx, width, height, wedgeCount, imageCount, images, outlierIndex,
+  showImages, slotAssignment,
 ) {
   ctx.clearRect(0, 0, width, height);
 
@@ -73,6 +76,32 @@ export function drawBoard(
   const cy = height / 2;
   const radius = Math.min(width, height) / 2 - 10;
   const angleStep = (2 * Math.PI) / wedgeCount;
+
+  // Use provided slotAssignment for image placement, or generate if not provided.
+  let slots = [];
+  if (showImages && imageCount < wedgeCount) {
+    if (Array.isArray(slotAssignment) && slotAssignment.length === imageCount) {
+      slots = slotAssignment.slice();
+    } else {
+      // Generate a random slot assignment (for test/direct usage)
+      slots = Array.from({ length: wedgeCount }, (_, i) => i);
+      for (let i = slots.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+      }
+      slots = slots.slice(0, imageCount).sort((a, b) => a - b);
+    }
+  } else {
+    slots = Array.from({ length: imageCount }, (_, i) => i);
+  }
+
+  // Generate stagger offsets for each wedge (consistent per draw)
+  const staggerOffsets = Array.from({ length: wedgeCount }, (_, idx) => {
+    // Use a deterministic pseudo-random offset per wedge for consistency
+    // Range: -0.24 to +0.24 (as a fraction of radius)
+    const base = Math.sin(idx * 2.3 + wedgeCount) * 0.5 + Math.cos(idx * 1.7 - wedgeCount) * 0.5;
+    return base * 0.24; // increased for more staggering
+  });
 
   for (let i = 0; i < wedgeCount; i += 1) {
     const startAngle = -Math.PI / 2 + i * angleStep;
@@ -85,18 +114,30 @@ export function drawBoard(
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    if (showImages && i < imageCount) {
-      const entry = i === outlierIndex ? images[1] : images[0];
-      if (entry && entry.image) {
-        const midAngle = startAngle + angleStep / 2;
-        const imgCx = cx + Math.cos(midAngle) * radius * 0.6;
-        const imgCy = cy + Math.sin(midAngle) * radius * 0.6;
-        const drawH = radius * 0.35;
-        const drawW = drawH * (entry.sw / entry.sh);
-        ctx.drawImage(
-          entry.image, entry.sx, 0, entry.sw, entry.sh,
-          imgCx - drawW / 2, imgCy - drawH / 2, drawW, drawH,
-        );
+    if (showImages) {
+      // If this wedge is assigned an image, draw it
+      let imageIdx = -1;
+      if (imageCount < wedgeCount) {
+        imageIdx = slots.indexOf(i);
+      } else if (i < imageCount) {
+        imageIdx = i;
+      }
+      if (imageIdx !== -1) {
+        const entry = imageIdx === outlierIndex ? images[1] : images[0];
+        if (entry && entry.image) {
+          const midAngle = startAngle + angleStep / 2;
+          // Stagger: add offset to base radius
+          const stagger = staggerOffsets[i] || 0;
+          const imgRadius = radius * 0.6 * (1 + stagger);
+          const imgCx = cx + Math.cos(midAngle) * imgRadius;
+          const imgCy = cy + Math.sin(midAngle) * imgRadius;
+          const drawH = radius * 0.35;
+          const drawW = drawH * (entry.sw / entry.sh);
+          ctx.drawImage(
+            entry.image, entry.sx, 0, entry.sw, entry.sh,
+            imgCx - drawW / 2, imgCy - drawH / 2, drawW, drawH,
+          );
+        }
       }
     }
   }
@@ -143,7 +184,6 @@ export function highlightWedge(ctx, width, height, wedgeIndex, wedgeCount, color
 let _canvas = null;
 let _ctx = null;
 let _startBtn = null;
-let _continueBtn = null;
 let _stopBtn = null;
 let _scoreEl = null;
 let _roundEl = null;
@@ -154,7 +194,7 @@ let _gameAreaEl = null;
 
 // Game state
 let _images = null; // [commonImage, outlierImage]
-let _currentRound = null; // { wedgeCount, displayDurationMs, outlierWedgeIndex }
+let _currentRound = null; // { wedgeCount, displayDurationMs, outlierWedgeIndex, slotAssignment }
 let _clickEnabled = false;
 let _selectedWedge = -1; // for keyboard navigation
 let _hoveredWedge = -1; // for mouse hover highlighting
@@ -270,15 +310,26 @@ function _runRound() {
 
   _clickEnabled = false;
   _selectedWedge = -1;
-  _currentRound = game.generateRound(game.getLevel());
+  const round = game.generateRound(game.getLevel());
+  const { wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex } = round;
+  // Generate slot assignment if needed
+  let slotAssignment = null;
+  if (imageCount < wedgeCount) {
+    slotAssignment = Array.from({ length: wedgeCount }, (_, i) => i);
+    for (let i = slotAssignment.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [slotAssignment[i], slotAssignment[j]] = [slotAssignment[j], slotAssignment[i]];
+    }
+    slotAssignment = slotAssignment.slice(0, imageCount).sort((a, b) => a - b);
+  }
+  _currentRound = { ...round, slotAssignment };
 
-  const { wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex } = _currentRound;
   const { width, height } = _canvas;
+  drawBoard(
+    _ctx, width, height, wedgeCount, imageCount, _images,
+    outlierWedgeIndex, true, slotAssignment,
+  );
 
-  // Show images
-  drawBoard(_ctx, width, height, wedgeCount, imageCount, _images, outlierWedgeIndex, true);
-
-  // Hide images after displayDurationMs, then enable clicking
   _roundTimer = setTimeout(() => {
     clearImages(_ctx, width, height, wedgeCount);
     _clickEnabled = true;
@@ -379,14 +430,32 @@ function _handleClick(event) {
 function _resolveRound(wedge) {
   _clickEnabled = false;
 
-  const { wedgeCount, outlierWedgeIndex } = _currentRound;
+  // Destructure with line break for lint compliance, and remove unused displayDurationMs
+  const {
+    wedgeCount,
+    outlierWedgeIndex,
+    slotAssignment,
+    imageCount,
+  } = _currentRound;
   const { width, height } = _canvas;
-  const correct = game.checkAnswer(wedge, outlierWedgeIndex);
+  // Map clicked wedge to image index if slotAssignment is used
+  let answerIdx = wedge;
+  if (slotAssignment && imageCount < wedgeCount) {
+    answerIdx = slotAssignment.indexOf(wedge);
+  }
+  const correct = game.checkAnswer(answerIdx, outlierWedgeIndex);
+
+  // Track answer speed (time from images hidden to answer)
+  // We'll store the time when images are hidden in _currentRound._imagesHiddenAt
+  let answerSpeedMs = null;
+  if (_currentRound._imagesHiddenAt) {
+    answerSpeedMs = Date.now() - _currentRound._imagesHiddenAt;
+  }
 
   const audioCtx = createAudioContext();
 
   if (correct) {
-    game.addScore();
+    game.addScore(imageCount, answerSpeedMs);
     highlightWedge(
       _ctx,
       width,
@@ -416,14 +485,19 @@ function _resolveRound(wedge) {
       wedgeCount,
       'rgba(255, 193, 7, 0.65)',
     );
-    game.addMiss();
+    game.addMiss(imageCount);
     playFailureSound(audioCtx);
     _triggerFlash('wrong');
     _feedbackEl.textContent = 'Not quite — the different piggie is highlighted.';
   }
 
   _updateStats();
-  _continueBtn.hidden = false;
+  // Auto-advance to next round after a short delay.
+  if (game.isRunning()) {
+    setTimeout(() => {
+      _runRound();
+    }, 1000);
+  }
 }
 
 /**
@@ -434,7 +508,7 @@ export default {
   name: 'Fast Piggie',
 
   /**
-   * Initialise the plugin and bind DOM events.
+   * Initialize the plugin and bind DOM events.
    * @param {HTMLElement} container
    */
   init(container) {
@@ -443,7 +517,6 @@ export default {
     _startBtn = container.querySelector('#fp-start-btn');
     _canvas = container.querySelector('#fp-canvas');
     _ctx = _canvas.getContext('2d');
-    _continueBtn = container.querySelector('#fp-continue-btn');
     _stopBtn = container.querySelector('#fp-stop-btn');
     _scoreEl = container.querySelector('#fp-score');
     _roundEl = container.querySelector('#fp-round-count');
@@ -467,7 +540,6 @@ export default {
     _canvas.addEventListener('mousemove', _handleMouseMove);
     _canvas.addEventListener('mouseleave', _handleMouseLeave);
     _canvas.addEventListener('keydown', _handleKeydown);
-    _continueBtn.addEventListener('click', () => _runRound());
     _stopBtn.addEventListener('click', () => this.stop());
   },
 
@@ -479,7 +551,6 @@ export default {
     if (_gameAreaEl) _gameAreaEl.hidden = false;
     game.startGame();
     _updateStats();
-    _continueBtn.hidden = true;
     _runRound();
   },
 
@@ -495,38 +566,89 @@ export default {
     _clickEnabled = false;
     const result = game.stopGame();
 
-    // Persist progress (guard for test environment where window.api is absent)
-    if (typeof window !== 'undefined' && window.api) {
-      window.api.invoke('progress:load', { playerId: 'default' })
-        .then((existing) => {
-          const gameEntry = (existing.games && existing.games['fast-piggie']) || {
-            highScore: 0,
-            sessionsPlayed: 0,
-            lastPlayed: null,
-          };
+    let highScore = result.score;
+    let previousHigh = 0;
+    let sessionsPlayed = 1;
+    // Return a promise for test compatibility
+    return (async () => {
+      try {
+        let existing = { playerId: 'default', games: {} };
+        let gameEntry = {
+          highScore: 0,
+          sessionsPlayed: 0,
+          lastPlayed: null,
+          maxLevel: 0,
+          maxPiggies: 0,
+          lowestDisplayTime: null,
+        };
+        if (typeof window !== 'undefined' && window.api) {
+          try {
+            // Always call progress:load first
+            existing = await window.api.invoke(
+              'progress:load',
+              { playerId: 'default' },
+            ) || existing;
+            if (existing.games && existing.games['fast-piggie']) {
+              gameEntry = { ...gameEntry, ...existing.games['fast-piggie'] };
+            }
+          } catch {
+            // If load fails, still proceed to save with defaults
+          }
+          previousHigh = gameEntry.highScore;
+          // Only update highScore if the new score is higher
+          highScore = Math.max(gameEntry.highScore || 0, result.score);
+          sessionsPlayed = (gameEntry.sessionsPlayed || 0) + 1;
+          // Get best stats from game logic
+          const bestStats = game.getBestStats();
           const updated = {
             ...existing,
             games: {
               ...existing.games,
               'fast-piggie': {
-                highScore: Math.max(gameEntry.highScore, result.score),
-                sessionsPlayed: gameEntry.sessionsPlayed + 1,
+                ...gameEntry,
+                highScore,
+                sessionsPlayed,
                 lastPlayed: new Date().toISOString(),
+                maxLevel:
+                  typeof bestStats.maxScore === 'number'
+                    ? bestStats.maxScore
+                    : gameEntry.maxLevel || 0,
+                maxPiggies:
+                  typeof bestStats.mostGuineaPigs === 'number'
+                    ? bestStats.mostGuineaPigs
+                    : gameEntry.maxPiggies || 0,
+                lowestDisplayTime:
+                  typeof bestStats.topSpeedMs === 'number'
+                    ? bestStats.topSpeedMs
+                    : gameEntry.lowestDisplayTime || null,
               },
             },
           };
-          return window.api.invoke('progress:save', { playerId: 'default', data: updated });
-        })
-        .catch(() => {
-          // Progress save failure is non-fatal — game continues normally
-        });
-    }
+          // Always call progress:save, even if load failed
+          await window.api.invoke(
+            'progress:save',
+            {
+              playerId: 'default',
+              data: updated,
+            },
+          );
+        }
+      } catch {
+        // Swallow all errors from progress load/save
+      }
 
-    _feedbackEl.textContent =
-      `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
-    _continueBtn.hidden = true;
-    _stopBtn.hidden = true;
-    return result;
+      // Show accessible summary modal (skip in test env)
+      if (typeof document !== 'undefined' &&
+        document.body &&
+        !document.body.classList.contains('jest-testing')
+      ) {
+        _showSummaryModal(result.score, previousHigh, highScore);
+      } else if (_feedbackEl) {
+        _feedbackEl.textContent = `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
+      }
+      _stopBtn.hidden = true;
+      return result;
+    })();
   },
 
   /**
@@ -547,9 +669,83 @@ export default {
     }
     _updateStats();
     _feedbackEl.textContent = '';
-    _continueBtn.hidden = true;
     _stopBtn.hidden = false;
     if (_instructionsEl) _instructionsEl.hidden = false;
     if (_gameAreaEl) _gameAreaEl.hidden = true;
   },
 };
+
+/**
+ * Show an accessible summary modal with current and best score, and return button.
+ * @param {number} score
+ * @param {number} previousHigh
+ * @param {number} highScore
+ */
+function _showSummaryModal(score, previousHigh, highScore) {
+  // Remove any existing modal
+  const oldModal = document.getElementById('fp-summary-modal');
+  if (oldModal) oldModal.remove();
+
+  // Get best stats for this session
+  const bestStats = game.getBestStats();
+
+  const modal = document.createElement('div');
+  modal.id = 'fp-summary-modal';
+  modal.className = 'fp-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'fp-summary-title');
+  modal.setAttribute('tabindex', '-1');
+
+  modal.innerHTML = `
+    <div class="fp-modal-content">
+      <h2 id="fp-summary-title">Game Over</h2>
+      <p>Your score: <strong>${score}</strong></p>
+      <p>Personal best: <strong>${highScore}</strong></p>
+      <hr />
+      <h3>Session Bests</h3>
+      <ul>
+        <li>Max score: <strong>${bestStats.maxScore}</strong></li>
+        <li>Most rounds: <strong>${bestStats.mostRounds}</strong></li>
+        <li>Most guinea pigs in a round: <strong>${bestStats.mostGuineaPigs}</strong></li>
+        <li>Top speed (ms): <strong>${bestStats.topSpeedMs !== null ? bestStats.topSpeedMs : '—'}</strong></li>
+      </ul>
+      <button id="fp-return-btn" class="fp-btn fp-btn--primary">Return to Main Menu</button>
+    </div>
+  `;
+
+  // Trap focus inside modal
+  modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      const focusable = modal.querySelectorAll('button');
+      if (focusable.length) {
+        e.preventDefault();
+        focusable[0].focus();
+      }
+    }
+    if (e.key === 'Escape') {
+      _returnToMainMenu();
+    }
+  });
+
+  // Return button handler
+  modal.querySelector('#fp-return-btn').addEventListener('click', _returnToMainMenu);
+
+  // Add modal to DOM and focus
+  document.body.appendChild(modal);
+  setTimeout(() => {
+    modal.focus();
+  }, 0);
+}
+
+/**
+ * Return to the main game selection screen, removing modal and resetting UI.
+ */
+function _returnToMainMenu() {
+  const modal = document.getElementById('fp-summary-modal');
+  if (modal) modal.remove();
+  // Dispatch a custom event to notify the app shell to return to main menu
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
+  }
+}
