@@ -95,6 +95,14 @@ export function drawBoard(
     slots = Array.from({ length: imageCount }, (_, i) => i);
   }
 
+  // Generate stagger offsets for each wedge (consistent per draw)
+  const staggerOffsets = Array.from({ length: wedgeCount }, (_, idx) => {
+    // Use a deterministic pseudo-random offset per wedge for consistency
+    // Range: -0.24 to +0.24 (as a fraction of radius)
+    const base = Math.sin(idx * 2.3 + wedgeCount) * 0.5 + Math.cos(idx * 1.7 - wedgeCount) * 0.5;
+    return base * 0.24; // increased for more staggering
+  });
+
   for (let i = 0; i < wedgeCount; i += 1) {
     const startAngle = -Math.PI / 2 + i * angleStep;
     const endAngle = startAngle + angleStep;
@@ -118,8 +126,11 @@ export function drawBoard(
         const entry = imageIdx === outlierIndex ? images[1] : images[0];
         if (entry && entry.image) {
           const midAngle = startAngle + angleStep / 2;
-          const imgCx = cx + Math.cos(midAngle) * radius * 0.6;
-          const imgCy = cy + Math.sin(midAngle) * radius * 0.6;
+          // Stagger: add offset to base radius
+          const stagger = staggerOffsets[i] || 0;
+          const imgRadius = radius * 0.6 * (1 + stagger);
+          const imgCx = cx + Math.cos(midAngle) * imgRadius;
+          const imgCy = cy + Math.sin(midAngle) * imgRadius;
           const drawH = radius * 0.35;
           const drawW = drawH * (entry.sw / entry.sh);
           ctx.drawImage(
