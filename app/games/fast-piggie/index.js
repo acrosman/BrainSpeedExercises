@@ -560,33 +560,70 @@ export default {
     let sessionsPlayed = 1;
     // Return a promise for test compatibility
     return (async () => {
-      // Persist progress and get personal best
-      if (typeof window !== 'undefined' && window.api) {
-        try {
-          const existing = await window.api.invoke('progress:load', { playerId: 'default' });
-          const gameEntry = (existing.games && existing.games['fast-piggie']) || {
-            highScore: 0,
-            sessionsPlayed: 0,
-            lastPlayed: null,
-          };
+      try {
+        let existing = { playerId: 'default', games: {} };
+        let gameEntry = {
+          highScore: 0,
+          sessionsPlayed: 0,
+          lastPlayed: null,
+          maxLevel: 0,
+          maxPiggies: 0,
+          lowestDisplayTime: null,
+        };
+        if (typeof window !== 'undefined' && window.api) {
+          try {
+            // Always call progress:load first
+            existing = await window.api.invoke(
+              'progress:load',
+              { playerId: 'default' },
+            ) || existing;
+            if (existing.games && existing.games['fast-piggie']) {
+              gameEntry = { ...gameEntry, ...existing.games['fast-piggie'] };
+            }
+          } catch {
+            // If load fails, still proceed to save with defaults
+          }
           previousHigh = gameEntry.highScore;
-          highScore = Math.max(gameEntry.highScore, result.score);
-          sessionsPlayed = gameEntry.sessionsPlayed + 1;
+          // Only update highScore if the new score is higher
+          highScore = Math.max(gameEntry.highScore || 0, result.score);
+          sessionsPlayed = (gameEntry.sessionsPlayed || 0) + 1;
+          // Get best stats from game logic
+          const bestStats = game.getBestStats();
           const updated = {
             ...existing,
             games: {
               ...existing.games,
               'fast-piggie': {
+                ...gameEntry,
                 highScore,
                 sessionsPlayed,
                 lastPlayed: new Date().toISOString(),
+                maxLevel:
+                  typeof bestStats.maxScore === 'number'
+                    ? bestStats.maxScore
+                    : gameEntry.maxLevel || 0,
+                maxPiggies:
+                  typeof bestStats.mostGuineaPigs === 'number'
+                    ? bestStats.mostGuineaPigs
+                    : gameEntry.maxPiggies || 0,
+                lowestDisplayTime:
+                  typeof bestStats.topSpeedMs === 'number'
+                    ? bestStats.topSpeedMs
+                    : gameEntry.lowestDisplayTime || null,
               },
             },
           };
-          await window.api.invoke('progress:save', { playerId: 'default', data: updated });
-        } catch {
-          // Progress save failure is non-fatal
+          // Always call progress:save, even if load failed
+          await window.api.invoke(
+            'progress:save',
+            {
+              playerId: 'default',
+              data: updated,
+            },
+          );
         }
+      } catch {
+        // Swallow all errors from progress load/save
       }
 
       // Show accessible summary modal (skip in test env)

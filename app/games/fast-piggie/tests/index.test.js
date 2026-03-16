@@ -28,6 +28,12 @@ jest.unstable_mockModule('../game.js', () => ({
     displayDurationMs: 2000,
   })),
   isRunning: jest.fn(() => true),
+  getBestStats: jest.fn(() => ({
+    maxScore: 3,
+    mostRounds: 5,
+    mostGuineaPigs: 3,
+    topSpeedMs: 1000,
+  })),
 }));
 
 const game = await import('../game.js');
@@ -941,10 +947,15 @@ describe('progress saving', () => {
 
     plugin.init(buildContainer());
     plugin.start();
-    expect(() => plugin.stop()).not.toThrow();
-
-    await Promise.resolve();
-    await Promise.resolve();
+    // Suppress unhandled rejection for this test
+    let errorCaught = false;
+    try {
+      await plugin.stop();
+    } catch {
+      errorCaught = true;
+    }
+    // The plugin should not throw, so errorCaught should be false
+    expect(errorCaught).toBe(false);
 
     delete globalThis.api;
   });
