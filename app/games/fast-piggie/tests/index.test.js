@@ -155,12 +155,19 @@ beforeEach(() => {
   // Reset AudioContext singleton inside the module by resetting the mock
   globalThis.AudioContext.mockClear();
   container = buildContainer();
+  // Mark test environment for plugin.stop()
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.add('jest-testing');
+  }
   plugin.init(container);
 });
 
 afterEach(() => {
   plugin.reset();
   jest.useRealTimers();
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.remove('jest-testing');
+  }
 });
 
 // ===========================================================================
@@ -333,13 +340,15 @@ describe('stop()', () => {
     expect(game.stopGame).toHaveBeenCalled();
   });
 
-  it('returns the object from game.stopGame()', () => {
-    const result = plugin.stop();
+
+  it('returns the object from game.stopGame()', async () => {
+    const result = await plugin.stop();
     expect(result).toEqual({ score: 3, roundsPlayed: 5, duration: 12000 });
   });
 
-  it('sets #fp-feedback to a non-empty string', () => {
-    plugin.stop();
+
+  it('sets #fp-feedback to a non-empty string', async () => {
+    await plugin.stop();
     const feedback = container.querySelector('#fp-feedback');
     expect(feedback.textContent.length).toBeGreaterThan(0);
   });

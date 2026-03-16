@@ -49,4 +49,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
     mod.default.init(gameContainer);
   });
+  // Listen for custom event to return to main menu from any game
+  window.addEventListener('bsx:return-to-main-menu', () => {
+    // Remove any game UI
+    gameContainer.innerHTML = '';
+    // Restore the game selector
+    if (!document.getElementById('game-selector')) {
+      const selector = document.createElement('section');
+      selector.id = 'game-selector';
+      selector.setAttribute('aria-label', 'Available games');
+      gameContainer.appendChild(selector);
+      // Re-render game cards
+      window.api.invoke('games:list').then((manifests) => {
+        manifests.forEach((manifest) => {
+          selector.appendChild(createGameCard(manifest));
+        });
+      });
+      // Re-attach event listener for game selection
+      selector.addEventListener('game:select', async (event) => {
+        const { gameId } = event.detail;
+        const result = await window.api.invoke('games:load', gameId);
+        selector.remove();
+        gameContainer.innerHTML = result.html;
+        announcer.textContent = `${result.manifest.name} loaded. Get ready to play!`;
+        const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
+        mod.default.init(gameContainer);
+      });
+    }
+    announcer.textContent = 'Main menu loaded. Select a game.';
+  });
 });

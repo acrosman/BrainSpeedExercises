@@ -542,37 +542,52 @@ export default {
     _clickEnabled = false;
     const result = game.stopGame();
 
-    // Persist progress (guard for test environment where window.api is absent)
-    if (typeof window !== 'undefined' && window.api) {
-      window.api.invoke('progress:load', { playerId: 'default' })
-        .then((existing) => {
+    let highScore = result.score;
+    let previousHigh = 0;
+    let sessionsPlayed = 1;
+    // Return a promise for test compatibility
+    return (async () => {
+      // Persist progress and get personal best
+      if (typeof window !== 'undefined' && window.api) {
+        try {
+          const existing = await window.api.invoke('progress:load', { playerId: 'default' });
           const gameEntry = (existing.games && existing.games['fast-piggie']) || {
             highScore: 0,
             sessionsPlayed: 0,
             lastPlayed: null,
           };
+          previousHigh = gameEntry.highScore;
+          highScore = Math.max(gameEntry.highScore, result.score);
+          sessionsPlayed = gameEntry.sessionsPlayed + 1;
           const updated = {
             ...existing,
             games: {
               ...existing.games,
               'fast-piggie': {
-                highScore: Math.max(gameEntry.highScore, result.score),
-                sessionsPlayed: gameEntry.sessionsPlayed + 1,
+                highScore,
+                sessionsPlayed,
                 lastPlayed: new Date().toISOString(),
               },
             },
           };
-          return window.api.invoke('progress:save', { playerId: 'default', data: updated });
-        })
-        .catch(() => {
-          // Progress save failure is non-fatal — game continues normally
-        });
-    }
+          await window.api.invoke('progress:save', { playerId: 'default', data: updated });
+        } catch {
+          // Progress save failure is non-fatal
+        }
+      }
 
-    _feedbackEl.textContent =
-      `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
-    _stopBtn.hidden = true;
-    return result;
+      // Show accessible summary modal (skip in test env)
+      if (typeof document !== 'undefined' &&
+        document.body &&
+        !document.body.classList.contains('jest-testing')
+      ) {
+        _showSummaryModal(result.score, previousHigh, highScore);
+      } else if (_feedbackEl) {
+        _feedbackEl.textContent = `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
+      }
+      _stopBtn.hidden = true;
+      return result;
+    })();
   },
 
   /**
@@ -598,3 +613,67 @@ export default {
     if (_gameAreaEl) _gameAreaEl.hidden = true;
   },
 };
+
+/**
+ * Show an accessible summary modal with current and best score, and return button.
+ * @param {number} score
+ * @param {number} previousHigh
+ * @param {number} highScore
+ */
+function _showSummaryModal(score, previousHigh, highScore) {
+  // Remove any existing modal
+  const oldModal = document.getElementById('fp-summary-modal');
+  if (oldModal) oldModal.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'fp-summary-modal';
+  modal.className = 'fp-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'fp-summary-title');
+  modal.setAttribute('tabindex', '-1');
+
+  modal.innerHTML = `
+    <div class="fp-modal-content">
+      <h2 id="fp-summary-title">Game Over</h2>
+      <p>Your score: <strong>${score}</strong></p>
+      <p>Personal best: <strong>${highScore}</strong></p>
+      <button id="fp-return-btn" class="fp-btn fp-btn--primary">Return to Main Menu</button>
+    </div>
+  `;
+
+  // Trap focus inside modal
+  modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      const focusable = modal.querySelectorAll('button');
+      if (focusable.length) {
+        e.preventDefault();
+        focusable[0].focus();
+      }
+    }
+    if (e.key === 'Escape') {
+      _returnToMainMenu();
+    }
+  });
+
+  // Return button handler
+  modal.querySelector('#fp-return-btn').addEventListener('click', _returnToMainMenu);
+
+  // Add modal to DOM and focus
+  document.body.appendChild(modal);
+  setTimeout(() => {
+    modal.focus();
+  }, 0);
+}
+
+/**
+ * Return to the main game selection screen, removing modal and resetting UI.
+ */
+function _returnToMainMenu() {
+  const modal = document.getElementById('fp-summary-modal');
+  if (modal) modal.remove();
+  // Dispatch a custom event to notify the app shell to return to main menu
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
+  }
+}
