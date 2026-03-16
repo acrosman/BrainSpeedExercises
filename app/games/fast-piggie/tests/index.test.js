@@ -269,13 +269,6 @@ describe('init(container)', () => {
     expect(spy).toHaveBeenCalledWith('click', expect.any(Function));
   });
 
-  it('binds a click listener to #fp-continue-btn', () => {
-    const btn = container.querySelector('#fp-continue-btn');
-    const spy = jest.spyOn(btn, 'addEventListener');
-    plugin.init(container);
-    expect(spy).toHaveBeenCalledWith('click', expect.any(Function));
-  });
-
   it('binds a click listener to #fp-stop-btn', () => {
     const btn = container.querySelector('#fp-stop-btn');
     const spy = jest.spyOn(btn, 'addEventListener');
@@ -310,13 +303,6 @@ describe('start()', () => {
   it('calls game.generateRound() via _runRound', () => {
     plugin.start();
     expect(game.generateRound).toHaveBeenCalled();
-  });
-
-  it('sets #fp-continue-btn hidden', () => {
-    const btn = container.querySelector('#fp-continue-btn');
-    btn.hidden = false; // ensure it starts visible
-    plugin.start();
-    expect(btn.hidden).toBe(true);
   });
 
   it('hides #fp-instructions', () => {
@@ -447,12 +433,6 @@ describe('_handleClick — correct answer (calculateWedgeIndex returns 2)', () =
     expect(mockAudioCtx.createOscillator).toHaveBeenCalled();
   });
 
-  it('sets #fp-continue-btn visible (not hidden)', () => {
-    fireClick();
-    const btn = container.querySelector('#fp-continue-btn');
-    expect(btn.hidden).toBe(false);
-  });
-
   it('#fp-feedback contains "Correct" (case-insensitive)', () => {
     fireClick();
     const feedback = container.querySelector('#fp-feedback');
@@ -500,12 +480,6 @@ describe('_handleClick — wrong answer (checkAnswer returns false)', () => {
     mockAudioCtx.createOscillator.mockClear();
     fireClick();
     expect(mockAudioCtx.createOscillator).toHaveBeenCalled();
-  });
-
-  it('sets #fp-continue-btn visible', () => {
-    fireClick();
-    const btn = container.querySelector('#fp-continue-btn');
-    expect(btn.hidden).toBe(false);
   });
 
   it('#fp-feedback contains "not quite" or "different" (case-insensitive)', () => {
@@ -851,28 +825,6 @@ describe('_runRound — guard when game is not running', () => {
     game.isRunning.mockReturnValueOnce(false);
     plugin.start();
     expect(game.generateRound).not.toHaveBeenCalled();
-  });
-});
-
-// ===========================================================================
-// continue button triggers _runRound
-// ===========================================================================
-describe('continue button', () => {
-  it('clicking continue triggers a new round (generateRound called again)', () => {
-    game.checkAnswer.mockReturnValue(true);
-    game.calculateWedgeIndex.mockReturnValue(2);
-    plugin.start();
-    jest.runAllTimers();
-
-    const canvas = container.querySelector('#fp-canvas');
-    canvas.dispatchEvent(new MouseEvent('click', {
-      clientX: 250, clientY: 100, bubbles: true,
-    }));
-
-    game.generateRound.mockClear();
-    const continueBtn = container.querySelector('#fp-continue-btn');
-    continueBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(game.generateRound).toHaveBeenCalled();
   });
 });
 

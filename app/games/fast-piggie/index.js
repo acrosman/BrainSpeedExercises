@@ -143,7 +143,6 @@ export function highlightWedge(ctx, width, height, wedgeIndex, wedgeCount, color
 let _canvas = null;
 let _ctx = null;
 let _startBtn = null;
-let _continueBtn = null;
 let _stopBtn = null;
 let _scoreEl = null;
 let _roundEl = null;
@@ -423,7 +422,12 @@ function _resolveRound(wedge) {
   }
 
   _updateStats();
-  _continueBtn.hidden = false;
+  // Auto-advance to next round after a short delay.
+  if (game.isRunning()) {
+    setTimeout(() => {
+      _runRound();
+    }, 1000);
+  }
 }
 
 /**
@@ -434,7 +438,7 @@ export default {
   name: 'Fast Piggie',
 
   /**
-   * Initialise the plugin and bind DOM events.
+   * Initialize the plugin and bind DOM events.
    * @param {HTMLElement} container
    */
   init(container) {
@@ -443,7 +447,6 @@ export default {
     _startBtn = container.querySelector('#fp-start-btn');
     _canvas = container.querySelector('#fp-canvas');
     _ctx = _canvas.getContext('2d');
-    _continueBtn = container.querySelector('#fp-continue-btn');
     _stopBtn = container.querySelector('#fp-stop-btn');
     _scoreEl = container.querySelector('#fp-score');
     _roundEl = container.querySelector('#fp-round-count');
@@ -467,7 +470,6 @@ export default {
     _canvas.addEventListener('mousemove', _handleMouseMove);
     _canvas.addEventListener('mouseleave', _handleMouseLeave);
     _canvas.addEventListener('keydown', _handleKeydown);
-    _continueBtn.addEventListener('click', () => _runRound());
     _stopBtn.addEventListener('click', () => this.stop());
   },
 
@@ -479,7 +481,6 @@ export default {
     if (_gameAreaEl) _gameAreaEl.hidden = false;
     game.startGame();
     _updateStats();
-    _continueBtn.hidden = true;
     _runRound();
   },
 
@@ -524,7 +525,6 @@ export default {
 
     _feedbackEl.textContent =
       `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
-    _continueBtn.hidden = true;
     _stopBtn.hidden = true;
     return result;
   },
@@ -547,7 +547,6 @@ export default {
     }
     _updateStats();
     _feedbackEl.textContent = '';
-    _continueBtn.hidden = true;
     _stopBtn.hidden = false;
     if (_instructionsEl) _instructionsEl.hidden = false;
     if (_gameAreaEl) _gameAreaEl.hidden = true;
