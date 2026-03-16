@@ -15,8 +15,14 @@ let startTime = null;
 let level = 0;
 let consecutiveCorrect = 0;
 
+// Best performance tracking
+let maxScore = 0;
+let mostRounds = 0;
+let mostGuineaPigs = 0;
+let topSpeedMs = null; // Lower is better
+
 /**
- * Initialise (or reset) all game state.
+ * Initialize (or reset) all game state.
  */
 export function initGame() {
   score = 0;
@@ -50,10 +56,19 @@ export function stopGame() {
   }
   running = false;
   const duration = startTime !== null ? Date.now() - startTime : 0;
+
+  // Update bests
+  if (score > maxScore) maxScore = score;
+  if (roundsPlayed > mostRounds) mostRounds = roundsPlayed;
+
   return {
     score,
     roundsPlayed,
     duration,
+    maxScore,
+    mostRounds,
+    mostGuineaPigs,
+    topSpeedMs,
   };
 }
 
@@ -108,8 +123,10 @@ export function calculateWedgeIndex(clickX, clickY, centerX, centerY, radius, we
 
 /**
  * Add a correct answer to the score and update level if needed.
+ * @param {number} [guineaPigsThisRound] - Number of guinea pigs displayed this round.
+ * @param {number} [answerSpeedMs] - Time in ms to answer this round (if tracked).
  */
-export function addScore() {
+export function addScore(guineaPigsThisRound, answerSpeedMs) {
   score += 1;
   roundsPlayed += 1;
   consecutiveCorrect += 1;
@@ -117,14 +134,35 @@ export function addScore() {
     level += 1;
     consecutiveCorrect = 0;
   }
+  // Track most guinea pigs displayed in a round
+  if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {
+    mostGuineaPigs = guineaPigsThisRound;
+  }
+  // Track top speed (lowest ms to answer correctly)
+  if (typeof answerSpeedMs === 'number' && (topSpeedMs === null || answerSpeedMs < topSpeedMs)) {
+    topSpeedMs = answerSpeedMs;
+  }
 }
 
 /**
  * Record a missed answer and reset consecutive correct count.
+ * @param {number} [guineaPigsThisRound] - Number of guinea pigs displayed this round.
  */
-export function addMiss() {
+export function addMiss(guineaPigsThisRound) {
   roundsPlayed += 1;
   consecutiveCorrect = 0;
+  // Track most guinea pigs displayed in a round (even if missed)
+  if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {
+    mostGuineaPigs = guineaPigsThisRound;
+  }
+}
+
+/**
+ * Get the best stats for this session.
+ * @returns {object} Best stats: { maxScore, mostRounds, mostGuineaPigs, topSpeedMs }
+ */
+export function getBestStats() {
+  return { maxScore, mostRounds, mostGuineaPigs, topSpeedMs };
 }
 
 /**

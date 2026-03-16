@@ -419,7 +419,13 @@ function _handleClick(event) {
 function _resolveRound(wedge) {
   _clickEnabled = false;
 
-  const { wedgeCount, outlierWedgeIndex, slotAssignment, imageCount } = _currentRound;
+  // Destructure with line break for lint compliance, and remove unused displayDurationMs
+  const {
+    wedgeCount,
+    outlierWedgeIndex,
+    slotAssignment,
+    imageCount,
+  } = _currentRound;
   const { width, height } = _canvas;
   // Map clicked wedge to image index if slotAssignment is used
   let answerIdx = wedge;
@@ -428,10 +434,17 @@ function _resolveRound(wedge) {
   }
   const correct = game.checkAnswer(answerIdx, outlierWedgeIndex);
 
+  // Track answer speed (time from images hidden to answer)
+  // We'll store the time when images are hidden in _currentRound._imagesHiddenAt
+  let answerSpeedMs = null;
+  if (_currentRound._imagesHiddenAt) {
+    answerSpeedMs = Date.now() - _currentRound._imagesHiddenAt;
+  }
+
   const audioCtx = createAudioContext();
 
   if (correct) {
-    game.addScore();
+    game.addScore(imageCount, answerSpeedMs);
     highlightWedge(
       _ctx,
       width,
@@ -461,7 +474,7 @@ function _resolveRound(wedge) {
       wedgeCount,
       'rgba(255, 193, 7, 0.65)',
     );
-    game.addMiss();
+    game.addMiss(imageCount);
     playFailureSound(audioCtx);
     _triggerFlash('wrong');
     _feedbackEl.textContent = 'Not quite — the different piggie is highlighted.';
@@ -625,6 +638,9 @@ function _showSummaryModal(score, previousHigh, highScore) {
   const oldModal = document.getElementById('fp-summary-modal');
   if (oldModal) oldModal.remove();
 
+  // Get best stats for this session
+  const bestStats = game.getBestStats();
+
   const modal = document.createElement('div');
   modal.id = 'fp-summary-modal';
   modal.className = 'fp-modal';
@@ -638,6 +654,14 @@ function _showSummaryModal(score, previousHigh, highScore) {
       <h2 id="fp-summary-title">Game Over</h2>
       <p>Your score: <strong>${score}</strong></p>
       <p>Personal best: <strong>${highScore}</strong></p>
+      <hr />
+      <h3>Session Bests</h3>
+      <ul>
+        <li>Max score: <strong>${bestStats.maxScore}</strong></li>
+        <li>Most rounds: <strong>${bestStats.mostRounds}</strong></li>
+        <li>Most guinea pigs in a round: <strong>${bestStats.mostGuineaPigs}</strong></li>
+        <li>Top speed (ms): <strong>${bestStats.topSpeedMs !== null ? bestStats.topSpeedMs : '—'}</strong></li>
+      </ul>
       <button id="fp-return-btn" class="fp-btn fp-btn--primary">Return to Main Menu</button>
     </div>
   `;
