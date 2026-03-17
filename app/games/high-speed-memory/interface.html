@@ -1,0 +1,87 @@
+<!-- HTML fragment injected into #game-container by the renderer.
+     Do NOT include <html>, <head>, or <body> tags. -->
+
+<section class="high-speed-memory" aria-labelledby="hsm-title">
+
+  <h2 id="hsm-title">High Speed Memory</h2>
+
+  <!-- Instructions panel: shown before the game starts -->
+  <div id="hsm-instructions" class="hsm-instructions">
+    <h3>How to Play</h3>
+    <p>
+      A grid of cards will flash open briefly — memorize the symbol on each card!
+      After they flip back, find all the matching pairs from memory.
+    </p>
+    <ul>
+      <li>Watch closely while the cards are revealed.</li>
+      <li>After they flip face-down, click two cards you think share the same symbol.</li>
+      <li>Matched pairs stay revealed. Wrong guesses flip back.</li>
+      <li>Find every pair to advance — grids grow and reveal time shrinks each level!</li>
+      <li>Use <kbd>Tab</kbd> to move between cards and <kbd>Enter</kbd> or <kbd>Space</kbd>
+        to select.</li>
+    </ul>
+    <button id="hsm-start-btn" type="button" class="hsm-btn hsm-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <!-- Game area: hidden until the player clicks Start -->
+  <div id="hsm-game-area" hidden>
+
+    <!-- Stats bar -->
+    <div class="hsm-stats" aria-live="polite" aria-atomic="true">
+      <span class="hsm-stat">Level: <strong id="hsm-level">1</strong></span>
+      <span class="hsm-stat">Score: <strong id="hsm-score">0</strong></span>
+      <span class="hsm-stat">
+        Pairs: <strong id="hsm-pairs-found">0</strong> /
+        <strong id="hsm-pairs-total">0</strong>
+      </span>
+    </div>
+
+    <!-- Countdown banner: shown during the reveal phase -->
+    <div
+      id="hsm-countdown"
+      class="hsm-countdown"
+      role="status"
+      aria-live="assertive"
+      aria-atomic="true"
+      hidden
+    ></div>
+
+    <!-- Card grid: populated dynamically by index.js -->
+    <div
+      id="hsm-grid"
+      class="hsm-grid"
+      role="group"
+      aria-label="Memory card grid"
+    ></div>
+
+    <!-- Screen-reader feedback region -->
+    <div
+      id="hsm-feedback"
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+    <!-- Controls -->
+    <div class="hsm-controls">
+      <button id="hsm-stop-btn" type="button" class="hsm-btn hsm-btn--secondary">
+        End Game
+      </button>
+    </div>
+
+  </div>
+
+  <!-- End-game panel: shown after the player stops -->
+  <div id="hsm-end-panel" class="hsm-end-panel" hidden>
+    <h3>Game Over!</h3>
+    <p>Final Score: <strong id="hsm-final-score">0</strong></p>
+    <p>Highest Level Reached: <strong id="hsm-final-level">1</strong></p>
+    <button id="hsm-play-again-btn" type="button" class="hsm-btn hsm-btn--primary">
+      Play Again
+    </button>
+  </div>
+
+</section>

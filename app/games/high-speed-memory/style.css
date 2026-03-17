@@ -1,0 +1,253 @@
+/* ── Section wrapper ─────────────────────────────────────────── */
+.high-speed-memory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  color: #212529; /* ~14.5:1 contrast on #f8f9fa */
+}
+
+.high-speed-memory h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ── Instructions panel ──────────────────────────────────────── */
+.hsm-instructions {
+  max-width: 540px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  text-align: left;
+}
+
+.hsm-instructions h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.hsm-instructions p {
+  margin: 0 0 0.75rem;
+}
+
+.hsm-instructions ul {
+  margin: 0 0 1.25rem 1.25rem;
+  padding: 0;
+}
+
+.hsm-instructions li {
+  margin-bottom: 0.4rem;
+}
+
+.hsm-instructions kbd {
+  display: inline-block;
+  padding: 0 0.35em;
+  font-family: monospace;
+  font-size: 0.875em;
+  border: 1px solid #adb5bd;
+  border-radius: 3px;
+  background-color: #f1f3f5;
+}
+
+.hsm-instructions .hsm-btn {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 1.5rem;
+  font-size: 1.1rem;
+}
+
+/* ── Stats bar ───────────────────────────────────────────────── */
+.hsm-stats {
+  display: flex;
+  gap: 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hsm-stat strong {
+  font-size: 1.25rem;
+}
+
+/* ── Countdown banner ────────────────────────────────────────── */
+.hsm-countdown {
+  padding: 0.5rem 1.5rem;
+  background-color: #1a1a2e;
+  color: #ffffff; /* 18:1 contrast */
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+  max-width: 540px;
+}
+
+/* ── Card grid ───────────────────────────────────────────────── */
+.hsm-grid {
+  display: grid;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+/* ── Individual card ─────────────────────────────────────────── */
+.hsm-card {
+  width: 72px;
+  height: 72px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  background-color: #1a1a2e;
+  color: #1a1a2e; /* hide symbol by default — face-down */
+  position: relative;
+  user-select: none;
+}
+
+/* Face-down: show question mark pattern */
+.hsm-card::after {
+  content: '?';
+  position: absolute;
+  font-size: 1.5rem;
+  color: #e94560; /* 4.6:1 on #1a1a2e */
+  pointer-events: none;
+}
+
+/* Face-up (revealed or being guessed): show the symbol */
+.hsm-card--revealed {
+  background-color: #ffffff;
+  color: #212529; /* ~16:1 contrast on #ffffff */
+}
+
+.hsm-card--revealed::after {
+  display: none;
+}
+
+/* Matched pair: green background */
+.hsm-card--matched {
+  background-color: #d4edda;
+  color: #155724; /* 7.3:1 contrast on #d4edda */
+  cursor: default;
+}
+
+.hsm-card--matched::after {
+  display: none;
+}
+
+/* Wrong-guess flash: brief red tint (applied via JS, removed after animation) */
+.hsm-card--wrong {
+  background-color: #f8d7da;
+  color: #721c24; /* 7.3:1 contrast on #f8d7da */
+  animation: hsm-shake 0.3s ease-out;
+}
+
+.hsm-card--wrong::after {
+  display: none;
+}
+
+@keyframes hsm-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.hsm-card:hover:not(.hsm-card--matched):not([disabled]) {
+  transform: scale(1.05);
+}
+
+.hsm-card:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+}
+
+/* ── Controls ────────────────────────────────────────────────── */
+.hsm-controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.hsm-btn {
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #005fcc;
+  color: #ffffff; /* 7.3:1 contrast on #005fcc */
+  transition: background-color 0.15s ease;
+}
+
+.hsm-btn:hover {
+  background-color: #004aa3;
+}
+
+.hsm-btn:active {
+  background-color: #003d88;
+}
+
+.hsm-btn:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+  background-color: #004aa3;
+}
+
+.hsm-btn--secondary {
+  background-color: #6c757d; /* 4.6:1 on #ffffff */
+  color: #ffffff;
+}
+
+.hsm-btn--secondary:hover {
+  background-color: #545b62;
+}
+
+.hsm-btn--secondary:active {
+  background-color: #3d4349;
+}
+
+.hsm-btn--secondary:focus-visible {
+  outline-color: #6c757d;
+}
+
+/* ── End-game panel ──────────────────────────────────────────── */
+.hsm-end-panel {
+  max-width: 360px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  text-align: center;
+}
+
+.hsm-end-panel h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+.hsm-end-panel p {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+.hsm-end-panel .hsm-btn {
+  margin-top: 1rem;
+  padding: 0.65rem 2rem;
+}
+
+/* ── Respect hidden attribute ────────────────────────────────── */
+[hidden] {
+  display: none !important;
+}
