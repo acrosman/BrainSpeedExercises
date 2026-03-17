@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import {
-  describe, it, test, expect, beforeEach,
+  describe, test, expect, beforeEach,
 } from '@jest/globals';
 
 import {
@@ -289,7 +289,7 @@ describe('isRunning', () => {
     expect(isRunning()).toBe(true);
   });
 
-  it('returns false after stopGame', () => {
+  test('returns false after stopGame', () => {
     startGame();
     stopGame();
     expect(isRunning()).toBe(false);

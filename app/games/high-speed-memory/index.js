@@ -350,7 +350,7 @@ function showEndPanel(result) {
 const name = 'High Speed Memory';
 
 /**
- * Initialise the plugin.
+ * Initialize the plugin.
  * Called once after interface.html has been injected into the game container.
  * Queries DOM elements and attaches event listeners; does not start timers.
  *
