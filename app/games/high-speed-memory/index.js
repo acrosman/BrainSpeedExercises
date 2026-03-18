@@ -9,8 +9,20 @@
 
 import * as game from './game.js';
 
-/** Delay in ms before flipping back a wrong-guess pair. */
+/**
+ * Delay in ms before flipping back a wrong-guess group.
+ * Long enough for the player to see which cards were wrong.
+ */
 const WRONG_FLIP_DELAY_MS = 900;
+
+/**
+ * Base path for card images relative to the renderer's root (app/index.html).
+ * Images are stored alongside this game's own files.
+ */
+const IMAGES_PATH = 'games/high-speed-memory/images/';
+
+/** Src for the card-back image (face-down state). */
+const CARD_BACK_SRC = `${IMAGES_PATH}card-back.svg`;
 
 // ── DOM references (populated by init) ────────────────────────────────────────
 
@@ -45,10 +57,10 @@ let _scoreEl = null;
 let _levelEl = null;
 
 /** @type {HTMLElement|null} */
-let _pairsFoundEl = null;
+let _groupsFoundEl = null;
 
 /** @type {HTMLElement|null} */
-let _pairsTotalEl = null;
+let _groupsTotalEl = null;
 
 /** @type {HTMLElement|null} */
 let _countdownEl = null;
@@ -66,12 +78,12 @@ let _finalLevelEl = null;
 
 /**
  * Current round's card data (from game.generateGrid).
- * @type {Array<{ id: number, symbol: string, matched: boolean }>}
+ * @type {Array<{ id: number, image: string, matched: boolean }>}
  */
 let _roundGrid = [];
 
 /**
- * IDs of the (up to two) cards currently flipped face-up waiting for comparison.
+ * IDs of cards currently flipped face-up waiting for comparison (up to MATCH_SIZE).
  * @type {number[]}
  */
 let _flipped = [];
@@ -83,10 +95,10 @@ let _flipped = [];
 let _flipLock = false;
 
 /**
- * Number of pairs matched in the current round.
+ * Number of groups matched in the current round.
  * @type {number}
  */
-let _pairsFound = 0;
+let _groupsFound = 0;
 
 /**
  * Pending setTimeout handle for flipping wrong guesses back.
@@ -99,6 +111,36 @@ let _flipBackTimer = null;
  * @type {ReturnType<typeof setTimeout>|null}
  */
 let _hideTimer = null;
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Play a short buzzer sound to indicate a wrong guess.
+ * Uses the Web Audio API; silently no-ops if the API is unavailable.
+ */
+export function playWrongSound() {
+  const AudioCtx = (typeof AudioContext !== 'undefined' && AudioContext)
+    // eslint-disable-next-line no-undef
+    || (typeof webkitAudioContext !== 'undefined' && webkitAudioContext)
+    || null;
+  if (!AudioCtx) return;
+  try {
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, ctx.currentTime);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+    osc.onended = () => { ctx.close().catch(() => {}); };
+  } catch {
+    // Ignore any audio initialization errors
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -121,30 +163,44 @@ export function updateStats() {
 }
 
 /**
- * Update the pairs counter display.
+ * Update the groups-found counter display.
  */
-export function updatePairsDisplay() {
-  if (_pairsFoundEl) _pairsFoundEl.textContent = String(_pairsFound);
+export function updateGroupsDisplay() {
+  if (_groupsFoundEl) _groupsFoundEl.textContent = String(_groupsFound);
 }
 
 /**
  * Build and inject the card grid DOM for the current round.
  * Clears any existing grid content first.
+ * Cards are rendered face-up during the reveal phase.
  */
 export function renderGrid() {
   if (!_gridEl) return;
   _gridEl.innerHTML = '';
 
-  const { cols } = game.getGridSize(game.getLevel());
+  const { rows, cols } = game.getGridSize(game.getLevel());
+
+  // Set CSS grid columns and a --cols custom property used by the stylesheet
   _gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  _gridEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  _gridEl.style.setProperty('--cols', String(cols));
+  _gridEl.style.setProperty('--rows', String(rows));
 
   _roundGrid.forEach((card) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'hsm-card hsm-card--revealed';
-    btn.setAttribute('aria-label', `Card ${card.id + 1}: ${card.symbol}`);
+    btn.setAttribute('aria-label', `Card ${card.id + 1}: revealed`);
     btn.setAttribute('data-id', String(card.id));
-    btn.textContent = card.symbol;
+    btn.setAttribute('data-image', card.image);
+
+    const img = document.createElement('img');
+    img.src = `${IMAGES_PATH}${card.image}`;
+    img.alt = '';
+    img.setAttribute('aria-hidden', 'true');
+    img.className = 'hsm-card__img';
+    btn.appendChild(img);
+
     btn.addEventListener('click', () => handleCardClick(card.id));
     btn.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -155,14 +211,22 @@ export function renderGrid() {
     _gridEl.appendChild(btn);
   });
 
-  if (_pairsTotalEl) {
-    const totalPairs = _roundGrid.length / 2;
-    _pairsTotalEl.textContent = String(totalPairs);
+  // Fill remaining grid cells with empty placeholders if n*n is not divisible by MATCH_SIZE
+  const emptyCount = rows * cols - _roundGrid.length;
+  for (let i = 0; i < emptyCount; i += 1) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'hsm-card hsm-card--empty';
+    placeholder.setAttribute('aria-hidden', 'true');
+    _gridEl.appendChild(placeholder);
+  }
+
+  if (_groupsTotalEl) {
+    _groupsTotalEl.textContent = String(_roundGrid.length / game.MATCH_SIZE);
   }
 }
 
 /**
- * Flip a single card face-down in the DOM (without affecting _roundGrid state).
+ * Flip a single card face-down in the DOM (does not modify _roundGrid state).
  * @param {number} cardId - The id of the card to hide.
  */
 export function hideCardEl(cardId) {
@@ -170,21 +234,27 @@ export function hideCardEl(cardId) {
   if (!btn) return;
   btn.classList.remove('hsm-card--revealed', 'hsm-card--wrong');
   btn.setAttribute('aria-label', `Card ${cardId + 1}: face down`);
-  btn.textContent = '';
+  const img = btn.querySelector('img');
+  if (img) {
+    img.src = CARD_BACK_SRC;
+  }
 }
 
 /**
  * Flip a card face-up in the DOM.
  * @param {number} cardId - The id of the card to reveal.
- * @param {string} symbol - The symbol to display.
+ * @param {string} imageName - The image filename to display.
  */
-export function revealCardEl(cardId, symbol) {
+export function revealCardEl(cardId, imageName) {
   const btn = _gridEl && _gridEl.querySelector(`[data-id="${cardId}"]`);
   if (!btn) return;
   btn.classList.add('hsm-card--revealed');
   btn.classList.remove('hsm-card--wrong');
-  btn.setAttribute('aria-label', `Card ${cardId + 1}: ${symbol}`);
-  btn.textContent = symbol;
+  btn.setAttribute('aria-label', `Card ${cardId + 1}: revealed`);
+  const img = btn.querySelector('img');
+  if (img) {
+    img.src = `${IMAGES_PATH}${imageName}`;
+  }
 }
 
 /**
@@ -200,7 +270,7 @@ export function markCardMatched(cardId) {
 }
 
 /**
- * Apply the "wrong guess" visual state to a card element briefly.
+ * Apply the "wrong guess" visual state to a card element.
  * @param {number} cardId - The id of the card to mark as wrong.
  */
 export function markCardWrong(cardId) {
@@ -221,38 +291,43 @@ export function hideAllCards() {
   });
   if (_countdownEl) _countdownEl.hidden = true;
   _flipLock = false;
-  announce('Cards hidden — find the matching pairs!');
+  announce('Cards hidden — find the matching groups!');
 }
 
 /**
  * Start a new round: generate a fresh grid, render it revealed, then hide after delay.
  */
 export function startRound() {
-  _pairsFound = 0;
+  _groupsFound = 0;
   _flipped = [];
   _flipLock = true;
 
   _roundGrid = game.generateGrid(game.getLevel());
   renderGrid();
   updateStats();
-  updatePairsDisplay();
+  updateGroupsDisplay();
 
   const displayMs = game.getDisplayDurationMs(game.getLevel());
-  const seconds = Math.ceil(displayMs / 1000);
+  const ms = displayMs < 1000
+    ? `${displayMs}ms`
+    : `${Math.ceil(displayMs / 1000)} second${Math.ceil(displayMs / 1000) !== 1 ? 's' : ''}`;
 
   if (_countdownEl) {
-    _countdownEl.textContent = `Memorize! Cards hide in ${seconds} second${seconds !== 1 ? 's' : ''}…`;
+    _countdownEl.textContent = `Memorize! Cards hide in ${ms}…`;
     _countdownEl.hidden = false;
   }
 
-  announce(`Level ${game.getLevel() + 1}. Memorize the ${_roundGrid.length} cards. They will hide in ${seconds} seconds.`);
+  announce(
+    `Level ${game.getLevel() + 1}. Memorize the ${_roundGrid.length} cards. They hide in ${ms}.`,
+  );
 
   _hideTimer = setTimeout(hideAllCards, displayMs);
 }
 
 /**
  * Handle a card being clicked (or activated via keyboard).
- * Ignores clicks when the flip lock is active or the card is already matched/flipped.
+ * Collects MATCH_SIZE flips before checking for a group match.
+ * Ignores clicks when flip lock is active or the card is already matched/flipped.
  *
  * @param {number} cardId - The id of the clicked card.
  */
@@ -264,44 +339,42 @@ export function handleCardClick(cardId) {
   if (!card || card.matched) return;
 
   // Flip the card face-up
-  revealCardEl(cardId, card.symbol);
+  revealCardEl(cardId, card.image);
   _flipped.push(cardId);
 
-  if (_flipped.length < 2) return;
+  if (_flipped.length < game.MATCH_SIZE) return;
 
-  // Two cards flipped — check for a match
+  // MATCH_SIZE cards flipped — evaluate group
   _flipLock = true;
-  const [idA, idB] = _flipped;
-  const cardA = _roundGrid.find((c) => c.id === idA);
-  const cardB = _roundGrid.find((c) => c.id === idB);
+  const flippedCards = _flipped.map((id) => _roundGrid.find((c) => c.id === id));
+  const images = flippedCards.map((c) => c.image);
 
-  if (game.checkMatch(cardA.symbol, cardB.symbol)) {
-    // Match found
-    cardA.matched = true;
-    cardB.matched = true;
-    markCardMatched(idA);
-    markCardMatched(idB);
-    game.addCorrectPair();
-    _pairsFound += 1;
+  if (game.checkMatch(...images)) {
+    // All MATCH_SIZE cards match
+    flippedCards.forEach((c) => {
+      c.matched = true;
+      markCardMatched(c.id);
+    });
+    game.addCorrectGroup();
+    _groupsFound += 1;
     updateStats();
-    updatePairsDisplay();
-    announce(`Match! ${cardA.symbol}`);
+    updateGroupsDisplay();
+    announce('Match! Found a group.');
     _flipped = [];
     _flipLock = false;
 
-    const totalPairs = _roundGrid.length / 2;
-    if (_pairsFound >= totalPairs) {
+    const totalGroups = _roundGrid.length / game.MATCH_SIZE;
+    if (_groupsFound >= totalGroups) {
       onRoundComplete();
     }
   } else {
-    // No match — shake and flip back
-    markCardWrong(idA);
-    markCardWrong(idB);
+    // No match — play sound and flip back
+    flippedCards.forEach((c) => markCardWrong(c.id));
+    playWrongSound();
     announce('No match. Try again.');
 
     _flipBackTimer = setTimeout(() => {
-      hideCardEl(idA);
-      hideCardEl(idB);
+      _flipped.forEach((id) => hideCardEl(id));
       _flipped = [];
       _flipLock = false;
     }, WRONG_FLIP_DELAY_MS);
@@ -309,13 +382,13 @@ export function handleCardClick(cardId) {
 }
 
 /**
- * Called when all pairs in the current round have been found.
+ * Called when all groups in the current round have been found.
  * Advances to the next level and starts a new round.
  */
 function onRoundComplete() {
   game.completeRound();
   announce(`Round complete! Starting level ${game.getLevel() + 1}.`);
-  // Brief pause so the player sees the complete board before the next round
+  // Brief pause so the player sees the completed board before the next round starts
   setTimeout(startRound, 1200);
 }
 
@@ -371,8 +444,8 @@ function init(gameContainer) {
   _gridEl = _container.querySelector('#hsm-grid');
   _scoreEl = _container.querySelector('#hsm-score');
   _levelEl = _container.querySelector('#hsm-level');
-  _pairsFoundEl = _container.querySelector('#hsm-pairs-found');
-  _pairsTotalEl = _container.querySelector('#hsm-pairs-total');
+  _groupsFoundEl = _container.querySelector('#hsm-groups-found');
+  _groupsTotalEl = _container.querySelector('#hsm-groups-total');
   _countdownEl = _container.querySelector('#hsm-countdown');
   _feedbackEl = _container.querySelector('#hsm-feedback');
   _finalScoreEl = _container.querySelector('#hsm-final-score');
@@ -407,8 +480,8 @@ function start() {
 }
 
 /**
- * Stop the game and return the final result.
- * Clears timers and shows the end-game panel.
+ * Stop the game, persist progress, and show the end-game panel.
+ * Progress is saved asynchronously (fire-and-forget); the game result is returned synchronously.
  *
  * @returns {{ score: number, level: number, roundsCompleted: number, duration: number }}
  */
@@ -416,13 +489,35 @@ function stop() {
   clearTimers();
   const result = game.stopGame();
 
-  if (typeof window !== 'undefined' && window.api) {
-    window.api.invoke('progress:save', {
-      gameId: 'high-speed-memory',
-      score: result.score,
-      level: result.level,
-    }).catch(() => {});
-  }
+  // Save progress asynchronously — fire and forget
+  (async () => {
+    if (typeof window !== 'undefined' && window.api) {
+      try {
+        let existing = { playerId: 'default', games: {} };
+        try {
+          existing = await window.api.invoke('progress:load', { playerId: 'default' }) || existing;
+        } catch {
+          // If load fails, continue with defaults
+        }
+        const prev = (existing.games && existing.games['high-speed-memory']) || {};
+        const updated = {
+          ...existing,
+          games: {
+            ...existing.games,
+            'high-speed-memory': {
+              highScore: Math.max(result.score, prev.highScore || 0),
+              sessionsPlayed: (prev.sessionsPlayed || 0) + 1,
+              lastPlayed: new Date().toISOString(),
+              highestLevel: Math.max(result.level, prev.highestLevel || 0),
+            },
+          },
+        };
+        await window.api.invoke('progress:save', { playerId: 'default', data: updated });
+      } catch {
+        // Swallow all progress save/load errors
+      }
+    }
+  })();
 
   showEndPanel(result);
   return result;
@@ -438,7 +533,7 @@ function reset() {
   _roundGrid = [];
   _flipped = [];
   _flipLock = false;
-  _pairsFound = 0;
+  _groupsFound = 0;
 
   if (_gridEl) _gridEl.innerHTML = '';
   if (_instructionsEl) _instructionsEl.hidden = false;
@@ -448,7 +543,7 @@ function reset() {
   if (_feedbackEl) _feedbackEl.textContent = '';
 
   updateStats();
-  updatePairsDisplay();
+  updateGroupsDisplay();
 }
 
 export default {
@@ -458,3 +553,4 @@ export default {
   stop,
   reset,
 };
+

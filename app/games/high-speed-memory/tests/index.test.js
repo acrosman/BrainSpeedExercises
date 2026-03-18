@@ -2,24 +2,33 @@ import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globa
 
 // Mock game.js so index.js can be tested in isolation.
 jest.unstable_mockModule('../game.js', () => ({
-  SYMBOLS: ['★', '♠', '♥', '♦', '♣', '☀', '☽', '✿', '♪', '✈', '⚽', '🎯', '🔔', '🌊', '🍀', '💎'],
-  GRID_CONFIGS: [[2, 2], [2, 3]],
-  BASE_DISPLAY_MS: 3000,
-  DISPLAY_DECREMENT_MS: 200,
-  MIN_DISPLAY_MS: 800,
+  CARD_IMAGES: [
+    'card-01.svg', 'card-02.svg', 'card-03.svg',
+    'card-04.svg', 'card-05.svg', 'card-06.svg',
+  ],
+  MATCH_SIZE: 3,
+  BASE_DISPLAY_MS: 500,
+  DISPLAY_DECREMENT_MS: 24,
+  MIN_DISPLAY_MS: 20,
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({ score: 5, level: 2, roundsCompleted: 2, duration: 12000 })),
-  getGridSize: jest.fn(() => ({ rows: 2, cols: 2 })),
-  getDisplayDurationMs: jest.fn(() => 3000),
+  getGridSize: jest.fn(() => ({ rows: 3, cols: 3 })),
+  getActiveCardCount: jest.fn(() => 9),
+  getDisplayDurationMs: jest.fn(() => 500),
   generateGrid: jest.fn(() => [
-    { id: 0, symbol: '★', matched: false },
-    { id: 1, symbol: '♠', matched: false },
-    { id: 2, symbol: '★', matched: false },
-    { id: 3, symbol: '♠', matched: false },
+    { id: 0, image: 'card-01.svg', matched: false },
+    { id: 1, image: 'card-02.svg', matched: false },
+    { id: 2, image: 'card-03.svg', matched: false },
+    { id: 3, image: 'card-01.svg', matched: false },
+    { id: 4, image: 'card-02.svg', matched: false },
+    { id: 5, image: 'card-03.svg', matched: false },
+    { id: 6, image: 'card-01.svg', matched: false },
+    { id: 7, image: 'card-02.svg', matched: false },
+    { id: 8, image: 'card-03.svg', matched: false },
   ]),
-  checkMatch: jest.fn((a, b) => a === b),
-  addCorrectPair: jest.fn(),
+  checkMatch: jest.fn((a, b, c) => a === b && b === c),
+  addCorrectGroup: jest.fn(),
   completeRound: jest.fn(),
   getScore: jest.fn(() => 5),
   getLevel: jest.fn(() => 2),
@@ -32,7 +41,7 @@ const plugin = pluginModule.default;
 const {
   announce,
   updateStats,
-  updatePairsDisplay,
+  updateGroupsDisplay,
   renderGrid,
   hideCardEl,
   revealCardEl,
@@ -41,6 +50,7 @@ const {
   hideAllCards,
   startRound,
   handleCardClick,
+  playWrongSound,
 } = pluginModule;
 
 const gameMock = await import('../game.js');
@@ -60,8 +70,8 @@ function buildContainer() {
     <div id="hsm-grid"></div>
     <strong id="hsm-score">0</strong>
     <strong id="hsm-level">1</strong>
-    <strong id="hsm-pairs-found">0</strong>
-    <strong id="hsm-pairs-total">0</strong>
+    <strong id="hsm-groups-found">0</strong>
+    <strong id="hsm-groups-total">0</strong>
     <div id="hsm-countdown" hidden></div>
     <div id="hsm-feedback"></div>
     <strong id="hsm-final-score">0</strong>
@@ -174,28 +184,39 @@ describe('stop', () => {
   });
 
   test('clears pending flip-back timer on stop', () => {
-    // Release the flip lock by running the reveal timer
-    jest.runAllTimers();
-    // Create a non-matching flip to set the flip-back timer
-    handleCardClick(0); // flip card 0 (★)
-    handleCardClick(1); // flip card 1 (♠) — no match, flip-back timer pending
-    // stop() should clear the pending timer without throwing
+    jest.runAllTimers(); // hide cards (release flip lock)
+    handleCardClick(0);
+    handleCardClick(1);
+    handleCardClick(2); // wrong group (0+1+2 = card-01+card-02+card-03 — no match)
     expect(() => plugin.stop()).not.toThrow();
   });
 
-  test('invokes window.api progress save when api is available', async () => {
-    const mockApi = { invoke: jest.fn().mockResolvedValue(undefined) };
+  test('invokes window.api.invoke with correct progress:save format', async () => {
+    const mockApi = {
+      invoke: jest.fn()
+        .mockResolvedValueOnce({ playerId: 'default', games: {} }) // progress:load
+        .mockResolvedValueOnce(undefined), // progress:save
+    };
     globalThis.window = globalThis.window || {};
     const originalApi = globalThis.window.api;
     globalThis.window.api = mockApi;
 
     plugin.stop();
-
+    await Promise.resolve();
     await Promise.resolve();
 
     expect(mockApi.invoke).toHaveBeenCalledWith(
       'progress:save',
-      expect.objectContaining({ gameId: 'high-speed-memory' }),
+      expect.objectContaining({
+        playerId: 'default',
+        data: expect.objectContaining({
+          games: expect.objectContaining({
+            'high-speed-memory': expect.objectContaining({
+              sessionsPlayed: expect.any(Number),
+            }),
+          }),
+        }),
+      }),
     );
     globalThis.window.api = originalApi;
   });
@@ -245,16 +266,14 @@ describe('reset', () => {
   });
 
   test('clears pending hide timer on reset', () => {
-    // startRound creates a hide timer; reset should clear it
     expect(() => plugin.reset()).not.toThrow();
   });
 
   test('clears pending flip-back timer on reset', () => {
-    // Release the flip lock by running the reveal timer
-    jest.runAllTimers();
-    // Create a non-matching flip to create a pending flip-back timer
+    jest.runAllTimers(); // release flip lock
     handleCardClick(0);
-    handleCardClick(1); // no match, flip-back timer pending
+    handleCardClick(1);
+    handleCardClick(2); // trigger no-match flip-back timer
     expect(() => plugin.reset()).not.toThrow();
   });
 });
@@ -267,13 +286,63 @@ describe('play again button', () => {
     const container = buildContainer();
     plugin.init(container);
     plugin.start();
-    plugin.stop(); // show end panel
+    plugin.stop();
 
     const playAgainBtn = container.querySelector('#hsm-play-again-btn');
     playAgainBtn.click();
 
     expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
     jest.useRealTimers();
+  });
+});
+
+// ── playWrongSound ────────────────────────────────────────────────────────────
+
+describe('playWrongSound', () => {
+  test('does not throw when AudioContext is unavailable', () => {
+    expect(() => playWrongSound()).not.toThrow();
+  });
+
+  test('creates and plays an oscillator when AudioContext is available', () => {
+    const mockOsc = {
+      connect: jest.fn(),
+      type: '',
+      frequency: { setValueAtTime: jest.fn() },
+      gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+      start: jest.fn(),
+      stop: jest.fn(),
+      onended: null,
+    };
+    const mockGainNode = {
+      connect: jest.fn(),
+      gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+    };
+    const mockCtx = {
+      createOscillator: jest.fn(() => mockOsc),
+      createGain: jest.fn(() => mockGainNode),
+      destination: {},
+      currentTime: 0,
+      close: jest.fn().mockResolvedValue(undefined),
+    };
+    const OriginalAudioContext = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => mockCtx);
+
+    expect(() => playWrongSound()).not.toThrow();
+    expect(mockOsc.start).toHaveBeenCalled();
+
+    // Trigger the onended callback to cover the close() branch
+    if (mockOsc.onended) mockOsc.onended();
+
+    globalThis.AudioContext = OriginalAudioContext;
+  });
+
+  test('swallows errors thrown by the audio context', () => {
+    const OriginalAudioContext = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => { throw new Error('Audio unavailable'); });
+
+    expect(() => playWrongSound()).not.toThrow();
+
+    globalThis.AudioContext = OriginalAudioContext;
   });
 });
 
@@ -310,19 +379,19 @@ describe('updateStats', () => {
   });
 });
 
-// ── updatePairsDisplay ────────────────────────────────────────────────────────
+// ── updateGroupsDisplay ───────────────────────────────────────────────────────
 
-describe('updatePairsDisplay', () => {
-  test('does not throw when pairs element is absent', () => {
+describe('updateGroupsDisplay', () => {
+  test('does not throw when groups element is absent', () => {
     plugin.init(document.createElement('div'));
-    expect(() => updatePairsDisplay()).not.toThrow();
+    expect(() => updateGroupsDisplay()).not.toThrow();
   });
 
-  test('updates pairs found element', () => {
+  test('updates groups-found element', () => {
     const container = buildContainer();
     plugin.init(container);
-    updatePairsDisplay();
-    expect(container.querySelector('#hsm-pairs-found').textContent).toBe('0');
+    updateGroupsDisplay();
+    expect(container.querySelector('#hsm-groups-found').textContent).toBe('0');
   });
 });
 
@@ -335,7 +404,23 @@ describe('renderGrid', () => {
     plugin.init(container);
     startRound();
     const buttons = container.querySelectorAll('#hsm-grid button');
-    expect(buttons.length).toBe(4);
+    expect(buttons.length).toBe(9); // 3×3 mock grid
+    jest.useRealTimers();
+  });
+
+  test('renders empty placeholder cells when grid is not fully divisible by MATCH_SIZE', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    plugin.init(container);
+    // startRound sets _roundGrid to 9 cards via the mock
+    startRound();
+    // Override getGridSize for this renderGrid call to simulate a 4×4 grid (16 cells, 9 active)
+    gameMock.getGridSize.mockReturnValueOnce({ rows: 4, cols: 4 });
+    renderGrid();
+    // Should have 9 card buttons + 7 empty placeholder divs = 16 children
+    const grid = container.querySelector('#hsm-grid');
+    const empties = grid.querySelectorAll('.hsm-card--empty');
+    expect(empties.length).toBe(7);
     jest.useRealTimers();
   });
 
@@ -354,6 +439,16 @@ describe('renderGrid', () => {
     jest.useRealTimers();
   });
 
+  test('each card button contains an img element', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    const btn = container.querySelector('[data-id="0"]');
+    expect(btn.querySelector('img')).not.toBeNull();
+    jest.useRealTimers();
+  });
+
   test('pressing Enter on a card triggers handleCardClick', () => {
     jest.useFakeTimers();
     const container = buildContainer();
@@ -363,7 +458,6 @@ describe('renderGrid', () => {
 
     const btn = container.querySelector('[data-id="0"]');
     btn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    // Card should now be revealed
     expect(btn.classList.contains('hsm-card--revealed')).toBe(true);
     jest.useRealTimers();
   });
@@ -373,7 +467,7 @@ describe('renderGrid', () => {
     const container = buildContainer();
     plugin.init(container);
     startRound();
-    jest.runAllTimers(); // hide cards
+    jest.runAllTimers();
 
     const btn = container.querySelector('[data-id="0"]');
     btn.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
@@ -381,16 +475,15 @@ describe('renderGrid', () => {
     jest.useRealTimers();
   });
 
-  test('pressing other keys on a card does not trigger handleCardClick', () => {
+  test('pressing other keys does not trigger handleCardClick', () => {
     jest.useFakeTimers();
     const container = buildContainer();
     plugin.init(container);
     startRound();
-    jest.runAllTimers(); // hide cards
+    jest.runAllTimers();
 
     const btn = container.querySelector('[data-id="0"]');
     btn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
-    // Card should remain hidden (not revealed)
     expect(btn.classList.contains('hsm-card--revealed')).toBe(false);
     jest.useRealTimers();
   });
@@ -419,11 +512,17 @@ describe('card element manipulation', () => {
     expect(btn.classList.contains('hsm-card--revealed')).toBe(false);
   });
 
-  test('revealCardEl adds revealed class and sets textContent', () => {
+  test('revealCardEl adds revealed class', () => {
     const btn = container.querySelector('[data-id="0"]');
-    revealCardEl(0, '★');
+    revealCardEl(0, 'card-01.svg');
     expect(btn.classList.contains('hsm-card--revealed')).toBe(true);
-    expect(btn.textContent).toBe('★');
+  });
+
+  test('revealCardEl updates img src', () => {
+    const btn = container.querySelector('[data-id="0"]');
+    revealCardEl(0, 'card-01.svg');
+    const img = btn.querySelector('img');
+    expect(img.src).toContain('card-01.svg');
   });
 
   test('markCardMatched adds matched class and disables button', () => {
@@ -444,7 +543,7 @@ describe('card element manipulation', () => {
   });
 
   test('revealCardEl does not throw for unknown card id', () => {
-    expect(() => revealCardEl(9999, '?')).not.toThrow();
+    expect(() => revealCardEl(9999, 'card-01.svg')).not.toThrow();
   });
 
   test('markCardMatched does not throw for unknown card id', () => {
@@ -459,15 +558,13 @@ describe('card element manipulation', () => {
 // ── hideAllCards ──────────────────────────────────────────────────────────────
 
 describe('hideAllCards', () => {
-  test('hides the countdown and un-matched cards', () => {
+  test('hides the countdown banner', () => {
     jest.useFakeTimers();
     const container = buildContainer();
     plugin.init(container);
     startRound();
-
     hideAllCards();
-    const countdown = container.querySelector('#hsm-countdown');
-    expect(countdown.hidden).toBe(true);
+    expect(container.querySelector('#hsm-countdown').hidden).toBe(true);
     jest.useRealTimers();
   });
 
@@ -485,8 +582,7 @@ describe('startRound', () => {
     const container = buildContainer();
     plugin.init(container);
     startRound();
-    const buttons = container.querySelectorAll('#hsm-grid button');
-    expect(buttons.length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('#hsm-grid button').length).toBeGreaterThan(0);
     jest.useRealTimers();
   });
 
@@ -521,66 +617,82 @@ describe('handleCardClick', () => {
     jest.useRealTimers();
   });
 
+  test('ignores clicks when flip lock is active', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    startRound(); // flip lock active during reveal
+    expect(() => handleCardClick(0)).not.toThrow();
+  });
+
+  test('ignores clicking the same card twice', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    jest.runAllTimers(); // release flip lock
+    handleCardClick(0);
+    expect(() => handleCardClick(0)).not.toThrow();
+  });
+
   test('ignores clicks on matched cards', () => {
     const container = buildContainer();
     plugin.init(container);
     startRound();
-    jest.runAllTimers(); // hide cards
-    // Match cards 0 and 2 (both ★)
+    jest.runAllTimers(); // release flip lock
+    // Match a group: cards 0, 3, 6 all have 'card-01.svg'
     handleCardClick(0);
-    handleCardClick(2);
+    handleCardClick(3);
+    handleCardClick(6); // triggers match
     jest.runAllTimers();
-    // clicking a matched card again should be a no-op
-    expect(() => handleCardClick(0)).not.toThrow();
+    expect(() => handleCardClick(0)).not.toThrow(); // matched card — ignored
   });
 
-  test('ignores the same card being clicked twice', () => {
+  test('marks wrong group with wrong class and calls playWrongSound', () => {
     const container = buildContainer();
     plugin.init(container);
     startRound();
-    jest.runAllTimers(); // hide cards
-    handleCardClick(0);
-    expect(() => handleCardClick(0)).not.toThrow();
-  });
-
-  test('flips non-matching pair back after delay', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    startRound();
-    jest.runAllTimers(); // hide cards
-    // Cards 0 ('★') and 1 ('♠') do NOT match
+    jest.runAllTimers(); // release flip lock
+    // Cards 0 (card-01), 1 (card-02), 2 (card-03) — no match
     handleCardClick(0);
     handleCardClick(1);
+    handleCardClick(2);
     const btn0 = container.querySelector('[data-id="0"]');
     expect(btn0.classList.contains('hsm-card--wrong')).toBe(true);
+  });
+
+  test('flips wrong group back after delay', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    jest.runAllTimers(); // release flip lock
+    handleCardClick(0);
+    handleCardClick(1);
+    handleCardClick(2); // no match
+    const btn0 = container.querySelector('[data-id="0"]');
     jest.runAllTimers(); // trigger flip-back
     expect(btn0.classList.contains('hsm-card--revealed')).toBe(false);
   });
 
-  test('does nothing when flip lock is active', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    startRound(); // flip lock is active during reveal phase
-    expect(() => handleCardClick(0)).not.toThrow();
-  });
-
-  test('advances to next round when all pairs matched', () => {
+  test('advances to next round when all groups matched', () => {
     const container = buildContainer();
     plugin.init(container);
     startRound();
-    jest.runAllTimers(); // hide cards
+    jest.runAllTimers(); // release flip lock
 
-    // Match all pairs: (0,★)+(2,★) then (1,♠)+(3,♠)
+    // Match group 1: cards 0,3,6 → card-01.svg
     handleCardClick(0);
-    handleCardClick(2); // match ★ — pairsFound = 1
+    handleCardClick(3);
+    handleCardClick(6);
+    // Match group 2: cards 1,4,7 → card-02.svg
     handleCardClick(1);
-    handleCardClick(3); // match ♠ — pairsFound = 2, triggers onRoundComplete
+    handleCardClick(4);
+    handleCardClick(7);
+    // Match group 3: cards 2,5,8 → card-03.svg → triggers onRoundComplete
+    handleCardClick(2);
+    handleCardClick(5);
+    handleCardClick(8);
 
-    // completeRound should have been called
     expect(gameMock.completeRound).toHaveBeenCalled();
-
-    // After the inter-round delay, startRound fires again
-    jest.runAllTimers();
+    jest.runAllTimers(); // inter-round delay
   });
 });
 

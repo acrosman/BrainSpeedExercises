@@ -3,14 +3,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
   background-color: #f8f9fa;
   color: #212529; /* ~14.5:1 contrast on #f8f9fa */
+  /* Fill the full height of the game container */
+  min-height: calc(100vh - 160px);
+  box-sizing: border-box;
 }
 
 .high-speed-memory h2 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
 }
@@ -61,6 +64,17 @@
   font-size: 1.1rem;
 }
 
+/* ── Game area ───────────────────────────────────────────────── */
+#hsm-game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
 /* ── Stats bar ───────────────────────────────────────────────── */
 .hsm-stats {
   display: flex;
@@ -77,11 +91,11 @@
 
 /* ── Countdown banner ────────────────────────────────────────── */
 .hsm-countdown {
-  padding: 0.5rem 1.5rem;
+  padding: 0.4rem 1.25rem;
   background-color: #1a1a2e;
   color: #ffffff; /* 18:1 contrast */
   border-radius: 6px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   text-align: center;
   width: 100%;
@@ -91,77 +105,72 @@
 /* ── Card grid ───────────────────────────────────────────────── */
 .hsm-grid {
   display: grid;
-  gap: 0.5rem;
-  justify-content: center;
+  gap: 0.4rem;
+  /* Responsive square grid that fills available space */
+  width: min(90vw, calc(100vh - 260px));
+  height: min(90vw, calc(100vh - 260px));
+  max-width: 100%;
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
 /* ── Individual card ─────────────────────────────────────────── */
 .hsm-card {
-  width: 72px;
-  height: 72px;
+  position: relative;
   border: none;
-  border-radius: 8px;
-  font-size: 1.75rem;
+  border-radius: 6px;
   cursor: pointer;
+  overflow: hidden;
+  background-color: #1a1a2e;
+  transition: transform 0.1s ease, background-color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, background-color 0.15s ease;
-  background-color: #1a1a2e;
-  color: #1a1a2e; /* hide symbol by default — face-down */
-  position: relative;
+  padding: 0;
+}
+
+/* Card image fills the button */
+.hsm-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
   user-select: none;
 }
 
-/* Face-down: show question mark pattern */
-.hsm-card::after {
-  content: '?';
-  position: absolute;
-  font-size: 1.5rem;
-  color: #e94560; /* 4.6:1 on #1a1a2e */
-  pointer-events: none;
-}
-
-/* Face-up (revealed or being guessed): show the symbol */
+/* Face-up revealed state */
 .hsm-card--revealed {
   background-color: #ffffff;
-  color: #212529; /* ~16:1 contrast on #ffffff */
-}
-
-.hsm-card--revealed::after {
-  display: none;
 }
 
 /* Matched pair: green background */
 .hsm-card--matched {
   background-color: #d4edda;
-  color: #155724; /* 7.3:1 contrast on #d4edda */
   cursor: default;
+  outline: 2px solid #28a745;
 }
 
-.hsm-card--matched::after {
-  display: none;
+.hsm-card--matched .hsm-card__img {
+  opacity: 0.85;
 }
 
-/* Wrong-guess flash: brief red tint (applied via JS, removed after animation) */
+/* Wrong guess: red tint (no animation per game spec) */
 .hsm-card--wrong {
   background-color: #f8d7da;
-  color: #721c24; /* 7.3:1 contrast on #f8d7da */
-  animation: hsm-shake 0.3s ease-out;
+  outline: 2px solid #dc3545;
 }
 
-.hsm-card--wrong::after {
-  display: none;
+/* Empty placeholder cell (fills unused grid slot) */
+.hsm-card--empty {
+  background-color: transparent;
+  border: 1px dashed #dee2e6;
+  cursor: default;
+  pointer-events: none;
 }
 
-@keyframes hsm-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
-}
-
-.hsm-card:hover:not(.hsm-card--matched):not([disabled]) {
-  transform: scale(1.05);
+.hsm-card:hover:not(.hsm-card--matched):not(.hsm-card--empty):not([disabled]) {
+  transform: scale(1.04);
 }
 
 .hsm-card:focus-visible {
@@ -251,3 +260,4 @@
 [hidden] {
   display: none !important;
 }
+
