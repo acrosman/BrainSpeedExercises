@@ -7,33 +7,37 @@
  * @file High Speed Memory game logic module.
  */
 
-/** Symbols used for card faces. Must have at least MAX_PAIRS entries. */
-export const SYMBOLS = [
-  '★', '♠', '♥', '♦', '♣', '☀', '☽', '✿', '♪', '✈', '⚽', '🎯', '🔔', '🌊', '🍀', '💎',
-];
-
 /**
- * Grid configurations by level: [rows, cols].
- * Each entry must produce an even number of cards (rows * cols must be even).
+ * Placeholder card-face image filenames.
+ * Replace these files with real artwork when assets are available.
+ * Enough entries to support up to level 9 (12×12 grid = 48 groups).
  */
-export const GRID_CONFIGS = [
-  [2, 2],
-  [2, 3],
-  [2, 4],
-  [3, 4],
-  [4, 4],
-  [4, 5],
-  [4, 6],
+export const CARD_IMAGES = [
+  'card-01.svg', 'card-02.svg', 'card-03.svg', 'card-04.svg',
+  'card-05.svg', 'card-06.svg', 'card-07.svg', 'card-08.svg',
+  'card-09.svg', 'card-10.svg', 'card-11.svg', 'card-12.svg',
+  'card-13.svg', 'card-14.svg', 'card-15.svg', 'card-16.svg',
+  'card-17.svg', 'card-18.svg', 'card-19.svg', 'card-20.svg',
+  'card-21.svg', 'card-22.svg', 'card-23.svg', 'card-24.svg',
+  'card-25.svg', 'card-26.svg', 'card-27.svg', 'card-28.svg',
+  'card-29.svg', 'card-30.svg', 'card-31.svg', 'card-32.svg',
+  'card-33.svg', 'card-34.svg', 'card-35.svg', 'card-36.svg',
+  'card-37.svg', 'card-38.svg', 'card-39.svg', 'card-40.svg',
+  'card-41.svg', 'card-42.svg', 'card-43.svg', 'card-44.svg',
+  'card-45.svg', 'card-46.svg', 'card-47.svg', 'card-48.svg',
 ];
 
-/** Initial display duration in milliseconds for level 0. */
-export const BASE_DISPLAY_MS = 3000;
+/** Number of cards in each matching group. */
+export const MATCH_SIZE = 3;
 
-/** Amount to reduce display duration each level (ms). */
-export const DISPLAY_DECREMENT_MS = 200;
+/** Initial card-reveal display duration in milliseconds (level 0). */
+export const BASE_DISPLAY_MS = 500;
+
+/** Amount to reduce display duration per level (ms). */
+export const DISPLAY_DECREMENT_MS = 24;
 
 /** Minimum display duration regardless of level (ms). */
-export const MIN_DISPLAY_MS = 800;
+export const MIN_DISPLAY_MS = 20;
 
 /** @type {number} */
 let score = 0;
@@ -93,20 +97,32 @@ export function stopGame() {
 }
 
 /**
- * Get the grid configuration (rows and columns) for a given level.
- * Clamps to the last config if the level exceeds the defined configs.
+ * Get the square grid dimensions for a given level.
+ * Grids start at 3×3 and grow by 1 each level with no upper bound.
  *
  * @param {number} lvl - The game level (0-based).
  * @returns {{ rows: number, cols: number }}
  */
 export function getGridSize(lvl) {
-  const idx = Math.min(lvl, GRID_CONFIGS.length - 1);
-  const [rows, cols] = GRID_CONFIGS[idx];
-  return { rows, cols };
+  const n = lvl + 3;
+  return { rows: n, cols: n };
+}
+
+/**
+ * Get the number of active cards for a given level.
+ * This is the largest multiple of MATCH_SIZE that fits inside the n×n grid.
+ *
+ * @param {number} lvl - The game level (0-based).
+ * @returns {number} Total active card count.
+ */
+export function getActiveCardCount(lvl) {
+  const { rows, cols } = getGridSize(lvl);
+  return Math.floor((rows * cols) / MATCH_SIZE) * MATCH_SIZE;
 }
 
 /**
  * Get the card-reveal display duration in milliseconds for a given level.
+ * Ranges from BASE_DISPLAY_MS down to MIN_DISPLAY_MS.
  *
  * @param {number} lvl - The game level (0-based).
  * @returns {number} Display duration in milliseconds.
@@ -116,51 +132,52 @@ export function getDisplayDurationMs(lvl) {
 }
 
 /**
- * Generate a shuffled grid of card objects for a given level.
- * Each card has a unique id, a symbol, and starts as unmatched.
- * Cards are generated as pairs so every symbol appears exactly twice.
+ * Generate a shuffled array of card objects for a given level.
+ * Each card has { id, image, matched }.
+ * Every image appears exactly MATCH_SIZE times.
+ * Returns getActiveCardCount(lvl) cards; any remaining grid cells are rendered empty.
  *
  * @param {number} lvl - The game level (0-based).
- * @returns {Array<{ id: number, symbol: string, matched: boolean }>}
+ * @returns {Array<{ id: number, image: string, matched: boolean }>}
  */
 export function generateGrid(lvl) {
-  const { rows, cols } = getGridSize(lvl);
-  const totalCards = rows * cols;
-  const pairCount = totalCards / 2;
+  const activeCount = getActiveCardCount(lvl);
+  const groupCount = activeCount / MATCH_SIZE;
 
-  const selectedSymbols = SYMBOLS.slice(0, pairCount);
-  const cards = [...selectedSymbols, ...selectedSymbols].map((symbol, i) => ({
-    id: i,
-    symbol,
-    matched: false,
-  }));
+  const selectedImages = CARD_IMAGES.slice(0, groupCount);
+
+  // Create MATCH_SIZE copies of each image filename
+  const cardImages = [];
+  selectedImages.forEach((img) => {
+    for (let k = 0; k < MATCH_SIZE; k += 1) {
+      cardImages.push(img);
+    }
+  });
 
   // Fisher-Yates shuffle
-  for (let i = cards.length - 1; i > 0; i -= 1) {
+  for (let i = cardImages.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
-    [cards[i], cards[j]] = [cards[j], cards[i]];
+    [cardImages[i], cardImages[j]] = [cardImages[j], cardImages[i]];
   }
 
-  // Re-assign sequential ids after shuffle so id matches array position
-  return cards.map((card, i) => ({ ...card, id: i }));
+  // Assign sequential ids matching array position
+  return cardImages.map((image, i) => ({ id: i, image, matched: false }));
 }
 
 /**
- * Check whether two card symbols match.
+ * Check whether a set of MATCH_SIZE card images all match.
  *
- * @param {string} symbolA - Symbol on the first card.
- * @param {string} symbolB - Symbol on the second card.
- * @returns {boolean} True if the symbols are equal.
+ * @param {...string} images - Image filenames to compare; must have MATCH_SIZE arguments.
+ * @returns {boolean} True if all images are identical.
  */
-export function checkMatch(symbolA, symbolB) {
-  return symbolA === symbolB;
+export function checkMatch(...images) {
+  return images.length === MATCH_SIZE && images.every((img) => img === images[0]);
 }
 
 /**
- * Record a correct pair match.
- * Increments the score by 1.
+ * Record a correct group match and increment the score.
  */
-export function addCorrectPair() {
+export function addCorrectGroup() {
   score += 1;
 }
 
