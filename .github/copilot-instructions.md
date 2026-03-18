@@ -106,15 +106,33 @@ Valid channels (extend as needed):
 - When a game is chosen, requests its HTML fragment and injects it into a `<main id="game-container">` element.
 - Calls `plugin.init()` then `plugin.start()` on the loaded game module.
 
-### 4 — Game Plugin Registry
+### 4 — Game Structure
 
-The registry (`app/games/registry.js`) is loaded by the main process at startup:
+Games are all stored in `app/games/<game-name>/`.
 
+They must all have a manifest (`manifest.json`) that includes at least:
+
+```json
+{
+  "id": "game-id",
+  "name": "Game Name",
+  "description": "Game description goes here.",
+  "version": "0.1.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.png",
+  "author": "Author Name"
+};
 ```
-startup
-  └─ scanGamesDirectory()          // reads app/games/*/manifest.json
-       └─ returns GameManifest[]   // passed to renderer on request
-```
+
+Games must all have a welcome screen that explains how to play, and a consistent UI for showing the current score and round.
+The core game logic must be in `game.js` as pure functions, or helper libraries, that can be easily unit tested.
+The `index.js` file should export the plugin API (`init`, `start`, `stop`, `reset`) that the renderer calls.
+
+When the player clicks "Stop" or finishes the game, the plugin must return a result object that includes at least a `score` property.
+The renderer will take care of saving progress via IPC. When the player subsequently leaves the game, they must be returned to the main welcome screen with the list of games.
+All game cards should have been updated with any updated scores.
+
+#### Plugin Registry
 
 When the renderer asks to load a game by ID, the main process:
 
@@ -152,7 +170,7 @@ When the renderer asks to load a game by ID, the main process:
 
 All files and functions must include JSDoc comments. Use descriptive names for variables and functions. Use US English spelling (e.g. "initialize" not "initialise").
 
-When files get too large, break them into smaller modules. For example, if `index.js` exceeds 500 lines, consider moving game logic to `game.js` and UI rendering to `render.js`.
+When files get too large, break them into smaller modules. For example, if `index.js` exceeds 500 lines, consider moving game logic to `game.js` and UI rendering to `render.js`. Any file over 1000 lines is a red flag.
 
 ### Linting
 
