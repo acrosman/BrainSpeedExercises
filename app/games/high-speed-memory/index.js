@@ -120,8 +120,7 @@ let _hideTimer = null;
  */
 export function playWrongSound() {
   const AudioCtx = (typeof AudioContext !== 'undefined' && AudioContext)
-    // eslint-disable-next-line no-undef
-    || (typeof webkitAudioContext !== 'undefined' && webkitAudioContext)
+    || (typeof window !== 'undefined' && window.webkitAudioContext)
     || null;
   if (!AudioCtx) return;
   try {
@@ -553,4 +552,3 @@ export default {
   stop,
   reset,
 };
-

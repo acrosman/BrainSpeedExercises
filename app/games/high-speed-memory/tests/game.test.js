@@ -356,5 +356,3 @@ describe('isRunning', () => {
     expect(isRunning()).toBe(false);
   });
 });
-
-
