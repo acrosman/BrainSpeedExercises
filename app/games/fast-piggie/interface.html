@@ -31,15 +31,17 @@
       </span>
     </div>
 
-    <!-- Game canvas: keyboard-accessible wedge board -->
-    <canvas id="fp-canvas" class="fp-canvas" width="500" height="500" tabindex="0" role="application"
-      aria-label="Game board. Use arrow keys to cycle through wedges, Enter or Space to select."></canvas>
+    <!-- Game canvas wrapper: contains canvas and flash overlay so flash is scoped to the play area -->
+    <div class="fp-canvas-wrap">
+      <canvas id="fp-canvas" class="fp-canvas" width="500" height="500" tabindex="0" role="application"
+        aria-label="Game board. Use arrow keys to cycle through wedges, Enter or Space to select."></canvas>
+
+      <!-- Visual flash overlay (toggled by JS via class names) -->
+      <div id="fp-flash" class="fp-flash" aria-hidden="true"></div>
+    </div>
 
     <!-- Screen-reader-only feedback region: assertive = interrupts immediately -->
     <div id="fp-feedback" role="status" aria-live="assertive" aria-atomic="true" class="fp-feedback sr-only"></div>
-
-    <!-- Visual flash overlay (toggled by JS via class names) -->
-    <div id="fp-flash" class="fp-flash" aria-hidden="true"></div>
 
     <!-- Controls -->
     <div class="fp-controls">
