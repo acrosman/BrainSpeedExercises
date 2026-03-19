@@ -1,0 +1,90 @@
+<!-- HTML fragment injected into #game-container by the renderer.
+     Do NOT include <html>, <head>, or <body> tags. -->
+
+<section class="high-speed-memory" aria-labelledby="hsm-title">
+
+  <h2 id="hsm-title">High Speed Memory</h2>
+
+  <!-- Instructions panel: shown before the game starts -->
+  <div id="hsm-instructions" class="hsm-instructions">
+    <h3>How to Play</h3>
+    <p>
+      A grid of cards will flash open briefly — remember where the
+      <strong>Primary</strong> image appears!
+      After they flip back, click all three cards that showed the Primary image.
+    </p>
+    <p class="hsm-instructions__primary-label">
+      <strong>Find this card — it appears three times each round:</strong>
+    </p>
+    <img
+      src="games/high-speed-memory/images/Primary.jpg"
+      alt="The Primary card you need to find"
+      class="hsm-instructions__primary-img"
+    >
+    <ul>
+      <li>Watch closely while the cards are revealed.</li>
+      <li>After they flip face-down, click the three cards that showed the Primary image.</li>
+      <li>A wrong guess restarts the round after a brief delay — no partial credit.</li>
+      <li>Find all three to complete a round — complete <strong>3 rounds in a row</strong>
+        to advance to the next level with a larger grid and shorter reveal time!</li>
+      <li>Use <kbd>Tab</kbd> to move between cards and <kbd>Enter</kbd> or <kbd>Space</kbd>
+        to select.</li>
+    </ul>
+    <button id="hsm-start-btn" type="button" class="hsm-btn hsm-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <!-- Game area: hidden until the player clicks Start -->
+  <div id="hsm-game-area" hidden>
+
+    <!-- Stats bar -->
+    <div class="hsm-stats" aria-live="polite" aria-atomic="true">
+      <span class="hsm-stat">Level: <strong id="hsm-level">1</strong></span>
+      <span class="hsm-stat">Score: <strong id="hsm-score">0</strong></span>
+      <span class="hsm-stat">Found: <strong id="hsm-found">0</strong> / 3</span>
+      <span class="hsm-stat">Streak: <strong id="hsm-streak">0</strong> / 3</span>
+    </div>
+
+    <!-- Card grid: populated dynamically by index.js -->
+    <div
+      id="hsm-grid"
+      class="hsm-grid"
+      role="group"
+      aria-label="Memory card grid"
+    ></div>
+
+    <!-- Screen-reader feedback region -->
+    <div
+      id="hsm-feedback"
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+    <!-- Controls -->
+    <div class="hsm-controls">
+      <button id="hsm-stop-btn" type="button" class="hsm-btn hsm-btn--secondary">
+        End Game
+      </button>
+    </div>
+
+  </div>
+
+  <!-- End-game panel: shown after the player stops or quits -->
+  <div id="hsm-end-panel" class="hsm-end-panel" hidden>
+    <h3>Game Over!</h3>
+    <p>Final Score: <strong id="hsm-final-score">0</strong></p>
+    <p>Highest Level Reached: <strong id="hsm-final-level">1</strong></p>
+    <div class="hsm-end-panel__actions">
+      <button id="hsm-play-again-btn" type="button" class="hsm-btn hsm-btn--primary">
+        Play Again
+      </button>
+      <button id="hsm-return-btn" type="button" class="hsm-btn hsm-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+
+</section>

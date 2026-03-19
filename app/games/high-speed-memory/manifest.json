@@ -1,0 +1,9 @@
+{
+  "id": "high-speed-memory",
+  "name": "High Speed Memory",
+  "description": "Memorize the grid of cards, then find all the matching pairs from memory!",
+  "version": "1.0.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.jpg",
+  "author": "BrainSpeed Exercises"
+}

@@ -1,0 +1,274 @@
+/* ── Section wrapper ─────────────────────────────────────────── */
+.high-speed-memory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  color: #212529; /* ~14.5:1 contrast on #f8f9fa */
+  /* Fill the full height of the game container */
+  min-height: calc(100vh - 160px);
+  box-sizing: border-box;
+}
+
+.high-speed-memory h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ── Instructions panel ──────────────────────────────────────── */
+.hsm-instructions {
+  max-width: 540px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  text-align: left;
+}
+
+.hsm-instructions h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.hsm-instructions p {
+  margin: 0 0 0.75rem;
+}
+
+.hsm-instructions ul {
+  margin: 0 0 1.25rem 1.25rem;
+  padding: 0;
+}
+
+.hsm-instructions li {
+  margin-bottom: 0.4rem;
+}
+
+.hsm-instructions kbd {
+  display: inline-block;
+  padding: 0 0.35em;
+  font-family: monospace;
+  font-size: 0.875em;
+  border: 1px solid #adb5bd;
+  border-radius: 3px;
+  background-color: #f1f3f5;
+}
+
+.hsm-instructions__primary-label {
+  margin: 0.75rem 0 0.25rem;
+  text-align: center;
+}
+
+.hsm-instructions__primary-img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 3px solid #28a745;
+  margin: 0 auto 1rem;
+}
+
+.hsm-instructions .hsm-btn {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 1.5rem;
+  font-size: 1.1rem;
+}
+
+/* ── Game area ───────────────────────────────────────────────── */
+#hsm-game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+/* ── Stats bar ───────────────────────────────────────────────── */
+.hsm-stats {
+  display: flex;
+  gap: 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hsm-stat strong {
+  font-size: 1.25rem;
+}
+
+/* ── Card grid ───────────────────────────────────────────────── */
+.hsm-grid {
+  display: grid;
+  gap: 6px;
+  /* vmin = min(vw, vh) — creates a square that fits within the viewport */
+  width: 70vmin;
+  height: 70vmin;
+  min-width: 200px;
+  min-height: 200px;
+  max-width: 90vw;
+  max-height: 80vh;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+/* ── Individual card ─────────────────────────────────────────── */
+.hsm-card {
+  position: relative;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  background-color: #1a1a2e;
+  transition: transform 0.1s ease, background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+/* Card image fills the button */
+.hsm-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Face-up revealed state */
+.hsm-card--revealed {
+  background-color: #ffffff;
+}
+
+/* Matched pair: green background */
+.hsm-card--matched {
+  background-color: #d4edda;
+  cursor: default;
+  outline: 2px solid #28a745;
+}
+
+.hsm-card--matched .hsm-card__img {
+  opacity: 0.85;
+}
+
+/* Wrong guess: red tint (no animation per game spec) */
+.hsm-card--wrong {
+  background-color: #f8d7da;
+  outline: 2px solid #dc3545;
+}
+
+/* Empty placeholder cell (fills unused grid slot) */
+.hsm-card--empty {
+  background-color: transparent;
+  border: 1px dashed #dee2e6;
+  cursor: default;
+  pointer-events: none;
+}
+
+.hsm-card:hover:not(.hsm-card--matched):not(.hsm-card--empty):not([disabled]) {
+  transform: scale(1.04);
+}
+
+.hsm-card:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+}
+
+/* ── Controls ────────────────────────────────────────────────── */
+.hsm-controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.hsm-btn {
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #005fcc;
+  color: #ffffff; /* 7.3:1 contrast on #005fcc */
+  transition: background-color 0.15s ease;
+}
+
+.hsm-btn:hover {
+  background-color: #004aa3;
+}
+
+.hsm-btn:active {
+  background-color: #003d88;
+}
+
+.hsm-btn:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+  background-color: #004aa3;
+}
+
+.hsm-btn--secondary {
+  background-color: #6c757d; /* 4.6:1 on #ffffff */
+  color: #ffffff;
+}
+
+.hsm-btn--secondary:hover {
+  background-color: #545b62;
+}
+
+.hsm-btn--secondary:active {
+  background-color: #3d4349;
+}
+
+.hsm-btn--secondary:focus-visible {
+  outline-color: #6c757d;
+}
+
+/* ── End-game panel ──────────────────────────────────────────── */
+.hsm-end-panel {
+  max-width: 360px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  text-align: center;
+}
+
+.hsm-end-panel h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+.hsm-end-panel p {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+.hsm-end-panel__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.hsm-end-panel .hsm-btn {
+  padding: 0.65rem 1.5rem;
+}
+
+/* ── Respect hidden attribute ────────────────────────────────── */
+[hidden] {
+  display: none !important;
+}
