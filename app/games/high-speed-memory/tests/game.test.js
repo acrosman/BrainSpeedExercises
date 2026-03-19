@@ -62,7 +62,7 @@ describe('PRIMARY_COUNT', () => {
 
 describe('display timing constants', () => {
   test('BASE_DISPLAY_MS is 500', () => {
-    expect(BASE_DISPLAY_MS).toBe(500);
+    expect(BASE_DISPLAY_MS).toBe(1500);
   });
 
   test('MIN_DISPLAY_MS is 20', () => {
