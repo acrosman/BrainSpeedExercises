@@ -10,8 +10,7 @@
 import * as game from './game.js';
 
 /**
- * Delay in ms before flipping back a wrong-guess group.
- * Long enough for the player to see which cards were wrong.
+ * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
  */
 const WRONG_FLIP_DELAY_MS = 900;
 
@@ -20,9 +19,6 @@ const WRONG_FLIP_DELAY_MS = 900;
  * Images are stored alongside this game's own files.
  */
 const IMAGES_PATH = 'games/high-speed-memory/images/';
-
-/** Src for the card-back image (face-down state). */
-const CARD_BACK_SRC = `${IMAGES_PATH}card-back.svg`;
 
 // ── DOM references (populated by init) ────────────────────────────────────────
 
@@ -48,6 +44,9 @@ let _stopBtn = null;
 let _playAgainBtn = null;
 
 /** @type {HTMLElement|null} */
+let _returnToMenuBtn = null;
+
+/** @type {HTMLElement|null} */
 let _gridEl = null;
 
 /** @type {HTMLElement|null} */
@@ -57,10 +56,7 @@ let _scoreEl = null;
 let _levelEl = null;
 
 /** @type {HTMLElement|null} */
-let _groupsFoundEl = null;
-
-/** @type {HTMLElement|null} */
-let _groupsTotalEl = null;
+let _foundEl = null;
 
 /** @type {HTMLElement|null} */
 let _countdownEl = null;
@@ -83,25 +79,19 @@ let _finalLevelEl = null;
 let _roundGrid = [];
 
 /**
- * IDs of cards currently flipped face-up waiting for comparison (up to MATCH_SIZE).
- * @type {number[]}
- */
-let _flipped = [];
-
-/**
- * When true, card clicks are ignored (during reveal phase or wrong-guess flip-back).
+ * When true, card clicks are ignored (during reveal phase or wrong-card flip-back).
  * @type {boolean}
  */
 let _flipLock = false;
 
 /**
- * Number of groups matched in the current round.
+ * Number of Primary cards correctly found in the current round.
  * @type {number}
  */
-let _groupsFound = 0;
+let _primaryFound = 0;
 
 /**
- * Pending setTimeout handle for flipping wrong guesses back.
+ * Pending setTimeout handle for flipping a wrong-guess card back.
  * @type {ReturnType<typeof setTimeout>|null}
  */
 let _flipBackTimer = null;
@@ -162,10 +152,10 @@ export function updateStats() {
 }
 
 /**
- * Update the groups-found counter display.
+ * Update the "Found: x/3" counter display.
  */
-export function updateGroupsDisplay() {
-  if (_groupsFoundEl) _groupsFoundEl.textContent = String(_groupsFound);
+export function updateFoundDisplay() {
+  if (_foundEl) _foundEl.textContent = String(_primaryFound);
 }
 
 /**
@@ -179,17 +169,14 @@ export function renderGrid() {
 
   const { rows, cols } = game.getGridSize(game.getLevel());
 
-  // Set CSS grid columns and a --cols custom property used by the stylesheet
   _gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   _gridEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-  _gridEl.style.setProperty('--cols', String(cols));
-  _gridEl.style.setProperty('--rows', String(rows));
 
   _roundGrid.forEach((card) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'hsm-card hsm-card--revealed';
-    btn.setAttribute('aria-label', `Card ${card.id + 1}: revealed`);
+    btn.setAttribute('aria-label', `Card ${card.id + 1}`);
     btn.setAttribute('data-id', String(card.id));
     btn.setAttribute('data-image', card.image);
 
@@ -209,23 +196,11 @@ export function renderGrid() {
     });
     _gridEl.appendChild(btn);
   });
-
-  // Fill remaining grid cells with empty placeholders if n*n is not divisible by MATCH_SIZE
-  const emptyCount = rows * cols - _roundGrid.length;
-  for (let i = 0; i < emptyCount; i += 1) {
-    const placeholder = document.createElement('div');
-    placeholder.className = 'hsm-card hsm-card--empty';
-    placeholder.setAttribute('aria-hidden', 'true');
-    _gridEl.appendChild(placeholder);
-  }
-
-  if (_groupsTotalEl) {
-    _groupsTotalEl.textContent = String(_roundGrid.length / game.MATCH_SIZE);
-  }
 }
 
 /**
  * Flip a single card face-down in the DOM (does not modify _roundGrid state).
+ * Hides the card image and removes the revealed styling.
  * @param {number} cardId - The id of the card to hide.
  */
 export function hideCardEl(cardId) {
@@ -234,9 +209,7 @@ export function hideCardEl(cardId) {
   btn.classList.remove('hsm-card--revealed', 'hsm-card--wrong');
   btn.setAttribute('aria-label', `Card ${cardId + 1}: face down`);
   const img = btn.querySelector('img');
-  if (img) {
-    img.src = CARD_BACK_SRC;
-  }
+  if (img) img.style.display = 'none';
 }
 
 /**
@@ -253,11 +226,12 @@ export function revealCardEl(cardId, imageName) {
   const img = btn.querySelector('img');
   if (img) {
     img.src = `${IMAGES_PATH}${imageName}`;
+    img.style.display = '';
   }
 }
 
 /**
- * Apply the "matched" visual state to a card element.
+ * Apply the "matched" visual state to a card element (correctly found Primary card).
  * @param {number} cardId - The id of the card to mark as matched.
  */
 export function markCardMatched(cardId) {
@@ -266,6 +240,9 @@ export function markCardMatched(cardId) {
   btn.classList.add('hsm-card--matched');
   btn.classList.remove('hsm-card--revealed', 'hsm-card--wrong');
   btn.disabled = true;
+  btn.setAttribute('aria-label', `Card ${cardId + 1}: matched`);
+  const img = btn.querySelector('img');
+  if (img) img.style.display = '';
 }
 
 /**
@@ -290,21 +267,20 @@ export function hideAllCards() {
   });
   if (_countdownEl) _countdownEl.hidden = true;
   _flipLock = false;
-  announce('Cards hidden — find the matching groups!');
+  announce(`Cards hidden — find the ${game.PRIMARY_COUNT} matching cards!`);
 }
 
 /**
  * Start a new round: generate a fresh grid, render it revealed, then hide after delay.
  */
 export function startRound() {
-  _groupsFound = 0;
-  _flipped = [];
+  _primaryFound = 0;
   _flipLock = true;
 
   _roundGrid = game.generateGrid(game.getLevel());
   renderGrid();
   updateStats();
-  updateGroupsDisplay();
+  updateFoundDisplay();
 
   const displayMs = game.getDisplayDurationMs(game.getLevel());
   const ms = displayMs < 1000
@@ -317,71 +293,59 @@ export function startRound() {
   }
 
   announce(
-    `Level ${game.getLevel() + 1}. Memorize the ${_roundGrid.length} cards. They hide in ${ms}.`,
+    `Level ${game.getLevel() + 1}. Find the ${game.PRIMARY_COUNT} matching cards. They hide in ${ms}.`,
   );
 
   _hideTimer = setTimeout(hideAllCards, displayMs);
 }
 
 /**
- * Handle a card being clicked (or activated via keyboard).
- * Collects MATCH_SIZE flips before checking for a group match.
- * Ignores clicks when flip lock is active or the card is already matched/flipped.
+ * Handle a card click (or keyboard activation).
+ * Each click is evaluated immediately:
+ *  - Primary card → mark found; advance level when all PRIMARY_COUNT are found.
+ *  - Distractor card → play wrong-guess sound and flip back after WRONG_FLIP_DELAY_MS.
+ * Clicks are ignored during the reveal phase (flip lock) or on already-matched cards.
  *
  * @param {number} cardId - The id of the clicked card.
  */
 export function handleCardClick(cardId) {
   if (_flipLock) return;
-  if (_flipped.includes(cardId)) return;
 
   const card = _roundGrid.find((c) => c.id === cardId);
   if (!card || card.matched) return;
 
-  // Flip the card face-up
+  // Reveal the card so the player can see what they clicked
   revealCardEl(cardId, card.image);
-  _flipped.push(cardId);
 
-  if (_flipped.length < game.MATCH_SIZE) return;
-
-  // MATCH_SIZE cards flipped — evaluate group
-  _flipLock = true;
-  const flippedCards = _flipped.map((id) => _roundGrid.find((c) => c.id === id));
-  const images = flippedCards.map((c) => c.image);
-
-  if (game.checkMatch(...images)) {
-    // All MATCH_SIZE cards match
-    flippedCards.forEach((c) => {
-      c.matched = true;
-      markCardMatched(c.id);
-    });
+  if (game.isPrimary(card.image)) {
+    // Correct — mark this Primary card as found
+    card.matched = true;
+    markCardMatched(cardId);
     game.addCorrectGroup();
-    _groupsFound += 1;
+    _primaryFound += 1;
     updateStats();
-    updateGroupsDisplay();
-    announce('Match! Found a group.');
-    _flipped = [];
-    _flipLock = false;
+    updateFoundDisplay();
+    announce(`Found one! ${_primaryFound} of ${game.PRIMARY_COUNT} found.`);
 
-    const totalGroups = _roundGrid.length / game.MATCH_SIZE;
-    if (_groupsFound >= totalGroups) {
+    if (_primaryFound >= game.PRIMARY_COUNT) {
       onRoundComplete();
     }
   } else {
-    // No match — play sound and flip back
-    flippedCards.forEach((c) => markCardWrong(c.id));
+    // Wrong — play sound and flip the Distractor back after a short delay
+    markCardWrong(cardId);
     playWrongSound();
-    announce('No match. Try again.');
+    announce('That is a Distractor. Keep looking!');
 
+    _flipLock = true;
     _flipBackTimer = setTimeout(() => {
-      _flipped.forEach((id) => hideCardEl(id));
-      _flipped = [];
+      hideCardEl(cardId);
       _flipLock = false;
     }, WRONG_FLIP_DELAY_MS);
   }
 }
 
 /**
- * Called when all groups in the current round have been found.
+ * Called when all PRIMARY_COUNT cards in the current round have been found.
  * Advances to the next level and starts a new round.
  */
 function onRoundComplete() {
@@ -389,6 +353,16 @@ function onRoundComplete() {
   announce(`Round complete! Starting level ${game.getLevel() + 1}.`);
   // Brief pause so the player sees the completed board before the next round starts
   setTimeout(startRound, 1200);
+}
+
+/**
+ * Dispatch the app-level event to return to the main game-selection screen.
+ * Safe to call in non-browser (test) environments.
+ */
+function returnToMainMenu() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
+  }
 }
 
 /**
@@ -440,11 +414,11 @@ function init(gameContainer) {
   _startBtn = _container.querySelector('#hsm-start-btn');
   _stopBtn = _container.querySelector('#hsm-stop-btn');
   _playAgainBtn = _container.querySelector('#hsm-play-again-btn');
+  _returnToMenuBtn = _container.querySelector('#hsm-return-btn');
   _gridEl = _container.querySelector('#hsm-grid');
   _scoreEl = _container.querySelector('#hsm-score');
   _levelEl = _container.querySelector('#hsm-level');
-  _groupsFoundEl = _container.querySelector('#hsm-groups-found');
-  _groupsTotalEl = _container.querySelector('#hsm-groups-total');
+  _foundEl = _container.querySelector('#hsm-found');
   _countdownEl = _container.querySelector('#hsm-countdown');
   _feedbackEl = _container.querySelector('#hsm-feedback');
   _finalScoreEl = _container.querySelector('#hsm-final-score');
@@ -461,6 +435,9 @@ function init(gameContainer) {
       reset();
       start();
     });
+  }
+  if (_returnToMenuBtn) {
+    _returnToMenuBtn.addEventListener('click', () => returnToMainMenu());
   }
 }
 
@@ -530,9 +507,8 @@ function reset() {
   game.initGame();
 
   _roundGrid = [];
-  _flipped = [];
   _flipLock = false;
-  _groupsFound = 0;
+  _primaryFound = 0;
 
   if (_gridEl) _gridEl.innerHTML = '';
   if (_instructionsEl) _instructionsEl.hidden = false;
@@ -542,7 +518,7 @@ function reset() {
   if (_feedbackEl) _feedbackEl.textContent = '';
 
   updateStats();
-  updateGroupsDisplay();
+  updateFoundDisplay();
 }
 
 export default {
@@ -552,3 +528,4 @@ export default {
   stop,
   reset,
 };
+

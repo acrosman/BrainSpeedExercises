@@ -8,27 +8,22 @@
  */
 
 /**
- * Placeholder card-face image filenames.
- * Replace these files with real artwork when assets are available.
- * Enough entries to support up to level 9 (12×12 grid = 48 groups).
+ * Filename of the target card that the player must find.
+ * Appears exactly PRIMARY_COUNT times in every grid.
  */
-export const CARD_IMAGES = [
-  'card-01.svg', 'card-02.svg', 'card-03.svg', 'card-04.svg',
-  'card-05.svg', 'card-06.svg', 'card-07.svg', 'card-08.svg',
-  'card-09.svg', 'card-10.svg', 'card-11.svg', 'card-12.svg',
-  'card-13.svg', 'card-14.svg', 'card-15.svg', 'card-16.svg',
-  'card-17.svg', 'card-18.svg', 'card-19.svg', 'card-20.svg',
-  'card-21.svg', 'card-22.svg', 'card-23.svg', 'card-24.svg',
-  'card-25.svg', 'card-26.svg', 'card-27.svg', 'card-28.svg',
-  'card-29.svg', 'card-30.svg', 'card-31.svg', 'card-32.svg',
-  'card-33.svg', 'card-34.svg', 'card-35.svg', 'card-36.svg',
-  'card-37.svg', 'card-38.svg', 'card-39.svg', 'card-40.svg',
-  'card-41.svg', 'card-42.svg', 'card-43.svg', 'card-44.svg',
-  'card-45.svg', 'card-46.svg', 'card-47.svg', 'card-48.svg',
-];
+export const PRIMARY_IMAGE = 'Primary.jpg';
 
-/** Number of cards in each matching group. */
-export const MATCH_SIZE = 3;
+/**
+ * Filenames of distractor card images.
+ * These fill all grid cells that are not the Primary card.
+ */
+export const DISTRACTOR_IMAGES = ['Distractor1.jpg', 'Distractor2.jpg'];
+
+/**
+ * Number of Primary card copies placed in each round's grid.
+ * The player wins the round by finding all of them.
+ */
+export const PRIMARY_COUNT = 3;
 
 /** Initial card-reveal display duration in milliseconds (level 0). */
 export const BASE_DISPLAY_MS = 500;
@@ -109,18 +104,6 @@ export function getGridSize(lvl) {
 }
 
 /**
- * Get the number of active cards for a given level.
- * This is the largest multiple of MATCH_SIZE that fits inside the n×n grid.
- *
- * @param {number} lvl - The game level (0-based).
- * @returns {number} Total active card count.
- */
-export function getActiveCardCount(lvl) {
-  const { rows, cols } = getGridSize(lvl);
-  return Math.floor((rows * cols) / MATCH_SIZE) * MATCH_SIZE;
-}
-
-/**
  * Get the card-reveal display duration in milliseconds for a given level.
  * Ranges from BASE_DISPLAY_MS down to MIN_DISPLAY_MS.
  *
@@ -134,25 +117,25 @@ export function getDisplayDurationMs(lvl) {
 /**
  * Generate a shuffled array of card objects for a given level.
  * Each card has { id, image, matched }.
- * Every image appears exactly MATCH_SIZE times.
- * Returns getActiveCardCount(lvl) cards; any remaining grid cells are rendered empty.
+ * Exactly PRIMARY_COUNT cards show PRIMARY_IMAGE; the rest are random DISTRACTOR_IMAGES.
+ * The grid is fully filled (rows × cols cards, no empty cells).
  *
  * @param {number} lvl - The game level (0-based).
  * @returns {Array<{ id: number, image: string, matched: boolean }>}
  */
 export function generateGrid(lvl) {
-  const activeCount = getActiveCardCount(lvl);
-  const groupCount = activeCount / MATCH_SIZE;
+  const { rows, cols } = getGridSize(lvl);
+  const totalCards = rows * cols;
 
-  const selectedImages = CARD_IMAGES.slice(0, groupCount);
-
-  // Create MATCH_SIZE copies of each image filename
+  // Build the array: PRIMARY_COUNT copies of the primary image, rest are random distractors
   const cardImages = [];
-  selectedImages.forEach((img) => {
-    for (let k = 0; k < MATCH_SIZE; k += 1) {
-      cardImages.push(img);
-    }
-  });
+  for (let i = 0; i < PRIMARY_COUNT; i += 1) {
+    cardImages.push(PRIMARY_IMAGE);
+  }
+  for (let i = PRIMARY_COUNT; i < totalCards; i += 1) {
+    const idx = Math.floor(Math.random() * DISTRACTOR_IMAGES.length);
+    cardImages.push(DISTRACTOR_IMAGES[idx]);
+  }
 
   // Fisher-Yates shuffle
   for (let i = cardImages.length - 1; i > 0; i -= 1) {
@@ -165,17 +148,17 @@ export function generateGrid(lvl) {
 }
 
 /**
- * Check whether a set of MATCH_SIZE card images all match.
+ * Check whether a card image is the Primary target image.
  *
- * @param {...string} images - Image filenames to compare; must have MATCH_SIZE arguments.
- * @returns {boolean} True if all images are identical.
+ * @param {string} image - The image filename to check.
+ * @returns {boolean} True if the image is the Primary target.
  */
-export function checkMatch(...images) {
-  return images.length === MATCH_SIZE && images.every((img) => img === images[0]);
+export function isPrimary(image) {
+  return image === PRIMARY_IMAGE;
 }
 
 /**
- * Record a correct group match and increment the score.
+ * Record a correctly found Primary card and increment the score.
  */
 export function addCorrectGroup() {
   score += 1;

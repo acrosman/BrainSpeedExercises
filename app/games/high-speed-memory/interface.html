@@ -9,14 +9,15 @@
   <div id="hsm-instructions" class="hsm-instructions">
     <h3>How to Play</h3>
     <p>
-      A grid of cards will flash open briefly — memorize where each image is!
-      After they flip back, find all the matching groups of three from memory.
+      A grid of cards will flash open briefly — remember where the
+      <strong>Primary</strong> image appears!
+      After they flip back, click all three cards that showed the Primary image.
     </p>
     <ul>
       <li>Watch closely while the cards are revealed.</li>
-      <li>After they flip face-down, click three cards you think share the same image.</li>
-      <li>Matched groups stay revealed. Wrong guesses flip back.</li>
-      <li>Find every group to advance — grids grow and reveal time shrinks each level!</li>
+      <li>After they flip face-down, click the three cards showing the Primary image.</li>
+      <li>Correctly found cards stay revealed. Wrong guesses flip back.</li>
+      <li>Find all three to advance — grids grow and reveal time shrinks each level!</li>
       <li>Use <kbd>Tab</kbd> to move between cards and <kbd>Enter</kbd> or <kbd>Space</kbd>
         to select.</li>
     </ul>
@@ -32,10 +33,7 @@
     <div class="hsm-stats" aria-live="polite" aria-atomic="true">
       <span class="hsm-stat">Level: <strong id="hsm-level">1</strong></span>
       <span class="hsm-stat">Score: <strong id="hsm-score">0</strong></span>
-      <span class="hsm-stat">
-        Groups: <strong id="hsm-groups-found">0</strong> /
-        <strong id="hsm-groups-total">0</strong>
-      </span>
+      <span class="hsm-stat">Found: <strong id="hsm-found">0</strong> / 3</span>
     </div>
 
     <!-- Countdown banner: shown during the reveal phase -->
@@ -74,14 +72,19 @@
 
   </div>
 
-  <!-- End-game panel: shown after the player stops -->
+  <!-- End-game panel: shown after the player stops or quits -->
   <div id="hsm-end-panel" class="hsm-end-panel" hidden>
     <h3>Game Over!</h3>
     <p>Final Score: <strong id="hsm-final-score">0</strong></p>
     <p>Highest Level Reached: <strong id="hsm-final-level">1</strong></p>
-    <button id="hsm-play-again-btn" type="button" class="hsm-btn hsm-btn--primary">
-      Play Again
-    </button>
+    <div class="hsm-end-panel__actions">
+      <button id="hsm-play-again-btn" type="button" class="hsm-btn hsm-btn--primary">
+        Play Again
+      </button>
+      <button id="hsm-return-btn" type="button" class="hsm-btn hsm-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
   </div>
 
 </section>

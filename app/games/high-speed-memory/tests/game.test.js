@@ -4,8 +4,9 @@ import {
 } from '@jest/globals';
 
 import {
-  CARD_IMAGES,
-  MATCH_SIZE,
+  PRIMARY_IMAGE,
+  DISTRACTOR_IMAGES,
+  PRIMARY_COUNT,
   BASE_DISPLAY_MS,
   DISPLAY_DECREMENT_MS,
   MIN_DISPLAY_MS,
@@ -13,10 +14,9 @@ import {
   startGame,
   stopGame,
   getGridSize,
-  getActiveCardCount,
   getDisplayDurationMs,
   generateGrid,
-  checkMatch,
+  isPrimary,
   addCorrectGroup,
   completeRound,
   getScore,
@@ -31,21 +31,32 @@ beforeEach(() => {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-describe('CARD_IMAGES', () => {
-  test('is an array of strings', () => {
-    expect(Array.isArray(CARD_IMAGES)).toBe(true);
-    CARD_IMAGES.forEach((s) => expect(typeof s).toBe('string'));
+describe('PRIMARY_IMAGE', () => {
+  test('is a non-empty string', () => {
+    expect(typeof PRIMARY_IMAGE).toBe('string');
+    expect(PRIMARY_IMAGE.length).toBeGreaterThan(0);
   });
 
-  test('has enough images for a level-9 grid (12x12 = 48 groups)', () => {
-    const level9Groups = getActiveCardCount(9) / MATCH_SIZE;
-    expect(CARD_IMAGES.length).toBeGreaterThanOrEqual(level9Groups);
+  test('is Primary.jpg', () => {
+    expect(PRIMARY_IMAGE).toBe('Primary.jpg');
   });
 });
 
-describe('MATCH_SIZE', () => {
+describe('DISTRACTOR_IMAGES', () => {
+  test('is a non-empty array of strings', () => {
+    expect(Array.isArray(DISTRACTOR_IMAGES)).toBe(true);
+    expect(DISTRACTOR_IMAGES.length).toBeGreaterThan(0);
+    DISTRACTOR_IMAGES.forEach((s) => expect(typeof s).toBe('string'));
+  });
+
+  test('does not contain the PRIMARY_IMAGE', () => {
+    expect(DISTRACTOR_IMAGES).not.toContain(PRIMARY_IMAGE);
+  });
+});
+
+describe('PRIMARY_COUNT', () => {
   test('is 3', () => {
-    expect(MATCH_SIZE).toBe(3);
+    expect(PRIMARY_COUNT).toBe(3);
   });
 });
 
@@ -175,27 +186,6 @@ describe('getGridSize', () => {
   });
 });
 
-// ── getActiveCardCount ────────────────────────────────────────────────────────
-
-describe('getActiveCardCount', () => {
-  test('is always divisible by MATCH_SIZE', () => {
-    for (let i = 0; i < 10; i += 1) {
-      expect(getActiveCardCount(i) % MATCH_SIZE).toBe(0);
-    }
-  });
-
-  test('is at most rows×cols', () => {
-    for (let i = 0; i < 10; i += 1) {
-      const { rows, cols } = getGridSize(i);
-      expect(getActiveCardCount(i)).toBeLessThanOrEqual(rows * cols);
-    }
-  });
-
-  test('level 0 (3×3=9) returns 9', () => {
-    expect(getActiveCardCount(0)).toBe(9);
-  });
-});
-
 // ── getDisplayDurationMs ──────────────────────────────────────────────────────
 
 describe('getDisplayDurationMs', () => {
@@ -220,17 +210,22 @@ describe('getDisplayDurationMs', () => {
 // ── generateGrid ──────────────────────────────────────────────────────────────
 
 describe('generateGrid', () => {
-  test('returns getActiveCardCount cards', () => {
-    expect(generateGrid(0).length).toBe(getActiveCardCount(0));
+  test('returns rows×cols cards (full grid)', () => {
+    const { rows, cols } = getGridSize(0);
+    expect(generateGrid(0).length).toBe(rows * cols);
   });
 
-  test('each image appears exactly MATCH_SIZE times', () => {
+  test('contains exactly PRIMARY_COUNT copies of PRIMARY_IMAGE', () => {
     const grid = generateGrid(0);
-    const counts = {};
-    grid.forEach(({ image }) => {
-      counts[image] = (counts[image] || 0) + 1;
+    const primaryCards = grid.filter((c) => c.image === PRIMARY_IMAGE);
+    expect(primaryCards.length).toBe(PRIMARY_COUNT);
+  });
+
+  test('all non-Primary cards use DISTRACTOR_IMAGES', () => {
+    const grid = generateGrid(0);
+    grid.filter((c) => c.image !== PRIMARY_IMAGE).forEach((c) => {
+      expect(DISTRACTOR_IMAGES).toContain(c.image);
     });
-    Object.values(counts).forEach((count) => expect(count).toBe(MATCH_SIZE));
   });
 
   test('all cards start as unmatched', () => {
@@ -243,43 +238,34 @@ describe('generateGrid', () => {
     grid.forEach((card, i) => expect(card.id).toBe(i));
   });
 
-  test('each card has an image property that is a non-empty string', () => {
-    const grid = generateGrid(0);
-    grid.forEach((card) => {
-      expect(typeof card.image).toBe('string');
-      expect(card.image.length).toBeGreaterThan(0);
-    });
+  test('grid is full-sized at level 1 (4×4 = 16 cards)', () => {
+    expect(generateGrid(1).length).toBe(16);
   });
 
-  test('produces correct card count for several levels', () => {
-    [0, 1, 2, 3, 4].forEach((lvl) => {
-      expect(generateGrid(lvl).length).toBe(getActiveCardCount(lvl));
+  test('PRIMARY_COUNT primary cards present at higher levels', () => {
+    [1, 2, 3, 4].forEach((lvl) => {
+      const grid = generateGrid(lvl);
+      const primaries = grid.filter((c) => c.image === PRIMARY_IMAGE);
+      expect(primaries.length).toBe(PRIMARY_COUNT);
     });
   });
 });
 
-// ── checkMatch ────────────────────────────────────────────────────────────────
+// ── isPrimary ─────────────────────────────────────────────────────────────────
 
-describe('checkMatch', () => {
-  test('returns true when all MATCH_SIZE images are equal', () => {
-    expect(checkMatch('card-01.svg', 'card-01.svg', 'card-01.svg')).toBe(true);
+describe('isPrimary', () => {
+  test('returns true for PRIMARY_IMAGE', () => {
+    expect(isPrimary(PRIMARY_IMAGE)).toBe(true);
   });
 
-  test('returns false when any image differs', () => {
-    expect(checkMatch('card-01.svg', 'card-01.svg', 'card-02.svg')).toBe(false);
+  test('returns false for each DISTRACTOR_IMAGE', () => {
+    DISTRACTOR_IMAGES.forEach((img) => {
+      expect(isPrimary(img)).toBe(false);
+    });
   });
 
-  test('returns false when first and last differ', () => {
-    expect(checkMatch('card-01.svg', 'card-02.svg', 'card-01.svg')).toBe(false);
-  });
-
-  test('returns false with fewer than MATCH_SIZE arguments', () => {
-    expect(checkMatch('card-01.svg', 'card-01.svg')).toBe(false);
-  });
-
-  test('returns false with more than MATCH_SIZE arguments all equal', () => {
-    const args = Array(MATCH_SIZE + 1).fill('card-01.svg');
-    expect(checkMatch(...args)).toBe(false);
+  test('returns false for an empty string', () => {
+    expect(isPrimary('')).toBe(false);
   });
 });
 
