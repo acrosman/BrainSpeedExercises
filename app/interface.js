@@ -9,6 +9,47 @@
 import { createGameCard } from './components/gameCard.js';
 
 /**
+ * Inject a game-specific stylesheet into the document <head>.
+ * Replaces any previously injected game stylesheet so only one is active at a time.
+ *
+ * @param {string} gameId - The game ID; its style.css lives at games/{gameId}/style.css.
+ */
+function injectGameStylesheet(gameId) {
+  const existing = document.getElementById('active-game-stylesheet');
+  if (existing) existing.remove();
+  const link = document.createElement('link');
+  link.id = 'active-game-stylesheet';
+  link.rel = 'stylesheet';
+  link.href = `./games/${gameId}/style.css`;
+  document.head.appendChild(link);
+}
+
+/**
+ * Remove the active game stylesheet from the document <head>.
+ * Called when returning to the main game-selection screen.
+ */
+function removeGameStylesheet() {
+  const existing = document.getElementById('active-game-stylesheet');
+  if (existing) existing.remove();
+}
+
+/**
+ * Load a game into the game container and initialise its plugin.
+ *
+ * @param {string} gameId - The ID of the game to load.
+ * @param {HTMLElement} gameContainer - The element that will receive the game HTML.
+ * @param {HTMLElement} announcer - Aria-live element for accessibility announcements.
+ */
+async function loadAndInitGame(gameId, gameContainer, announcer) {
+  const result = await window.api.invoke('games:load', gameId);
+  gameContainer.innerHTML = result.html;
+  injectGameStylesheet(gameId);
+  announcer.textContent = `${result.manifest.name} loaded. Get ready to play!`;
+  const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
+  mod.default.init(gameContainer);
+}
+
+/**
  * DOMContentLoaded event handler. Sets up the game selection UI and plugin loader.
  * @returns {Promise<void>}
  */
@@ -50,29 +91,20 @@ document.addEventListener('DOMContentLoaded', async () => {
    */
   gameSelector.addEventListener('game:select', async (event) => {
     const { gameId } = event.detail;
-    const result = await window.api.invoke('games:load', gameId);
-
     gameSelector.remove();
-    gameContainer.innerHTML = result.html;
-
-    announcer.textContent = `${result.manifest.name} loaded. Get ready to play!`;
-
-    // Dynamically import the game plugin and initialise it so that the
-    // instructions panel and start button become active.
-    const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
-    mod.default.init(gameContainer);
+    await loadAndInitGame(gameId, gameContainer, announcer);
   });
   // Listen for custom event to return to main menu from any game
   window.addEventListener('bsx:return-to-main-menu', () => {
-    // Remove any game UI
+    // Remove any game UI and its stylesheet
     gameContainer.innerHTML = '';
+    removeGameStylesheet();
     // Restore the game selector
     if (!document.getElementById('game-selector')) {
       const selector = document.createElement('section');
       selector.id = 'game-selector';
       selector.setAttribute('aria-label', 'Available games');
       gameContainer.appendChild(selector);
-      // Re-render game cards
       // Reload progress and game cards
       Promise.all([
         window.api.invoke('progress:load', { playerId: 'default' }),
@@ -89,12 +121,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Re-attach event listener for game selection
       selector.addEventListener('game:select', async (event) => {
         const { gameId } = event.detail;
-        const result = await window.api.invoke('games:load', gameId);
         selector.remove();
-        gameContainer.innerHTML = result.html;
-        announcer.textContent = `${result.manifest.name} loaded. Get ready to play!`;
-        const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
-        mod.default.init(gameContainer);
+        await loadAndInitGame(gameId, gameContainer, announcer);
       });
     }
     announcer.textContent = 'Main menu loaded. Select a game.';
