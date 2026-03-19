@@ -57,6 +57,21 @@
   background-color: #f1f3f5;
 }
 
+.hsm-instructions__primary-label {
+  margin: 0.75rem 0 0.25rem;
+  text-align: center;
+}
+
+.hsm-instructions__primary-img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 3px solid #28a745;
+  margin: 0 auto 1rem;
+}
+
 .hsm-instructions .hsm-btn {
   display: block;
   width: 100%;
@@ -87,19 +102,6 @@
 
 .hsm-stat strong {
   font-size: 1.25rem;
-}
-
-/* ── Countdown banner ────────────────────────────────────────── */
-.hsm-countdown {
-  padding: 0.4rem 1.25rem;
-  background-color: #1a1a2e;
-  color: #ffffff; /* 18:1 contrast */
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: center;
-  width: 100%;
-  max-width: 540px;
 }
 
 /* ── Card grid ───────────────────────────────────────────────── */

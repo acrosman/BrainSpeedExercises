@@ -13,11 +13,20 @@
       <strong>Primary</strong> image appears!
       After they flip back, click all three cards that showed the Primary image.
     </p>
+    <p class="hsm-instructions__primary-label">
+      <strong>Find this card — it appears three times each round:</strong>
+    </p>
+    <img
+      src="games/high-speed-memory/images/Primary.jpg"
+      alt="The Primary card you need to find"
+      class="hsm-instructions__primary-img"
+    >
     <ul>
       <li>Watch closely while the cards are revealed.</li>
-      <li>After they flip face-down, click the three cards showing the Primary image.</li>
-      <li>Correctly found cards stay revealed. Wrong guesses flip back.</li>
-      <li>Find all three to complete a round — complete <strong>3 rounds in a row without a wrong guess</strong> to advance to the next level with a larger grid and shorter reveal time!</li>
+      <li>After they flip face-down, click the three cards that showed the Primary image.</li>
+      <li>A wrong guess restarts the round after a brief delay — no partial credit.</li>
+      <li>Find all three to complete a round — complete <strong>3 rounds in a row</strong>
+        to advance to the next level with a larger grid and shorter reveal time!</li>
       <li>Use <kbd>Tab</kbd> to move between cards and <kbd>Enter</kbd> or <kbd>Space</kbd>
         to select.</li>
     </ul>
@@ -36,16 +45,6 @@
       <span class="hsm-stat">Found: <strong id="hsm-found">0</strong> / 3</span>
       <span class="hsm-stat">Streak: <strong id="hsm-streak">0</strong> / 3</span>
     </div>
-
-    <!-- Countdown banner: shown during the reveal phase -->
-    <div
-      id="hsm-countdown"
-      class="hsm-countdown"
-      role="status"
-      aria-live="assertive"
-      aria-atomic="true"
-      hidden
-    ></div>
 
     <!-- Card grid: populated dynamically by index.js -->
     <div

@@ -74,7 +74,6 @@ function buildContainer() {
     <strong id="hsm-level">1</strong>
     <strong id="hsm-found">0</strong>
     <strong id="hsm-streak">0</strong>
-    <div id="hsm-countdown" hidden></div>
     <div id="hsm-feedback"></div>
     <strong id="hsm-final-score">0</strong>
     <strong id="hsm-final-level">1</strong>
@@ -185,9 +184,9 @@ describe('stop', () => {
     expect(container.querySelector('#hsm-end-panel').hidden).toBe(false);
   });
 
-  test('clears pending flip-back timer on stop', () => {
+  test('clears pending round-restart timer on stop', () => {
     jest.runAllTimers(); // release flip lock
-    handleCardClick(1); // Distractor — triggers flip-back timer
+    handleCardClick(1); // Distractor — triggers round-restart timer
     expect(() => plugin.stop()).not.toThrow();
   });
 
@@ -269,9 +268,9 @@ describe('reset', () => {
     expect(() => plugin.reset()).not.toThrow();
   });
 
-  test('clears pending flip-back timer on reset', () => {
+  test('clears pending round-restart timer on reset', () => {
     jest.runAllTimers(); // release flip lock
-    handleCardClick(1); // Distractor — triggers flip-back timer
+    handleCardClick(1); // Distractor — triggers round-restart timer
     expect(() => plugin.reset()).not.toThrow();
   });
 });
@@ -580,13 +579,30 @@ describe('card element manipulation', () => {
 // ── hideAllCards ──────────────────────────────────────────────────────────────
 
 describe('hideAllCards', () => {
-  test('hides the countdown banner', () => {
+  test('hides all un-matched cards', () => {
     jest.useFakeTimers();
     const container = buildContainer();
     plugin.init(container);
     startRound();
     hideAllCards();
-    expect(container.querySelector('#hsm-countdown').hidden).toBe(true);
+    // All cards should be face-down (no hsm-card--revealed class)
+    const cards = container.querySelectorAll('#hsm-grid .hsm-card');
+    cards.forEach((btn) => {
+      expect(btn.classList.contains('hsm-card--revealed')).toBe(false);
+    });
+    jest.useRealTimers();
+  });
+
+  test('allows card clicks after reveal phase (flip lock released)', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    hideAllCards(); // flip lock should now be false
+    // A Primary card click should now be processed (not blocked)
+    handleCardClick(0);
+    const btn = container.querySelector('[data-id="0"]');
+    expect(btn.classList.contains('hsm-card--matched')).toBe(true);
     jest.useRealTimers();
   });
 
@@ -608,12 +624,14 @@ describe('startRound', () => {
     jest.useRealTimers();
   });
 
-  test('shows the countdown banner', () => {
+  test('sets flip lock during the reveal phase', () => {
     jest.useFakeTimers();
     const container = buildContainer();
     plugin.init(container);
     startRound();
-    expect(container.querySelector('#hsm-countdown').hidden).toBe(false);
+    // During reveal, a Primary card click should be ignored (flip lock active)
+    const btn = container.querySelector('[data-id="0"]');
+    expect(btn.classList.contains('hsm-card--matched')).toBe(false);
     jest.useRealTimers();
   });
 
@@ -623,7 +641,11 @@ describe('startRound', () => {
     plugin.init(container);
     startRound();
     jest.runAllTimers();
-    expect(container.querySelector('#hsm-countdown').hidden).toBe(true);
+    // All cards should now be face-down
+    const cards = container.querySelectorAll('#hsm-grid .hsm-card');
+    cards.forEach((btn) => {
+      expect(btn.classList.contains('hsm-card--revealed')).toBe(false);
+    });
     jest.useRealTimers();
   });
 });
@@ -698,15 +720,15 @@ describe('handleCardClick', () => {
     expect(gameMock.resetConsecutiveRounds).not.toHaveBeenCalled();
   });
 
-  test('flips Distractor card back after delay', () => {
+  test('restarts the round after a wrong guess delay', () => {
     const container = buildContainer();
     plugin.init(container);
     startRound();
     jest.runAllTimers(); // release flip lock
-    handleCardClick(1); // Distractor — sets flip lock + flip-back timer
-    jest.runAllTimers(); // trigger flip-back
-    const btn = container.querySelector('[data-id="1"]');
-    expect(btn.classList.contains('hsm-card--revealed')).toBe(false);
+    gameMock.generateGrid.mockClear();
+    handleCardClick(1); // Distractor — triggers round-restart timer
+    jest.runAllTimers(); // fires restart: calls startRound() → generateGrid()
+    expect(gameMock.generateGrid).toHaveBeenCalledTimes(1);
   });
 
   test('advances to next round when all PRIMARY_COUNT Primary cards found', () => {
