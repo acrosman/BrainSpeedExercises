@@ -17,7 +17,11 @@ export const PRIMARY_IMAGE = 'Primary.jpg';
  * Filenames of distractor card images.
  * These fill all grid cells that are not the Primary card.
  */
-export const DISTRACTOR_IMAGES = ['Distractor1.jpg', 'Distractor2.jpg'];
+export const DISTRACTOR_IMAGES = [
+  'Distractor1.jpg',
+  'Distractor2.jpg',
+  'Distractor3.jpg',
+];
 
 /**
  * Number of Primary card copies placed in each round's grid.
