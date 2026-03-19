@@ -173,4 +173,13 @@ describe('loadGame', () => {
       'nonexistent-game',
     );
   });
+
+  test('uses the default import function when importFn is not provided', async () => {
+    mockReaddir.mockResolvedValue([dirent('test-game')]);
+    mockReadFile.mockResolvedValue(JSON.stringify(validManifest));
+
+    // No importFn passed — the default (p) => import(p) is used.
+    // Importing a non-existent mock path will reject; that is expected.
+    await expect(loadGame(GAMES_PATH, 'test-game')).rejects.toThrow();
+  });
 });
