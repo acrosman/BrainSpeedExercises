@@ -12,13 +12,16 @@ beforeAll(() => {
 
 describe('interface.js', () => {
   beforeEach(() => {
-    document.body.innerHTML = '<main id="game-container"></main>';
+    document.body.innerHTML =
+      '<section id="game-selector"></section><main id="game-container"></main>';
     window.api.invoke.mockClear();
     window.api.on.mockClear();
   });
 
   it('requests the game list on DOMContentLoaded', async () => {
     await import('./interface.js');
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(window.api.invoke).toHaveBeenCalledWith('games:list');
   });
 

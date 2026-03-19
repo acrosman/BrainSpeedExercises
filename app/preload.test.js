@@ -1,15 +1,22 @@
 /** @jest-environment node */
 import { jest } from '@jest/globals';
 
+const mockContextBridge = { exposeInMainWorld: jest.fn() };
+const mockIpcRenderer = { send: jest.fn(), on: jest.fn(), invoke: jest.fn() };
+
+await jest.unstable_mockModule('electron', () => ({
+  contextBridge: mockContextBridge,
+  ipcRenderer: mockIpcRenderer,
+}));
+
 describe('preload.js', () => {
   beforeEach(() => {
-    jest.resetModules();
+    mockContextBridge.exposeInMainWorld.mockClear();
   });
 
   it('calls contextBridge.exposeInMainWorld', async () => {
-    const { contextBridge } = await import('electron');
     await import('./preload.js');
-    expect(contextBridge.exposeInMainWorld).toHaveBeenCalledWith(
+    expect(mockContextBridge.exposeInMainWorld).toHaveBeenCalledWith(
       'api',
       expect.objectContaining({
         send: expect.any(Function),

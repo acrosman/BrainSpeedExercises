@@ -173,4 +173,34 @@ describe('loadGame', () => {
       'nonexistent-game',
     );
   });
+
+  test('uses the default import function when importFn is not provided', async () => {
+    mockReaddir.mockResolvedValue([dirent('test-game')]);
+    mockReadFile.mockResolvedValue(JSON.stringify(validManifest));
+
+    // No importFn passed — the default (p) => import(p) is used.
+    // Importing a non-existent mock path will reject; that is expected.
+    await expect(loadGame(GAMES_PATH, 'test-game')).rejects.toThrow();
+  });
+
+  test('finds the correct game when multiple games are registered', async () => {
+    const secondManifest = {
+      id: 'second-game',
+      name: 'Second Game',
+      description: 'Another brain training game.',
+      entryPoint: 'index.js',
+    };
+    mockReaddir.mockResolvedValue([dirent('test-game'), dirent('second-game')]);
+    mockReadFile
+      .mockResolvedValueOnce(JSON.stringify(validManifest))
+      .mockResolvedValueOnce(JSON.stringify(secondManifest));
+    const mockImportFn = jest.fn().mockResolvedValue({ default: mockPlugin });
+
+    const result = await loadGame(GAMES_PATH, 'second-game', mockImportFn);
+
+    expect(result.manifest).toEqual(secondManifest);
+    expect(mockImportFn).toHaveBeenCalledWith(
+      path.join(GAMES_PATH, 'second-game', 'index.js'),
+    );
+  });
 });

@@ -1042,3 +1042,90 @@ describe('progress saving', () => {
     delete globalThis.api;
   });
 });
+
+// ===========================================================================
+// _showSummaryModal and _returnToMainMenu
+// These are private functions reachable only when the body does NOT carry the
+// jest-testing class (which normally suppresses the modal in tests).
+// ===========================================================================
+describe('_showSummaryModal and _returnToMainMenu', () => {
+  beforeEach(() => {
+    // Remove the jest-testing guard so stop() calls _showSummaryModal
+    document.body.classList.remove('jest-testing');
+  });
+
+  afterEach(() => {
+    // Re-add the class so subsequent outer tests are unaffected
+    document.body.classList.add('jest-testing');
+    const modal = document.getElementById('fp-summary-modal');
+    if (modal) modal.remove();
+  });
+
+  it('stop() creates a summary modal in document.body', () => {
+    plugin.start();
+    plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    expect(modal).not.toBeNull();
+  });
+
+  it('modal contains a Game Over heading', () => {
+    plugin.start();
+    plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    expect(modal.textContent).toContain('Game Over');
+  });
+
+  it('Tab keydown on modal calls preventDefault and keeps focus', () => {
+    plugin.start();
+    plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    const e = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true });
+    const spy = jest.spyOn(e, 'preventDefault');
+    modal.dispatchEvent(e);
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('Escape keydown on modal removes it (_returnToMainMenu)', () => {
+    plugin.start();
+    plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(document.getElementById('fp-summary-modal')).toBeNull();
+  });
+
+  it('Escape keydown dispatches bsx:return-to-main-menu', () => {
+    plugin.start();
+    plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    let fired = false;
+    window.addEventListener('bsx:return-to-main-menu', () => { fired = true; }, { once: true });
+    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(fired).toBe(true);
+  });
+
+  it('clicking #fp-return-btn removes modal and dispatches bsx:return-to-main-menu', () => {
+    plugin.start();
+    plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    let fired = false;
+    window.addEventListener('bsx:return-to-main-menu', () => { fired = true; }, { once: true });
+    modal.querySelector('#fp-return-btn').click();
+    expect(fired).toBe(true);
+    expect(document.getElementById('fp-summary-modal')).toBeNull();
+  });
+
+  it('modal focus setTimeout fires without error', () => {
+    plugin.start();
+    plugin.stop();
+    expect(() => jest.runAllTimers()).not.toThrow();
+  });
+
+  it('stop() replaces an existing modal rather than stacking two', () => {
+    plugin.start();
+    plugin.stop();
+    game.stopGame.mockReturnValueOnce({ score: 9, roundsPlayed: 8, duration: 30000 });
+    plugin.start();
+    plugin.stop();
+    expect(document.querySelectorAll('#fp-summary-modal').length).toBe(1);
+  });
+});
