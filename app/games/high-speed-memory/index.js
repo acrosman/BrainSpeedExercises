@@ -59,9 +59,6 @@ let _levelEl = null;
 let _foundEl = null;
 
 /** @type {HTMLElement|null} */
-let _countdownEl = null;
-
-/** @type {HTMLElement|null} */
 let _feedbackEl = null;
 
 /** @type {HTMLElement|null} */
@@ -94,10 +91,10 @@ let _flipLock = false;
 let _primaryFound = 0;
 
 /**
- * Pending setTimeout handle for flipping a wrong-guess card back.
+ * Pending setTimeout handle for restarting the round after a wrong guess.
  * @type {ReturnType<typeof setTimeout>|null}
  */
-let _flipBackTimer = null;
+let _roundRestartTimer = null;
 
 /**
  * Pending setTimeout handle for hiding all cards after reveal phase.
@@ -269,7 +266,6 @@ export function hideAllCards() {
       hideCardEl(card.id);
     }
   });
-  if (_countdownEl) _countdownEl.hidden = true;
   _flipLock = false;
   announce(`Cards hidden — find the ${game.PRIMARY_COUNT} matching cards!`);
 }
@@ -287,17 +283,9 @@ export function startRound() {
   updateFoundDisplay();
 
   const displayMs = game.getDisplayDurationMs(game.getLevel());
-  const ms = displayMs < 1000
-    ? `${displayMs}ms`
-    : `${Math.ceil(displayMs / 1000)} second${Math.ceil(displayMs / 1000) !== 1 ? 's' : ''}`;
-
-  if (_countdownEl) {
-    _countdownEl.textContent = `Memorize! Cards hide in ${ms}…`;
-    _countdownEl.hidden = false;
-  }
 
   announce(
-    `Level ${game.getLevel() + 1}. Find the ${game.PRIMARY_COUNT} matching cards. They hide in ${ms}.`,
+    `Level ${game.getLevel() + 1}. Find the ${game.PRIMARY_COUNT} matching cards.`,
   );
 
   _hideTimer = setTimeout(hideAllCards, displayMs);
@@ -335,16 +323,17 @@ export function handleCardClick(cardId) {
       onRoundComplete();
     }
   } else {
-    // Wrong — reset the level-up streak, play sound, and flip the Distractor back
+    // Wrong — reset streak, play sound, then restart the round after a brief delay
     game.resetConsecutiveRounds();
     markCardWrong(cardId);
     playWrongSound();
-    announce('That is a Distractor. Streak reset — keep looking!');
+    updateStats();
+    announce('Wrong guess! The round will restart.');
 
     _flipLock = true;
-    _flipBackTimer = setTimeout(() => {
-      hideCardEl(cardId);
-      _flipLock = false;
+    clearTimers();
+    _roundRestartTimer = setTimeout(() => {
+      startRound();
     }, WRONG_FLIP_DELAY_MS);
   }
 }
@@ -388,9 +377,9 @@ function returnToMainMenu() {
  * Clear any pending timers (used during stop/reset).
  */
 function clearTimers() {
-  if (_flipBackTimer !== null) {
-    clearTimeout(_flipBackTimer);
-    _flipBackTimer = null;
+  if (_roundRestartTimer !== null) {
+    clearTimeout(_roundRestartTimer);
+    _roundRestartTimer = null;
   }
   if (_hideTimer !== null) {
     clearTimeout(_hideTimer);
@@ -438,7 +427,6 @@ function init(gameContainer) {
   _scoreEl = _container.querySelector('#hsm-score');
   _levelEl = _container.querySelector('#hsm-level');
   _foundEl = _container.querySelector('#hsm-found');
-  _countdownEl = _container.querySelector('#hsm-countdown');
   _feedbackEl = _container.querySelector('#hsm-feedback');
   _finalScoreEl = _container.querySelector('#hsm-final-score');
   _finalLevelEl = _container.querySelector('#hsm-final-level');
@@ -534,7 +522,6 @@ function reset() {
   if (_instructionsEl) _instructionsEl.hidden = false;
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
-  if (_countdownEl) _countdownEl.hidden = true;
   if (_feedbackEl) _feedbackEl.textContent = '';
   if (_streakEl) _streakEl.textContent = '0';
 
