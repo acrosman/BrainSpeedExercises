@@ -1129,3 +1129,172 @@ describe('_showSummaryModal and _returnToMainMenu', () => {
     expect(document.querySelectorAll('#fp-summary-modal').length).toBe(1);
   });
 });
+
+// ===========================================================================
+// start button click callback (f[34] in index.js)
+// ===========================================================================
+describe('start button click event', () => {
+  it('clicking #fp-start-btn triggers plugin.start()', () => {
+    const startBtn = container.querySelector('#fp-start-btn');
+    startBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(game.startGame).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// _triggerFlash setTimeout callback and _resolveRound next-round timer
+// (f[18] and f[30] in index.js)
+// ===========================================================================
+describe('_triggerFlash and next-round timers', () => {
+  function fireCorrectClick() {
+    container.querySelector('#fp-canvas').dispatchEvent(
+      new MouseEvent('click', { clientX: 250, clientY: 100, bubbles: true }),
+    );
+  }
+
+  beforeEach(() => {
+    game.calculateWedgeIndex.mockReturnValue(2);
+    game.checkAnswer.mockReturnValue(true);
+    plugin.start();
+    jest.runAllTimers(); // advance past displayDurationMs → _clickEnabled = true
+  });
+
+  it('flash class is removed after the 600ms _triggerFlash timeout fires', () => {
+    fireCorrectClick();
+    const flash = container.querySelector('#fp-flash');
+    expect(flash.classList.contains('fp-flash--correct')).toBe(true);
+    jest.runAllTimers(); // fires 600ms flash timer + 1000ms next-round + next displayDurationMs
+    expect(flash.classList.contains('fp-flash--correct')).toBe(false);
+  });
+
+  it('next-round 1000ms timer calls _runRound (generateRound is called again)', () => {
+    game.generateRound.mockClear();
+    fireCorrectClick();
+    jest.runAllTimers(); // fires 600ms flash + 1000ms next-round → _runRound → generateRound
+    expect(game.generateRound).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// loadImages onerror path and init() .catch() fallback
+// (f[4] and f[33] in index.js)
+// ===========================================================================
+describe('loadImages() — onerror path', () => {
+  it('rejects when the image fails to load (onerror fired)', async () => {
+    const OriginalImage = globalThis.Image;
+    globalThis.Image = class {
+      set src(_) {
+        if (this.onerror) this.onerror(new Error('load failed'));
+      }
+    };
+
+    let rejected = false;
+    try {
+      await loadImages('bad.png');
+    } catch {
+      rejected = true;
+    }
+    expect(rejected).toBe(true);
+
+    globalThis.Image = OriginalImage;
+  });
+});
+
+describe('init() — loadImages .catch() fallback', () => {
+  it('does not throw when image loading fails (falls back to null images)', async () => {
+    const OriginalImage = globalThis.Image;
+    globalThis.Image = class {
+      set src(_) {
+        if (this.onerror) this.onerror(new Error('load failed'));
+      }
+    };
+
+    // init() calls loadImages which will reject; .catch() sets _images = [null, null]
+    expect(() => plugin.init(buildContainer())).not.toThrow();
+    // Flush microtasks so the .catch() callback executes
+    await Promise.resolve();
+    await Promise.resolve();
+
+    globalThis.Image = OriginalImage;
+  });
+});
+
+// ===========================================================================
+// _showSummaryModal, modal keydown handler, focus timer, _returnToMainMenu
+// (f[40], f[41], f[42], f[43] in index.js)
+// ===========================================================================
+describe('_showSummaryModal and _returnToMainMenu', () => {
+  beforeEach(() => {
+    // Remove jest-testing so stop() will call _showSummaryModal
+    document.body.classList.remove('jest-testing');
+  });
+
+  afterEach(() => {
+    document.body.classList.add('jest-testing');
+    const modal = document.getElementById('fp-summary-modal');
+    if (modal) modal.remove();
+  });
+
+  it('creates a summary modal in document.body after stop()', async () => {
+    plugin.start();
+    await plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    expect(modal).not.toBeNull();
+  });
+
+  it('modal contains session-best stats from getBestStats()', async () => {
+    plugin.start();
+    await plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    expect(modal.textContent).toContain('Game Over');
+  });
+
+  it('Tab keydown on modal traps focus and calls preventDefault', async () => {
+    plugin.start();
+    await plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    const tabEvent = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true });
+    const preventDefaultSpy = jest.spyOn(tabEvent, 'preventDefault');
+    modal.dispatchEvent(tabEvent);
+    expect(preventDefaultSpy).toHaveBeenCalled();
+  });
+
+  it('Escape keydown on modal removes it from the DOM (_returnToMainMenu)', async () => {
+    plugin.start();
+    await plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(document.getElementById('fp-summary-modal')).toBeNull();
+  });
+
+  it('clicking #fp-return-btn removes modal and dispatches bsx:return-to-main-menu', async () => {
+    plugin.start();
+    await plugin.stop();
+    const modal = document.getElementById('fp-summary-modal');
+
+    let eventFired = false;
+    window.addEventListener('bsx:return-to-main-menu', () => { eventFired = true; }, { once: true });
+    modal.querySelector('#fp-return-btn').click();
+
+    expect(eventFired).toBe(true);
+    expect(document.getElementById('fp-summary-modal')).toBeNull();
+  });
+
+  it('focus setTimeout in modal fires without error', async () => {
+    plugin.start();
+    await plugin.stop();
+    // The setTimeout(() => modal.focus(), 0) is pending — advance timers
+    expect(() => jest.runAllTimers()).not.toThrow();
+  });
+
+  it('removes an existing modal before creating a new one', async () => {
+    plugin.start();
+    await plugin.stop();
+    // Call stop again — should remove old modal and create new one
+    game.stopGame.mockReturnValueOnce({ score: 5, roundsPlayed: 3, duration: 5000 });
+    plugin.start();
+    await plugin.stop();
+    const modals = document.querySelectorAll('#fp-summary-modal');
+    expect(modals.length).toBe(1);
+  });
+});

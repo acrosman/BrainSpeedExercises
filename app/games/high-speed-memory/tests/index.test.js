@@ -361,6 +361,37 @@ describe('playWrongSound', () => {
 
     globalThis.AudioContext = OriginalAudioContext;
   });
+
+  test('osc.onended swallows ctx.close() rejection', () => {
+    const mockOsc = {
+      connect: jest.fn(),
+      type: '',
+      frequency: { setValueAtTime: jest.fn() },
+      gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+      start: jest.fn(),
+      stop: jest.fn(),
+      onended: null,
+    };
+    const mockGainNode = {
+      connect: jest.fn(),
+      gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+    };
+    const mockCtx = {
+      createOscillator: jest.fn(() => mockOsc),
+      createGain: jest.fn(() => mockGainNode),
+      destination: {},
+      currentTime: 0,
+      close: jest.fn().mockRejectedValue(new Error('close failed')),
+    };
+    const OriginalAudioContext = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => mockCtx);
+
+    playWrongSound();
+    // Trigger onended — ctx.close() rejects, but the .catch(() => {}) swallows it
+    expect(() => { if (mockOsc.onended) mockOsc.onended(); }).not.toThrow();
+
+    globalThis.AudioContext = OriginalAudioContext;
+  });
 });
 
 // ── announce ──────────────────────────────────────────────────────────────────
@@ -495,6 +526,19 @@ describe('renderGrid', () => {
     btn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
     // Primary card should NOT be matched since Tab was pressed
     expect(btn.classList.contains('hsm-card--matched')).toBe(false);
+    jest.useRealTimers();
+  });
+
+  test('clicking a card button triggers handleCardClick (click event listener)', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    jest.runAllTimers(); // hide cards so flipLock is false
+
+    const btn = container.querySelector('[data-id="0"]'); // Primary card
+    btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(btn.classList.contains('hsm-card--matched')).toBe(true);
     jest.useRealTimers();
   });
 });
