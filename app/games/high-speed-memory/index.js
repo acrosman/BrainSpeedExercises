@@ -70,6 +70,9 @@ let _finalScoreEl = null;
 /** @type {HTMLElement|null} */
 let _finalLevelEl = null;
 
+/** @type {HTMLElement|null} */
+let _streakEl = null;
+
 // ── Round state (reset each round) ────────────────────────────────────────────
 
 /**
@@ -144,11 +147,12 @@ export function announce(msg) {
 }
 
 /**
- * Update the score and level displays.
+ * Update the score, level, and streak displays.
  */
 export function updateStats() {
   if (_scoreEl) _scoreEl.textContent = String(game.getScore());
   if (_levelEl) _levelEl.textContent = String(game.getLevel() + 1);
+  if (_streakEl) _streakEl.textContent = String(game.getConsecutiveCorrectRounds());
 }
 
 /**
@@ -331,10 +335,11 @@ export function handleCardClick(cardId) {
       onRoundComplete();
     }
   } else {
-    // Wrong — play sound and flip the Distractor back after a short delay
+    // Wrong — reset the level-up streak, play sound, and flip the Distractor back
+    game.resetConsecutiveRounds();
     markCardWrong(cardId);
     playWrongSound();
-    announce('That is a Distractor. Keep looking!');
+    announce('That is a Distractor. Streak reset — keep looking!');
 
     _flipLock = true;
     _flipBackTimer = setTimeout(() => {
@@ -346,11 +351,25 @@ export function handleCardClick(cardId) {
 
 /**
  * Called when all PRIMARY_COUNT cards in the current round have been found.
- * Advances to the next level and starts a new round.
+ * Advances the level-up streak (and level if streak reaches ROUNDS_TO_LEVEL_UP),
+ * then starts the next round after a brief pause.
  */
 function onRoundComplete() {
   game.completeRound();
-  announce(`Round complete! Starting level ${game.getLevel() + 1}.`);
+  updateStats();
+
+  // After completeRound: consecutiveCorrectRounds resets to 0 on level advance
+  const leveledUp = game.getConsecutiveCorrectRounds() === 0;
+  if (leveledUp) {
+    announce(`Level up! Welcome to level ${game.getLevel() + 1}.`);
+  } else {
+    const streak = game.getConsecutiveCorrectRounds();
+    const needed = game.ROUNDS_TO_LEVEL_UP;
+    announce(
+      `Round complete! ${streak} of ${needed} in a row — ${needed - streak} more to level up!`,
+    );
+  }
+
   // Brief pause so the player sees the completed board before the next round starts
   setTimeout(startRound, 1200);
 }
@@ -423,6 +442,7 @@ function init(gameContainer) {
   _feedbackEl = _container.querySelector('#hsm-feedback');
   _finalScoreEl = _container.querySelector('#hsm-final-score');
   _finalLevelEl = _container.querySelector('#hsm-final-level');
+  _streakEl = _container.querySelector('#hsm-streak');
 
   if (_startBtn) {
     _startBtn.addEventListener('click', () => start());
@@ -516,6 +536,7 @@ function reset() {
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_countdownEl) _countdownEl.hidden = true;
   if (_feedbackEl) _feedbackEl.textContent = '';
+  if (_streakEl) _streakEl.textContent = '0';
 
   updateStats();
   updateFoundDisplay();

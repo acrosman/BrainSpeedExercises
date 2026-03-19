@@ -5,12 +5,13 @@ jest.unstable_mockModule('../game.js', () => ({
   PRIMARY_IMAGE: 'Primary.jpg',
   DISTRACTOR_IMAGES: ['Distractor1.jpg', 'Distractor2.jpg'],
   PRIMARY_COUNT: 3,
+  ROUNDS_TO_LEVEL_UP: 3,
   BASE_DISPLAY_MS: 500,
   DISPLAY_DECREMENT_MS: 24,
   MIN_DISPLAY_MS: 20,
   initGame: jest.fn(),
   startGame: jest.fn(),
-  stopGame: jest.fn(() => ({ score: 5, level: 2, roundsCompleted: 2, duration: 12000 })),
+  stopGame: jest.fn(() => ({ score: 5, level: 2, roundsCompleted: 6, duration: 12000 })),
   getGridSize: jest.fn(() => ({ rows: 3, cols: 3 })),
   getDisplayDurationMs: jest.fn(() => 500),
   // 3×3 grid: cards 0, 4, 8 are Primary; rest are Distractors
@@ -28,9 +29,11 @@ jest.unstable_mockModule('../game.js', () => ({
   isPrimary: jest.fn((img) => img === 'Primary.jpg'),
   addCorrectGroup: jest.fn(),
   completeRound: jest.fn(),
+  resetConsecutiveRounds: jest.fn(),
   getScore: jest.fn(() => 5),
   getLevel: jest.fn(() => 2),
-  getRoundsCompleted: jest.fn(() => 2),
+  getRoundsCompleted: jest.fn(() => 6),
+  getConsecutiveCorrectRounds: jest.fn(() => 1),
   isRunning: jest.fn(() => false),
 }));
 
@@ -70,6 +73,7 @@ function buildContainer() {
     <strong id="hsm-score">0</strong>
     <strong id="hsm-level">1</strong>
     <strong id="hsm-found">0</strong>
+    <strong id="hsm-streak">0</strong>
     <div id="hsm-countdown" hidden></div>
     <div id="hsm-feedback"></div>
     <strong id="hsm-final-score">0</strong>
@@ -387,6 +391,14 @@ describe('updateStats', () => {
     expect(container.querySelector('#hsm-level').textContent).toBe('3');
   });
 
+  test('updates streak element', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    updateStats();
+    // getConsecutiveCorrectRounds mock returns 1
+    expect(container.querySelector('#hsm-streak').textContent).toBe('1');
+  });
+
   test('does not throw when elements are absent', () => {
     plugin.init(document.createElement('div'));
     expect(() => updateStats()).not.toThrow();
@@ -664,6 +676,26 @@ describe('handleCardClick', () => {
     handleCardClick(1); // Distractor1.jpg
     const btn = container.querySelector('[data-id="1"]');
     expect(btn.classList.contains('hsm-card--wrong')).toBe(true);
+  });
+
+  test('calls resetConsecutiveRounds when a Distractor card is clicked', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    jest.runAllTimers(); // release flip lock
+    gameMock.resetConsecutiveRounds.mockClear();
+    handleCardClick(1); // Distractor1.jpg — wrong guess
+    expect(gameMock.resetConsecutiveRounds).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not call resetConsecutiveRounds when a Primary card is clicked', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    jest.runAllTimers(); // release flip lock
+    gameMock.resetConsecutiveRounds.mockClear();
+    handleCardClick(0); // Primary.jpg — correct
+    expect(gameMock.resetConsecutiveRounds).not.toHaveBeenCalled();
   });
 
   test('flips Distractor card back after delay', () => {
