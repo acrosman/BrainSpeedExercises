@@ -105,11 +105,14 @@
 /* ── Card grid ───────────────────────────────────────────────── */
 .hsm-grid {
   display: grid;
-  gap: 0.4rem;
-  /* Responsive square grid that fills available space */
-  width: min(90vw, calc(100vh - 260px));
-  height: min(90vw, calc(100vh - 260px));
-  max-width: 100%;
+  gap: 6px;
+  /* vmin = min(vw, vh) — creates a square that fits within the viewport */
+  width: 70vmin;
+  height: 70vmin;
+  min-width: 200px;
+  min-height: 200px;
+  max-width: 90vw;
+  max-height: 80vh;
   margin: 0 auto;
   flex-shrink: 0;
 }
@@ -251,9 +254,16 @@
   margin: 0 0 0.5rem;
 }
 
-.hsm-end-panel .hsm-btn {
+.hsm-end-panel__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
   margin-top: 1rem;
-  padding: 0.65rem 2rem;
+}
+
+.hsm-end-panel .hsm-btn {
+  padding: 0.65rem 1.5rem;
 }
 
 /* ── Respect hidden attribute ────────────────────────────────── */
