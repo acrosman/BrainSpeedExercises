@@ -26,10 +26,10 @@ export const DISTRACTOR_IMAGES = ['Distractor1.jpg', 'Distractor2.jpg'];
 export const PRIMARY_COUNT = 3;
 
 /** Initial card-reveal display duration in milliseconds (level 0). */
-export const BASE_DISPLAY_MS = 500;
+export const BASE_DISPLAY_MS = 1500;
 
 /** Amount to reduce display duration per level (ms). */
-export const DISPLAY_DECREMENT_MS = 24;
+export const DISPLAY_DECREMENT_MS = 25;
 
 /** Minimum display duration regardless of level (ms). */
 export const MIN_DISPLAY_MS = 20;
