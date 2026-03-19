@@ -7,6 +7,7 @@ import {
   PRIMARY_IMAGE,
   DISTRACTOR_IMAGES,
   PRIMARY_COUNT,
+  ROUNDS_TO_LEVEL_UP,
   BASE_DISPLAY_MS,
   DISPLAY_DECREMENT_MS,
   MIN_DISPLAY_MS,
@@ -19,9 +20,11 @@ import {
   isPrimary,
   addCorrectGroup,
   completeRound,
+  resetConsecutiveRounds,
   getScore,
   getLevel,
   getRoundsCompleted,
+  getConsecutiveCorrectRounds,
   isRunning,
 } from '../game.js';
 
@@ -60,6 +63,12 @@ describe('PRIMARY_COUNT', () => {
   });
 });
 
+describe('ROUNDS_TO_LEVEL_UP', () => {
+  test('is 3', () => {
+    expect(ROUNDS_TO_LEVEL_UP).toBe(3);
+  });
+});
+
 describe('display timing constants', () => {
   test('BASE_DISPLAY_MS is 500', () => {
     expect(BASE_DISPLAY_MS).toBe(1500);
@@ -84,7 +93,10 @@ describe('initGame', () => {
   });
 
   test('resets level to 0', () => {
-    completeRound();
+    // Need 3 completeRound calls to advance level
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) {
+      completeRound();
+    }
     initGame();
     expect(getLevel()).toBe(0);
   });
@@ -93,6 +105,12 @@ describe('initGame', () => {
     completeRound();
     initGame();
     expect(getRoundsCompleted()).toBe(0);
+  });
+
+  test('resets consecutiveCorrectRounds to 0', () => {
+    completeRound();
+    initGame();
+    expect(getConsecutiveCorrectRounds()).toBe(0);
   });
 
   test('resets running to false', () => {
@@ -150,7 +168,10 @@ describe('stopGame', () => {
   });
 
   test('includes the current level in the result', () => {
-    completeRound();
+    // Level advances after ROUNDS_TO_LEVEL_UP consecutive correct rounds
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) {
+      completeRound();
+    }
     startGame();
     const result = stopGame();
     expect(result.level).toBe(1);
@@ -288,21 +309,58 @@ describe('addCorrectGroup', () => {
 // ── completeRound ─────────────────────────────────────────────────────────────
 
 describe('completeRound', () => {
-  test('increments level by 1', () => {
-    completeRound();
-    expect(getLevel()).toBe(1);
-  });
-
   test('increments roundsCompleted by 1', () => {
     completeRound();
     expect(getRoundsCompleted()).toBe(1);
   });
 
-  test('accumulates across multiple calls', () => {
+  test('does not advance level until ROUNDS_TO_LEVEL_UP consecutive rounds', () => {
     completeRound();
+    expect(getLevel()).toBe(0);
     completeRound();
+    expect(getLevel()).toBe(0);
+  });
+
+  test('advances level after ROUNDS_TO_LEVEL_UP consecutive correct rounds', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) {
+      completeRound();
+    }
+    expect(getLevel()).toBe(1);
+  });
+
+  test('resets consecutiveCorrectRounds to 0 after level advance', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) {
+      completeRound();
+    }
+    expect(getConsecutiveCorrectRounds()).toBe(0);
+  });
+
+  test('accumulates across multiple level advances', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP * 2; i += 1) {
+      completeRound();
+    }
     expect(getLevel()).toBe(2);
-    expect(getRoundsCompleted()).toBe(2);
+    expect(getRoundsCompleted()).toBe(ROUNDS_TO_LEVEL_UP * 2);
+  });
+});
+
+// ── resetConsecutiveRounds ───────────────────────────────────────────────────
+
+describe('resetConsecutiveRounds', () => {
+  test('resets the consecutive correct round counter to 0', () => {
+    completeRound();
+    expect(getConsecutiveCorrectRounds()).toBe(1);
+    resetConsecutiveRounds();
+    expect(getConsecutiveCorrectRounds()).toBe(0);
+  });
+
+  test('prevents level advance when streak is broken between rounds', () => {
+    completeRound();
+    completeRound();
+    resetConsecutiveRounds(); // streak broken: back to 0
+    completeRound(); // only 1 consecutive now
+    expect(getLevel()).toBe(0);
+    expect(getConsecutiveCorrectRounds()).toBe(1);
   });
 });
 
@@ -323,6 +381,26 @@ describe('getLevel', () => {
 describe('getRoundsCompleted', () => {
   test('returns 0 after init', () => {
     expect(getRoundsCompleted()).toBe(0);
+  });
+});
+
+describe('getConsecutiveCorrectRounds', () => {
+  test('returns 0 after init', () => {
+    expect(getConsecutiveCorrectRounds()).toBe(0);
+  });
+
+  test('increments with each completeRound call', () => {
+    completeRound();
+    expect(getConsecutiveCorrectRounds()).toBe(1);
+    completeRound();
+    expect(getConsecutiveCorrectRounds()).toBe(2);
+  });
+
+  test('resets to 0 when level advances', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) {
+      completeRound();
+    }
+    expect(getConsecutiveCorrectRounds()).toBe(0);
   });
 });
 

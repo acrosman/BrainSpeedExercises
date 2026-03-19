@@ -25,6 +25,12 @@ export const DISTRACTOR_IMAGES = ['Distractor1.jpg', 'Distractor2.jpg'];
  */
 export const PRIMARY_COUNT = 3;
 
+/**
+ * Number of consecutive correct rounds (no wrong guesses) required to advance one level.
+ * A wrong guess in any round resets this streak back to zero.
+ */
+export const ROUNDS_TO_LEVEL_UP = 3;
+
 /** Initial card-reveal display duration in milliseconds (level 0). */
 export const BASE_DISPLAY_MS = 1500;
 
@@ -43,6 +49,13 @@ let level = 0;
 /** @type {number} */
 let roundsCompleted = 0;
 
+/**
+ * Number of consecutive correct rounds completed without a wrong guess.
+ * Resets to 0 after a wrong guess or after reaching ROUNDS_TO_LEVEL_UP.
+ * @type {number}
+ */
+let consecutiveCorrectRounds = 0;
+
 /** @type {boolean} */
 let running = false;
 
@@ -56,6 +69,7 @@ export function initGame() {
   score = 0;
   level = 0;
   roundsCompleted = 0;
+  consecutiveCorrectRounds = 0;
   running = false;
   startTime = null;
 }
@@ -165,11 +179,26 @@ export function addCorrectGroup() {
 }
 
 /**
- * Mark the current round as complete and advance to the next level.
+ * Mark the current round as complete.
+ * Increments the consecutive-correct-rounds streak.
+ * The level only advances when ROUNDS_TO_LEVEL_UP consecutive correct rounds are reached,
+ * at which point the streak resets to zero.
  */
 export function completeRound() {
   roundsCompleted += 1;
-  level += 1;
+  consecutiveCorrectRounds += 1;
+  if (consecutiveCorrectRounds >= ROUNDS_TO_LEVEL_UP) {
+    level += 1;
+    consecutiveCorrectRounds = 0;
+  }
+}
+
+/**
+ * Reset the consecutive-correct-rounds streak to zero.
+ * Called when the player clicks a Distractor card (wrong guess).
+ */
+export function resetConsecutiveRounds() {
+  consecutiveCorrectRounds = 0;
 }
 
 /**
@@ -194,6 +223,14 @@ export function getLevel() {
  */
 export function getRoundsCompleted() {
   return roundsCompleted;
+}
+
+/**
+ * Get the current consecutive-correct-rounds streak.
+ * @returns {number}
+ */
+export function getConsecutiveCorrectRounds() {
+  return consecutiveCorrectRounds;
 }
 
 /**
