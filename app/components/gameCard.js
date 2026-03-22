@@ -38,11 +38,12 @@ export function createGameCard(manifest, progress) {
 
   // Show per-game stats for cards that expose meaningful progress metrics.
   let scoreElem = null;
-  if (manifest.id === 'fast-piggie' && progress) {
+  if (progress) {
     scoreElem = document.createElement('p');
     scoreElem.className = 'game-high-score';
     const details = [];
     if (typeof progress.highScore === 'number') details.push(`Top Score: ${progress.highScore}`);
+    if (typeof progress.highestLevel === 'number') details.push(`Max Level: ${progress.highestLevel + 1}`);
     if (typeof progress.maxLevel === 'number') details.push(`Max Level: ${progress.maxLevel}`);
     if (typeof progress.maxPiggies === 'number') details.push(`Max Piggies: ${progress.maxPiggies}`);
     if (typeof progress.lowestDisplayTime === 'number') details.push(`Lowest Display Time: ${progress.lowestDisplayTime}ms`);

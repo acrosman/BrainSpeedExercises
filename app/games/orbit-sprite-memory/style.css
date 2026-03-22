@@ -36,12 +36,12 @@
 
 .osm-board {
   position: relative;
-  width: min(88vw, 420px);
-  height: min(88vw, 420px);
+  width: min(92vw, 520px);
+  height: min(92vw, 520px);
   margin: 0 auto;
   border: 2px solid var(--osm-border);
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, #f5f9fc 72%, #ebf1f5 100%);
+  background: #ffffff;
 }
 
 .osm-sprite {
