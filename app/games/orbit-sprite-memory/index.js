@@ -205,7 +205,7 @@ export function getSpriteBackgroundPosition(spriteId) {
  */
 export function getCircleCoordinates(positionIndex, totalPositions) {
   const angle = -Math.PI / 2 + (2 * Math.PI * positionIndex) / totalPositions;
-  const radius = 33;
+  const radius = 36;
   const left = 50 + Math.cos(angle) * radius;
   const top = 50 + Math.sin(angle) * radius;
   return { left, top };
@@ -306,8 +306,9 @@ export function renderChoiceButtons(round) {
   clearChoiceButtons();
   clearRevealSprites();
 
+  const totalPositions = round.shownPositions.length;
   round.shownPositions.forEach((positionIndex) => {
-    const coords = getCircleCoordinates(positionIndex, game.POSITION_COUNT);
+    const coords = getCircleCoordinates(positionIndex, totalPositions);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'osm-choice-btn';
@@ -359,10 +360,11 @@ export function showRoundReveal(round) {
     spriteByPosition[step.positionIndex] = step.spriteId;
   });
 
+  const totalPositions = round.shownPositions.length;
   round.shownPositions.forEach((positionIndex) => {
     const spriteId = spriteByPosition[positionIndex];
     if (typeof spriteId !== 'number') return;
-    const coords = getCircleCoordinates(positionIndex, game.POSITION_COUNT);
+    const coords = getCircleCoordinates(positionIndex, totalPositions);
     const sprite = document.createElement('div');
     sprite.className = 'osm-sprite osm-reveal-sprite';
     sprite.setAttribute('aria-hidden', 'true');
@@ -377,11 +379,12 @@ export function showRoundReveal(round) {
  * Positions and shows the active sprite on the board.
  *
  * @param {{ spriteId: number, positionIndex: number }} step - Playback step.
+ * @param {number} totalPositions - Total positions in this round's ring.
  */
-export function showPlaybackStep(step) {
+export function showPlaybackStep(step, totalPositions) {
   if (!_activeSpriteEl) return;
 
-  const coords = getCircleCoordinates(step.positionIndex, game.POSITION_COUNT);
+  const coords = getCircleCoordinates(step.positionIndex, totalPositions);
   _activeSpriteEl.hidden = false;
   _activeSpriteEl.style.left = `${coords.left}%`;
   _activeSpriteEl.style.top = `${coords.top}%`;
@@ -400,9 +403,10 @@ export function startPlayback(round) {
   _inputEnabled = false;
   _selectedPositions = new Set();
 
+  const totalPositions = round.shownPositions.length;
   round.steps.forEach((step, index) => {
     _timers.push(setTimeout(() => {
-      showPlaybackStep(step);
+      showPlaybackStep(step, totalPositions);
     }, round.displayMs * index));
   });
 
@@ -413,7 +417,7 @@ export function startPlayback(round) {
     }
     _inputEnabled = true;
     renderChoiceButtons(round);
-    announce('Select the three circles where the target image appeared.');
+    announce('Select the three positions where the target appeared.');
   }, endDelay));
 }
 
