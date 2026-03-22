@@ -1325,7 +1325,11 @@ describe('_showSummaryModal and _returnToMainMenu', () => {
     const modal = document.getElementById('fp-summary-modal');
 
     let eventFired = false;
-    window.addEventListener('bsx:return-to-main-menu', () => { eventFired = true; }, { once: true });
+    window.addEventListener('bsx:return-to-main-menu', () => {
+      eventFired = true;
+    }, {
+      once: true,
+    });
     modal.querySelector('#fp-return-btn').click();
 
     expect(eventFired).toBe(true);

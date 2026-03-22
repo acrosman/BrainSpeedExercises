@@ -104,16 +104,17 @@ describe('interface.js', () => {
       expect(scoreElem.textContent).toContain('42');
     });
 
-    it('falls back to empty progress and still renders cards when progress:load rejects', async () => {
-      const invoke = jest.fn().mockImplementation((channel) => {
-        if (channel === 'progress:load') return Promise.reject(new Error('disk error'));
-        if (channel === 'games:list') return Promise.resolve(MANIFESTS);
-        return Promise.resolve(null);
+    it('falls back to empty progress and still renders cards when progress:load rejects',
+      async () => {
+        const invoke = jest.fn().mockImplementation((channel) => {
+          if (channel === 'progress:load') return Promise.reject(new Error('disk error'));
+          if (channel === 'games:list') return Promise.resolve(MANIFESTS);
+          return Promise.resolve(null);
+        });
+        global.window.api = { invoke, on: jest.fn() };
+        await domReadyCallback();
+        expect(document.querySelectorAll('#game-selector article').length).toBe(MANIFESTS.length);
       });
-      global.window.api = { invoke, on: jest.fn() };
-      await domReadyCallback();
-      expect(document.querySelectorAll('#game-selector article').length).toBe(MANIFESTS.length);
-    });
   });
 
   // ── game:select handler (exercises loadAndInitGame + injectGameStylesheet) ──
