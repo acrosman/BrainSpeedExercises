@@ -191,6 +191,11 @@ let _feedbackEl = null;
 let _flashEl = null;
 let _instructionsEl = null;
 let _gameAreaEl = null;
+let _endPanelEl = null;
+let _playAgainBtn = null;
+let _returnToMenuBtn = null;
+let _finalScoreEl = null;
+let _finalHighScoreEl = null;
 
 // Game state
 let _images = null; // [commonImage, outlierImage]
@@ -444,6 +449,18 @@ function _getCorrectWedgeIndex(round) {
 }
 
 /**
+ * Show the end-game panel with the latest score summary.
+ * @param {number} score
+ * @param {number} highScore
+ */
+function _showEndPanel(score, highScore) {
+  if (_gameAreaEl) _gameAreaEl.hidden = true;
+  if (_endPanelEl) _endPanelEl.hidden = false;
+  if (_finalScoreEl) _finalScoreEl.textContent = String(score);
+  if (_finalHighScoreEl) _finalHighScoreEl.textContent = String(highScore);
+}
+
+/**
  * Resolves the round after a wedge is selected, updates state and feedback.
  * @param {number} wedge
  */
@@ -537,14 +554,19 @@ export default {
   init(container) {
     _instructionsEl = container.querySelector('#fp-instructions');
     _gameAreaEl = container.querySelector('#fp-game-area');
+    _endPanelEl = container.querySelector('#fp-end-panel');
     _startBtn = container.querySelector('#fp-start-btn');
     _canvas = container.querySelector('#fp-canvas');
     _ctx = _canvas.getContext('2d');
     _stopBtn = container.querySelector('#fp-stop-btn');
+    _playAgainBtn = container.querySelector('#fp-play-again-btn');
+    _returnToMenuBtn = container.querySelector('#fp-return-btn');
     _scoreEl = container.querySelector('#fp-score');
     _roundEl = container.querySelector('#fp-round-count');
     _feedbackEl = container.querySelector('#fp-feedback');
     _flashEl = container.querySelector('#fp-flash');
+    _finalScoreEl = container.querySelector('#fp-final-score');
+    _finalHighScoreEl = container.querySelector('#fp-final-high-score');
 
     // Pre-load images
     const base = new URL('../fast-piggie/images/', import.meta.url).href;
@@ -564,6 +586,15 @@ export default {
     _canvas.addEventListener('mouseleave', _handleMouseLeave);
     _canvas.addEventListener('keydown', _handleKeydown);
     _stopBtn.addEventListener('click', () => this.stop());
+    if (_playAgainBtn) {
+      _playAgainBtn.addEventListener('click', () => {
+        this.reset();
+        this.start();
+      });
+    }
+    if (_returnToMenuBtn) {
+      _returnToMenuBtn.addEventListener('click', () => _returnToMainMenu());
+    }
   },
 
   /**
@@ -572,6 +603,7 @@ export default {
   start() {
     if (_instructionsEl) _instructionsEl.hidden = true;
     if (_gameAreaEl) _gameAreaEl.hidden = false;
+    if (_endPanelEl) _endPanelEl.hidden = true;
     game.startGame();
     _updateStats();
     _runRound();
@@ -590,8 +622,7 @@ export default {
     const result = game.stopGame();
 
     let highScore = result.score;
-    let previousHigh = 0;
-    let sessionsPlayed = 1;
+    let bestStats = game.getBestStats();
     // Return a promise for test compatibility
     return (async () => {
       try {
@@ -617,12 +648,10 @@ export default {
           } catch {
             // If load fails, still proceed to save with defaults
           }
-          previousHigh = gameEntry.highScore;
           // Only update highScore if the new score is higher
           highScore = Math.max(gameEntry.highScore || 0, result.score);
-          sessionsPlayed = (gameEntry.sessionsPlayed || 0) + 1;
           // Get best stats from game logic
-          const bestStats = game.getBestStats();
+          bestStats = game.getBestStats();
           const updated = {
             ...existing,
             games: {
@@ -630,7 +659,7 @@ export default {
               'fast-piggie': {
                 ...gameEntry,
                 highScore,
-                sessionsPlayed,
+                sessionsPlayed: (gameEntry.sessionsPlayed || 0) + 1,
                 lastPlayed: new Date().toISOString(),
                 maxLevel:
                   typeof bestStats.maxScore === 'number'
@@ -660,13 +689,8 @@ export default {
         // Swallow all errors from progress load/save
       }
 
-      // Show accessible summary modal (skip in test env)
-      if (typeof document !== 'undefined' &&
-        document.body &&
-        !document.body.classList.contains('jest-testing')
-      ) {
-        _showSummaryModal(result.score, previousHigh, highScore);
-      } else if (_feedbackEl) {
+      _showEndPanel(result.score, highScore);
+      if (_feedbackEl) {
         _feedbackEl.textContent = `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
       }
       _stopBtn.hidden = true;
@@ -695,78 +719,14 @@ export default {
     _stopBtn.hidden = false;
     if (_instructionsEl) _instructionsEl.hidden = false;
     if (_gameAreaEl) _gameAreaEl.hidden = true;
+    if (_endPanelEl) _endPanelEl.hidden = true;
   },
 };
-
-/**
- * Show an accessible summary modal with current and best score, and return button.
- * @param {number} score
- * @param {number} previousHigh
- * @param {number} highScore
- */
-function _showSummaryModal(score, previousHigh, highScore) {
-  // Remove any existing modal
-  const oldModal = document.getElementById('fp-summary-modal');
-  if (oldModal) oldModal.remove();
-
-  // Get best stats for this session
-  const bestStats = game.getBestStats();
-
-  const modal = document.createElement('div');
-  modal.id = 'fp-summary-modal';
-  modal.className = 'fp-modal';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-labelledby', 'fp-summary-title');
-  modal.setAttribute('tabindex', '-1');
-
-  modal.innerHTML = `
-    <div class="fp-modal-content">
-      <h2 id="fp-summary-title">Game Over</h2>
-      <p>Your score: <strong>${score}</strong></p>
-      <p>Personal best: <strong>${highScore}</strong></p>
-      <hr />
-      <h3>Session Bests</h3>
-      <ul>
-        <li>Max score: <strong>${bestStats.maxScore}</strong></li>
-        <li>Most rounds: <strong>${bestStats.mostRounds}</strong></li>
-        <li>Most guinea pigs in a round: <strong>${bestStats.mostGuineaPigs}</strong></li>
-        <li>Top speed (ms): <strong>${bestStats.topSpeedMs !== null ? bestStats.topSpeedMs : '—'}</strong></li>
-      </ul>
-      <button id="fp-return-btn" class="fp-btn fp-btn--primary">Return to Main Menu</button>
-    </div>
-  `;
-
-  // Trap focus inside modal
-  modal.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      const focusable = modal.querySelectorAll('button');
-      if (focusable.length) {
-        e.preventDefault();
-        focusable[0].focus();
-      }
-    }
-    if (e.key === 'Escape') {
-      _returnToMainMenu();
-    }
-  });
-
-  // Return button handler
-  modal.querySelector('#fp-return-btn').addEventListener('click', _returnToMainMenu);
-
-  // Add modal to DOM and focus
-  document.body.appendChild(modal);
-  setTimeout(() => {
-    modal.focus();
-  }, 0);
-}
 
 /**
  * Return to the main game selection screen, removing modal and resetting UI.
  */
 function _returnToMainMenu() {
-  const modal = document.getElementById('fp-summary-modal');
-  if (modal) modal.remove();
   // Dispatch a custom event to notify the app shell to return to main menu
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
