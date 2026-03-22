@@ -463,9 +463,9 @@ export function submitSelection() {
     announce('Incorrect. Reviewing positions before the next round.');
   }
 
+  clearTimers();
   showRoundReveal(_currentRound);
 
-  clearTimers();
   _timers.push(setTimeout(() => {
     clearRevealSprites();
     _timers.push(setTimeout(() => {
@@ -501,7 +501,7 @@ const name = 'Orbit Sprite Memory';
 /**
  * Initializes the plugin and wires UI events.
  *
- * @param {HTMLElement} gameContainer - Injected game container.
+ * @param {HTMLElement|null} gameContainer - Injected game container.
  */
 function init(gameContainer) {
   _container = gameContainer;
