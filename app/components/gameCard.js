@@ -36,7 +36,7 @@ export function createGameCard(manifest, progress) {
   const description = document.createElement('p');
   description.textContent = manifest.description || '';
 
-  // If this is Fast Piggie, show detailed stats if available
+  // Show per-game stats for cards that expose meaningful progress metrics.
   let scoreElem = null;
   if (manifest.id === 'fast-piggie' && progress) {
     scoreElem = document.createElement('p');
@@ -47,6 +47,19 @@ export function createGameCard(manifest, progress) {
     if (typeof progress.maxPiggies === 'number') details.push(`Max Piggies: ${progress.maxPiggies}`);
     if (typeof progress.lowestDisplayTime === 'number') details.push(`Lowest Display Time: ${progress.lowestDisplayTime}ms`);
     scoreElem.textContent = details.join(' | ');
+    scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
+  }
+
+  if (manifest.id === 'field-of-view' && progress) {
+    scoreElem = document.createElement('p');
+    scoreElem.className = 'game-high-score';
+
+    if (typeof progress.bestThresholdMs === 'number') {
+      scoreElem.textContent = `All-time Best Threshold: ${progress.bestThresholdMs}ms`;
+    } else {
+      scoreElem.textContent = 'All-time Best Threshold: No data yet';
+    }
+
     scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
   }
 
