@@ -429,6 +429,26 @@ function _handleClick(event) {
 }
 
 /**
+ * Resolves the displayed outlier image index to its actual wedge slot.
+ * @param {object} round
+ * @returns {number}
+ */
+function _getCorrectWedgeIndex(round) {
+  const {
+    outlierWedgeIndex,
+    slotAssignment,
+    imageCount,
+    wedgeCount,
+  } = round;
+
+  if (slotAssignment && imageCount < wedgeCount) {
+    return slotAssignment[outlierWedgeIndex] ?? -1;
+  }
+
+  return outlierWedgeIndex;
+}
+
+/**
  * Show the end-game panel with the latest score summary.
  * @param {number} score
  * @param {number} highScore
@@ -455,6 +475,7 @@ function _resolveRound(wedge) {
     imageCount,
   } = _currentRound;
   const { width, height } = _canvas;
+  const correctWedgeIndex = _getCorrectWedgeIndex(_currentRound);
   // Map clicked wedge to image index if slotAssignment is used
   let answerIdx = wedge;
   if (slotAssignment && imageCount < wedgeCount) {
@@ -494,14 +515,16 @@ function _resolveRound(wedge) {
       'rgba(220, 53, 69, 0.45)',
     );
     // Reveal the correct wedge in yellow
-    highlightWedge(
-      _ctx,
-      width,
-      height,
-      outlierWedgeIndex,
-      wedgeCount,
-      'rgba(255, 193, 7, 0.65)',
-    );
+    if (correctWedgeIndex !== -1) {
+      highlightWedge(
+        _ctx,
+        width,
+        height,
+        correctWedgeIndex,
+        wedgeCount,
+        'rgba(255, 193, 7, 0.65)',
+      );
+    }
     game.addMiss(imageCount);
     playFailureSound(audioCtx);
     _triggerFlash('wrong');
