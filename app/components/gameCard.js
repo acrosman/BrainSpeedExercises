@@ -16,6 +16,11 @@
  * @param {string} [manifest.thumbnail] - Path to the thumbnail image.
  * @param {object} [progress] - Optional progress data for the game.
  * @param {number} [progress.highScore] - The player's high score for this game.
+ * @param {number} [progress.highestLevel] - The highest level reached (0-indexed;
+ *   displayed as level + 1).
+ * @param {number} [progress.maxLevel] - The maximum level number reached.
+ * @param {number} [progress.maxPiggies] - The maximum number of piggies collected.
+ * @param {number} [progress.lowestDisplayTime] - The lowest display time achieved, in milliseconds.
  * @returns {HTMLElement} An <article> element representing the game card.
  */
 export function createGameCard(manifest, progress) {
