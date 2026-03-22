@@ -53,9 +53,18 @@ jest.unstable_mockModule('../game.js', () => ({
   getThresholdHistory: jest.fn(() => [{ trial: 1, thresholdMs: 200, success: true }]),
 }));
 
+jest.unstable_mockModule('../audio.js', () => ({
+  playFeedbackSound: jest.fn(),
+}));
+
+jest.unstable_mockModule('../progress.js', () => ({
+  saveProgress: jest.fn(),
+}));
+
 const pluginModule = await import('../index.js');
 const plugin = pluginModule.default;
 const gameMock = await import('../game.js');
+const progressMock = await import('../progress.js');
 
 function buildContainer() {
   const wrapper = document.createElement('div');
@@ -190,16 +199,7 @@ describe('field-of-view index', () => {
     expect(sources.some((src) => src.includes('toy1.png'))).toBe(true);
   });
 
-  test('stop returns running result and updates end panel', async () => {
-    const originalWindow = globalThis.window;
-    globalThis.window = globalThis.window || {};
-
-    const invoke = jest.fn()
-      .mockResolvedValueOnce({ playerId: 'default', games: {} })
-      .mockResolvedValueOnce(undefined);
-    const oldApi = globalThis.window.api;
-    globalThis.window.api = { invoke };
-
+  test('stop returns running result and updates end panel', () => {
     plugin.start();
     const result = plugin.stop();
 
@@ -207,17 +207,9 @@ describe('field-of-view index', () => {
     expect(document.querySelector('#fov-end-panel').hidden).toBe(false);
     expect(document.querySelector('#fov-final-threshold').textContent).toBe('84.2');
     expect(document.querySelector('#fov-final-best-threshold').textContent).toBe('200');
-
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(invoke).toHaveBeenCalledWith(
-      'progress:save',
-      expect.objectContaining({ playerId: 'default' }),
+    expect(progressMock.saveProgress).toHaveBeenCalledWith(
+      expect.objectContaining({ thresholdMs: 84.2, trialsCompleted: 4 }),
     );
-
-    globalThis.window.api = oldApi;
-    globalThis.window = originalWindow;
   });
 
   test('stop returns idle result when game is not running', () => {
@@ -231,6 +223,16 @@ describe('field-of-view index', () => {
       trialsCompleted: 4,
       recentAccuracy: 0.8,
     });
+  });
+
+  test('stop does not save progress when trialsCompleted is zero', () => {
+    gameMock.isRunning.mockReturnValueOnce(false);
+    gameMock.getTrialsCompleted.mockReturnValueOnce(0);
+    progressMock.saveProgress.mockClear();
+
+    plugin.stop();
+
+    expect(progressMock.saveProgress).not.toHaveBeenCalled();
   });
 
   test('reset returns to instruction state', () => {

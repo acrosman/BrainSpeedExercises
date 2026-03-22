@@ -1,15 +1,17 @@
 /**
  * index.js - Field of View plugin entry point.
  *
- * Handles DOM rendering, high-precision timing flow, and plugin lifecycle.
+ * Handles DOM wiring, high-precision timing flow, and plugin lifecycle.
+ * Rendering utilities are in render.js, audio feedback in audio.js,
+ * and progress persistence in progress.js.
  *
  * @file Field of View game plugin (UI/controller layer).
  */
 
 import * as game from './game.js';
-
-/** Game identifier used for progress persistence. */
-const GAME_ID = 'field-of-view';
+import * as render from './render.js';
+import { playFeedbackSound } from './audio.js';
+import { saveProgress } from './progress.js';
 
 /** Mask display duration in ms. */
 const MASK_DURATION_MS = 120;
@@ -19,9 +21,6 @@ const INTER_TRIAL_DELAY_MS = 350;
 
 /** Flash overlay duration for correct/incorrect feedback. */
 const FEEDBACK_FLASH_MS = 220;
-
-/** Path to Field of View image assets from renderer root. */
-const IMAGES_BASE_PATH = 'games/field-of-view/images/';
 
 /** @type {HTMLElement|null} */
 let _container = null;
@@ -80,7 +79,6 @@ let _stimulusRafId = null;
 let _maskRafId = null;
 /** @type {ReturnType<typeof setTimeout>|null} */
 let _nextTrialTimer = null;
-
 /** @type {ReturnType<typeof setTimeout>|null} */
 let _flashTimer = null;
 
@@ -127,99 +125,42 @@ function nowMs() {
  * @param {string} message
  */
 function announce(message) {
-  if (_feedbackEl) {
-    _feedbackEl.textContent = message;
-  }
-}
-
-/**
- * Convert a ratio [0..1] to display percent.
- *
- * @param {number} value
- * @returns {string}
- */
-function percent(value) {
-  return `${Math.round(value * 100)}%`;
-}
-
-/**
- * Normalize millisecond values to at most 2 decimals without trailing zeros.
- *
- * @param {number} value
- * @returns {string}
- */
-function formatMs(value) {
-  return String(Number(value).toFixed(2)).replace(/\.00$/, '');
+  render.announce(_feedbackEl, message);
 }
 
 /**
  * Update game stats in the status bar.
  */
 function updateStats() {
-  if (_soaEl) _soaEl.textContent = String(game.getCurrentSoaMs());
-  if (_thresholdEl) _thresholdEl.textContent = String(game.getCurrentSoaMs());
-  if (_accuracyEl) _accuracyEl.textContent = percent(game.getRecentAccuracy());
-  if (_trialsEl) _trialsEl.textContent = String(game.getTrialsCompleted());
-}
-
-/**
- * Build SVG point string for threshold history polyline.
- *
- * @param {Array<{ thresholdMs: number }>} history
- * @returns {string}
- */
-function buildTrendPolylinePoints(history) {
-  if (!history || history.length === 0) {
-    return '';
-  }
-
-  const width = 300;
-  const height = 120;
-  const pad = 10;
-
-  const values = history.map((entry) => entry.thresholdMs);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(max - min, 1);
-
-  const denominator = Math.max(history.length - 1, 1);
-
-  return history.map((entry, index) => {
-    const x = pad + ((width - pad * 2) * index) / denominator;
-    const normalized = (entry.thresholdMs - min) / span;
-    const y = height - pad - normalized * (height - pad * 2);
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  }).join(' ');
+  render.updateStats(
+    {
+      soaEl: _soaEl,
+      thresholdEl: _thresholdEl,
+      accuracyEl: _accuracyEl,
+      trialsEl: _trialsEl,
+    },
+    {
+      soaMs: game.getCurrentSoaMs(),
+      accuracy: game.getRecentAccuracy(),
+      trialsCompleted: game.getTrialsCompleted(),
+    },
+  );
 }
 
 /**
  * Render the threshold history chart and summary values.
  */
-function renderThresholdTrend() {
-  const history = game.getThresholdHistory();
-  const latest = history.length > 0
-    ? history[history.length - 1].thresholdMs
-    : game.getCurrentSoaMs();
-
-  if (_trendLatestEl) {
-    _trendLatestEl.textContent = formatMs(latest);
-  }
-
-  if (_finalBestThresholdEl) {
-    const best = history.length > 0
-      ? Math.min(...history.map((entry) => entry.thresholdMs))
-      : game.getCurrentSoaMs();
-    _finalBestThresholdEl.textContent = formatMs(best);
-  }
-
-  if (!_trendLineEl) return;
-
-  const points = buildTrendPolylinePoints(history);
-  _trendLineEl.setAttribute('points', points);
-
-  if (_trendEmptyEl) {
-    _trendEmptyEl.hidden = points.length > 0;
-  }
+function updateThresholdTrend() {
+  render.renderThresholdTrend(
+    {
+      trendLineEl: _trendLineEl,
+      trendEmptyEl: _trendEmptyEl,
+      trendLatestEl: _trendLatestEl,
+      finalBestThresholdEl: _finalBestThresholdEl,
+    },
+    game.getThresholdHistory(),
+    game.getCurrentSoaMs(),
+  );
 }
 
 /**
@@ -245,68 +186,6 @@ function clearAsyncHandles() {
 }
 
 /**
- * Set current stage visual mode for stimulus, mask-only, or response overlay.
- *
- * @param {'stimulus'|'mask'|'response'} mode
- */
-function setStageMode(mode) {
-  if (!_stageEl) return;
-  _stageEl.classList.remove('fov-stage--response');
-  if (mode === 'response') {
-    _stageEl.classList.add('fov-stage--response');
-  }
-}
-
-/**
- * Play a short positive/negative sound cue for trial feedback.
- *
- * @param {boolean} isSuccess
- */
-function playFeedbackSound(isSuccess) {
-  const AudioCtx = (typeof AudioContext !== 'undefined' && AudioContext)
-    || (typeof window !== 'undefined' && window.webkitAudioContext)
-    || null;
-  if (!AudioCtx) return;
-
-  try {
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
-
-    const toneA = ctx.createOscillator();
-    const gainA = ctx.createGain();
-    toneA.connect(gainA);
-    gainA.connect(ctx.destination);
-
-    toneA.type = 'sine';
-    toneA.frequency.setValueAtTime(isSuccess ? 740 : 220, now);
-    gainA.gain.setValueAtTime(0.0001, now);
-    gainA.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
-    gainA.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-    toneA.start(now);
-    toneA.stop(now + 0.2);
-
-    const toneB = ctx.createOscillator();
-    const gainB = ctx.createGain();
-    toneB.connect(gainB);
-    gainB.connect(ctx.destination);
-
-    toneB.type = isSuccess ? 'triangle' : 'sawtooth';
-    toneB.frequency.setValueAtTime(isSuccess ? 940 : 170, now + 0.12);
-    gainB.gain.setValueAtTime(0.0001, now + 0.12);
-    gainB.gain.exponentialRampToValueAtTime(0.12, now + 0.15);
-    gainB.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
-    toneB.start(now + 0.12);
-    toneB.stop(now + 0.32);
-
-    toneB.onended = () => {
-      ctx.close().catch(() => { });
-    };
-  } catch {
-    // Ignore audio errors in unsupported environments.
-  }
-}
-
-/**
  * Flash green/red tint over stage for trial feedback.
  *
  * @param {boolean} isSuccess
@@ -328,47 +207,6 @@ function flashStageFeedback(isSuccess) {
 }
 
 /**
- * Toggle mask visibility with both hidden attribute and inline display fallback.
- *
- * @param {boolean} visible
- */
-function setMaskVisible(visible) {
-  if (!_maskEl) return;
-  _maskEl.hidden = !visible;
-  _maskEl.style.display = visible ? 'grid' : 'none';
-}
-
-/**
- * Return human-readable label text for a stimulus icon.
- *
- * @param {{ id: string }} icon
- * @returns {string}
- */
-function labelForIcon(icon) {
-  if (!icon) return 'Empty';
-  if (icon.id === 'primary-kitten') return 'Primary kitten';
-  if (icon.id === 'secondary-kitten') return 'Secondary kitten';
-  if (icon.id === 'toy-1') return 'Toy 1';
-  if (icon.id === 'toy-2') return 'Toy 2';
-  return 'Stimulus';
-}
-
-/**
- * Create an image element for a stimulus icon.
- *
- * @param {{ id: string, file: string }} icon
- * @returns {HTMLImageElement}
- */
-function createStimulusImage(icon) {
-  const img = document.createElement('img');
-  img.src = `${IMAGES_BASE_PATH}${icon.file}`;
-  img.alt = labelForIcon(icon);
-  img.decoding = 'async';
-  img.loading = 'eager';
-  return img;
-}
-
-/**
  * Render the current trial board.
  *
  * @param {boolean} revealStimulus
@@ -386,6 +224,10 @@ function renderBoard(revealStimulus) {
     btn.className = 'fov-cell';
     btn.dataset.index = String(cell.index);
 
+    const row = Math.floor(cell.index / _currentTrial.gridSize) + 1;
+    const col = (cell.index % _currentTrial.gridSize) + 1;
+    btn.setAttribute('aria-label', `Row ${row}, column ${col}`);
+
     if (cell.role === 'center') {
       btn.classList.add('fov-cell--center');
       btn.disabled = true;
@@ -395,7 +237,7 @@ function renderBoard(revealStimulus) {
       btn.classList.add('fov-cell--hidden');
       btn.textContent = ' '; // keeps the cell geometry stable
     } else if (cell.icon) {
-      btn.appendChild(createStimulusImage(cell.icon));
+      btn.appendChild(render.createStimulusImage(cell.icon));
     } else {
       btn.textContent = ' ';
     }
@@ -404,7 +246,7 @@ function renderBoard(revealStimulus) {
       if (!_responseEnabled || !_currentTrial) return;
       if (cell.index === _currentTrial.centerIndex) return;
       _selectedPeripheralIndex = cell.index;
-      updatePeripheralSelectionVisual();
+      render.updatePeripheralSelectionVisual(_boardEl, _selectedPeripheralIndex);
       attemptAutoSubmit();
     });
 
@@ -413,27 +255,15 @@ function renderBoard(revealStimulus) {
 }
 
 /**
- * Highlight selected peripheral cell in response phase.
- */
-function updatePeripheralSelectionVisual() {
-  if (!_boardEl) return;
-  const cells = _boardEl.querySelectorAll('.fov-cell');
-  cells.forEach((el) => {
-    const index = Number(el.getAttribute('data-index'));
-    if (index === _selectedPeripheralIndex) {
-      el.classList.add('fov-cell--selected');
-    } else {
-      el.classList.remove('fov-cell--selected');
-    }
-  });
-}
-
-/**
  * Set selected center icon response.
+ *
+ * The peripheral cell click handler in renderBoard carries an equivalent
+ * _responseEnabled guard. Both ignore input outside the response phase.
  *
  * @param {'primary-kitten'|'secondary-kitten'} id
  */
 function chooseCenter(id) {
+  if (!_responseEnabled) return;
   _selectedCenterId = id;
 
   if (_centerPrimaryBtn) {
@@ -468,7 +298,7 @@ function resetResponseSelection() {
   if (_centerPrimaryBtn) _centerPrimaryBtn.setAttribute('aria-pressed', 'false');
   if (_centerSecondaryBtn) _centerSecondaryBtn.setAttribute('aria-pressed', 'false');
 
-  updatePeripheralSelectionVisual();
+  render.updatePeripheralSelectionVisual(_boardEl, null);
 }
 
 /**
@@ -478,9 +308,9 @@ function enterResponsePhase() {
   _responseEnabled = true;
   _responseStartMs = nowMs();
 
-  setStageMode('response');
+  render.setStageMode(_stageEl, 'response');
 
-  setMaskVisible(true);
+  render.setMaskVisible(_maskEl, true);
   if (_boardEl) _boardEl.hidden = false;
 
   renderBoard(false);
@@ -492,9 +322,9 @@ function enterResponsePhase() {
  * Start mask phase for a fixed duration using requestAnimationFrame timing.
  */
 function runMaskPhase() {
-  setStageMode('mask');
+  render.setStageMode(_stageEl, 'mask');
 
-  setMaskVisible(true);
+  render.setMaskVisible(_maskEl, true);
   if (_boardEl) _boardEl.hidden = true;
 
   const start = nowMs();
@@ -518,10 +348,10 @@ function runMaskPhase() {
 function runStimulusPhase() {
   _responseEnabled = false;
 
-  setStageMode('stimulus');
+  render.setStageMode(_stageEl, 'stimulus');
 
   if (_boardEl) _boardEl.hidden = false;
-  setMaskVisible(false);
+  render.setMaskVisible(_maskEl, false);
 
   renderBoard(true);
 
@@ -568,7 +398,7 @@ function submitResponse() {
   const trialUpdate = game.recordTrial({ success, reactionTimeMs });
 
   updateStats();
-  renderThresholdTrend();
+  updateThresholdTrend();
   playFeedbackSound(success);
   flashStageFeedback(success);
 
@@ -580,7 +410,7 @@ function submitResponse() {
 
   if (_feedbackEl) {
     _feedbackEl.textContent = `${_feedbackEl.textContent} `
-      + `(accuracy ${percent(trialUpdate.recentAccuracy)})`;
+      + `(accuracy ${render.percent(trialUpdate.recentAccuracy)})`;
   }
 
   if (game.isRunning()) {
@@ -610,52 +440,6 @@ function buildIdleResult() {
     recentAccuracy: game.getRecentAccuracy(),
     duration: 0,
   };
-}
-
-/**
- * Save game progress asynchronously via IPC.
- *
- * @param {{ thresholdMs: number, trialsCompleted: number, recentAccuracy: number }} result
- */
-function saveProgress(result) {
-  (async () => {
-    if (typeof window === 'undefined' || !window.api) return;
-
-    try {
-      const fallback = { playerId: 'default', games: {} };
-      let existing = fallback;
-      try {
-        existing = await window.api.invoke('progress:load', { playerId: 'default' }) || fallback;
-      } catch {
-        existing = fallback;
-      }
-
-      const previous = (existing.games && existing.games[GAME_ID]) || {};
-      const previousBest = Number(previous.bestThresholdMs || Number.POSITIVE_INFINITY);
-      const nextBest = Math.min(previousBest, result.thresholdMs);
-
-      const updated = {
-        ...existing,
-        games: {
-          ...existing.games,
-          [GAME_ID]: {
-            highScore: Math.max(previous.highScore || 0, Math.round(1000 / result.thresholdMs)),
-            sessionsPlayed: (previous.sessionsPlayed || 0) + 1,
-            lastPlayed: new Date().toISOString(),
-            bestThresholdMs: Number(nextBest.toFixed(2)),
-            lastThresholdMs: Number(result.thresholdMs.toFixed(2)),
-            lastRecentAccuracy: result.recentAccuracy,
-            thresholdHistory: game.getThresholdHistory(),
-            trialsCompleted: result.trialsCompleted,
-          },
-        },
-      };
-
-      await window.api.invoke('progress:save', { playerId: 'default', data: updated });
-    } catch {
-      // Swallow all progress save errors.
-    }
-  })();
 }
 
 /**
@@ -723,7 +507,7 @@ function init(gameContainer) {
   }
 
   updateStats();
-  renderThresholdTrend();
+  updateThresholdTrend();
 }
 
 /**
@@ -760,11 +544,13 @@ function stop() {
   if (_endPanelEl) _endPanelEl.hidden = false;
 
   if (_finalThresholdEl) _finalThresholdEl.textContent = String(result.thresholdMs);
-  if (_finalAccuracyEl) _finalAccuracyEl.textContent = percent(result.recentAccuracy);
+  if (_finalAccuracyEl) _finalAccuracyEl.textContent = render.percent(result.recentAccuracy);
 
-  renderThresholdTrend();
+  updateThresholdTrend();
 
-  saveProgress(result);
+  if (result.trialsCompleted > 0) {
+    saveProgress(result);
+  }
 
   return result;
 }
@@ -782,8 +568,8 @@ function reset() {
   _selectedPeripheralIndex = null;
 
   if (_boardEl) _boardEl.innerHTML = '';
-  setStageMode('stimulus');
-  setMaskVisible(false);
+  render.setStageMode(_stageEl, 'stimulus');
+  render.setMaskVisible(_maskEl, false);
   if (_responseEl) _responseEl.hidden = true;
   if (_feedbackEl) _feedbackEl.textContent = '';
   if (_instructionsEl) _instructionsEl.hidden = false;
@@ -791,7 +577,7 @@ function reset() {
   if (_endPanelEl) _endPanelEl.hidden = true;
 
   updateStats();
-  renderThresholdTrend();
+  updateThresholdTrend();
 }
 
 export default {

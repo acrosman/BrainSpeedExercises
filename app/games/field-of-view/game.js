@@ -131,9 +131,21 @@ export function initGame(options = {}) {
   startTimeMs = null;
   thresholdHistory = [];
 
-  downAfterSuccesses = options.downAfterSuccesses === 3 ? 3 : DEFAULT_DOWN_AFTER_SUCCESSES;
-  stepUpMs = options.stepUpMs || DEFAULT_STEP_UP_MS;
-  stepDownMs = options.stepDownMs || DEFAULT_STEP_DOWN_MS;
+  // Configure staircase success threshold: use a validated integer, defaulting when invalid.
+  if (Number.isFinite(options.downAfterSuccesses)) {
+    downAfterSuccesses = Math.max(1, Math.round(options.downAfterSuccesses));
+  } else {
+    downAfterSuccesses = DEFAULT_DOWN_AFTER_SUCCESSES;
+  }
+
+  // Configure step sizes with numeric validation and clamping to keep pacing reasonable.
+  const rawStepUp = Number.isFinite(options.stepUpMs) ? options.stepUpMs : DEFAULT_STEP_UP_MS;
+  stepUpMs = clamp(rawStepUp, MIN_SOA_MS, MAX_SOA_MS);
+
+  const rawStepDown = Number.isFinite(options.stepDownMs)
+    ? options.stepDownMs
+    : DEFAULT_STEP_DOWN_MS;
+  stepDownMs = clamp(rawStepDown, MIN_SOA_MS, MAX_SOA_MS);
 
   const desiredBuffer = Number(options.accuracyBufferSize || DEFAULT_ACCURACY_BUFFER_SIZE);
   accuracyBufferSize = clamp(Math.round(desiredBuffer), 3, 5);
