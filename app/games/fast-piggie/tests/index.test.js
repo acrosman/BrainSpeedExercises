@@ -508,6 +508,31 @@ describe('_handleClick — wrong answer (checkAnswer returns false)', () => {
     const flash = container.querySelector('#fp-flash');
     expect(flash.classList.contains('fp-flash--wrong')).toBe(true);
   });
+
+  it('highlights the actual outlier wedge slot when images were shuffled', () => {
+    plugin.reset();
+    const mathRandomSpy = jest.spyOn(Math, 'random')
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0);
+
+    plugin.start();
+    jest.runAllTimers();
+    ctx2d.arc.mockClear();
+
+    fireClick();
+
+    const yellowHighlightCall = ctx2d.arc.mock.calls[1];
+    const expectedStartAngle = -Math.PI / 2 + ((2 * Math.PI) / 6) * 3;
+    const expectedEndAngle = expectedStartAngle + ((2 * Math.PI) / 6);
+
+    expect(yellowHighlightCall[3]).toBeCloseTo(expectedStartAngle);
+    expect(yellowHighlightCall[4]).toBeCloseTo(expectedEndAngle);
+
+    mathRandomSpy.mockRestore();
+  });
 });
 
 // ===========================================================================
