@@ -145,6 +145,15 @@ function buildContainer() {
           <button id="fp-stop-btn" class="fp-btn fp-btn--secondary">End Game</button>
         </div>
       </div>
+      <div id="fp-end-panel" class="fp-end-panel" hidden>
+        <h3>Game Over!</h3>
+        <p>Your score: <strong id="fp-final-score">0</strong></p>
+        <p>Personal best: <strong id="fp-final-high-score">0</strong></p>
+        <div class="fp-end-panel__actions">
+          <button id="fp-play-again-btn" type="button" class="fp-btn fp-btn--primary">Play Again</button>
+          <button id="fp-return-btn" type="button" class="fp-btn fp-btn--secondary">Return to Menu</button>
+        </div>
+      </div>
     </section>
   `;
   return div;
@@ -364,6 +373,18 @@ describe('stop()', () => {
     const btn = container.querySelector('#fp-stop-btn');
     expect(btn.hidden).toBe(true);
   });
+
+  it('shows #fp-end-panel', async () => {
+    await plugin.stop();
+    const endPanel = container.querySelector('#fp-end-panel');
+    expect(endPanel.hidden).toBe(false);
+  });
+
+  it('writes the final score into #fp-final-score', async () => {
+    await plugin.stop();
+    const finalScore = container.querySelector('#fp-final-score');
+    expect(finalScore.textContent).toBe('3');
+  });
 });
 
 // ===========================================================================
@@ -413,6 +434,12 @@ describe('reset()', () => {
     plugin.reset();
     const gameArea = container.querySelector('#fp-game-area');
     expect(gameArea.hidden).toBe(true);
+  });
+
+  it('hides #fp-end-panel', () => {
+    plugin.reset();
+    const endPanel = container.querySelector('#fp-end-panel');
+    expect(endPanel.hidden).toBe(true);
   });
 });
 
