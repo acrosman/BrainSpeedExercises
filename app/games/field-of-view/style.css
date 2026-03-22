@@ -29,6 +29,41 @@
   margin: 0 auto;
 }
 
+.fov-stage {
+  position: relative;
+  width: min(88vw, 520px);
+  margin: 0 auto;
+}
+
+.fov-play-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.fov-stage .fov-board,
+.fov-stage .fov-mask {
+  width: 100%;
+  margin: 0;
+}
+
+.fov-stage--response .fov-board {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+}
+
+.fov-stage--response .fov-cell {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+}
+
+.fov-stage--response .fov-cell--selected {
+  background: rgba(15, 74, 163, 0.35);
+  border-color: #dbeafe;
+}
+
 .fov-cell {
   border: 1px solid #5f6974;
   border-radius: 6px;
@@ -66,13 +101,13 @@
 }
 
 .fov-mask {
-  width: min(88vw, 520px);
+  position: absolute;
+  inset: 0;
   height: auto;
   aspect-ratio: 1 / 1;
-  margin: 0.75rem auto;
   border-radius: 8px;
   border: 2px solid #111827;
-  background-image: url('games/field-of-view/images/Field.png');
+  background-image: url('images/Field.png');
   background-position: center;
   background-size: cover;
   color: #f9fafb;
@@ -80,16 +115,46 @@
   display: grid;
   place-items: center;
   font-weight: 700;
+  z-index: 1;
 }
 
 .fov-response {
-  margin-top: 1rem;
+  margin-top: 0;
+  width: 128px;
+}
+
+.fov-stats-help {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.9rem;
 }
 
 .fov-response__center {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+}
+
+.fov-choice-btn {
+  width: 120px;
+  height: 120px;
+  border: 2px solid #5f6974;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.fov-choice-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fov-choice-btn[aria-pressed='true'] {
+  border-color: #0f4aa3;
+  box-shadow: 0 0 0 2px rgba(15, 74, 163, 0.25);
 }
 
 .fov-controls {
@@ -130,21 +195,26 @@
 }
 
 .fov-trend {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   border: 1px solid #c1c9d2;
   border-radius: 8px;
-  padding: 0.75rem;
+  padding: 0.5rem 0.6rem;
   background: #eef2f6;
   color: #19324a;
+}
+
+.fov-trend h4 {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
 .fov-trend__chart {
   display: block;
   width: 100%;
-  max-width: 560px;
+  max-width: 320px;
   height: auto;
-  min-height: 120px;
-  margin-top: 0.5rem;
+  min-height: 72px;
+  margin-top: 0.35rem;
   border: 1px solid #9eabb8;
   border-radius: 6px;
   background: linear-gradient(180deg, #f8fafc 0%, #e5edf5 100%);
@@ -153,4 +223,22 @@
 .fov-trend__empty,
 .fov-trend__meta {
   margin: 0.5rem 0 0;
+}
+
+@media (max-width: 900px) {
+  .fov-play-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .fov-response {
+    order: -1;
+    width: min(88vw, 520px);
+  }
+
+  .fov-response__center {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
