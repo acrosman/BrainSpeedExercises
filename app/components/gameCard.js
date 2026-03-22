@@ -41,7 +41,7 @@ export function createGameCard(manifest, progress) {
   const description = document.createElement('p');
   description.textContent = manifest.description || '';
 
-  // Show saved stats when available.
+  // Show per-game stats for cards that expose meaningful progress metrics.
   let scoreElem = null;
   if (progress) {
     scoreElem = document.createElement('p');
@@ -58,6 +58,19 @@ export function createGameCard(manifest, progress) {
     } else {
       scoreElem = null;
     }
+  }
+
+  if (manifest.id === 'field-of-view' && progress) {
+    scoreElem = document.createElement('p');
+    scoreElem.className = 'game-high-score';
+
+    if (typeof progress.bestThresholdMs === 'number') {
+      scoreElem.textContent = `All-time Best Threshold: ${progress.bestThresholdMs}ms`;
+    } else {
+      scoreElem.textContent = 'All-time Best Threshold: No data yet';
+    }
+
+    scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
   }
 
   const button = document.createElement('button');

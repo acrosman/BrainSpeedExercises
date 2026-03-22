@@ -1,0 +1,273 @@
+.field-of-view {
+  color: #1f2933;
+}
+
+.fov-panel {
+  background: #f2f4f7;
+  border: 1px solid #c9d1d9;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.fov-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.fov-board {
+  width: min(88vw, 520px);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  gap: 0.35rem;
+  background: #aeb4bb;
+  border: 2px solid #616b75;
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin: 0 auto;
+}
+
+.fov-stage {
+  position: relative;
+  width: min(88vw, 520px);
+  margin: 0 auto;
+}
+
+.fov-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 8px;
+  opacity: 0;
+  z-index: 3;
+}
+
+.fov-stage--flash-correct::after {
+  background: rgba(16, 185, 129, 0.34);
+  opacity: 1;
+}
+
+.fov-stage--flash-wrong::after {
+  background: rgba(239, 68, 68, 0.34);
+  opacity: 1;
+}
+
+.fov-play-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.fov-stage .fov-board,
+.fov-stage .fov-mask {
+  width: 100%;
+  margin: 0;
+}
+
+.fov-stage--response .fov-board {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+}
+
+.fov-stage--response .fov-cell {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+}
+
+.fov-stage--response .fov-cell--selected {
+  background: rgba(15, 74, 163, 0.35);
+  border-color: #dbeafe;
+}
+
+.fov-cell {
+  border: 1px solid #5f6974;
+  border-radius: 6px;
+  background: #e5e7eb;
+  color: #1f2933;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.fov-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fov-cell:focus-visible,
+.fov-btn:focus-visible,
+.fov-choice-btn:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.fov-cell--selected {
+  background: #cfe8ff;
+  border-color: #0f4aa3;
+}
+
+.fov-cell--center {
+  background: #d5d9de;
+}
+
+.fov-cell--center[disabled] {
+  opacity: 1;
+  cursor: default;
+}
+
+.fov-cell--hidden {
+  color: transparent;
+}
+
+.fov-mask {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  border: 2px solid #111827;
+  background-image: url('images/Field.png');
+  background-position: center;
+  background-size: cover;
+  color: #f9fafb;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  z-index: 1;
+}
+
+.fov-response {
+  margin-top: 0;
+  width: 128px;
+}
+
+.fov-stats-help {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.fov-response__center {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fov-choice-btn {
+  width: 120px;
+  height: 120px;
+  border: 2px solid #5f6974;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.fov-choice-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 1;
+  filter: none;
+}
+
+.fov-choice-btn[aria-pressed='true'] {
+  border: 4px solid #0f4aa3;
+  box-shadow: 0 0 0 4px rgba(15, 74, 163, 0.28), 0 10px 18px rgba(15, 74, 163, 0.2);
+  transform: translateY(-1px);
+}
+
+.fov-controls {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.fov-btn {
+  background: #dbe2ea;
+  color: #111827;
+  border: 1px solid #5f6974;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fov-btn--primary {
+  background: #0f4aa3;
+  color: #ffffff;
+  border-color: #0b3b83;
+}
+
+.fov-btn--secondary {
+  background: #e5e7eb;
+}
+
+.fov-btn[disabled],
+.fov-cell[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fov-feedback {
+  margin-top: 0.75rem;
+  min-height: 1.25rem;
+}
+
+.fov-trend {
+  margin-top: 0.75rem;
+  border: 1px solid #c1c9d2;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  background: #eef2f6;
+  color: #19324a;
+}
+
+.fov-trend h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.fov-trend__chart {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  min-height: 72px;
+  margin-top: 0.35rem;
+  border: 1px solid #9eabb8;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #f8fafc 0%, #e5edf5 100%);
+}
+
+.fov-trend__empty,
+.fov-trend__meta {
+  margin: 0.5rem 0 0;
+}
+
+@media (max-width: 900px) {
+  .fov-play-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .fov-response {
+    order: -1;
+    width: min(88vw, 520px);
+  }
+
+  .fov-response__center {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

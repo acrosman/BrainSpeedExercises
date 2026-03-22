@@ -75,42 +75,45 @@ describe('createGameCard', () => {
     expect(button.getAttribute('aria-label')).toBeTruthy();
   });
 
-  it('displays score stats for any game when provided', () => {
-    const manifest = {
-      id: 'orbit-sprite-memory',
-      name: 'Orbit Sprite Memory',
-      description: 'Test desc',
-      thumbnail: '/images/test.png',
-    };
-    const progress = { highScore: 42, highestLevel: 3 };
-    const card = createGameCard(manifest, progress);
-    const scoreElem = card.querySelector('.game-high-score');
-
-    expect(scoreElem).not.toBeNull();
-    expect(scoreElem.textContent).toContain('Top Score: 42');
-    expect(scoreElem.textContent).toContain('Max Level: 4');
-  });
-
-  it('displays detailed fast-piggie stats when provided', () => {
+  it('displays high score for Fast Piggie when provided', () => {
     const manifest = {
       id: 'fast-piggie',
       name: 'Fast Piggie',
       description: 'Test desc',
       thumbnail: '/images/test.png',
     };
-    const progress = {
-      highScore: 11,
-      maxLevel: 5,
-      maxPiggies: 9,
-      lowestDisplayTime: 550,
-    };
+    const progress = { highScore: 42 };
     const card = createGameCard(manifest, progress);
     const scoreElem = card.querySelector('.game-high-score');
-
     expect(scoreElem).not.toBeNull();
-    expect(scoreElem.textContent).toContain('Top Score: 11');
-    expect(scoreElem.textContent).toContain('Max Level: 5');
-    expect(scoreElem.textContent).toContain('Max Piggies: 9');
-    expect(scoreElem.textContent).toContain('Lowest Display Time: 550ms');
+    expect(scoreElem.textContent).toContain('42');
+  });
+
+  it('displays all-time best threshold for Field of View when provided', () => {
+    const manifest = {
+      id: 'field-of-view',
+      name: 'Field of View',
+      description: 'Test desc',
+      thumbnail: '/images/test.png',
+    };
+    const progress = { bestThresholdMs: 84.2 };
+    const card = createGameCard(manifest, progress);
+    const scoreElem = card.querySelector('.game-high-score');
+    expect(scoreElem).not.toBeNull();
+    expect(scoreElem.textContent).toContain('All-time Best Threshold: 84.2ms');
+  });
+
+  it('shows no-data text for Field of View when no best threshold exists', () => {
+    const manifest = {
+      id: 'field-of-view',
+      name: 'Field of View',
+      description: 'Test desc',
+      thumbnail: '/images/test.png',
+    };
+    const progress = {};
+    const card = createGameCard(manifest, progress);
+    const scoreElem = card.querySelector('.game-high-score');
+    expect(scoreElem).not.toBeNull();
+    expect(scoreElem.textContent).toContain('No data yet');
   });
 });

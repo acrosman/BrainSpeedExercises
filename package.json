@@ -1,7 +1,7 @@
 {
-  "name": "brainspeedexercises",
-  "version": "1.0.0",
-  "description": "Brain Speed Exercises",
+  "name": "brain-speed-exercises",
+  "version": "0.1.0",
+  "description": "Brain Speed Exercise Games",
   "main": "main.js",
   "type": "module",
   "repository": {
@@ -41,7 +41,7 @@
   "author": "Aaron Crosman",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/acrosman/ElectronSimpleStarter/issues"
+    "url": "https://github.com/acrosman/BrainSpeedExercises/issues"
   },
-  "homepage": "https://github.com/acrosman/ElectronSimpleStarter#readme"
+  "homepage": "https://github.com/acrosman/BrainSpeedExercises#readme"
 }

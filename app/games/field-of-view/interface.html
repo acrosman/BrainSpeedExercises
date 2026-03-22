@@ -1,0 +1,99 @@
+<section class="field-of-view" aria-labelledby="fov-title">
+  <h2 id="fov-title">Field of View</h2>
+
+  <div id="fov-instructions" class="fov-panel">
+    <h3>How to Play</h3>
+    <p>
+      Phase 1 and 2 happen together: a kitten appears in the center while a toy appears on
+      an outer-edge cell. After a brief flash, the field image masks the board.
+    </p>
+    <ol>
+      <li>Memorize which kitten appeared in the center.</li>
+      <li>Memorize where the toy appeared in the periphery (outer edge).</li>
+      <li>After the field mask, select the kitten and click the toy location.</li>
+      <li>The game adapts your SOA with a 1-up / 2-down staircase.</li>
+    </ol>
+
+    <h4>Image Assets In Use</h4>
+    <ul>
+      <li>primaryKitten.png (center option 1)</li>
+      <li>secondaryKitten.png (center option 2)</li>
+      <li>toy1.png and toy2.png (peripheral targets)</li>
+      <li>Field.png (full-field visual mask)</li>
+    </ul>
+
+    <button id="fov-start-btn" type="button" class="fov-btn fov-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <div id="fov-game-area" class="fov-panel" hidden>
+    <div class="fov-stats" aria-live="polite" aria-atomic="true">
+      <span>SOA: <strong id="fov-soa">500</strong> ms</span>
+      <span>Threshold: <strong id="fov-threshold">500</strong> ms</span>
+      <span>Recent Accuracy: <strong id="fov-accuracy">0%</strong></span>
+      <span>Trials: <strong id="fov-trials">0</strong></span>
+    </div>
+    <p class="fov-stats-help">
+      Lower threshold is better. Response auto-submits once kitten choice and toy location are both selected.
+    </p>
+
+    <div class="fov-play-layout">
+      <div id="fov-response" class="fov-response" hidden>
+        <h4 id="fov-kitten-question">Which kitten appeared</h4>
+        <div class="fov-response__center" role="group" aria-label="Center kitten response">
+          <button id="fov-center-primary" type="button" class="fov-choice-btn" aria-pressed="false"
+            aria-label="Primary kitten appeared">
+            <img src="games/field-of-view/images/primaryKitten.png" alt="Primary kitten option" loading="lazy" decoding="async">
+          </button>
+          <button id="fov-center-secondary" type="button" class="fov-choice-btn" aria-pressed="false"
+            aria-label="Secondary kitten appeared">
+            <img src="games/field-of-view/images/secondaryKitten.png" alt="Secondary kitten option" loading="lazy" decoding="async">
+          </button>
+        </div>
+      </div>
+
+      <div class="fov-stage" id="fov-stage">
+        <div id="fov-board" class="fov-board" role="group" aria-label="Field of View stimulus grid"></div>
+        <div id="fov-mask" class="fov-mask" hidden aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <div id="fov-feedback" class="fov-feedback" role="status" aria-live="polite"></div>
+
+    <section class="fov-trend" aria-labelledby="fov-trend-title">
+      <h4 id="fov-trend-title">Threshold Trend (ms)</h4>
+      <svg id="fov-trend-chart" class="fov-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Threshold trend over recent trials">
+        <polyline id="fov-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="fov-trend-empty" class="fov-trend__empty">Complete a trial to populate chart.</p>
+      <p class="fov-trend__meta">
+        Latest: <strong id="fov-trend-latest">500</strong> ms
+      </p>
+    </section>
+
+    <div class="fov-controls">
+      <button id="fov-stop-btn" type="button" class="fov-btn fov-btn--secondary">
+        End Game
+      </button>
+    </div>
+  </div>
+
+  <div id="fov-end-panel" class="fov-panel" hidden>
+    <h3>Session Complete</h3>
+    <p>Current Threshold: <strong id="fov-final-threshold">500</strong> ms</p>
+    <p>Recent Accuracy: <strong id="fov-final-accuracy">0%</strong></p>
+    <p>
+      Session Best Threshold: <strong id="fov-final-best-threshold">500</strong> ms
+    </p>
+    <div class="fov-controls">
+      <button id="fov-play-again-btn" type="button" class="fov-btn fov-btn--primary">
+        Play Again
+      </button>
+      <button id="fov-return-btn" type="button" class="fov-btn fov-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+</section>
