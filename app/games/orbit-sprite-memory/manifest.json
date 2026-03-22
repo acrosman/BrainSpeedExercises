@@ -1,0 +1,9 @@
+{
+  "id": "orbit-sprite-memory",
+  "name": "Orbit Sprite Memory",
+  "description": "Track where the target sprite appears around the circle, then pick its three positions.",
+  "version": "0.1.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.png",
+  "author": "BrainSpeed Exercises"
+}
