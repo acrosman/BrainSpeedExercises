@@ -312,7 +312,6 @@ function enterResponsePhase() {
 
   render.setMaskVisible(_maskEl, true);
   if (_boardEl) _boardEl.hidden = false;
-  if (_responseEl) _responseEl.hidden = false;
 
   renderBoard(false);
 
@@ -348,8 +347,6 @@ function runMaskPhase() {
  */
 function runStimulusPhase() {
   _responseEnabled = false;
-  // Ensure the response panel is hidden while the stimulus and mask are active.
-  if (_responseEl) _responseEl.hidden = true;
 
   render.setStageMode(_stageEl, 'stimulus');
 
@@ -396,7 +393,6 @@ function submitResponse() {
   const success = centerCorrect && peripheralCorrect;
 
   _responseEnabled = false;
-  if (_responseEl) _responseEl.hidden = true;
 
   const reactionTimeMs = nowMs() - _responseStartMs;
   const trialUpdate = game.recordTrial({ success, reactionTimeMs });
@@ -523,6 +519,7 @@ function start() {
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_gameAreaEl) _gameAreaEl.hidden = false;
+  if (_responseEl) _responseEl.hidden = false;
 
   startTrial();
 }
