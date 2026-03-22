@@ -57,6 +57,12 @@ let _levelEl = null;
 let _streakEl = null;
 
 /** @type {HTMLElement|null} */
+let _bestLevelEl = null;
+
+/** @type {HTMLElement|null} */
+let _bestScoreEl = null;
+
+/** @type {HTMLElement|null} */
 let _feedbackEl = null;
 
 /** @type {HTMLElement|null} */
@@ -64,6 +70,12 @@ let _finalScoreEl = null;
 
 /** @type {HTMLElement|null} */
 let _finalLevelEl = null;
+
+/** @type {HTMLElement|null} */
+let _finalBestLevelEl = null;
+
+/** @type {HTMLElement|null} */
+let _finalBestScoreEl = null;
 
 /** @type {ReturnType<typeof setTimeout>[]} */
 let _timers = [];
@@ -159,6 +171,14 @@ export function flashBoard(type) {
 }
 
 /**
+ * Restores board visuals to the default round-start appearance.
+ */
+export function resetBoardVisualState() {
+  if (!_boardEl) return;
+  _boardEl.classList.remove('osm-board--success', 'osm-board--failure');
+}
+
+/**
  * Calculates CSS background-position for one sprite id from a 4x2 sprite sheet.
  *
  * @param {number} spriteId - Zero-based sprite id.
@@ -209,6 +229,44 @@ export function updateStats() {
   if (_scoreEl) _scoreEl.textContent = String(game.getScore());
   if (_levelEl) _levelEl.textContent = String(game.getLevel() + 1);
   if (_streakEl) _streakEl.textContent = String(game.getConsecutiveCorrect());
+}
+
+/**
+ * Updates the displayed all-time best stats for this game.
+ *
+ * @param {{ highScore?: number, highestLevel?: number }|undefined} progressEntry
+ */
+export function updateBestStats(progressEntry) {
+  const bestScore = typeof progressEntry?.highScore === 'number' ? progressEntry.highScore : 0;
+  const bestLevelZeroBased = typeof progressEntry?.highestLevel === 'number'
+    ? progressEntry.highestLevel
+    : 0;
+  const bestLevel = bestLevelZeroBased + 1;
+
+  if (_bestScoreEl) _bestScoreEl.textContent = String(bestScore);
+  if (_bestLevelEl) _bestLevelEl.textContent = String(bestLevel);
+  if (_finalBestScoreEl) _finalBestScoreEl.textContent = String(bestScore);
+  if (_finalBestLevelEl) _finalBestLevelEl.textContent = String(bestLevel);
+}
+
+/**
+ * Loads saved progress and refreshes the all-time best stats UI.
+ *
+ * @returns {Promise<void>}
+ */
+export async function loadBestStatsFromProgress() {
+  if (typeof window === 'undefined' || !window.api) {
+    updateBestStats(undefined);
+    return;
+  }
+
+  try {
+    const loaded = await window.api.invoke('progress:load', { playerId: 'default' });
+    const progressEntry = loaded?.games?.['orbit-sprite-memory'];
+    updateBestStats(progressEntry);
+  } catch {
+    updateBestStats(undefined);
+  }
 }
 
 /**
@@ -336,6 +394,7 @@ export function showPlaybackStep(step) {
  * @param {ReturnType<typeof game.createRound>} round - Round data.
  */
 export function startPlayback(round) {
+  resetBoardVisualState();
   clearChoiceButtons();
   clearRevealSprites();
   _inputEnabled = false;
@@ -362,6 +421,7 @@ export function startPlayback(round) {
  * Starts a fresh round at the current level.
  */
 export function startRound() {
+  resetBoardVisualState();
   _currentRound = game.createRound(game.getLevel());
 
   if (_targetPreviewEl) {
@@ -459,9 +519,13 @@ function init(gameContainer) {
   _scoreEl = _container.querySelector('#osm-score');
   _levelEl = _container.querySelector('#osm-level');
   _streakEl = _container.querySelector('#osm-streak');
+  _bestLevelEl = _container.querySelector('#osm-best-level');
+  _bestScoreEl = _container.querySelector('#osm-best-score');
   _feedbackEl = _container.querySelector('#osm-feedback');
   _finalScoreEl = _container.querySelector('#osm-final-score');
   _finalLevelEl = _container.querySelector('#osm-final-level');
+  _finalBestLevelEl = _container.querySelector('#osm-final-best-level');
+  _finalBestScoreEl = _container.querySelector('#osm-final-best-score');
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
@@ -473,6 +537,7 @@ function init(gameContainer) {
   }
   if (_returnBtn) _returnBtn.addEventListener('click', () => returnToMainMenu());
 
+  loadBestStatsFromProgress();
   updateStats();
 }
 
@@ -481,6 +546,7 @@ function init(gameContainer) {
  */
 function start() {
   game.startGame();
+  resetBoardVisualState();
 
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
@@ -496,6 +562,7 @@ function start() {
  */
 function stop() {
   clearTimers();
+  resetBoardVisualState();
   const result = game.stopGame();
 
   (async () => {
@@ -523,6 +590,7 @@ function stop() {
         };
 
         await window.api.invoke('progress:save', { playerId: 'default', data: payload });
+        updateBestStats(payload.games['orbit-sprite-memory']);
       } catch {
         // Progress saving is non-blocking for gameplay flow.
       }
@@ -538,6 +606,7 @@ function stop() {
  */
 function reset() {
   clearTimers();
+  resetBoardVisualState();
   game.initGame();
 
   _currentRound = null;
@@ -552,6 +621,7 @@ function reset() {
 
   clearChoiceButtons();
   clearRevealSprites();
+  loadBestStatsFromProgress();
   updateStats();
 }
 

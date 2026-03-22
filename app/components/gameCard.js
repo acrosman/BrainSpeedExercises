@@ -36,18 +36,23 @@ export function createGameCard(manifest, progress) {
   const description = document.createElement('p');
   description.textContent = manifest.description || '';
 
-  // If this is Fast Piggie, show detailed stats if available
+  // Show saved stats when available.
   let scoreElem = null;
-  if (manifest.id === 'fast-piggie' && progress) {
+  if (progress) {
     scoreElem = document.createElement('p');
     scoreElem.className = 'game-high-score';
     const details = [];
     if (typeof progress.highScore === 'number') details.push(`Top Score: ${progress.highScore}`);
+    if (typeof progress.highestLevel === 'number') details.push(`Max Level: ${progress.highestLevel + 1}`);
     if (typeof progress.maxLevel === 'number') details.push(`Max Level: ${progress.maxLevel}`);
     if (typeof progress.maxPiggies === 'number') details.push(`Max Piggies: ${progress.maxPiggies}`);
     if (typeof progress.lowestDisplayTime === 'number') details.push(`Lowest Display Time: ${progress.lowestDisplayTime}ms`);
-    scoreElem.textContent = details.join(' | ');
-    scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
+    if (details.length > 0) {
+      scoreElem.textContent = details.join(' | ');
+      scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
+    } else {
+      scoreElem = null;
+    }
   }
 
   const button = document.createElement('button');
