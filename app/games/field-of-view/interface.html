@@ -1,0 +1,92 @@
+<section class="field-of-view" aria-labelledby="fov-title">
+  <h2 id="fov-title">Field of View</h2>
+
+  <div id="fov-instructions" class="fov-panel">
+    <h3>How to Play</h3>
+    <p>
+      A brief visual scene appears on a neutral grey grid. The center icon is either a
+      Square or Circle. A Star appears in the periphery among Triangle distractors.
+    </p>
+    <ol>
+      <li>Watch the center and peripheral area during the flash.</li>
+      <li>After the mask appears, select the center icon and the star location.</li>
+      <li>The game adapts your SOA with a 1-up / 2-down staircase.</li>
+    </ol>
+
+    <h4>Asset Specs (PNG files to be added later)</h4>
+    <ul>
+      <li>center-square.png: 96x96</li>
+      <li>center-circle.png: 96x96</li>
+      <li>peripheral-star.png: 72x72</li>
+      <li>distractor-triangle-a.png: 72x72</li>
+      <li>distractor-triangle-b.png: 72x72</li>
+      <li>distractor-triangle-c.png: 72x72</li>
+      <li>mask-noise.png: 1024x1024 black/white high-frequency noise</li>
+    </ul>
+
+    <button id="fov-start-btn" type="button" class="fov-btn fov-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <div id="fov-game-area" class="fov-panel" hidden>
+    <div class="fov-stats" aria-live="polite" aria-atomic="true">
+      <span>SOA: <strong id="fov-soa">200</strong> ms</span>
+      <span>Threshold: <strong id="fov-threshold">200</strong> ms</span>
+      <span>Recent Accuracy: <strong id="fov-accuracy">0%</strong></span>
+      <span>Trials: <strong id="fov-trials">0</strong></span>
+    </div>
+
+    <div id="fov-board" class="fov-board" role="group" aria-label="Field of View stimulus grid"></div>
+
+    <div id="fov-mask" class="fov-mask" hidden aria-hidden="true">MASK</div>
+
+    <div id="fov-response" class="fov-response" hidden>
+      <p>Select the center icon and star location.</p>
+      <div class="fov-response__center" role="group" aria-label="Center icon response">
+        <button id="fov-center-square" type="button" class="fov-btn">Square</button>
+        <button id="fov-center-circle" type="button" class="fov-btn">Circle</button>
+      </div>
+      <button id="fov-submit-btn" type="button" class="fov-btn fov-btn--primary" disabled>
+        Submit Response
+      </button>
+    </div>
+
+    <div id="fov-feedback" class="fov-feedback" role="status" aria-live="polite"></div>
+
+    <section class="fov-trend" aria-labelledby="fov-trend-title">
+      <h4 id="fov-trend-title">Threshold Trend (ms)</h4>
+      <svg id="fov-trend-chart" class="fov-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Threshold trend over recent trials">
+        <polyline id="fov-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="fov-trend-empty" class="fov-trend__empty">Complete a trial to populate chart.</p>
+      <p class="fov-trend__meta">
+        Latest: <strong id="fov-trend-latest">200</strong> ms
+      </p>
+    </section>
+
+    <div class="fov-controls">
+      <button id="fov-stop-btn" type="button" class="fov-btn fov-btn--secondary">
+        End Game
+      </button>
+    </div>
+  </div>
+
+  <div id="fov-end-panel" class="fov-panel" hidden>
+    <h3>Session Complete</h3>
+    <p>Current Threshold: <strong id="fov-final-threshold">200</strong> ms</p>
+    <p>Recent Accuracy: <strong id="fov-final-accuracy">0%</strong></p>
+    <p>
+      Session Best Threshold: <strong id="fov-final-best-threshold">200</strong> ms
+    </p>
+    <div class="fov-controls">
+      <button id="fov-play-again-btn" type="button" class="fov-btn fov-btn--primary">
+        Play Again
+      </button>
+      <button id="fov-return-btn" type="button" class="fov-btn fov-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+</section>

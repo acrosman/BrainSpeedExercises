@@ -1,0 +1,9 @@
+{
+  "id": "field-of-view",
+  "name": "Field of View",
+  "description": "Identify center shape and peripheral star under rapid masked flashes.",
+  "version": "0.1.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.png",
+  "author": "BrainSpeed Exercises"
+}
