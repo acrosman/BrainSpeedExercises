@@ -4,24 +4,22 @@
   <div id="fov-instructions" class="fov-panel">
     <h3>How to Play</h3>
     <p>
-      A brief visual scene appears on a neutral grey grid. The center icon is either a
-      Square or Circle. A Star appears in the periphery among Triangle distractors.
+      Phase 1 and 2 happen together: a kitten appears in the center while a toy appears on
+      an outer-edge cell. After a brief flash, the field image masks the board.
     </p>
     <ol>
-      <li>Watch the center and peripheral area during the flash.</li>
-      <li>After the mask appears, select the center icon and the star location.</li>
+      <li>Memorize which kitten appeared in the center.</li>
+      <li>Memorize where the toy appeared in the periphery (outer edge).</li>
+      <li>After the field mask, select the kitten and click the toy location.</li>
       <li>The game adapts your SOA with a 1-up / 2-down staircase.</li>
     </ol>
 
-    <h4>Asset Specs (PNG files to be added later)</h4>
+    <h4>Image Assets In Use</h4>
     <ul>
-      <li>center-square.png: 96x96</li>
-      <li>center-circle.png: 96x96</li>
-      <li>peripheral-star.png: 72x72</li>
-      <li>distractor-triangle-a.png: 72x72</li>
-      <li>distractor-triangle-b.png: 72x72</li>
-      <li>distractor-triangle-c.png: 72x72</li>
-      <li>mask-noise.png: 1024x1024 black/white high-frequency noise</li>
+      <li>primaryKitten.png (center option 1)</li>
+      <li>secondaryKitten.png (center option 2)</li>
+      <li>toy1.png and toy2.png (peripheral targets)</li>
+      <li>Field.png (full-field visual mask)</li>
     </ul>
 
     <button id="fov-start-btn" type="button" class="fov-btn fov-btn--primary">
@@ -42,10 +40,10 @@
     <div id="fov-mask" class="fov-mask" hidden aria-hidden="true">MASK</div>
 
     <div id="fov-response" class="fov-response" hidden>
-      <p>Select the center icon and star location.</p>
-      <div class="fov-response__center" role="group" aria-label="Center icon response">
-        <button id="fov-center-square" type="button" class="fov-btn">Square</button>
-        <button id="fov-center-circle" type="button" class="fov-btn">Circle</button>
+      <p>Select the center kitten and toy location.</p>
+      <div class="fov-response__center" role="group" aria-label="Center kitten response">
+        <button id="fov-center-primary" type="button" class="fov-btn">Primary Kitten</button>
+        <button id="fov-center-secondary" type="button" class="fov-btn">Secondary Kitten</button>
       </div>
       <button id="fov-submit-btn" type="button" class="fov-btn fov-btn--primary" disabled>
         Submit Response

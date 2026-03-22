@@ -17,6 +17,9 @@ const MASK_DURATION_MS = 120;
 /** Inter-trial delay in ms. */
 const INTER_TRIAL_DELAY_MS = 350;
 
+/** Path to Field of View image assets from renderer root. */
+const IMAGES_BASE_PATH = 'games/field-of-view/images/';
+
 /** @type {HTMLElement|null} */
 let _container = null;
 /** @type {HTMLElement|null} */
@@ -62,9 +65,9 @@ let _playAgainBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _returnBtn = null;
 /** @type {HTMLButtonElement|null} */
-let _centerSquareBtn = null;
+let _centerPrimaryBtn = null;
 /** @type {HTMLButtonElement|null} */
-let _centerCircleBtn = null;
+let _centerSecondaryBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _submitBtn = null;
 
@@ -81,10 +84,11 @@ let _nextTrialTimer = null;
  *   centerIndex: number,
  *   centerIcon: { id: string, file: string, width: number, height: number },
  *   peripheralIndex: number,
+ *   peripheralIcon: { id: string, file: string, width: number, height: number },
  *   cells: Array<{
  *     index: number,
  *     role: string,
- *     icon: { id: string, file: string, width: number, height: number }
+ *     icon: { id: string, file: string, width: number, height: number }|null
  *   }>,
  * }|null}
  */
@@ -237,10 +241,27 @@ function clearAsyncHandles() {
  * @returns {string}
  */
 function labelForIcon(icon) {
-  if (icon.id === 'square') return 'Square';
-  if (icon.id === 'circle') return 'Circle';
-  if (icon.id === 'star') return 'Star';
-  return 'Triangle';
+  if (!icon) return 'Empty';
+  if (icon.id === 'primary-kitten') return 'Primary kitten';
+  if (icon.id === 'secondary-kitten') return 'Secondary kitten';
+  if (icon.id === 'toy-1') return 'Toy 1';
+  if (icon.id === 'toy-2') return 'Toy 2';
+  return 'Stimulus';
+}
+
+/**
+ * Create an image element for a stimulus icon.
+ *
+ * @param {{ id: string, file: string }} icon
+ * @returns {HTMLImageElement}
+ */
+function createStimulusImage(icon) {
+  const img = document.createElement('img');
+  img.src = `${IMAGES_BASE_PATH}${icon.file}`;
+  img.alt = labelForIcon(icon);
+  img.decoding = 'async';
+  img.loading = 'eager';
+  return img;
 }
 
 /**
@@ -268,8 +289,10 @@ function renderBoard(revealStimulus) {
     if (!revealStimulus) {
       btn.classList.add('fov-cell--hidden');
       btn.textContent = ' '; // keeps the cell geometry stable
+    } else if (cell.icon) {
+      btn.appendChild(createStimulusImage(cell.icon));
     } else {
-      btn.textContent = labelForIcon(cell.icon);
+      btn.textContent = ' ';
     }
 
     btn.addEventListener('click', () => {
@@ -303,16 +326,16 @@ function updatePeripheralSelectionVisual() {
 /**
  * Set selected center icon response.
  *
- * @param {'square'|'circle'} id
+ * @param {'primary-kitten'|'secondary-kitten'} id
  */
 function chooseCenter(id) {
   _selectedCenterId = id;
 
-  if (_centerSquareBtn) {
-    _centerSquareBtn.setAttribute('aria-pressed', String(id === 'square'));
+  if (_centerPrimaryBtn) {
+    _centerPrimaryBtn.setAttribute('aria-pressed', String(id === 'primary-kitten'));
   }
-  if (_centerCircleBtn) {
-    _centerCircleBtn.setAttribute('aria-pressed', String(id === 'circle'));
+  if (_centerSecondaryBtn) {
+    _centerSecondaryBtn.setAttribute('aria-pressed', String(id === 'secondary-kitten'));
   }
 
   updateSubmitButtonState();
@@ -336,8 +359,8 @@ function resetResponseSelection() {
   _selectedCenterId = null;
   _selectedPeripheralIndex = null;
 
-  if (_centerSquareBtn) _centerSquareBtn.setAttribute('aria-pressed', 'false');
-  if (_centerCircleBtn) _centerCircleBtn.setAttribute('aria-pressed', 'false');
+  if (_centerPrimaryBtn) _centerPrimaryBtn.setAttribute('aria-pressed', 'false');
+  if (_centerSecondaryBtn) _centerSecondaryBtn.setAttribute('aria-pressed', 'false');
 
   updatePeripheralSelectionVisual();
   updateSubmitButtonState();
@@ -356,7 +379,7 @@ function enterResponsePhase() {
   renderBoard(false);
 
   if (_responseEl) _responseEl.hidden = false;
-  announce('Respond now: choose center icon and star location.');
+  announce('Respond now: choose the center kitten and the toy location.');
 
   resetResponseSelection();
 }
@@ -418,7 +441,7 @@ function startTrial() {
   if (!game.isRunning()) return;
   _currentTrial = game.createTrialLayout();
   updateStats();
-  announce('Fixate center and prepare for brief stimulus.');
+  announce('Watch center kitten and edge toy. The field mask follows immediately.');
   runStimulusPhase();
 }
 
@@ -571,8 +594,8 @@ function init(gameContainer) {
   _stopBtn = _container.querySelector('#fov-stop-btn');
   _playAgainBtn = _container.querySelector('#fov-play-again-btn');
   _returnBtn = _container.querySelector('#fov-return-btn');
-  _centerSquareBtn = _container.querySelector('#fov-center-square');
-  _centerCircleBtn = _container.querySelector('#fov-center-circle');
+  _centerPrimaryBtn = _container.querySelector('#fov-center-primary');
+  _centerSecondaryBtn = _container.querySelector('#fov-center-secondary');
   _submitBtn = _container.querySelector('#fov-submit-btn');
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
@@ -584,8 +607,12 @@ function init(gameContainer) {
     });
   }
   if (_returnBtn) _returnBtn.addEventListener('click', () => returnToMainMenu());
-  if (_centerSquareBtn) _centerSquareBtn.addEventListener('click', () => chooseCenter('square'));
-  if (_centerCircleBtn) _centerCircleBtn.addEventListener('click', () => chooseCenter('circle'));
+  if (_centerPrimaryBtn) {
+    _centerPrimaryBtn.addEventListener('click', () => chooseCenter('primary-kitten'));
+  }
+  if (_centerSecondaryBtn) {
+    _centerSecondaryBtn.addEventListener('click', () => chooseCenter('secondary-kitten'));
+  }
   if (_submitBtn) _submitBtn.addEventListener('click', () => submitResponse());
 
   updateStats();

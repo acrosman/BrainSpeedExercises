@@ -9,8 +9,7 @@ import {
   DEFAULT_DOWN_AFTER_SUCCESSES,
   GRID_SIZES,
   CENTRAL_TARGET_SET,
-  PERIPHERAL_TARGET,
-  DISTRACTOR_SET,
+  PERIPHERAL_TARGET_SET,
   MASK_SPEC,
   initGame,
   startGame,
@@ -33,12 +32,15 @@ beforeEach(() => {
 });
 
 describe('asset specs', () => {
-  test('defines central, peripheral, distractor, and mask specs', () => {
+  test('defines kitten, toy, and field-mask specs', () => {
     expect(Array.isArray(CENTRAL_TARGET_SET)).toBe(true);
     expect(CENTRAL_TARGET_SET.length).toBe(2);
-    expect(PERIPHERAL_TARGET.file).toBe('peripheral-star.png');
-    expect(DISTRACTOR_SET.length).toBeGreaterThan(1);
-    expect(MASK_SPEC.file).toBe('mask-noise.png');
+    expect(CENTRAL_TARGET_SET[0].file).toBe('primaryKitten.png');
+    expect(CENTRAL_TARGET_SET[1].file).toBe('secondaryKitten.png');
+    expect(PERIPHERAL_TARGET_SET.length).toBe(2);
+    expect(PERIPHERAL_TARGET_SET[0].file).toBe('toy1.png');
+    expect(PERIPHERAL_TARGET_SET[1].file).toBe('toy2.png');
+    expect(MASK_SPEC.file).toBe('Field.png');
   });
 
   test('defines allowed grid sizes', () => {
@@ -155,25 +157,31 @@ describe('createTrialLayout', () => {
     expect(centerCount).toBe(1);
     expect(peripheralCount).toBe(1);
     expect(layout.peripheralIndex).not.toBe(layout.centerIndex);
+
+    const row = Math.floor(layout.peripheralIndex / layout.gridSize);
+    const col = layout.peripheralIndex % layout.gridSize;
+    const max = layout.gridSize - 1;
+    expect(row === 0 || row === max || col === 0 || col === max).toBe(true);
   });
 
   test('uses only declared icon sets', () => {
     const layout = createTrialLayout();
 
     const centerFiles = CENTRAL_TARGET_SET.map((i) => i.file);
-    const distractorFiles = DISTRACTOR_SET.map((i) => i.file);
+    const toyFiles = PERIPHERAL_TARGET_SET.map((i) => i.file);
 
     expect(centerFiles).toContain(layout.centerIcon.file);
+    expect(toyFiles).toContain(layout.peripheralIcon.file);
 
     layout.cells.forEach((cell) => {
       if (cell.role === 'center') {
         expect(centerFiles).toContain(cell.icon.file);
       }
       if (cell.role === 'peripheral-target') {
-        expect(cell.icon.file).toBe(PERIPHERAL_TARGET.file);
+        expect(toyFiles).toContain(cell.icon.file);
       }
-      if (cell.role === 'distractor') {
-        expect(distractorFiles).toContain(cell.icon.file);
+      if (cell.role === 'empty') {
+        expect(cell.icon).toBeNull();
       }
     });
   });
