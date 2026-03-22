@@ -8,13 +8,13 @@
  */
 
 /** Start value for stimulus onset asynchrony in ms. */
-export const START_SOA_MS = 200;
+export const START_SOA_MS = 500;
 
 /** Minimum practical display duration at 60 Hz. */
 export const MIN_SOA_MS = 16.67;
 
 /** Maximum SOA clamp in ms to keep pacing reasonable. */
-export const MAX_SOA_MS = 500;
+export const MAX_SOA_MS = 1000;
 
 /**
  * Step increase on failure for 1-up staircase behavior.

@@ -128,7 +128,8 @@ describe('getGridSizeForCurrentSoa', () => {
 
   test('returns 5 when SOA is reduced to 120ms or lower', () => {
     // Two-success chunks reduce SOA by one step each.
-    for (let i = 0; i < 10; i += 1) {
+    const chunksNeeded = Math.ceil((START_SOA_MS - 120) / DEFAULT_STEP_DOWN_MS);
+    for (let i = 0; i < chunksNeeded; i += 1) {
       recordTrial({ success: true });
       recordTrial({ success: true });
     }

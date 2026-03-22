@@ -63,8 +63,10 @@ function buildContainer() {
     <div id="fov-instructions"></div>
     <div id="fov-game-area" hidden></div>
     <div id="fov-end-panel" hidden></div>
-    <div id="fov-board"></div>
-    <div id="fov-mask" hidden></div>
+    <div id="fov-stage" class="fov-stage">
+      <div id="fov-board"></div>
+      <div id="fov-mask" hidden></div>
+    </div>
     <div id="fov-response" hidden></div>
     <div id="fov-feedback"></div>
     <strong id="fov-soa"></strong>
@@ -85,7 +87,6 @@ function buildContainer() {
     <button id="fov-return-btn" type="button">Return</button>
     <button id="fov-center-primary" type="button">Primary Kitten</button>
     <button id="fov-center-secondary" type="button">Secondary Kitten</button>
-    <button id="fov-submit-btn" type="button" disabled>Submit</button>
   `;
   return wrapper;
 }
@@ -154,6 +155,10 @@ describe('field-of-view index', () => {
 
     const response = document.querySelector('#fov-response');
     expect(response.hidden).toBe(false);
+    expect(document.querySelector('#fov-mask').hidden).toBe(false);
+    expect(
+      document.querySelector('#fov-stage').classList.contains('fov-stage--response'),
+    ).toBe(true);
   });
 
   test('response submission records trial after selecting center and peripheral', () => {
@@ -161,15 +166,10 @@ describe('field-of-view index', () => {
     jest.runAllTimers();
 
     const centerPrimary = document.querySelector('#fov-center-primary');
-    const submit = document.querySelector('#fov-submit-btn');
     const peripheralCell = document.querySelector('[data-index="1"]');
 
     centerPrimary.click();
     peripheralCell.click();
-
-    expect(submit.disabled).toBe(false);
-
-    submit.click();
 
     expect(gameMock.recordTrial).toHaveBeenCalledWith(
       expect.objectContaining({ success: true }),

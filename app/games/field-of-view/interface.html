@@ -29,25 +29,34 @@
 
   <div id="fov-game-area" class="fov-panel" hidden>
     <div class="fov-stats" aria-live="polite" aria-atomic="true">
-      <span>SOA: <strong id="fov-soa">200</strong> ms</span>
-      <span>Threshold: <strong id="fov-threshold">200</strong> ms</span>
+      <span>SOA: <strong id="fov-soa">500</strong> ms</span>
+      <span>Threshold: <strong id="fov-threshold">500</strong> ms</span>
       <span>Recent Accuracy: <strong id="fov-accuracy">0%</strong></span>
       <span>Trials: <strong id="fov-trials">0</strong></span>
     </div>
+    <p class="fov-stats-help">
+      Lower threshold is better. Response auto-submits once kitten choice and toy location are both selected.
+    </p>
 
-    <div id="fov-board" class="fov-board" role="group" aria-label="Field of View stimulus grid"></div>
-
-    <div id="fov-mask" class="fov-mask" hidden aria-hidden="true">MASK</div>
-
-    <div id="fov-response" class="fov-response" hidden>
-      <p>Select the center kitten and toy location.</p>
-      <div class="fov-response__center" role="group" aria-label="Center kitten response">
-        <button id="fov-center-primary" type="button" class="fov-btn">Primary Kitten</button>
-        <button id="fov-center-secondary" type="button" class="fov-btn">Secondary Kitten</button>
+    <div class="fov-play-layout">
+      <div id="fov-response" class="fov-response" hidden>
+        <h4 id="fov-kitten-question">Which kitten appeared</h4>
+        <div class="fov-response__center" role="group" aria-label="Center kitten response">
+          <button id="fov-center-primary" type="button" class="fov-choice-btn" aria-pressed="false"
+            aria-label="Primary kitten appeared">
+            <img src="games/field-of-view/images/primaryKitten.png" alt="Primary kitten option">
+          </button>
+          <button id="fov-center-secondary" type="button" class="fov-choice-btn" aria-pressed="false"
+            aria-label="Secondary kitten appeared">
+            <img src="games/field-of-view/images/secondaryKitten.png" alt="Secondary kitten option">
+          </button>
+        </div>
       </div>
-      <button id="fov-submit-btn" type="button" class="fov-btn fov-btn--primary" disabled>
-        Submit Response
-      </button>
+
+      <div class="fov-stage" id="fov-stage">
+        <div id="fov-board" class="fov-board" role="group" aria-label="Field of View stimulus grid"></div>
+        <div id="fov-mask" class="fov-mask" hidden aria-hidden="true"></div>
+      </div>
     </div>
 
     <div id="fov-feedback" class="fov-feedback" role="status" aria-live="polite"></div>
@@ -60,7 +69,7 @@
       </svg>
       <p id="fov-trend-empty" class="fov-trend__empty">Complete a trial to populate chart.</p>
       <p class="fov-trend__meta">
-        Latest: <strong id="fov-trend-latest">200</strong> ms
+        Latest: <strong id="fov-trend-latest">500</strong> ms
       </p>
     </section>
 
@@ -73,10 +82,10 @@
 
   <div id="fov-end-panel" class="fov-panel" hidden>
     <h3>Session Complete</h3>
-    <p>Current Threshold: <strong id="fov-final-threshold">200</strong> ms</p>
+    <p>Current Threshold: <strong id="fov-final-threshold">500</strong> ms</p>
     <p>Recent Accuracy: <strong id="fov-final-accuracy">0%</strong></p>
     <p>
-      Session Best Threshold: <strong id="fov-final-best-threshold">200</strong> ms
+      Session Best Threshold: <strong id="fov-final-best-threshold">500</strong> ms
     </p>
     <div class="fov-controls">
       <button id="fov-play-again-btn" type="button" class="fov-btn fov-btn--primary">

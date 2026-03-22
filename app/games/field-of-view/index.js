@@ -29,6 +29,8 @@ let _gameAreaEl = null;
 /** @type {HTMLElement|null} */
 let _endPanelEl = null;
 /** @type {HTMLElement|null} */
+let _stageEl = null;
+/** @type {HTMLElement|null} */
 let _boardEl = null;
 /** @type {HTMLElement|null} */
 let _maskEl = null;
@@ -68,8 +70,6 @@ let _returnBtn = null;
 let _centerPrimaryBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _centerSecondaryBtn = null;
-/** @type {HTMLButtonElement|null} */
-let _submitBtn = null;
 
 /** @type {ReturnType<typeof requestAnimationFrame>|null} */
 let _stimulusRafId = null;
@@ -235,6 +235,30 @@ function clearAsyncHandles() {
 }
 
 /**
+ * Set current stage visual mode for stimulus, mask-only, or response overlay.
+ *
+ * @param {'stimulus'|'mask'|'response'} mode
+ */
+function setStageMode(mode) {
+  if (!_stageEl) return;
+  _stageEl.classList.remove('fov-stage--response');
+  if (mode === 'response') {
+    _stageEl.classList.add('fov-stage--response');
+  }
+}
+
+/**
+ * Toggle mask visibility with both hidden attribute and inline display fallback.
+ *
+ * @param {boolean} visible
+ */
+function setMaskVisible(visible) {
+  if (!_maskEl) return;
+  _maskEl.hidden = !visible;
+  _maskEl.style.display = visible ? 'grid' : 'none';
+}
+
+/**
  * Return human-readable label text for a stimulus icon.
  *
  * @param {{ id: string }} icon
@@ -274,6 +298,7 @@ function renderBoard(revealStimulus) {
 
   _boardEl.innerHTML = '';
   _boardEl.style.gridTemplateColumns = `repeat(${_currentTrial.gridSize}, 1fr)`;
+  _boardEl.style.gridTemplateRows = `repeat(${_currentTrial.gridSize}, 1fr)`;
 
   _currentTrial.cells.forEach((cell) => {
     const btn = document.createElement('button');
@@ -300,7 +325,7 @@ function renderBoard(revealStimulus) {
       if (cell.index === _currentTrial.centerIndex) return;
       _selectedPeripheralIndex = cell.index;
       updatePeripheralSelectionVisual();
-      updateSubmitButtonState();
+      attemptAutoSubmit();
     });
 
     _boardEl.appendChild(btn);
@@ -338,18 +363,19 @@ function chooseCenter(id) {
     _centerSecondaryBtn.setAttribute('aria-pressed', String(id === 'secondary-kitten'));
   }
 
-  updateSubmitButtonState();
+  attemptAutoSubmit();
 }
 
 /**
- * Enable submit only when both responses are selected.
+ * Auto-submit once both responses are selected.
  */
-function updateSubmitButtonState() {
-  if (!_submitBtn) return;
+function attemptAutoSubmit() {
   const canSubmit = _responseEnabled
     && _selectedCenterId !== null
     && _selectedPeripheralIndex !== null;
-  _submitBtn.disabled = !canSubmit;
+  if (canSubmit) {
+    submitResponse();
+  }
 }
 
 /**
@@ -363,7 +389,6 @@ function resetResponseSelection() {
   if (_centerSecondaryBtn) _centerSecondaryBtn.setAttribute('aria-pressed', 'false');
 
   updatePeripheralSelectionVisual();
-  updateSubmitButtonState();
 }
 
 /**
@@ -373,7 +398,9 @@ function enterResponsePhase() {
   _responseEnabled = true;
   _responseStartMs = nowMs();
 
-  if (_maskEl) _maskEl.hidden = true;
+  setStageMode('response');
+
+  setMaskVisible(true);
   if (_boardEl) _boardEl.hidden = false;
 
   renderBoard(false);
@@ -388,7 +415,9 @@ function enterResponsePhase() {
  * Start mask phase for a fixed duration using requestAnimationFrame timing.
  */
 function runMaskPhase() {
-  if (_maskEl) _maskEl.hidden = false;
+  setStageMode('mask');
+
+  setMaskVisible(true);
   if (_boardEl) _boardEl.hidden = true;
 
   const start = nowMs();
@@ -413,8 +442,10 @@ function runStimulusPhase() {
   if (_responseEl) _responseEl.hidden = true;
   _responseEnabled = false;
 
+  setStageMode('stimulus');
+
   if (_boardEl) _boardEl.hidden = false;
-  if (_maskEl) _maskEl.hidden = true;
+  setMaskVisible(false);
 
   renderBoard(true);
 
@@ -456,7 +487,6 @@ function submitResponse() {
   const success = centerCorrect && peripheralCorrect;
 
   _responseEnabled = false;
-  updateSubmitButtonState();
 
   const reactionTimeMs = nowMs() - _responseStartMs;
   const trialUpdate = game.recordTrial({ success, reactionTimeMs });
@@ -576,6 +606,7 @@ function init(gameContainer) {
   _instructionsEl = _container.querySelector('#fov-instructions');
   _gameAreaEl = _container.querySelector('#fov-game-area');
   _endPanelEl = _container.querySelector('#fov-end-panel');
+  _stageEl = _container.querySelector('#fov-stage');
   _boardEl = _container.querySelector('#fov-board');
   _maskEl = _container.querySelector('#fov-mask');
   _responseEl = _container.querySelector('#fov-response');
@@ -596,7 +627,6 @@ function init(gameContainer) {
   _returnBtn = _container.querySelector('#fov-return-btn');
   _centerPrimaryBtn = _container.querySelector('#fov-center-primary');
   _centerSecondaryBtn = _container.querySelector('#fov-center-secondary');
-  _submitBtn = _container.querySelector('#fov-submit-btn');
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
@@ -613,7 +643,6 @@ function init(gameContainer) {
   if (_centerSecondaryBtn) {
     _centerSecondaryBtn.addEventListener('click', () => chooseCenter('secondary-kitten'));
   }
-  if (_submitBtn) _submitBtn.addEventListener('click', () => submitResponse());
 
   updateStats();
   renderThresholdTrend();
@@ -674,7 +703,8 @@ function reset() {
   _selectedPeripheralIndex = null;
 
   if (_boardEl) _boardEl.innerHTML = '';
-  if (_maskEl) _maskEl.hidden = true;
+  setStageMode('stimulus');
+  setMaskVisible(false);
   if (_responseEl) _responseEl.hidden = true;
   if (_feedbackEl) _feedbackEl.textContent = '';
   if (_instructionsEl) _instructionsEl.hidden = false;
