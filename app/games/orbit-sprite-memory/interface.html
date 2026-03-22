@@ -1,0 +1,60 @@
+<section class="orbit-memory" aria-labelledby="osm-title">
+  <h2 id="osm-title">Orbit Sprite Memory</h2>
+
+  <div id="osm-instructions" class="osm-panel">
+    <h3>How to Play</h3>
+    <p>
+      Watch the images around the circle. One image is the <strong>target</strong> for this round,
+      and it appears exactly three times.
+    </p>
+    <ul>
+      <li>The target image is shown before each round starts.</li>
+      <li>Distractor images appear no more than two times each.</li>
+      <li>After playback, select the three circles where the target appeared.</li>
+      <li>The number of circles to choose from grows as the level increases.</li>
+      <li>Get three correct rounds in a row to level up.</li>
+      <li>Higher levels show more distractors and reduce display time.</li>
+    </ul>
+    <button id="osm-start-btn" type="button" class="osm-btn osm-btn--primary">Start Game</button>
+  </div>
+
+  <div id="osm-game-area" hidden>
+    <div class="osm-stats" aria-live="polite" aria-atomic="true">
+      <span>Level: <strong id="osm-level">1</strong></span>
+      <span>Score: <strong id="osm-score">0</strong></span>
+      <span>Streak: <strong id="osm-streak">0</strong> / 3</span>
+      <span>Best Level: <strong id="osm-best-level">1</strong></span>
+      <span>Best Score: <strong id="osm-best-score">0</strong></span>
+    </div>
+
+    <div class="osm-target-wrap">
+      <span>Target image:</span>
+      <div id="osm-target-preview" class="osm-sprite" aria-hidden="true"></div>
+    </div>
+
+    <div id="osm-board" class="osm-board" role="group" aria-label="Circle memory board">
+      <div id="osm-active-sprite" class="osm-sprite osm-active-sprite" hidden aria-hidden="true"></div>
+      <div id="osm-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    </div>
+
+    <div class="osm-controls">
+      <button id="osm-stop-btn" type="button" class="osm-btn osm-btn--secondary">End Game</button>
+    </div>
+  </div>
+
+  <div id="osm-end-panel" class="osm-panel" hidden>
+    <h3>Game Over</h3>
+    <p>Final Score: <strong id="osm-final-score">0</strong></p>
+    <p>Highest Level Reached: <strong id="osm-final-level">1</strong></p>
+    <p>All-Time Best Level: <strong id="osm-final-best-level">1</strong></p>
+    <p>All-Time Best Score: <strong id="osm-final-best-score">0</strong></p>
+    <div class="osm-end-actions">
+      <button id="osm-play-again-btn" type="button" class="osm-btn osm-btn--primary">
+        Play Again
+      </button>
+      <button id="osm-return-btn" type="button" class="osm-btn osm-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+</section>

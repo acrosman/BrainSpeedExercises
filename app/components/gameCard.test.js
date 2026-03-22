@@ -1,16 +1,3 @@
-it('displays high score for Fast Piggie when provided', () => {
-  const manifest = {
-    id: 'fast-piggie',
-    name: 'Fast Piggie',
-    description: 'Test desc',
-    thumbnail: '/images/test.png',
-  };
-  const progress = { highScore: 42 };
-  const card = createGameCard(manifest, progress);
-  const scoreElem = card.querySelector('.game-high-score');
-  expect(scoreElem).not.toBeNull();
-  expect(scoreElem.textContent).toContain('42');
-});
 import { createGameCard } from './gameCard.js';
 
 const validManifest = {
@@ -86,5 +73,44 @@ describe('createGameCard', () => {
     const card = createGameCard(validManifest);
     const button = card.querySelector('button');
     expect(button.getAttribute('aria-label')).toBeTruthy();
+  });
+
+  it('displays score stats for any game when provided', () => {
+    const manifest = {
+      id: 'orbit-sprite-memory',
+      name: 'Orbit Sprite Memory',
+      description: 'Test desc',
+      thumbnail: '/images/test.png',
+    };
+    const progress = { highScore: 42, highestLevel: 3 };
+    const card = createGameCard(manifest, progress);
+    const scoreElem = card.querySelector('.game-high-score');
+
+    expect(scoreElem).not.toBeNull();
+    expect(scoreElem.textContent).toContain('Top Score: 42');
+    expect(scoreElem.textContent).toContain('Max Level: 4');
+  });
+
+  it('displays detailed fast-piggie stats when provided', () => {
+    const manifest = {
+      id: 'fast-piggie',
+      name: 'Fast Piggie',
+      description: 'Test desc',
+      thumbnail: '/images/test.png',
+    };
+    const progress = {
+      highScore: 11,
+      maxLevel: 5,
+      maxPiggies: 9,
+      lowestDisplayTime: 550,
+    };
+    const card = createGameCard(manifest, progress);
+    const scoreElem = card.querySelector('.game-high-score');
+
+    expect(scoreElem).not.toBeNull();
+    expect(scoreElem.textContent).toContain('Top Score: 11');
+    expect(scoreElem.textContent).toContain('Max Level: 5');
+    expect(scoreElem.textContent).toContain('Max Piggies: 9');
+    expect(scoreElem.textContent).toContain('Lowest Display Time: 550ms');
   });
 });
