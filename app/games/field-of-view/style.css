@@ -1,0 +1,147 @@
+.field-of-view {
+  color: #1f2933;
+}
+
+.fov-panel {
+  background: #f2f4f7;
+  border: 1px solid #c9d1d9;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.fov-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.fov-board {
+  width: min(88vw, 520px);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  gap: 0.35rem;
+  background: #aeb4bb;
+  border: 2px solid #616b75;
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin: 0 auto;
+}
+
+.fov-cell {
+  border: 1px solid #5f6974;
+  border-radius: 6px;
+  background: #e5e7eb;
+  color: #1f2933;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.fov-cell:focus-visible,
+.fov-btn:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.fov-cell--selected {
+  background: #cfe8ff;
+  border-color: #0f4aa3;
+}
+
+.fov-cell--center {
+  background: #d5d9de;
+}
+
+.fov-cell--hidden {
+  color: transparent;
+}
+
+.fov-mask {
+  width: min(88vw, 520px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  margin: 0.75rem auto;
+  border-radius: 8px;
+  border: 2px solid #111827;
+  background:
+    repeating-linear-gradient(0deg, #111827 0 5px, #f9fafb 5px 10px),
+    repeating-linear-gradient(90deg, #111827 0 7px, #f9fafb 7px 14px);
+  color: #111827;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.fov-response {
+  margin-top: 1rem;
+}
+
+.fov-response__center {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.fov-controls {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.fov-btn {
+  background: #dbe2ea;
+  color: #111827;
+  border: 1px solid #5f6974;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fov-btn--primary {
+  background: #0f4aa3;
+  color: #ffffff;
+  border-color: #0b3b83;
+}
+
+.fov-btn--secondary {
+  background: #e5e7eb;
+}
+
+.fov-btn[disabled],
+.fov-cell[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fov-feedback {
+  margin-top: 0.75rem;
+  min-height: 1.25rem;
+}
+
+.fov-trend {
+  margin-top: 1rem;
+  border: 1px solid #c1c9d2;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #eef2f6;
+  color: #19324a;
+}
+
+.fov-trend__chart {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  min-height: 120px;
+  margin-top: 0.5rem;
+  border: 1px solid #9eabb8;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #f8fafc 0%, #e5edf5 100%);
+}
+
+.fov-trend__empty,
+.fov-trend__meta {
+  margin: 0.5rem 0 0;
+}
