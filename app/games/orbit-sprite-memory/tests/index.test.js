@@ -11,7 +11,7 @@ jest.unstable_mockModule('../game.js', () => ({
   TOTAL_SPRITES: 8,
   SPRITE_COLUMNS: 4,
   SPRITE_ROWS: 2,
-  POSITION_COUNT: 8,
+  MAX_POSITION_COUNT: 12,
   PRIMARY_SHOW_COUNT: 3,
   MAX_DISTRACTOR_SHOWS: 2,
   STREAK_TO_LEVEL_UP: 3,
@@ -126,7 +126,7 @@ describe('exported helper utilities', () => {
   test('computes circular board coordinates', () => {
     const coords = getCircleCoordinates(0, 8);
     expect(coords.left).toBeCloseTo(50);
-    expect(coords.top).toBeCloseTo(17);
+    expect(coords.top).toBeCloseTo(14);
   });
 
   test('announces status text and updates stat labels', () => {
@@ -140,7 +140,7 @@ describe('exported helper utilities', () => {
   });
 
   test('showPlaybackStep positions and reveals active sprite', () => {
-    showPlaybackStep({ spriteId: 2, positionIndex: 3 });
+    showPlaybackStep({ spriteId: 2, positionIndex: 3 }, 5);
     const sprite = document.querySelector('#osm-active-sprite');
     expect(sprite.hidden).toBe(false);
     expect(sprite.style.backgroundPosition).toContain('%');

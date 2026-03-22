@@ -10,7 +10,7 @@ import {
   TOTAL_SPRITES,
   SPRITE_COLUMNS,
   SPRITE_ROWS,
-  POSITION_COUNT,
+  MAX_POSITION_COUNT,
   PRIMARY_SHOW_COUNT,
   MAX_DISTRACTOR_SHOWS,
   STREAK_TO_LEVEL_UP,
@@ -50,11 +50,15 @@ describe('constants', () => {
   });
 
   test('round constraints constants are stable', () => {
-    expect(POSITION_COUNT).toBe(8);
+    expect(MAX_POSITION_COUNT).toBeGreaterThanOrEqual(8);
     expect(PRIMARY_SHOW_COUNT).toBe(3);
     expect(MAX_DISTRACTOR_SHOWS).toBe(2);
     expect(STREAK_TO_LEVEL_UP).toBe(3);
     expect(BASE_DISTRACTOR_COUNT).toBe(2);
+  });
+
+  test('MAX_POSITION_COUNT caps the sequence length', () => {
+    expect(MAX_POSITION_COUNT).toBeLessThanOrEqual(16);
   });
 
   test('timing constants are valid', () => {
@@ -146,12 +150,23 @@ describe('round generation', () => {
     expect(byDistractor.length).toBeGreaterThanOrEqual(3);
   });
 
-  test('assignPositions gives three unique primary positions', () => {
+  test('buildPlaybackSequence caps sequence at MAX_POSITION_COUNT', () => {
+    // Level 100 would add unlimited extras without the cap.
+    const allDistractors = Array.from({ length: TOTAL_SPRITES - 1 }, (_, i) => i + 1);
+    const sequence = buildPlaybackSequence(0, allDistractors, 100);
+    expect(sequence.length).toBeLessThanOrEqual(MAX_POSITION_COUNT);
+    expect(sequence.filter((id) => id === 0).length).toBe(PRIMARY_SHOW_COUNT);
+  });
+
+  test('assignPositions gives each step a unique position', () => {
     const sequence = [3, 3, 3, 1, 2, 4];
     const assigned = assignPositions(sequence, 3);
 
-    expect(assigned.primaryPositions).toHaveLength(PRIMARY_SHOW_COUNT);
-    expect(new Set(assigned.primaryPositions).size).toBe(PRIMARY_SHOW_COUNT);
+    expect(assigned.shownPositions).toHaveLength(sequence.length);
+    expect(new Set(assigned.shownPositions).size).toBe(sequence.length);
+
+    const allIndexes = assigned.steps.map((s) => s.positionIndex);
+    expect(new Set(allIndexes).size).toBe(sequence.length);
 
     const primarySteps = assigned.steps.filter((step) => step.isPrimary);
     expect(primarySteps).toHaveLength(PRIMARY_SHOW_COUNT);

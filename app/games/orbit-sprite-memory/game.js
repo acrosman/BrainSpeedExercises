@@ -16,8 +16,8 @@ export const SPRITE_COLUMNS = 4;
 /** Number of rows in the provided sprite sheet. */
 export const SPRITE_ROWS = 2;
 
-/** Number of circle positions used for playback and recall. */
-export const POSITION_COUNT = 8;
+/** Maximum number of circle positions / images shown per round. */
+export const MAX_POSITION_COUNT = 12;
 
 /** Target sprite appears exactly this many times per round. */
 export const PRIMARY_SHOW_COUNT = 3;
@@ -155,6 +155,7 @@ export function pickUnique(source, count) {
  * Builds the ordered image sequence for one round.
  * Primary appears exactly PRIMARY_SHOW_COUNT times.
  * Each distractor appears once, and some appear a second time as level rises.
+ * Total sequence length is capped at MAX_POSITION_COUNT.
  *
  * @param {number} primarySpriteId - Target sprite id for this round.
  * @param {number[]} distractorIds - Chosen distractor sprite ids.
@@ -165,7 +166,8 @@ export function buildPlaybackSequence(primarySpriteId, distractorIds, lvl) {
   const primaryList = Array.from({ length: PRIMARY_SHOW_COUNT }, () => primarySpriteId);
   const sequence = [...primaryList, ...distractorIds];
 
-  const extraDistractors = Math.min(lvl, distractorIds.length);
+  const maxExtra = Math.max(0, MAX_POSITION_COUNT - sequence.length);
+  const extraDistractors = Math.min(lvl, distractorIds.length, maxExtra);
   for (let i = 0; i < extraDistractors; i += 1) {
     sequence.push(distractorIds[i]);
   }
@@ -174,8 +176,9 @@ export function buildPlaybackSequence(primarySpriteId, distractorIds, lvl) {
 }
 
 /**
- * Assigns positions to each step in the sequence.
- * Primary steps always use unique positions. Distractors never use those positions.
+ * Assigns a unique position to every step in the sequence.
+ * Positions are drawn from 0..sequence.length-1, so the number of
+ * selectable slots exactly equals the number of images shown.
  *
  * @param {number[]} sequence - Ordered sprite ids.
  * @param {number} primarySpriteId - Target sprite id for this round.
@@ -186,38 +189,22 @@ export function buildPlaybackSequence(primarySpriteId, distractorIds, lvl) {
  * }}
  */
 export function assignPositions(sequence, primarySpriteId) {
-  const allPositions = Array.from({ length: POSITION_COUNT }, (_, i) => i);
-  const primaryPositions = pickUnique(allPositions, PRIMARY_SHOW_COUNT);
+  const positions = shuffle(Array.from({ length: sequence.length }, (_, i) => i));
 
-  const nonPrimaryPositions = allPositions.filter((p) => !primaryPositions.includes(p));
-  const steps = [];
-  const shown = new Set(primaryPositions);
-  let primaryPointer = 0;
+  const steps = sequence.map((spriteId, index) => ({
+    spriteId,
+    positionIndex: positions[index],
+    isPrimary: spriteId === primarySpriteId,
+  }));
 
-  sequence.forEach((spriteId, index) => {
-    if (spriteId === primarySpriteId) {
-      steps.push({
-        spriteId,
-        positionIndex: primaryPositions[primaryPointer],
-        isPrimary: true,
-      });
-      primaryPointer += 1;
-      return;
-    }
-
-    const positionIndex = nonPrimaryPositions[index % nonPrimaryPositions.length];
-    shown.add(positionIndex);
-    steps.push({
-      spriteId,
-      positionIndex,
-      isPrimary: false,
-    });
-  });
+  const primaryPositions = steps
+    .filter((step) => step.isPrimary)
+    .map((step) => step.positionIndex);
 
   return {
     steps,
     primaryPositions,
-    shownPositions: [...shown],
+    shownPositions: positions,
   };
 }
 
