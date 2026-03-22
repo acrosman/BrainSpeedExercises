@@ -11,6 +11,34 @@ it('displays high score for Fast Piggie when provided', () => {
   expect(scoreElem).not.toBeNull();
   expect(scoreElem.textContent).toContain('42');
 });
+
+it('displays all-time best threshold for Field of View when provided', () => {
+  const manifest = {
+    id: 'field-of-view',
+    name: 'Field of View',
+    description: 'Test desc',
+    thumbnail: '/images/test.png',
+  };
+  const progress = { bestThresholdMs: 84.2 };
+  const card = createGameCard(manifest, progress);
+  const scoreElem = card.querySelector('.game-high-score');
+  expect(scoreElem).not.toBeNull();
+  expect(scoreElem.textContent).toContain('All-time Best Threshold: 84.2ms');
+});
+
+it('shows no-data text for Field of View when no best threshold exists', () => {
+  const manifest = {
+    id: 'field-of-view',
+    name: 'Field of View',
+    description: 'Test desc',
+    thumbnail: '/images/test.png',
+  };
+  const progress = {};
+  const card = createGameCard(manifest, progress);
+  const scoreElem = card.querySelector('.game-high-score');
+  expect(scoreElem).not.toBeNull();
+  expect(scoreElem.textContent).toContain('No data yet');
+});
 import { createGameCard } from './gameCard.js';
 
 const validManifest = {

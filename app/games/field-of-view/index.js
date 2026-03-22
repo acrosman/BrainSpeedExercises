@@ -17,6 +17,9 @@ const MASK_DURATION_MS = 120;
 /** Inter-trial delay in ms. */
 const INTER_TRIAL_DELAY_MS = 350;
 
+/** Flash overlay duration for correct/incorrect feedback. */
+const FEEDBACK_FLASH_MS = 220;
+
 /** Path to Field of View image assets from renderer root. */
 const IMAGES_BASE_PATH = 'games/field-of-view/images/';
 
@@ -77,6 +80,9 @@ let _stimulusRafId = null;
 let _maskRafId = null;
 /** @type {ReturnType<typeof setTimeout>|null} */
 let _nextTrialTimer = null;
+
+/** @type {ReturnType<typeof setTimeout>|null} */
+let _flashTimer = null;
 
 /**
  * @type {{
@@ -232,6 +238,10 @@ function clearAsyncHandles() {
     clearTimeout(_nextTrialTimer);
     _nextTrialTimer = null;
   }
+  if (_flashTimer !== null) {
+    clearTimeout(_flashTimer);
+    _flashTimer = null;
+  }
 }
 
 /**
@@ -245,6 +255,76 @@ function setStageMode(mode) {
   if (mode === 'response') {
     _stageEl.classList.add('fov-stage--response');
   }
+}
+
+/**
+ * Play a short positive/negative sound cue for trial feedback.
+ *
+ * @param {boolean} isSuccess
+ */
+function playFeedbackSound(isSuccess) {
+  const AudioCtx = (typeof AudioContext !== 'undefined' && AudioContext)
+    || (typeof window !== 'undefined' && window.webkitAudioContext)
+    || null;
+  if (!AudioCtx) return;
+
+  try {
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const toneA = ctx.createOscillator();
+    const gainA = ctx.createGain();
+    toneA.connect(gainA);
+    gainA.connect(ctx.destination);
+
+    toneA.type = 'sine';
+    toneA.frequency.setValueAtTime(isSuccess ? 740 : 220, now);
+    gainA.gain.setValueAtTime(0.0001, now);
+    gainA.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+    gainA.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    toneA.start(now);
+    toneA.stop(now + 0.2);
+
+    const toneB = ctx.createOscillator();
+    const gainB = ctx.createGain();
+    toneB.connect(gainB);
+    gainB.connect(ctx.destination);
+
+    toneB.type = isSuccess ? 'triangle' : 'sawtooth';
+    toneB.frequency.setValueAtTime(isSuccess ? 940 : 170, now + 0.12);
+    gainB.gain.setValueAtTime(0.0001, now + 0.12);
+    gainB.gain.exponentialRampToValueAtTime(0.12, now + 0.15);
+    gainB.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+    toneB.start(now + 0.12);
+    toneB.stop(now + 0.32);
+
+    toneB.onended = () => {
+      ctx.close().catch(() => { });
+    };
+  } catch {
+    // Ignore audio errors in unsupported environments.
+  }
+}
+
+/**
+ * Flash green/red tint over stage for trial feedback.
+ *
+ * @param {boolean} isSuccess
+ */
+function flashStageFeedback(isSuccess) {
+  if (!_stageEl) return;
+
+  _stageEl.classList.remove('fov-stage--flash-correct', 'fov-stage--flash-wrong');
+  _stageEl.classList.add(isSuccess ? 'fov-stage--flash-correct' : 'fov-stage--flash-wrong');
+
+  if (_flashTimer !== null) {
+    clearTimeout(_flashTimer);
+  }
+
+  _flashTimer = setTimeout(() => {
+    _stageEl.classList.remove('fov-stage--flash-correct', 'fov-stage--flash-wrong');
+    _flashTimer = null;
+  }, FEEDBACK_FLASH_MS);
 }
 
 /**
@@ -405,9 +485,6 @@ function enterResponsePhase() {
 
   renderBoard(false);
 
-  if (_responseEl) _responseEl.hidden = false;
-  announce('Respond now: choose the center kitten and the toy location.');
-
   resetResponseSelection();
 }
 
@@ -439,7 +516,6 @@ function runMaskPhase() {
  * Show stimulus board for SOA duration using requestAnimationFrame timing.
  */
 function runStimulusPhase() {
-  if (_responseEl) _responseEl.hidden = true;
   _responseEnabled = false;
 
   setStageMode('stimulus');
@@ -493,6 +569,8 @@ function submitResponse() {
 
   updateStats();
   renderThresholdTrend();
+  playFeedbackSound(success);
+  flashStageFeedback(success);
 
   if (success) {
     announce('Correct. SOA may decrease after the success streak target is met.');
@@ -657,6 +735,7 @@ function start() {
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_gameAreaEl) _gameAreaEl.hidden = false;
+  if (_responseEl) _responseEl.hidden = false;
 
   startTrial();
 }
