@@ -5,8 +5,10 @@
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background-color: #f8f9fa; /* matches app body background */
-  color: #212529; /* ~14.5:1 contrast on #f8f9fa */
+  background-color: #f8f9fa;
+  /* matches app body background */
+  color: #212529;
+  /* ~14.5:1 contrast on #f8f9fa */
 }
 
 .fast-piggie h2 {
@@ -42,7 +44,8 @@
   /* Intrinsic size is 500×500; CSS keeps it responsive */
   width: 100%;
   height: 100%;
-  border-radius: 50%; /* visual hint that it's a circle game */
+  border-radius: 50%;
+  /* visual hint that it's a circle game */
   background-color: #ffffff;
   cursor: crosshair;
 }
@@ -74,6 +77,7 @@
     background-color: #28a745;
     opacity: 0.55;
   }
+
   100% {
     background-color: #28a745;
     opacity: 0;
@@ -85,6 +89,7 @@
     background-color: #dc3545;
     opacity: 0.55;
   }
+
   100% {
     background-color: #dc3545;
     opacity: 0;
@@ -106,8 +111,10 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  background-color: #005fcc; /* primary blue */
-  color: #ffffff; /* 7.3:1 contrast on #005fcc */
+  background-color: #005fcc;
+  /* primary blue */
+  color: #ffffff;
+  /* 7.3:1 contrast on #005fcc */
   transition: background-color 0.15s ease;
 }
 
@@ -126,7 +133,8 @@
 }
 
 .fp-btn--secondary {
-  background-color: #6c757d; /* muted grey; 4.6:1 contrast on white */
+  background-color: #6c757d;
+  /* muted grey; 4.6:1 contrast on white */
   color: #ffffff;
 }
 
@@ -191,4 +199,37 @@
   width: 100%;
   padding: 0.65rem 1.5rem;
   font-size: 1.1rem;
+}
+
+/* End-game panel */
+.fp-end-panel {
+  max-width: 360px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  text-align: center;
+}
+
+.fp-end-panel h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+.fp-end-panel p {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+.fp-end-panel__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.fp-end-panel .fp-btn {
+  padding: 0.65rem 1.5rem;
 }
