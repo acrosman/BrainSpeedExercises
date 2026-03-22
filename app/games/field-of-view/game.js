@@ -37,25 +37,16 @@ export const DEFAULT_DOWN_AFTER_SUCCESSES = 2;
 /** Grid sizes used by the game. */
 export const GRID_SIZES = [3, 5];
 
-/** Central icon set specification for assets provided later. */
+/** Central stimulus set (kitten variants). */
 export const CENTRAL_TARGET_SET = [
-  { id: 'square', file: 'center-square.png', width: 96, height: 96 },
-  { id: 'circle', file: 'center-circle.png', width: 96, height: 96 },
+  { id: 'primary-kitten', file: 'primaryKitten.png', width: 220, height: 220 },
+  { id: 'secondary-kitten', file: 'secondaryKitten.png', width: 220, height: 220 },
 ];
 
-/** Peripheral target specification. */
-export const PERIPHERAL_TARGET = {
-  id: 'star',
-  file: 'peripheral-star.png',
-  width: 72,
-  height: 72,
-};
-
-/** Distractor icon specifications for peripheral clutter. */
-export const DISTRACTOR_SET = [
-  { id: 'triangle-a', file: 'distractor-triangle-a.png', width: 72, height: 72 },
-  { id: 'triangle-b', file: 'distractor-triangle-b.png', width: 72, height: 72 },
-  { id: 'triangle-c', file: 'distractor-triangle-c.png', width: 72, height: 72 },
+/** Peripheral target set (cat toys). */
+export const PERIPHERAL_TARGET_SET = [
+  { id: 'toy-1', file: 'toy1.png', width: 160, height: 160 },
+  { id: 'toy-2', file: 'toy2.png', width: 160, height: 160 },
 ];
 
 /**
@@ -63,11 +54,11 @@ export const DISTRACTOR_SET = [
  * The mask image will be provided later in the game images folder.
  */
 export const MASK_SPEC = {
-  file: 'mask-noise.png',
+  file: 'Field.png',
   width: 1024,
   height: 1024,
-  palette: 'black-white',
-  pattern: 'high-frequency static with overlapping geometric noise',
+  palette: 'natural field texture',
+  pattern: 'full-field scene mask',
 };
 
 /** @type {boolean} */
@@ -202,18 +193,19 @@ export function getGridSizeForCurrentSoa() {
 }
 
 /**
- * Build a randomized trial layout with one central icon, one peripheral target,
- * and distractors in remaining non-center cells.
+ * Build a randomized trial layout with one central kitten and one toy target
+ * on the outer edge of the grid.
  *
  * @returns {{
  *   gridSize: number,
  *   centerIndex: number,
  *   centerIcon: { id: string, file: string, width: number, height: number },
  *   peripheralIndex: number,
+ *   peripheralIcon: { id: string, file: string, width: number, height: number },
  *   cells: Array<{
  *     index: number,
  *     role: string,
- *     icon: { id: string, file: string, width: number, height: number }
+ *     icon: { id: string, file: string, width: number, height: number }|null
  *   }>,
  * }}
  */
@@ -222,9 +214,17 @@ export function createTrialLayout() {
   const totalCells = gridSize * gridSize;
   const centerIndex = Math.floor(totalCells / 2);
   const centerIcon = CENTRAL_TARGET_SET[Math.floor(Math.random() * CENTRAL_TARGET_SET.length)];
+  const peripheralIcon = PERIPHERAL_TARGET_SET[
+    Math.floor(Math.random() * PERIPHERAL_TARGET_SET.length)
+  ];
 
-  const candidateIndices = Array.from({ length: totalCells }, (_, i) => i)
-    .filter((i) => i !== centerIndex);
+  const candidateIndices = Array.from({ length: totalCells }, (_, i) => i).filter((i) => {
+    if (i === centerIndex) return false;
+    const row = Math.floor(i / gridSize);
+    const col = i % gridSize;
+    return row === 0 || row === gridSize - 1 || col === 0 || col === gridSize - 1;
+  });
+
   const peripheralIndex = candidateIndices[Math.floor(Math.random() * candidateIndices.length)];
 
   const cells = Array.from({ length: totalCells }, (_, index) => {
@@ -233,11 +233,10 @@ export function createTrialLayout() {
     }
 
     if (index === peripheralIndex) {
-      return { index, role: 'peripheral-target', icon: PERIPHERAL_TARGET };
+      return { index, role: 'peripheral-target', icon: peripheralIcon };
     }
 
-    const distractor = DISTRACTOR_SET[Math.floor(Math.random() * DISTRACTOR_SET.length)];
-    return { index, role: 'distractor', icon: distractor };
+    return { index, role: 'empty', icon: null };
   });
 
   return {
@@ -245,6 +244,7 @@ export function createTrialLayout() {
     centerIndex,
     centerIcon,
     peripheralIndex,
+    peripheralIcon,
     cells,
   };
 }

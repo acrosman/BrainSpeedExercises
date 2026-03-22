@@ -21,18 +21,29 @@ jest.unstable_mockModule('../game.js', () => ({
   createTrialLayout: jest.fn(() => ({
     gridSize: 3,
     centerIndex: 4,
-    centerIcon: { id: 'square', file: 'center-square.png', width: 96, height: 96 },
+    centerIcon: {
+      id: 'primary-kitten',
+      file: 'primaryKitten.png',
+      width: 220,
+      height: 220,
+    },
     peripheralIndex: 1,
+    peripheralIcon: {
+      id: 'toy-1',
+      file: 'toy1.png',
+      width: 160,
+      height: 160,
+    },
     cells: [
-      { index: 0, role: 'distractor', icon: { id: 'triangle-a' } },
-      { index: 1, role: 'peripheral-target', icon: { id: 'star' } },
-      { index: 2, role: 'distractor', icon: { id: 'triangle-b' } },
-      { index: 3, role: 'distractor', icon: { id: 'triangle-c' } },
-      { index: 4, role: 'center', icon: { id: 'square' } },
-      { index: 5, role: 'distractor', icon: { id: 'triangle-a' } },
-      { index: 6, role: 'distractor', icon: { id: 'triangle-b' } },
-      { index: 7, role: 'distractor', icon: { id: 'triangle-c' } },
-      { index: 8, role: 'distractor', icon: { id: 'triangle-a' } },
+      { index: 0, role: 'empty', icon: null },
+      { index: 1, role: 'peripheral-target', icon: { id: 'toy-1', file: 'toy1.png' } },
+      { index: 2, role: 'empty', icon: null },
+      { index: 3, role: 'empty', icon: null },
+      { index: 4, role: 'center', icon: { id: 'primary-kitten', file: 'primaryKitten.png' } },
+      { index: 5, role: 'empty', icon: null },
+      { index: 6, role: 'empty', icon: null },
+      { index: 7, role: 'empty', icon: null },
+      { index: 8, role: 'empty', icon: null },
     ],
   })),
   recordTrial: jest.fn(() => ({ thresholdMs: 84.2, recentAccuracy: 0.8, successCounter: 0 })),
@@ -72,8 +83,8 @@ function buildContainer() {
     <button id="fov-stop-btn" type="button">Stop</button>
     <button id="fov-play-again-btn" type="button">Play Again</button>
     <button id="fov-return-btn" type="button">Return</button>
-    <button id="fov-center-square" type="button">Square</button>
-    <button id="fov-center-circle" type="button">Circle</button>
+    <button id="fov-center-primary" type="button">Primary Kitten</button>
+    <button id="fov-center-secondary" type="button">Secondary Kitten</button>
     <button id="fov-submit-btn" type="button" disabled>Submit</button>
   `;
   return wrapper;
@@ -149,11 +160,11 @@ describe('field-of-view index', () => {
     plugin.start();
     jest.runAllTimers();
 
-    const centerSquare = document.querySelector('#fov-center-square');
+    const centerPrimary = document.querySelector('#fov-center-primary');
     const submit = document.querySelector('#fov-submit-btn');
     const peripheralCell = document.querySelector('[data-index="1"]');
 
-    centerSquare.click();
+    centerPrimary.click();
     peripheralCell.click();
 
     expect(submit.disabled).toBe(false);
@@ -166,6 +177,17 @@ describe('field-of-view index', () => {
 
     const trendLine = document.querySelector('#fov-trend-line');
     expect(trendLine.getAttribute('points')).not.toBe('');
+  });
+
+  test('stimulus phase renders kitten and toy images', () => {
+    plugin.start();
+
+    const images = document.querySelectorAll('#fov-board img');
+    expect(images.length).toBe(2);
+
+    const sources = Array.from(images).map((el) => el.getAttribute('src'));
+    expect(sources.some((src) => src.includes('primaryKitten.png'))).toBe(true);
+    expect(sources.some((src) => src.includes('toy1.png'))).toBe(true);
   });
 
   test('stop returns running result and updates end panel', async () => {
