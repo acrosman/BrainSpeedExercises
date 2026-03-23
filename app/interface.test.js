@@ -125,11 +125,10 @@ describe('interface.js', () => {
       });
       global.window.api = { invoke, on: jest.fn() };
       await domReadyCallback();
-      expect(document.getElementById('game-selector').textContent).toContain('Unable to load games');
+      expect(document.getElementById('game-selector').textContent)
+        .toContain('Unable to load games');
     });
   });
-
-  // ── game:select handler (exercises loadAndInitGame + injectGameStylesheet) ──
 
   describe('game:select handler', () => {
     it('removes the game selector from the DOM', async () => {
