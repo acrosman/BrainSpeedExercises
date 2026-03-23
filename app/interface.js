@@ -76,7 +76,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Fetch the list of available games and render game cards.
-  const manifests = await window.api.invoke('games:list');
+  let manifests = [];
+  try {
+    manifests = await window.api.invoke('games:list');
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to load game list:', err);
+    gameSelector.textContent = 'Unable to load games. Please restart the app.';
+  }
   manifests.forEach((manifest) => {
     let gameProgress = undefined;
     if (progress && progress.games && progress.games[manifest.id]) {

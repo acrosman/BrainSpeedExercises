@@ -8,22 +8,24 @@ const mockGameInit = jest.fn();
 // Capture the DOMContentLoaded callback before importing interface.js.
 let domReadyCallback;
 
-beforeAll(async () => {
-  const origDocAddEventListener = document.addEventListener.bind(document);
-  jest.spyOn(document, 'addEventListener').mockImplementation((event, cb, opts) => {
-    if (event === 'DOMContentLoaded') domReadyCallback = cb;
-    return origDocAddEventListener(event, cb, opts);
-  });
+// jest.unstable_mockModule MUST be called at module top level (with top-level await) so that
+// the mock is registered before Jest's coverage instrumentation pre-loads interface.js.
+await jest.unstable_mockModule('./games/fast-piggie/index.js', () => ({
+  default: { init: mockGameInit },
+}));
 
-  await jest.unstable_mockModule('./games/fast-piggie/index.js', () => ({
-    default: { init: mockGameInit },
-  }));
-
-  await import('./interface.js');
-
-  // Restore so that tests can use document.addEventListener normally.
-  document.addEventListener.mockRestore();
+// Spy on document.addEventListener to capture the DOMContentLoaded callback before
+// importing interface.js, so tests can invoke it directly.
+const origDocAddEventListener = document.addEventListener.bind(document);
+jest.spyOn(document, 'addEventListener').mockImplementation((event, cb, opts) => {
+  if (event === 'DOMContentLoaded') domReadyCallback = cb;
+  return origDocAddEventListener(event, cb, opts);
 });
+
+await import('./interface.js');
+
+// Restore so that tests can use document.addEventListener normally.
+document.addEventListener.mockRestore();
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
 
@@ -114,6 +116,17 @@ describe('interface.js', () => {
         await domReadyCallback();
         expect(document.querySelectorAll('#game-selector article').length).toBe(MANIFESTS.length);
       });
+
+    it('shows an error message when games:list rejects', async () => {
+      const invoke = jest.fn().mockImplementation((channel) => {
+        if (channel === 'progress:load') return Promise.resolve({});
+        if (channel === 'games:list') return Promise.reject(new Error('IPC error'));
+        return Promise.resolve(null);
+      });
+      global.window.api = { invoke, on: jest.fn() };
+      await domReadyCallback();
+      expect(document.getElementById('game-selector').textContent).toContain('Unable to load games');
+    });
   });
 
   // ── game:select handler (exercises loadAndInitGame + injectGameStylesheet) ──
