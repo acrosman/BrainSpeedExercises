@@ -80,6 +80,7 @@ const {
   startPlayback,
   startRound,
   submitSelection,
+  loadBestStatsFromProgress,
   returnToMainMenu,
   showEndPanel,
 } = pluginModule;
@@ -102,8 +103,12 @@ function buildContainer() {
     <strong id="osm-score">0</strong>
     <strong id="osm-level">1</strong>
     <strong id="osm-streak">0</strong>
+    <strong id="osm-best-level">1</strong>
+    <strong id="osm-best-score">0</strong>
     <strong id="osm-final-score">0</strong>
     <strong id="osm-final-level">1</strong>
+    <strong id="osm-final-best-level">1</strong>
+    <strong id="osm-final-best-score">0</strong>
   `;
   document.body.appendChild(el);
   return el;
@@ -349,6 +354,29 @@ describe('exported helper utilities', () => {
 
     expect(gameMock.createRound).toHaveBeenCalled();
   });
+
+  test('loadBestStatsFromProgress reads saved best stats when API is available', async () => {
+    const oldApi = globalThis.window.api;
+    globalThis.window.api = {
+      invoke: jest.fn().mockResolvedValue({
+        games: {
+          'orbit-sprite-memory': {
+            highScore: 12,
+            highestLevel: 4,
+          },
+        },
+      }),
+    };
+
+    await loadBestStatsFromProgress();
+
+    expect(document.querySelector('#osm-best-score').textContent).toBe('12');
+    expect(document.querySelector('#osm-best-level').textContent).toBe('5');
+    expect(document.querySelector('#osm-final-best-score').textContent).toBe('12');
+    expect(document.querySelector('#osm-final-best-level').textContent).toBe('5');
+
+    globalThis.window.api = oldApi;
+  });
 });
 
 describe('plugin contract and lifecycle', () => {
@@ -381,6 +409,17 @@ describe('plugin contract and lifecycle', () => {
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(container.querySelector('#osm-game-area').hidden).toBe(false);
     expect(container.querySelector('#osm-instructions').hidden).toBe(true);
+  });
+
+  test('start button click is wired to start gameplay', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.startGame.mockClear();
+
+    container.querySelector('#osm-start-btn').click();
+
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#osm-game-area').hidden).toBe(false);
   });
 
   test('stop returns result and shows end panel', () => {
@@ -417,6 +456,41 @@ describe('plugin contract and lifecycle', () => {
         playerId: 'default',
       }),
     );
+
+    globalThis.window.api = oldApi;
+  });
+
+  test('stop merges existing orbit progress and keeps higher historical bests', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    const mockApi = {
+      invoke: jest.fn()
+        .mockResolvedValueOnce({
+          playerId: 'default',
+          games: {
+            'orbit-sprite-memory': {
+              highScore: 10,
+              sessionsPlayed: 2,
+              highestLevel: 3,
+            },
+          },
+        })
+        .mockResolvedValueOnce(undefined),
+    };
+    const oldApi = globalThis.window.api;
+    globalThis.window.api = mockApi;
+
+    plugin.stop();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const saveCall = mockApi.invoke.mock.calls.find((call) => call[0] === 'progress:save');
+    const saved = saveCall[1].data.games['orbit-sprite-memory'];
+    expect(saved.highScore).toBe(10);
+    expect(saved.highestLevel).toBe(3);
+    expect(saved.sessionsPlayed).toBe(3);
 
     globalThis.window.api = oldApi;
   });

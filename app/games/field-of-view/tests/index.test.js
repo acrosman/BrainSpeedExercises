@@ -286,6 +286,15 @@ describe('field-of-view index', () => {
     expect(gameMock.recordTrial).toHaveBeenCalled();
   });
 
+  test('center choice is ignored before response phase is enabled', () => {
+    gameMock.recordTrial.mockClear();
+
+    // Before start(), response input is disabled and chooseCenter should return early.
+    document.querySelector('#fov-center-secondary').click();
+
+    expect(gameMock.recordTrial).not.toHaveBeenCalled();
+  });
+
   test('feedback flash timeout clears stage flash class', () => {
     gameMock.recordTrial.mockReturnValueOnce({ thresholdMs: 84.2, recentAccuracy: 0.8 });
     plugin.start();
@@ -313,5 +322,30 @@ describe('field-of-view index', () => {
 
     jest.runOnlyPendingTimers();
     expect(gameMock.createTrialLayout).toHaveBeenCalledTimes(2);
+  });
+
+  test('stimulus and mask phases take raf else-path before completing', () => {
+    let t = 0;
+    nowSpy.mockRestore();
+    nowSpy = jest.spyOn(performance, 'now').mockImplementation(() => {
+      t += 50;
+      return t;
+    });
+    gameMock.getCurrentSoaMs.mockReturnValueOnce(300);
+
+    plugin.start();
+    jest.runAllTimers();
+
+    expect(document.querySelector('#fov-mask').hidden).toBe(false);
+    expect(document.querySelector('#fov-response').hidden).toBe(false);
+  });
+
+  test('start exits before trial creation when game is not running', () => {
+    gameMock.isRunning.mockReturnValue(false);
+    gameMock.createTrialLayout.mockClear();
+
+    plugin.start();
+
+    expect(gameMock.createTrialLayout).not.toHaveBeenCalled();
   });
 });
