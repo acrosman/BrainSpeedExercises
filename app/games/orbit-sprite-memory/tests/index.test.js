@@ -377,6 +377,20 @@ describe('exported helper utilities', () => {
 
     globalThis.window.api = oldApi;
   });
+
+  test('loadBestStatsFromProgress handles API rejection gracefully (line 268)', async () => {
+    const oldApi = globalThis.window.api;
+    globalThis.window.api = {
+      invoke: jest.fn().mockRejectedValue(new Error('network error')),
+    };
+
+    await loadBestStatsFromProgress();
+
+    // catch block calls updateBestStats(undefined) → defaults to 0
+    expect(document.querySelector('#osm-best-score').textContent).toBe('0');
+
+    globalThis.window.api = oldApi;
+  });
 });
 
 describe('plugin contract and lifecycle', () => {
@@ -537,5 +551,30 @@ describe('plugin contract and lifecycle', () => {
 
     container.querySelector('#osm-stop-btn').click();
     expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
+  });
+
+  test('stop handles progress:load rejection in inner try-catch (line 579)', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    // progress:load rejects → inner catch sets existing to empty defaults
+    // progress:save also rejects → outer catch swallows it
+    const mockApi = {
+      invoke: jest.fn().mockRejectedValue(new Error('IPC error')),
+    };
+    const oldApi = globalThis.window.api;
+    globalThis.window.api = mockApi;
+
+    plugin.stop();
+    // Flush nested promise chains: outer IIFE → inner progress:load → inner catch
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // End panel should still appear despite progress errors
+    expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
+
+    globalThis.window.api = oldApi;
   });
 });
