@@ -11,12 +11,15 @@ const mockContextBridge = {
   exposeInMainWorld: jest.fn(),
 };
 
-jest.unstable_mockModule('electron', () => ({
-  default: {
-    contextBridge: mockContextBridge,
-    ipcRenderer: mockIpcRenderer,
-  },
-}));
+global.require = jest.fn((moduleName) => {
+  if (moduleName === 'electron') {
+    return {
+      contextBridge: mockContextBridge,
+      ipcRenderer: mockIpcRenderer,
+    };
+  }
+  throw new Error(`Unexpected module requested: ${moduleName}`);
+});
 
 await import('./preload.js');
 
@@ -27,6 +30,10 @@ describe('preload.js', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIpcRenderer.invoke.mockResolvedValue('mocked-result');
+  });
+
+  afterAll(() => {
+    delete global.require;
   });
 
   it('exposes "api" with send, receive, and invoke via contextBridge', () => {
