@@ -65,6 +65,9 @@ const plugin = pluginModule.default;
 const gameMock = await import('../game.js');
 
 const {
+  playPositiveSound,
+  playNegativeSound,
+  flashBoard,
   getSpriteBackgroundPosition,
   getCircleCoordinates,
   announce,
@@ -246,6 +249,105 @@ describe('exported helper utilities', () => {
     expect(document.querySelector('#osm-end-panel').hidden).toBe(false);
     expect(document.querySelector('#osm-final-score').textContent).toBe('9');
     expect(document.querySelector('#osm-final-level').textContent).toBe('4');
+  });
+
+  test('playPositiveSound closes context on onended and handles close rejection', async () => {
+    const onendedRefs = [];
+    const ctx = {
+      currentTime: 0,
+      destination: {},
+      createOscillator: () => {
+        const osc = {
+          connect: jest.fn(),
+          type: '',
+          frequency: { setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() },
+          start: jest.fn(),
+          stop: jest.fn(),
+          onended: null,
+        };
+        onendedRefs.push(osc);
+        return osc;
+      },
+      createGain: () => ({
+        connect: jest.fn(),
+        gain: {
+          setValueAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn(),
+          exponentialRampToValueAtTime: jest.fn(),
+        },
+      }),
+      close: jest.fn(() => Promise.reject(new Error('close failed'))),
+    };
+    const OriginalAudioContext = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => ctx);
+
+    playPositiveSound();
+    onendedRefs[1].onended();
+    await Promise.resolve();
+
+    expect(ctx.close).toHaveBeenCalled();
+    globalThis.AudioContext = OriginalAudioContext;
+  });
+
+  test('playNegativeSound closes context on onended and handles close rejection', async () => {
+    let onended;
+    const ctx = {
+      currentTime: 0,
+      destination: {},
+      createOscillator: () => ({
+        connect: jest.fn(),
+        type: '',
+        frequency: { setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+        set onended(fn) {
+          onended = fn;
+        },
+      }),
+      createGain: () => ({
+        connect: jest.fn(),
+        gain: {
+          setValueAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn(),
+          exponentialRampToValueAtTime: jest.fn(),
+        },
+      }),
+      close: jest.fn(() => Promise.reject(new Error('close failed'))),
+    };
+    const OriginalAudioContext = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => ctx);
+
+    playNegativeSound();
+    onended();
+    await Promise.resolve();
+
+    expect(ctx.close).toHaveBeenCalled();
+    globalThis.AudioContext = OriginalAudioContext;
+  });
+
+  test('flashBoard timeout callback removes flash classes', () => {
+    const board = document.querySelector('#osm-board');
+    flashBoard('success');
+    expect(board.classList.contains('osm-board--success')).toBe(true);
+
+    jest.runOnlyPendingTimers();
+    expect(board.classList.contains('osm-board--success')).toBe(false);
+  });
+
+  test('submitSelection runs reveal and nested next-round callbacks', () => {
+    plugin.start();
+    jest.advanceTimersByTime(400);
+
+    gameMock.createRound.mockClear();
+    const buttons = document.querySelectorAll('.osm-choice-btn');
+    buttons[0].click();
+    buttons[2].click();
+    buttons[4].click();
+
+    jest.runOnlyPendingTimers();
+    jest.runOnlyPendingTimers();
+
+    expect(gameMock.createRound).toHaveBeenCalled();
   });
 });
 

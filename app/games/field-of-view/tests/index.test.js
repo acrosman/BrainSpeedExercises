@@ -264,4 +264,54 @@ describe('field-of-view index', () => {
     expect(document.querySelector('#fov-game-area').hidden).toBe(false);
     expect(gameMock.startGame).toHaveBeenCalled();
   });
+
+  test('start and stop buttons invoke lifecycle handlers via click', () => {
+    gameMock.startGame.mockClear();
+    gameMock.stopGame.mockClear();
+
+    document.querySelector('#fov-start-btn').click();
+    document.querySelector('#fov-stop-btn').click();
+
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(gameMock.stopGame).toHaveBeenCalled();
+  });
+
+  test('center secondary click updates center selection and can submit', () => {
+    plugin.start();
+    jest.runAllTimers();
+
+    document.querySelector('#fov-center-secondary').click();
+    document.querySelector('[data-index="1"]').click();
+
+    expect(gameMock.recordTrial).toHaveBeenCalled();
+  });
+
+  test('feedback flash timeout clears stage flash class', () => {
+    gameMock.recordTrial.mockReturnValueOnce({ thresholdMs: 84.2, recentAccuracy: 0.8 });
+    plugin.start();
+    jest.runAllTimers();
+
+    document.querySelector('#fov-center-primary').click();
+    document.querySelector('[data-index="1"]').click();
+
+    const stage = document.querySelector('#fov-stage');
+    expect(stage.classList.contains('fov-stage--flash-correct')).toBe(true);
+
+    jest.runOnlyPendingTimers();
+    expect(stage.classList.contains('fov-stage--flash-correct')).toBe(false);
+  });
+
+  test('next-trial timer callback starts another trial when still running', () => {
+    gameMock.isRunning.mockReturnValue(true);
+    gameMock.createTrialLayout.mockClear();
+
+    plugin.start();
+    jest.runAllTimers();
+
+    document.querySelector('#fov-center-primary').click();
+    document.querySelector('[data-index="1"]').click();
+
+    jest.runOnlyPendingTimers();
+    expect(gameMock.createTrialLayout).toHaveBeenCalledTimes(2);
+  });
 });

@@ -118,6 +118,7 @@ describe('interface.js', () => {
       });
 
     it('shows an error message when games:list rejects', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const invoke = jest.fn().mockImplementation((channel) => {
         if (channel === 'progress:load') return Promise.resolve({});
         if (channel === 'games:list') return Promise.reject(new Error('IPC error'));
@@ -125,8 +126,10 @@ describe('interface.js', () => {
       });
       global.window.api = { invoke, on: jest.fn() };
       await domReadyCallback();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load game list:', expect.any(Error));
       expect(document.getElementById('game-selector').textContent)
         .toContain('Unable to load games');
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -273,6 +276,24 @@ describe('interface.js', () => {
       const scoreElem = document.querySelector('#game-selector .game-high-score');
       expect(scoreElem).not.toBeNull();
       expect(scoreElem.textContent).toContain('77');
+    });
+
+    it('handles game:select on the recreated selector after returning to menu', async () => {
+      const invoke = setupApi();
+      await domReadyCallback();
+      dispatchGameSelect();
+      await flush();
+
+      window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+      await flush();
+
+      document.getElementById('game-selector').dispatchEvent(
+        new CustomEvent('game:select', { bubbles: true, detail: { gameId: 'fast-piggie' } }),
+      );
+      await flush();
+
+      expect(invoke).toHaveBeenCalledWith('games:load', 'fast-piggie');
+      expect(mockGameInit).toHaveBeenCalledWith(document.getElementById('game-container'));
     });
   });
 });
