@@ -12,8 +12,10 @@ const mockContextBridge = {
 };
 
 jest.unstable_mockModule('electron', () => ({
-  contextBridge: mockContextBridge,
-  ipcRenderer: mockIpcRenderer,
+  default: {
+    contextBridge: mockContextBridge,
+    ipcRenderer: mockIpcRenderer,
+  },
 }));
 
 await import('./preload.js');
