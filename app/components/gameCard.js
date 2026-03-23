@@ -52,7 +52,24 @@ export function createGameCard(manifest, progress) {
     if (typeof progress.maxLevel === 'number') details.push(`Max Level: ${progress.maxLevel}`);
     if (typeof progress.maxPiggies === 'number') details.push(`Max Piggies: ${progress.maxPiggies}`);
     if (typeof progress.lowestDisplayTime === 'number') details.push(`Lowest Display Time: ${progress.lowestDisplayTime}ms`);
-    scoreElem.textContent = details.join(' | ');
+    if (details.length > 0) {
+      scoreElem.textContent = details.join(' | ');
+      scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
+    } else {
+      scoreElem = null;
+    }
+  }
+
+  if (manifest.id === 'field-of-view' && progress) {
+    scoreElem = document.createElement('p');
+    scoreElem.className = 'game-high-score';
+
+    if (typeof progress.bestThresholdMs === 'number') {
+      scoreElem.textContent = `All-time Best Threshold: ${progress.bestThresholdMs}ms`;
+    } else {
+      scoreElem.textContent = 'All-time Best Threshold: No data yet';
+    }
+
     scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
   }
 
