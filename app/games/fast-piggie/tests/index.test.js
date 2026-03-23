@@ -1096,89 +1096,30 @@ describe('progress saving', () => {
 });
 
 // ===========================================================================
-// _showSummaryModal and _returnToMainMenu
-// These are private functions reachable only when the body does NOT carry the
-// jest-testing class (which normally suppresses the modal in tests).
+// stop() end-panel flow and return-to-main-menu wiring
 // ===========================================================================
-describe('_showSummaryModal and _returnToMainMenu', () => {
-  beforeEach(() => {
-    // Remove the jest-testing guard so stop() calls _showSummaryModal
-    document.body.classList.remove('jest-testing');
-  });
-
-  afterEach(() => {
-    // Re-add the class so subsequent outer tests are unaffected
-    document.body.classList.add('jest-testing');
-    const modal = document.getElementById('fp-summary-modal');
-    if (modal) modal.remove();
-  });
-
-  it('stop() creates a summary modal in document.body', () => {
+describe('stop() end-panel flow and _returnToMainMenu', () => {
+  it('stop() shows the end panel with score and high score', async () => {
     plugin.start();
-    plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    expect(modal).not.toBeNull();
+    await plugin.stop();
+    const endPanel = container.querySelector('#fp-end-panel');
+    expect(endPanel.hidden).toBe(false);
+    expect(container.querySelector('#fp-final-score').textContent).toBe('3');
+    expect(container.querySelector('#fp-final-high-score').textContent).toBe('3');
   });
 
-  it('modal contains a Game Over heading', () => {
+  it('stop() hides the game area and End Game button', async () => {
     plugin.start();
-    plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    expect(modal.textContent).toContain('Game Over');
+    await plugin.stop();
+    expect(container.querySelector('#fp-game-area').hidden).toBe(true);
+    expect(container.querySelector('#fp-stop-btn').hidden).toBe(true);
   });
 
-  it('Tab keydown on modal calls preventDefault and keeps focus', () => {
-    plugin.start();
-    plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    const e = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true });
-    const spy = jest.spyOn(e, 'preventDefault');
-    modal.dispatchEvent(e);
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('Escape keydown on modal removes it (_returnToMainMenu)', () => {
-    plugin.start();
-    plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(document.getElementById('fp-summary-modal')).toBeNull();
-  });
-
-  it('Escape keydown dispatches bsx:return-to-main-menu', () => {
-    plugin.start();
-    plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
+  it('clicking #fp-return-btn dispatches bsx:return-to-main-menu', () => {
     let fired = false;
     window.addEventListener('bsx:return-to-main-menu', () => { fired = true; }, { once: true });
-    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    container.querySelector('#fp-return-btn').click();
     expect(fired).toBe(true);
-  });
-
-  it('clicking #fp-return-btn removes modal and dispatches bsx:return-to-main-menu', () => {
-    plugin.start();
-    plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    let fired = false;
-    window.addEventListener('bsx:return-to-main-menu', () => { fired = true; }, { once: true });
-    modal.querySelector('#fp-return-btn').click();
-    expect(fired).toBe(true);
-    expect(document.getElementById('fp-summary-modal')).toBeNull();
-  });
-
-  it('modal focus setTimeout fires without error', () => {
-    plugin.start();
-    plugin.stop();
-    expect(() => jest.runAllTimers()).not.toThrow();
-  });
-
-  it('stop() replaces an existing modal rather than stacking two', () => {
-    plugin.start();
-    plugin.stop();
-    game.stopGame.mockReturnValueOnce({ score: 9, roundsPlayed: 8, duration: 30000 });
-    plugin.start();
-    plugin.stop();
-    expect(document.querySelectorAll('#fp-summary-modal').length).toBe(1);
   });
 });
 
@@ -1272,85 +1213,30 @@ describe('init() — loadImages .catch() fallback', () => {
 });
 
 // ===========================================================================
-// _showSummaryModal, modal keydown handler, focus timer, _returnToMainMenu
-// (f[40], f[41], f[42], f[43] in index.js)
+// _showEndPanel and _returnToMainMenu
 // ===========================================================================
-describe('_showSummaryModal and _returnToMainMenu', () => {
-  beforeEach(() => {
-    // Remove jest-testing so stop() will call _showSummaryModal
-    document.body.classList.remove('jest-testing');
-  });
-
-  afterEach(() => {
-    document.body.classList.add('jest-testing');
-    const modal = document.getElementById('fp-summary-modal');
-    if (modal) modal.remove();
-  });
-
-  it('creates a summary modal in document.body after stop()', async () => {
+describe('_showEndPanel and _returnToMainMenu', () => {
+  it('end panel contains Game Over heading after stop()', async () => {
     plugin.start();
     await plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    expect(modal).not.toBeNull();
+    const endPanel = container.querySelector('#fp-end-panel');
+    expect(endPanel.textContent).toContain('Game Over');
   });
 
-  it('modal contains session-best stats from getBestStats()', async () => {
-    plugin.start();
-    await plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    expect(modal.textContent).toContain('Game Over');
+  it('clicking #fp-play-again-btn resets and restarts game', () => {
+    const resetSpy = jest.spyOn(plugin, 'reset');
+    const startSpy = jest.spyOn(plugin, 'start');
+    container.querySelector('#fp-play-again-btn').click();
+    expect(resetSpy).toHaveBeenCalled();
+    expect(startSpy).toHaveBeenCalled();
+    resetSpy.mockRestore();
+    startSpy.mockRestore();
   });
 
-  it('Tab keydown on modal traps focus and calls preventDefault', async () => {
-    plugin.start();
-    await plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    const tabEvent = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true });
-    const preventDefaultSpy = jest.spyOn(tabEvent, 'preventDefault');
-    modal.dispatchEvent(tabEvent);
-    expect(preventDefaultSpy).toHaveBeenCalled();
-  });
-
-  it('Escape keydown on modal removes it from the DOM (_returnToMainMenu)', async () => {
-    plugin.start();
-    await plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-    modal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(document.getElementById('fp-summary-modal')).toBeNull();
-  });
-
-  it('clicking #fp-return-btn removes modal and dispatches bsx:return-to-main-menu', async () => {
-    plugin.start();
-    await plugin.stop();
-    const modal = document.getElementById('fp-summary-modal');
-
-    let eventFired = false;
-    window.addEventListener('bsx:return-to-main-menu', () => {
-      eventFired = true;
-    }, {
-      once: true,
-    });
-    modal.querySelector('#fp-return-btn').click();
-
-    expect(eventFired).toBe(true);
-    expect(document.getElementById('fp-summary-modal')).toBeNull();
-  });
-
-  it('focus setTimeout in modal fires without error', async () => {
-    plugin.start();
-    await plugin.stop();
-    // The setTimeout(() => modal.focus(), 0) is pending — advance timers
-    expect(() => jest.runAllTimers()).not.toThrow();
-  });
-
-  it('removes an existing modal before creating a new one', async () => {
-    plugin.start();
-    await plugin.stop();
-    // Call stop again — should remove old modal and create new one
-    game.stopGame.mockReturnValueOnce({ score: 5, roundsPlayed: 3, duration: 5000 });
-    plugin.start();
-    await plugin.stop();
-    const modals = document.querySelectorAll('#fp-summary-modal');
-    expect(modals.length).toBe(1);
+  it('clicking #fp-return-btn can be triggered repeatedly without throwing', () => {
+    expect(() => {
+      container.querySelector('#fp-return-btn').click();
+      container.querySelector('#fp-return-btn').click();
+    }).not.toThrow();
   });
 });

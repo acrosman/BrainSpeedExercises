@@ -4,35 +4,34 @@ import { jest } from '@jest/globals';
 // Mock the game module dynamically imported by loadAndInitGame.
 // Must be registered before interface.js is imported.
 const mockGameInit = jest.fn();
-await jest.unstable_mockModule('./games/test-game/index.js', () => ({
-  default: { init: mockGameInit },
-}), { virtual: true });
 
 // Capture the DOMContentLoaded callback before importing interface.js.
 let domReadyCallback;
-const origDocAddEventListener = document.addEventListener.bind(document);
-jest.spyOn(document, 'addEventListener').mockImplementation((event, cb, opts) => {
-  if (event === 'DOMContentLoaded') domReadyCallback = cb;
-  return origDocListener(event, cb, opts);
+
+beforeAll(async () => {
+  const origDocAddEventListener = document.addEventListener.bind(document);
+  jest.spyOn(document, 'addEventListener').mockImplementation((event, cb, opts) => {
+    if (event === 'DOMContentLoaded') domReadyCallback = cb;
+    return origDocAddEventListener(event, cb, opts);
+  });
+
+  await jest.unstable_mockModule('./games/fast-piggie/index.js', () => ({
+    default: { init: mockGameInit },
+  }));
+
+  await import('./interface.js');
+
+  // Restore so that tests can use document.addEventListener normally.
+  document.addEventListener.mockRestore();
 });
-
-// origDocListener must be defined before the spy references it.
-function origDocListener(event, cb, opts) {
-  return origDocAddEventListener(event, cb, opts);
-}
-
-await import('./interface.js');
-
-// Restore so that tests can use document.addEventListener normally.
-document.addEventListener.mockRestore();
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
 
-const MANIFESTS = [{ id: 'test-game', name: 'Test Game', description: 'A test game.' }];
+const MANIFESTS = [{ id: 'fast-piggie', name: 'Test Game', description: 'A test game.' }];
 
 const GAME_LOAD_RESULT = {
   html: '<div id="game-ui">Game UI</div>',
-  manifest: { name: 'Test Game', entryPoint: '../main.js' },
+  manifest: { name: 'Test Game', entryPoint: 'index.js' },
 };
 
 function setupApi({ progressData = {}, manifests = MANIFESTS, gameLoad = GAME_LOAD_RESULT } = {}) {
@@ -50,7 +49,7 @@ async function flush() {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function dispatchGameSelect(gameId = 'test-game') {
+function dispatchGameSelect(gameId = 'fast-piggie') {
   document.getElementById('game-selector').dispatchEvent(
     new CustomEvent('game:select', { bubbles: true, detail: { gameId } }),
   );
@@ -97,7 +96,7 @@ describe('interface.js', () => {
     });
 
     it('passes per-game progress data to game cards when available', async () => {
-      setupApi({ progressData: { games: { 'test-game': { highScore: 42 } } } });
+      setupApi({ progressData: { games: { 'fast-piggie': { highScore: 42 } } } });
       await domReadyCallback();
       const scoreElem = document.querySelector('.game-high-score');
       expect(scoreElem).not.toBeNull();
@@ -133,7 +132,7 @@ describe('interface.js', () => {
       await domReadyCallback();
       dispatchGameSelect();
       await flush();
-      expect(invoke).toHaveBeenCalledWith('games:load', 'test-game');
+      expect(invoke).toHaveBeenCalledWith('games:load', 'fast-piggie');
       expect(document.getElementById('game-container').innerHTML).toContain('game-ui');
     });
 
@@ -144,7 +143,7 @@ describe('interface.js', () => {
       await flush();
       const link = document.getElementById('active-game-stylesheet');
       expect(link).not.toBeNull();
-      expect(link.href).toContain('test-game');
+      expect(link.href).toContain('fast-piggie');
     });
 
     it('replaces an existing game stylesheet rather than duplicating it', async () => {
@@ -159,7 +158,7 @@ describe('interface.js', () => {
       await flush();
       const links = document.head.querySelectorAll('#active-game-stylesheet');
       expect(links.length).toBe(1);
-      expect(links[0].href).toContain('test-game');
+      expect(links[0].href).toContain('fast-piggie');
     });
 
     it('calls the game module init function', async () => {
@@ -192,7 +191,9 @@ describe('interface.js', () => {
       expect(document.getElementById('active-game-stylesheet')).not.toBeNull();
 
       window.dispatchEvent(new Event('bsx:return-to-main-menu'));
-      expect(document.getElementById('game-container').innerHTML).toBe('');
+      expect(document.getElementById('game-container').querySelector('#game-ui')).toBeNull();
+      expect(document.getElementById('game-container').querySelector('#game-selector'))
+        .not.toBeNull();
       expect(document.getElementById('active-game-stylesheet')).toBeNull();
     });
 
@@ -246,7 +247,7 @@ describe('interface.js', () => {
     it('reloads progress-aware game cards on return', async () => {
       const invoke = jest.fn().mockImplementation((channel) => {
         if (channel === 'progress:load')
-          return Promise.resolve({ games: { 'test-game': { highScore: 77 } } });
+          return Promise.resolve({ games: { 'fast-piggie': { highScore: 77 } } });
         if (channel === 'games:list') return Promise.resolve(MANIFESTS);
         if (channel === 'games:load') return Promise.resolve(GAME_LOAD_RESULT);
         return Promise.resolve(null);
