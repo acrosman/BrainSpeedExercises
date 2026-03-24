@@ -296,4 +296,57 @@ describe('interface.js', () => {
       expect(mockGameInit).toHaveBeenCalledWith(document.getElementById('game-container'));
     });
   });
+
+  // ── game:select error handling ────────────────────────────────────────────
+
+  describe('game:select error handling', () => {
+    it('returns to main menu when games:load rejects on initial selector', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      const invoke = jest.fn().mockImplementation((channel) => {
+        if (channel === 'progress:load') return Promise.resolve({});
+        if (channel === 'games:list') return Promise.resolve(MANIFESTS);
+        if (channel === 'games:load') return Promise.reject(new Error('load error'));
+        return Promise.resolve(null);
+      });
+      global.window.api = { invoke, on: jest.fn() };
+      await domReadyCallback();
+
+      dispatchGameSelect();
+      await flush();
+
+      // The error handler fires bsx:return-to-main-menu, which restores the selector.
+      expect(document.getElementById('game-selector')).not.toBeNull();
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('returns to main menu when games:load rejects on recreated selector', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      const invoke = setupApi();
+      await domReadyCallback();
+      // Load a game successfully first to get to a game view.
+      dispatchGameSelect();
+      await flush();
+
+      // Return to main menu (recreates selector).
+      window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+      await flush();
+
+      // Now make games:load fail.
+      invoke.mockImplementation((channel) => {
+        if (channel === 'progress:load') return Promise.resolve({});
+        if (channel === 'games:list') return Promise.resolve(MANIFESTS);
+        if (channel === 'games:load') return Promise.reject(new Error('load error'));
+        return Promise.resolve(null);
+      });
+
+      document.getElementById('game-selector').dispatchEvent(
+        new CustomEvent('game:select', { bubbles: true, detail: { gameId: 'fast-piggie' } }),
+      );
+      await flush();
+
+      // Selector should be restored after error.
+      expect(document.getElementById('game-selector')).not.toBeNull();
+      consoleErrorSpy.mockRestore();
+    });
+  });
 });

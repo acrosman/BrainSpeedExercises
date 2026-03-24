@@ -1213,6 +1213,31 @@ describe('init() — loadImages .catch() fallback', () => {
 });
 
 // ===========================================================================
+// _resolveRound — no slot assignment when imageCount equals wedgeCount
+// (covers the `return outlierWedgeIndex` else-path in _getCorrectWedgeIndex)
+// ===========================================================================
+describe('_resolveRound — no slot assignment when imageCount equals wedgeCount', () => {
+  beforeEach(() => {
+    game.generateRound.mockReturnValueOnce({
+      wedgeCount: 6,
+      imageCount: 6,
+      displayDurationMs: 2000,
+      outlierWedgeIndex: 2,
+    });
+    game.calculateWedgeIndex.mockReturnValue(2);
+    game.checkAnswer.mockReturnValue(true);
+    plugin.start();
+    jest.runAllTimers();
+  });
+
+  it('resolves round without slot assignment (imageCount === wedgeCount)', () => {
+    const canvas = container.querySelector('#fp-canvas');
+    canvas.dispatchEvent(new MouseEvent('click', { clientX: 250, clientY: 100, bubbles: true }));
+    expect(game.addScore).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
 // _showEndPanel and _returnToMainMenu
 // ===========================================================================
 describe('_showEndPanel and _returnToMainMenu', () => {

@@ -73,19 +73,6 @@ export function createGameCard(manifest, progress) {
     scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
   }
 
-  if (manifest.id === 'field-of-view' && progress) {
-    scoreElem = document.createElement('p');
-    scoreElem.className = 'game-high-score';
-
-    if (typeof progress.bestThresholdMs === 'number') {
-      scoreElem.textContent = `All-time Best Threshold: ${progress.bestThresholdMs}ms`;
-    } else {
-      scoreElem.textContent = 'All-time Best Threshold: No data yet';
-    }
-
-    scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
-  }
-
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = `Play ${manifest.name}`;
