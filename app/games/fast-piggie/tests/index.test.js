@@ -1094,3 +1094,174 @@ describe('progress saving', () => {
     delete globalThis.api;
   });
 });
+
+// ===========================================================================
+// stop() end-panel flow and return-to-main-menu wiring
+// ===========================================================================
+describe('stop() end-panel flow and _returnToMainMenu', () => {
+  it('stop() shows the end panel with score and high score', async () => {
+    plugin.start();
+    await plugin.stop();
+    const endPanel = container.querySelector('#fp-end-panel');
+    expect(endPanel.hidden).toBe(false);
+    expect(container.querySelector('#fp-final-score').textContent).toBe('3');
+    expect(container.querySelector('#fp-final-high-score').textContent).toBe('3');
+  });
+
+  it('stop() hides the game area and End Game button', async () => {
+    plugin.start();
+    await plugin.stop();
+    expect(container.querySelector('#fp-game-area').hidden).toBe(true);
+    expect(container.querySelector('#fp-stop-btn').hidden).toBe(true);
+  });
+
+  it('clicking #fp-return-btn dispatches bsx:return-to-main-menu', () => {
+    let fired = false;
+    window.addEventListener('bsx:return-to-main-menu', () => { fired = true; }, { once: true });
+    container.querySelector('#fp-return-btn').click();
+    expect(fired).toBe(true);
+  });
+});
+
+// ===========================================================================
+// start button click callback (f[34] in index.js)
+// ===========================================================================
+describe('start button click event', () => {
+  it('clicking #fp-start-btn triggers plugin.start()', () => {
+    const startBtn = container.querySelector('#fp-start-btn');
+    startBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(game.startGame).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// _triggerFlash setTimeout callback and _resolveRound next-round timer
+// (f[18] and f[30] in index.js)
+// ===========================================================================
+describe('_triggerFlash and next-round timers', () => {
+  function fireCorrectClick() {
+    container.querySelector('#fp-canvas').dispatchEvent(
+      new MouseEvent('click', { clientX: 250, clientY: 100, bubbles: true }),
+    );
+  }
+
+  beforeEach(() => {
+    game.calculateWedgeIndex.mockReturnValue(2);
+    game.checkAnswer.mockReturnValue(true);
+    plugin.start();
+    jest.runAllTimers(); // advance past displayDurationMs → _clickEnabled = true
+  });
+
+  it('flash class is removed after the 600ms _triggerFlash timeout fires', () => {
+    fireCorrectClick();
+    const flash = container.querySelector('#fp-flash');
+    expect(flash.classList.contains('fp-flash--correct')).toBe(true);
+    jest.runAllTimers(); // fires 600ms flash timer + 1000ms next-round + next displayDurationMs
+    expect(flash.classList.contains('fp-flash--correct')).toBe(false);
+  });
+
+  it('next-round 1000ms timer calls _runRound (generateRound is called again)', () => {
+    game.generateRound.mockClear();
+    fireCorrectClick();
+    jest.runAllTimers(); // fires 600ms flash + 1000ms next-round → _runRound → generateRound
+    expect(game.generateRound).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// loadImages onerror path and init() .catch() fallback
+// (f[4] and f[33] in index.js)
+// ===========================================================================
+describe('loadImages() — onerror path', () => {
+  it('rejects when the image fails to load (onerror fired)', async () => {
+    const OriginalImage = globalThis.Image;
+    globalThis.Image = class {
+      set src(_) {
+        if (this.onerror) this.onerror(new Error('load failed'));
+      }
+    };
+
+    let rejected = false;
+    try {
+      await loadImages('bad.png');
+    } catch {
+      rejected = true;
+    }
+    expect(rejected).toBe(true);
+
+    globalThis.Image = OriginalImage;
+  });
+});
+
+describe('init() — loadImages .catch() fallback', () => {
+  it('does not throw when image loading fails (falls back to null images)', async () => {
+    const OriginalImage = globalThis.Image;
+    globalThis.Image = class {
+      set src(_) {
+        if (this.onerror) this.onerror(new Error('load failed'));
+      }
+    };
+
+    // init() calls loadImages which will reject; .catch() sets _images = [null, null]
+    expect(() => plugin.init(buildContainer())).not.toThrow();
+    // Flush microtasks so the .catch() callback executes
+    await Promise.resolve();
+    await Promise.resolve();
+
+    globalThis.Image = OriginalImage;
+  });
+});
+
+// ===========================================================================
+// _resolveRound — no slot assignment when imageCount equals wedgeCount
+// (covers the `return outlierWedgeIndex` else-path in _getCorrectWedgeIndex)
+// ===========================================================================
+describe('_resolveRound — no slot assignment when imageCount equals wedgeCount', () => {
+  beforeEach(() => {
+    game.generateRound.mockReturnValueOnce({
+      wedgeCount: 6,
+      imageCount: 6,
+      displayDurationMs: 2000,
+      outlierWedgeIndex: 2,
+    });
+    game.calculateWedgeIndex.mockReturnValue(2);
+    game.checkAnswer.mockReturnValue(true);
+    plugin.start();
+    jest.runAllTimers();
+  });
+
+  it('resolves round without slot assignment (imageCount === wedgeCount)', () => {
+    const canvas = container.querySelector('#fp-canvas');
+    canvas.dispatchEvent(new MouseEvent('click', { clientX: 250, clientY: 100, bubbles: true }));
+    expect(game.addScore).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// _showEndPanel and _returnToMainMenu
+// ===========================================================================
+describe('_showEndPanel and _returnToMainMenu', () => {
+  it('end panel contains Game Over heading after stop()', async () => {
+    plugin.start();
+    await plugin.stop();
+    const endPanel = container.querySelector('#fp-end-panel');
+    expect(endPanel.textContent).toContain('Game Over');
+  });
+
+  it('clicking #fp-play-again-btn resets and restarts game', () => {
+    const resetSpy = jest.spyOn(plugin, 'reset');
+    const startSpy = jest.spyOn(plugin, 'start');
+    container.querySelector('#fp-play-again-btn').click();
+    expect(resetSpy).toHaveBeenCalled();
+    expect(startSpy).toHaveBeenCalled();
+    resetSpy.mockRestore();
+    startSpy.mockRestore();
+  });
+
+  it('clicking #fp-return-btn can be triggered repeatedly without throwing', () => {
+    expect(() => {
+      container.querySelector('#fp-return-btn').click();
+      container.querySelector('#fp-return-btn').click();
+    }).not.toThrow();
+  });
+});

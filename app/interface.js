@@ -50,6 +50,23 @@ async function loadAndInitGame(gameId, gameContainer, announcer) {
 }
 
 /**
+ * Show an in-container error and restore the main-menu game selector.
+ * Called by game:select listeners when loadAndInitGame rejects.
+ *
+ * @param {string} gameId - ID of the game that failed to load.
+ * @param {HTMLElement} gameContainer - The main game container element.
+ * @param {HTMLElement} announcer - Aria-live announcer element.
+ * @param {Error} [err] - The error that caused the failure.
+ */
+function handleGameLoadError(gameId, gameContainer, announcer, err) {
+  // eslint-disable-next-line no-console
+  console.error(`Failed to load game "${gameId}".`, err);
+  announcer.textContent = 'Failed to load game. Returning to menu.';
+  // Return to the game-selection screen so the player is not left on a blank page.
+  window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+}
+
+/**
  * DOMContentLoaded event handler. Sets up the game selection UI and plugin loader.
  * @returns {Promise<void>}
  */
@@ -76,7 +93,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Fetch the list of available games and render game cards.
-  const manifests = await window.api.invoke('games:list');
+  let manifests = [];
+  try {
+    manifests = await window.api.invoke('games:list');
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to load game list:', err);
+    gameSelector.textContent = 'Unable to load games. Please restart the app.';
+  }
   manifests.forEach((manifest) => {
     let gameProgress = undefined;
     if (progress && progress.games && progress.games[manifest.id]) {
@@ -92,7 +116,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   gameSelector.addEventListener('game:select', async (event) => {
     const { gameId } = event.detail;
     gameSelector.remove();
-    await loadAndInitGame(gameId, gameContainer, announcer);
+    try {
+      await loadAndInitGame(gameId, gameContainer, announcer);
+    } catch (err) {
+      handleGameLoadError(gameId, gameContainer, announcer, err);
+    }
   });
   // Listen for custom event to return to main menu from any game
   window.addEventListener('bsx:return-to-main-menu', () => {
@@ -122,7 +150,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       selector.addEventListener('game:select', async (event) => {
         const { gameId } = event.detail;
         selector.remove();
-        await loadAndInitGame(gameId, gameContainer, announcer);
+        try {
+          await loadAndInitGame(gameId, gameContainer, announcer);
+        } catch (err) {
+          handleGameLoadError(gameId, gameContainer, announcer, err);
+        }
       });
     }
     announcer.textContent = 'Main menu loaded. Select a game.';

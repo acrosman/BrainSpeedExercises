@@ -1,3 +1,12 @@
+export const contextBridge = {
+  exposeInMainWorld: jest.fn(),
+};
+
+export const ipcRenderer = {
+  send: jest.fn(),
+  on: jest.fn(),
+  invoke: jest.fn(),
+};
 import { jest } from '@jest/globals';
 
 export const app = {

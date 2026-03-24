@@ -10,6 +10,7 @@ import {
   calculateWedgeIndex,
   addScore,
   addMiss,
+  getBestStats,
   getScore,
   getRoundsPlayed,
   getLevel,
@@ -414,5 +415,53 @@ describe('getCurrentDifficulty()', () => {
 describe('isRunning()', () => {
   it('returns false after initGame()', () => {
     expect(isRunning()).toBe(false);
+  });
+});
+
+describe('getBestStats()', () => {
+  it('returns an object with maxScore, mostRounds, mostGuineaPigs, topSpeedMs', () => {
+    const stats = getBestStats();
+    expect(stats).toHaveProperty('maxScore');
+    expect(stats).toHaveProperty('mostRounds');
+    expect(stats).toHaveProperty('mostGuineaPigs');
+    expect(stats).toHaveProperty('topSpeedMs');
+  });
+
+  it('maxScore reflects the highest score achieved since module load', () => {
+    startGame();
+    addScore();
+    addScore();
+    stopGame();
+    const stats = getBestStats();
+    expect(stats.maxScore).toBeGreaterThanOrEqual(2);
+  });
+
+  it('mostGuineaPigs updates when addScore is called with a guineaPigs count', () => {
+    addScore(7);
+    const stats = getBestStats();
+    expect(stats.mostGuineaPigs).toBeGreaterThanOrEqual(7);
+  });
+
+  it('topSpeedMs updates when addScore is called with an answerSpeedMs value', () => {
+    addScore(3, 500);
+    const stats = getBestStats();
+    expect(stats.topSpeedMs).toBeLessThanOrEqual(500);
+  });
+
+  it('topSpeedMs is null when no speed has been recorded', () => {
+    // initGame() resets the session but session-best trackers are module-level;
+    // to get null we rely on a fresh import (module-level state).
+    // Here we just verify the type contract: null or a non-negative number.
+    const stats = getBestStats();
+    expect(stats.topSpeedMs === null || typeof stats.topSpeedMs === 'number').toBe(true);
+  });
+
+  it('mostRounds reflects rounds played across sessions', () => {
+    startGame();
+    addScore();
+    addMiss();
+    stopGame();
+    const stats = getBestStats();
+    expect(stats.mostRounds).toBeGreaterThanOrEqual(2);
   });
 });

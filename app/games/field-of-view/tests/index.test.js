@@ -264,4 +264,141 @@ describe('field-of-view index', () => {
     expect(document.querySelector('#fov-game-area').hidden).toBe(false);
     expect(gameMock.startGame).toHaveBeenCalled();
   });
+
+  test('start and stop buttons invoke lifecycle handlers via click', () => {
+    gameMock.startGame.mockClear();
+    gameMock.stopGame.mockClear();
+
+    document.querySelector('#fov-start-btn').click();
+    document.querySelector('#fov-stop-btn').click();
+
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(gameMock.stopGame).toHaveBeenCalled();
+  });
+
+  test('center secondary click updates center selection and can submit', () => {
+    plugin.start();
+    jest.runAllTimers();
+
+    document.querySelector('#fov-center-secondary').click();
+    document.querySelector('[data-index="1"]').click();
+
+    expect(gameMock.recordTrial).toHaveBeenCalled();
+  });
+
+  test('center choice is ignored before response phase is enabled', () => {
+    gameMock.recordTrial.mockClear();
+
+    // Before start(), response input is disabled and chooseCenter should return early.
+    document.querySelector('#fov-center-secondary').click();
+
+    expect(gameMock.recordTrial).not.toHaveBeenCalled();
+  });
+
+  test('feedback flash timeout clears stage flash class', () => {
+    gameMock.recordTrial.mockReturnValueOnce({ thresholdMs: 84.2, recentAccuracy: 0.8 });
+    plugin.start();
+    jest.runAllTimers();
+
+    document.querySelector('#fov-center-primary').click();
+    document.querySelector('[data-index="1"]').click();
+
+    const stage = document.querySelector('#fov-stage');
+    expect(stage.classList.contains('fov-stage--flash-correct')).toBe(true);
+
+    jest.runOnlyPendingTimers();
+    expect(stage.classList.contains('fov-stage--flash-correct')).toBe(false);
+  });
+
+  test('next-trial timer callback starts another trial when still running', () => {
+    gameMock.isRunning.mockReturnValue(true);
+    gameMock.createTrialLayout.mockClear();
+
+    plugin.start();
+    jest.runAllTimers();
+
+    document.querySelector('#fov-center-primary').click();
+    document.querySelector('[data-index="1"]').click();
+
+    jest.runOnlyPendingTimers();
+    expect(gameMock.createTrialLayout).toHaveBeenCalledTimes(2);
+  });
+
+  test('stimulus and mask phases take raf else-path before completing', () => {
+    let t = 0;
+    nowSpy.mockRestore();
+    nowSpy = jest.spyOn(performance, 'now').mockImplementation(() => {
+      t += 50;
+      return t;
+    });
+    gameMock.getCurrentSoaMs.mockReturnValueOnce(300);
+
+    plugin.start();
+    jest.runAllTimers();
+
+    expect(document.querySelector('#fov-mask').hidden).toBe(false);
+    expect(document.querySelector('#fov-response').hidden).toBe(false);
+  });
+
+  test('stimulus raf loop iterates when elapsed is below soa (covers loop continuation)', () => {
+    // Use a slow-incrementing clock so elapsed < targetSoa on the first raf tick,
+    // forcing the stimulus raf loop to iterate at least once (line 368).
+    let t = 0;
+    nowSpy.mockRestore();
+    nowSpy = jest.spyOn(performance, 'now').mockImplementation(() => {
+      t += 10;
+      return t;
+    });
+    // targetSoa defaults to 84.2; with t+=10 the first tick gives elapsed<84.2
+    // so the loop continuation branch is taken before the phase completes.
+
+    plugin.start();
+    jest.runAllTimers();
+
+    expect(document.querySelector('#fov-mask').hidden).toBe(false);
+    expect(document.querySelector('#fov-response').hidden).toBe(false);
+  });
+
+  test('stop during mask phase cancels pending mask raf (lines 175-176)', () => {
+    // Complete only the stimulus phase so a mask RAF is scheduled but not yet run.
+    plugin.start();
+    jest.runOnlyPendingTimers(); // fires stimulus RAF → schedules mask RAF
+    // _maskRafId is now set; stopping here exercises the mask-raf cancellation path.
+    plugin.stop();
+
+    expect(document.querySelector('#fov-end-panel').hidden).toBe(false);
+  });
+
+  test('nowMs falls back to Date.now when performance.now is not a function (line 119)', () => {
+    nowSpy.mockRestore();
+    const origNow = performance.now;
+    // Make performance.now not a function so nowMs uses Date.now() instead.
+    let dateT = 0;
+    const dateSpy = jest.spyOn(Date, 'now').mockImplementation(() => {
+      dateT += 200;
+      return dateT;
+    });
+    // @ts-ignore
+    performance.now = null;
+
+    plugin.start(); // runStimulusPhase → nowMs() → Date.now()
+
+    expect(dateSpy).toHaveBeenCalled();
+
+    performance.now = origNow;
+    dateSpy.mockRestore();
+    // Re-create a spy so afterEach's nowSpy.mockRestore() does not throw.
+    nowSpy = jest.spyOn(performance, 'now').mockReturnValue(10200);
+    // Clean up pending timers without running them to avoid infinite loops.
+    jest.clearAllTimers();
+  });
+
+  test('start exits before trial creation when game is not running', () => {
+    gameMock.isRunning.mockReturnValue(false);
+    gameMock.createTrialLayout.mockClear();
+
+    plugin.start();
+
+    expect(gameMock.createTrialLayout).not.toHaveBeenCalled();
+  });
 });

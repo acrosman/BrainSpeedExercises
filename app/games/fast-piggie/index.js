@@ -337,6 +337,7 @@ function _runRound() {
 
   _roundTimer = setTimeout(() => {
     clearImages(_ctx, width, height, wedgeCount);
+    _currentRound._imagesHiddenAt = Date.now();
     _clickEnabled = true;
     _hoveredWedge = -1;
     _selectedWedge = -1;
@@ -486,7 +487,7 @@ function _resolveRound(wedge) {
   // Track answer speed (time from images hidden to answer)
   // We'll store the time when images are hidden in _currentRound._imagesHiddenAt
   let answerSpeedMs = null;
-  if (_currentRound._imagesHiddenAt) {
+  if (_currentRound._imagesHiddenAt != null) {
     answerSpeedMs = Date.now() - _currentRound._imagesHiddenAt;
   }
 

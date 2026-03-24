@@ -65,6 +65,9 @@ const plugin = pluginModule.default;
 const gameMock = await import('../game.js');
 
 const {
+  playPositiveSound,
+  playNegativeSound,
+  flashBoard,
   getSpriteBackgroundPosition,
   getCircleCoordinates,
   announce,
@@ -77,6 +80,7 @@ const {
   startPlayback,
   startRound,
   submitSelection,
+  loadBestStatsFromProgress,
   returnToMainMenu,
   showEndPanel,
 } = pluginModule;
@@ -99,8 +103,12 @@ function buildContainer() {
     <strong id="osm-score">0</strong>
     <strong id="osm-level">1</strong>
     <strong id="osm-streak">0</strong>
+    <strong id="osm-best-level">1</strong>
+    <strong id="osm-best-score">0</strong>
     <strong id="osm-final-score">0</strong>
     <strong id="osm-final-level">1</strong>
+    <strong id="osm-final-best-level">1</strong>
+    <strong id="osm-final-best-score">0</strong>
   `;
   document.body.appendChild(el);
   return el;
@@ -247,6 +255,142 @@ describe('exported helper utilities', () => {
     expect(document.querySelector('#osm-final-score').textContent).toBe('9');
     expect(document.querySelector('#osm-final-level').textContent).toBe('4');
   });
+
+  test('playPositiveSound closes context on onended and handles close rejection', async () => {
+    const onendedRefs = [];
+    const ctx = {
+      currentTime: 0,
+      destination: {},
+      createOscillator: () => {
+        const osc = {
+          connect: jest.fn(),
+          type: '',
+          frequency: { setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() },
+          start: jest.fn(),
+          stop: jest.fn(),
+          onended: null,
+        };
+        onendedRefs.push(osc);
+        return osc;
+      },
+      createGain: () => ({
+        connect: jest.fn(),
+        gain: {
+          setValueAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn(),
+          exponentialRampToValueAtTime: jest.fn(),
+        },
+      }),
+      close: jest.fn(() => Promise.reject(new Error('close failed'))),
+    };
+    const OriginalAudioContext = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => ctx);
+
+    playPositiveSound();
+    onendedRefs[1].onended();
+    await Promise.resolve();
+
+    expect(ctx.close).toHaveBeenCalled();
+    globalThis.AudioContext = OriginalAudioContext;
+  });
+
+  test('playNegativeSound closes context on onended and handles close rejection', async () => {
+    let onended;
+    const ctx = {
+      currentTime: 0,
+      destination: {},
+      createOscillator: () => ({
+        connect: jest.fn(),
+        type: '',
+        frequency: { setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+        set onended(fn) {
+          onended = fn;
+        },
+      }),
+      createGain: () => ({
+        connect: jest.fn(),
+        gain: {
+          setValueAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn(),
+          exponentialRampToValueAtTime: jest.fn(),
+        },
+      }),
+      close: jest.fn(() => Promise.reject(new Error('close failed'))),
+    };
+    const OriginalAudioContext = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => ctx);
+
+    playNegativeSound();
+    onended();
+    await Promise.resolve();
+
+    expect(ctx.close).toHaveBeenCalled();
+    globalThis.AudioContext = OriginalAudioContext;
+  });
+
+  test('flashBoard timeout callback removes flash classes', () => {
+    const board = document.querySelector('#osm-board');
+    flashBoard('success');
+    expect(board.classList.contains('osm-board--success')).toBe(true);
+
+    jest.runOnlyPendingTimers();
+    expect(board.classList.contains('osm-board--success')).toBe(false);
+  });
+
+  test('submitSelection runs reveal and nested next-round callbacks', () => {
+    plugin.start();
+    jest.advanceTimersByTime(400);
+
+    gameMock.createRound.mockClear();
+    const buttons = document.querySelectorAll('.osm-choice-btn');
+    buttons[0].click();
+    buttons[2].click();
+    buttons[4].click();
+
+    jest.runOnlyPendingTimers();
+    jest.runOnlyPendingTimers();
+
+    expect(gameMock.createRound).toHaveBeenCalled();
+  });
+
+  test('loadBestStatsFromProgress reads saved best stats when API is available', async () => {
+    const oldApi = globalThis.window.api;
+    globalThis.window.api = {
+      invoke: jest.fn().mockResolvedValue({
+        games: {
+          'orbit-sprite-memory': {
+            highScore: 12,
+            highestLevel: 4,
+          },
+        },
+      }),
+    };
+
+    await loadBestStatsFromProgress();
+
+    expect(document.querySelector('#osm-best-score').textContent).toBe('12');
+    expect(document.querySelector('#osm-best-level').textContent).toBe('5');
+    expect(document.querySelector('#osm-final-best-score').textContent).toBe('12');
+    expect(document.querySelector('#osm-final-best-level').textContent).toBe('5');
+
+    globalThis.window.api = oldApi;
+  });
+
+  test('loadBestStatsFromProgress handles API rejection gracefully (line 268)', async () => {
+    const oldApi = globalThis.window.api;
+    globalThis.window.api = {
+      invoke: jest.fn().mockRejectedValue(new Error('network error')),
+    };
+
+    await loadBestStatsFromProgress();
+
+    // catch block calls updateBestStats(undefined) → defaults to 0
+    expect(document.querySelector('#osm-best-score').textContent).toBe('0');
+
+    globalThis.window.api = oldApi;
+  });
 });
 
 describe('plugin contract and lifecycle', () => {
@@ -279,6 +423,17 @@ describe('plugin contract and lifecycle', () => {
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(container.querySelector('#osm-game-area').hidden).toBe(false);
     expect(container.querySelector('#osm-instructions').hidden).toBe(true);
+  });
+
+  test('start button click is wired to start gameplay', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.startGame.mockClear();
+
+    container.querySelector('#osm-start-btn').click();
+
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#osm-game-area').hidden).toBe(false);
   });
 
   test('stop returns result and shows end panel', () => {
@@ -315,6 +470,41 @@ describe('plugin contract and lifecycle', () => {
         playerId: 'default',
       }),
     );
+
+    globalThis.window.api = oldApi;
+  });
+
+  test('stop merges existing orbit progress and keeps higher historical bests', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    const mockApi = {
+      invoke: jest.fn()
+        .mockResolvedValueOnce({
+          playerId: 'default',
+          games: {
+            'orbit-sprite-memory': {
+              highScore: 10,
+              sessionsPlayed: 2,
+              highestLevel: 3,
+            },
+          },
+        })
+        .mockResolvedValueOnce(undefined),
+    };
+    const oldApi = globalThis.window.api;
+    globalThis.window.api = mockApi;
+
+    plugin.stop();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const saveCall = mockApi.invoke.mock.calls.find((call) => call[0] === 'progress:save');
+    const saved = saveCall[1].data.games['orbit-sprite-memory'];
+    expect(saved.highScore).toBe(10);
+    expect(saved.highestLevel).toBe(3);
+    expect(saved.sessionsPlayed).toBe(3);
 
     globalThis.window.api = oldApi;
   });
@@ -361,5 +551,30 @@ describe('plugin contract and lifecycle', () => {
 
     container.querySelector('#osm-stop-btn').click();
     expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
+  });
+
+  test('stop handles progress:load rejection in inner try-catch (line 579)', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    // progress:load rejects → inner catch sets existing to empty defaults
+    // progress:save also rejects → outer catch swallows it
+    const mockApi = {
+      invoke: jest.fn().mockRejectedValue(new Error('IPC error')),
+    };
+    const oldApi = globalThis.window.api;
+    globalThis.window.api = mockApi;
+
+    plugin.stop();
+    // Flush nested promise chains: outer IIFE → inner progress:load → inner catch
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // End panel should still appear despite progress errors
+    expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
+
+    globalThis.window.api = oldApi;
   });
 });
