@@ -198,11 +198,16 @@ export function completeRound() {
 }
 
 /**
- * Reset the consecutive-correct-rounds streak to zero.
+ * Reset the consecutive-correct-rounds streak to zero and step difficulty down.
+ * Implements the adaptive staircase: a wrong guess decreases the level by one
+ * (minimum 0), making the next round easier.
  * Called when the player clicks a Distractor card (wrong guess).
  */
 export function resetConsecutiveRounds() {
   consecutiveCorrectRounds = 0;
+  if (level > 0) {
+    level -= 1;
+  }
 }
 
 /**

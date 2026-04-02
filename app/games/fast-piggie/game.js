@@ -145,12 +145,17 @@ export function addScore(guineaPigsThisRound, answerSpeedMs) {
 }
 
 /**
- * Record a missed answer and reset consecutive correct count.
+ * Record a missed answer, reset consecutive correct count, and step difficulty down.
+ * Implements the adaptive staircase: a miss decreases the level by one (minimum 0),
+ * making the next round easier.
  * @param {number} [guineaPigsThisRound] - Number of guinea pigs displayed this round.
  */
 export function addMiss(guineaPigsThisRound) {
   roundsPlayed += 1;
   consecutiveCorrect = 0;
+  if (level > 0) {
+    level -= 1;
+  }
   // Track most guinea pigs displayed in a round (even if missed)
   if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {
     mostGuineaPigs = guineaPigsThisRound;

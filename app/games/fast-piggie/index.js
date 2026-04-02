@@ -187,6 +187,7 @@ let _startBtn = null;
 let _stopBtn = null;
 let _scoreEl = null;
 let _roundEl = null;
+let _displayTimeEl = null;
 let _feedbackEl = null;
 let _flashEl = null;
 let _instructionsEl = null;
@@ -265,11 +266,12 @@ export function playFailureSound(audioCtx) {
 }
 
 /**
- * Updates the score and round count in the UI.
+ * Updates the score, round count, and display time in the UI.
  */
 function _updateStats() {
   if (_scoreEl) _scoreEl.textContent = game.getScore();
   if (_roundEl) _roundEl.textContent = game.getRoundsPlayed();
+  if (_displayTimeEl) _displayTimeEl.textContent = game.getCurrentDifficulty().displayDurationMs;
 }
 
 /**
@@ -564,6 +566,7 @@ export default {
     _returnToMenuBtn = container.querySelector('#fp-return-btn');
     _scoreEl = container.querySelector('#fp-score');
     _roundEl = container.querySelector('#fp-round-count');
+    _displayTimeEl = container.querySelector('#fp-display-time');
     _feedbackEl = container.querySelector('#fp-feedback');
     _flashEl = container.querySelector('#fp-flash');
     _finalScoreEl = container.querySelector('#fp-final-score');

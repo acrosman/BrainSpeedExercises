@@ -17,10 +17,9 @@
  * @param {object} [progress] - Optional progress data for the game.
  * @param {number} [progress.highScore] - The player's high score for this game.
  * @param {number} [progress.highestLevel] - The highest level reached (0-indexed;
- *   displayed as level + 1).
- * @param {number} [progress.maxLevel] - The maximum level number reached.
- * @param {number} [progress.maxPiggies] - The maximum number of piggies collected.
- * @param {number} [progress.lowestDisplayTime] - The lowest display time achieved, in milliseconds.
+ *   displayed as level + 1). Standard field for all games that track levels.
+ * @param {number} [progress.lowestDisplayTime] - The lowest display time achieved, in
+ *   milliseconds. Standard field for all games that track image display speed.
  * @returns {HTMLElement} An <article> element representing the game card.
  */
 export function createGameCard(manifest, progress) {
@@ -49,28 +48,13 @@ export function createGameCard(manifest, progress) {
     const details = [];
     if (typeof progress.highScore === 'number') details.push(`Top Score: ${progress.highScore}`);
     if (typeof progress.highestLevel === 'number') details.push(`Max Level: ${progress.highestLevel + 1}`);
-    if (typeof progress.maxLevel === 'number') details.push(`Max Level: ${progress.maxLevel}`);
-    if (typeof progress.maxPiggies === 'number') details.push(`Max Piggies: ${progress.maxPiggies}`);
-    if (typeof progress.lowestDisplayTime === 'number') details.push(`Lowest Display Time: ${progress.lowestDisplayTime}ms`);
+    if (typeof progress.lowestDisplayTime === 'number') details.push(`Min Display Time: ${progress.lowestDisplayTime}ms`);
     if (details.length > 0) {
       scoreElem.textContent = details.join(' | ');
       scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
     } else {
       scoreElem = null;
     }
-  }
-
-  if (manifest.id === 'field-of-view' && progress) {
-    scoreElem = document.createElement('p');
-    scoreElem.className = 'game-high-score';
-
-    if (typeof progress.bestThresholdMs === 'number') {
-      scoreElem.textContent = `All-time Best Threshold: ${progress.bestThresholdMs}ms`;
-    } else {
-      scoreElem.textContent = 'All-time Best Threshold: No data yet';
-    }
-
-    scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
   }
 
   const button = document.createElement('button');

@@ -191,12 +191,17 @@ describe('addMiss()', () => {
     expect(getLevel()).toBe(0);
   });
 
-  it('does not reset getLevel()', () => {
+  it('decreases level by 1 when level is above 0 (adaptive staircase)', () => {
     addScore();
     addScore();
     addScore(); // level → 1
     addMiss();
-    expect(getLevel()).toBe(1);
+    expect(getLevel()).toBe(0);
+  });
+
+  it('does not decrease level below 0', () => {
+    addMiss();
+    expect(getLevel()).toBe(0);
   });
 });
 

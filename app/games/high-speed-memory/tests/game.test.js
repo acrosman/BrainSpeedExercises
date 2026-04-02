@@ -362,6 +362,20 @@ describe('resetConsecutiveRounds', () => {
     expect(getLevel()).toBe(0);
     expect(getConsecutiveCorrectRounds()).toBe(1);
   });
+
+  test('decreases level by 1 when level is above 0 (adaptive staircase)', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) {
+      completeRound();
+    }
+    expect(getLevel()).toBe(1);
+    resetConsecutiveRounds();
+    expect(getLevel()).toBe(0);
+  });
+
+  test('does not decrease level below 0', () => {
+    resetConsecutiveRounds();
+    expect(getLevel()).toBe(0);
+  });
 });
 
 // ── getScore / getLevel / getRoundsCompleted / isRunning ──────────────────────

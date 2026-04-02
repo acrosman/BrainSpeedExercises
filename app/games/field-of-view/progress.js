@@ -46,6 +46,7 @@ export function saveProgress(result) {
             sessionsPlayed: (previous.sessionsPlayed || 0) + 1,
             lastPlayed: new Date().toISOString(),
             bestThresholdMs: Number(nextBest.toFixed(2)),
+            lowestDisplayTime: Number(nextBest.toFixed(2)),
             lastThresholdMs: Number(result.thresholdMs.toFixed(2)),
             lastRecentAccuracy: result.recentAccuracy,
             thresholdHistory: game.getThresholdHistory(),

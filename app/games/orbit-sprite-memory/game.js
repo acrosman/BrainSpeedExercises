@@ -277,11 +277,16 @@ export function recordCorrectRound() {
 }
 
 /**
- * Records an incorrect round and resets the level-up streak.
+ * Records an incorrect round, resets the level-up streak, and steps difficulty down.
+ * Implements the adaptive staircase: an incorrect round decreases the level by one
+ * (minimum 0), making the next round easier.
  */
 export function recordIncorrectRound() {
   roundsPlayed += 1;
   consecutiveCorrect = 0;
+  if (level > 0) {
+    level -= 1;
+  }
 }
 
 /**

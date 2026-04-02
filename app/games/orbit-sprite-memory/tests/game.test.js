@@ -224,4 +224,19 @@ describe('selection and scoring', () => {
     expect(getConsecutiveCorrect()).toBe(0);
     expect(getRoundsPlayed()).toBe(2);
   });
+
+  test('recordIncorrectRound decreases level by 1 when level is above 0 (adaptive staircase)',
+    () => {
+      recordCorrectRound();
+      recordCorrectRound();
+      recordCorrectRound(); // level → 1
+      expect(getLevel()).toBe(1);
+      recordIncorrectRound();
+      expect(getLevel()).toBe(0);
+    });
+
+  test('recordIncorrectRound does not decrease level below 0', () => {
+    recordIncorrectRound();
+    expect(getLevel()).toBe(0);
+  });
 });

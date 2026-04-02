@@ -57,6 +57,9 @@ let _levelEl = null;
 let _streakEl = null;
 
 /** @type {HTMLElement|null} */
+let _displayTimeEl = null;
+
+/** @type {HTMLElement|null} */
 let _bestLevelEl = null;
 
 /** @type {HTMLElement|null} */
@@ -223,12 +226,15 @@ export function announce(message) {
 }
 
 /**
- * Updates score, level, and streak UI values.
+ * Updates score, level, streak, and display time UI values.
  */
 export function updateStats() {
   if (_scoreEl) _scoreEl.textContent = String(game.getScore());
   if (_levelEl) _levelEl.textContent = String(game.getLevel() + 1);
   if (_streakEl) _streakEl.textContent = String(game.getConsecutiveCorrect());
+  if (_displayTimeEl) {
+    _displayTimeEl.textContent = String(game.getDisplayDurationMs(game.getLevel()));
+  }
 }
 
 /**
@@ -523,6 +529,7 @@ function init(gameContainer) {
   _scoreEl = _container.querySelector('#osm-score');
   _levelEl = _container.querySelector('#osm-level');
   _streakEl = _container.querySelector('#osm-streak');
+  _displayTimeEl = _container.querySelector('#osm-display-time');
   _bestLevelEl = _container.querySelector('#osm-best-level');
   _bestScoreEl = _container.querySelector('#osm-best-score');
   _feedbackEl = _container.querySelector('#osm-feedback');
@@ -580,6 +587,7 @@ function stop() {
         }
 
         const previous = (existing.games && existing.games['orbit-sprite-memory']) || {};
+        const lowestDisplayTime = game.getDisplayDurationMs(result.level);
         const payload = {
           ...existing,
           games: {
@@ -589,6 +597,9 @@ function stop() {
               sessionsPlayed: (previous.sessionsPlayed || 0) + 1,
               lastPlayed: new Date().toISOString(),
               highestLevel: Math.max(result.level, previous.highestLevel || 0),
+              lowestDisplayTime: typeof previous.lowestDisplayTime === 'number'
+                ? Math.min(lowestDisplayTime, previous.lowestDisplayTime)
+                : lowestDisplayTime,
             },
           },
         };
