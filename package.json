@@ -23,7 +23,7 @@
     "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage"
   },
   "dependencies": {
-    "electron": "^38"
+    "electron": "^39"
   },
   "overrides": {
     "yauzl": "^3.2.1"
