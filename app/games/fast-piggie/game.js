@@ -14,6 +14,7 @@ let running = false;
 let startTime = null;
 let level = 0;
 let consecutiveCorrect = 0;
+let consecutiveWrong = 0;
 
 // Best performance tracking
 let maxScore = 0;
@@ -31,6 +32,7 @@ export function initGame() {
   startTime = null;
   level = 0;
   consecutiveCorrect = 0;
+  consecutiveWrong = 0;
 }
 
 /**
@@ -74,6 +76,7 @@ export function stopGame() {
 
 /**
  * Generate a new round's parameters based on the current level.
+ * Display duration starts at 800ms and decreases by 100ms per level (minimum 25ms).
  * @param {number} currentLevel
  * @returns {{ wedgeCount: number, imageCount: number,
  *  displayDurationMs: number, outlierWedgeIndex: number }}
@@ -81,7 +84,7 @@ export function stopGame() {
 export function generateRound(currentLevel) {
   const imageCount = Math.min(3 + currentLevel, 14);
   const wedgeCount = Math.min(Math.max(6, imageCount), 14);
-  const displayDurationMs = Math.max(1200 - currentLevel * 50, 25);
+  const displayDurationMs = Math.max(800 - currentLevel * 100, 25);
   const outlierWedgeIndex = Math.floor(Math.random() * imageCount);
   return {
     wedgeCount,
@@ -123,6 +126,7 @@ export function calculateWedgeIndex(clickX, clickY, centerX, centerY, radius, we
 
 /**
  * Add a correct answer to the score and update level if needed.
+ * Also resets the consecutive-wrong counter.
  * @param {number} [guineaPigsThisRound] - Number of guinea pigs displayed this round.
  * @param {number} [answerSpeedMs] - Time in ms to answer this round (if tracked).
  */
@@ -130,6 +134,7 @@ export function addScore(guineaPigsThisRound, answerSpeedMs) {
   score += 1;
   roundsPlayed += 1;
   consecutiveCorrect += 1;
+  consecutiveWrong = 0;
   if (consecutiveCorrect >= 3) {
     level += 1;
     consecutiveCorrect = 0;
@@ -145,12 +150,19 @@ export function addScore(guineaPigsThisRound, answerSpeedMs) {
 }
 
 /**
- * Record a missed answer and reset consecutive correct count.
+ * Record a missed answer and apply the adaptive staircase.
+ * Resets consecutive correct count. After 3 consecutive misses the level
+ * decreases by 2 (minimum 0), making the next round easier.
  * @param {number} [guineaPigsThisRound] - Number of guinea pigs displayed this round.
  */
 export function addMiss(guineaPigsThisRound) {
   roundsPlayed += 1;
   consecutiveCorrect = 0;
+  consecutiveWrong += 1;
+  if (consecutiveWrong >= 3) {
+    level = Math.max(0, level - 2);
+    consecutiveWrong = 0;
+  }
   // Track most guinea pigs displayed in a round (even if missed)
   if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {
     mostGuineaPigs = guineaPigsThisRound;
@@ -199,13 +211,24 @@ export function getConsecutiveCorrect() {
 
 /**
  * Get the current difficulty parameters.
+ * Display duration starts at 800ms and decreases by 100ms per level (minimum 25ms).
  * @returns {{ wedgeCount: number, imageCount: number, displayDurationMs: number }}
  */
 export function getCurrentDifficulty() {
   const imageCount = Math.min(3 + level, 14);
   const wedgeCount = Math.min(Math.max(6, imageCount), 14);
-  const displayDurationMs = Math.max(1200 - level * 50, 25);
+  const displayDurationMs = Math.max(800 - level * 100, 25);
   return { wedgeCount, imageCount, displayDurationMs };
+}
+
+/**
+ * Get the number of consecutive wrong answers in the current staircase window.
+ * Resets to 0 after 3 consecutive wrong answers (when level decreases) or
+ * after any correct answer.
+ * @returns {number}
+ */
+export function getConsecutiveWrong() {
+  return consecutiveWrong;
 }
 
 /**

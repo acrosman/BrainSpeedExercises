@@ -126,15 +126,15 @@ describe('getGridSizeForCurrentSoa', () => {
     expect(getGridSizeForCurrentSoa()).toBe(3);
   });
 
-  test('returns 5 when SOA is reduced to 120ms or lower', () => {
+  test('returns 5 when SOA drops to 300ms or lower', () => {
     // Two-success chunks reduce SOA by one step each.
-    const chunksNeeded = Math.ceil((START_SOA_MS - 120) / DEFAULT_STEP_DOWN_MS);
+    const chunksNeeded = Math.ceil((START_SOA_MS - 300) / DEFAULT_STEP_DOWN_MS);
     for (let i = 0; i < chunksNeeded; i += 1) {
       recordTrial({ success: true });
       recordTrial({ success: true });
     }
 
-    expect(getCurrentSoaMs()).toBeLessThanOrEqual(120);
+    expect(getCurrentSoaMs()).toBeLessThanOrEqual(300);
     expect(getGridSizeForCurrentSoa()).toBe(5);
   });
 });

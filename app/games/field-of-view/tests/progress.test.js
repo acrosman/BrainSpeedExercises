@@ -71,6 +71,7 @@ describe('saveProgress', () => {
     const savedData = invoke.mock.calls[1][1].data;
     expect(savedData.games[GAME_ID].sessionsPlayed).toBe(3);
     expect(savedData.games[GAME_ID].lastThresholdMs).toBe(100);
+    expect(typeof savedData.games[GAME_ID].lowestDisplayTime).toBe('number');
 
     globalThis.window.api = savedApi;
   });

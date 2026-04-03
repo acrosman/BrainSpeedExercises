@@ -25,6 +25,7 @@ import {
   getLevel,
   getRoundsCompleted,
   getConsecutiveCorrectRounds,
+  getConsecutiveWrongRounds,
   isRunning,
 } from '../game.js';
 
@@ -361,6 +362,55 @@ describe('resetConsecutiveRounds', () => {
     completeRound(); // only 1 consecutive now
     expect(getLevel()).toBe(0);
     expect(getConsecutiveCorrectRounds()).toBe(1);
+  });
+
+  test('does not change level on first or second consecutive wrong round', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) completeRound();
+    expect(getLevel()).toBe(1);
+    resetConsecutiveRounds(); // wrong 1
+    expect(getLevel()).toBe(1);
+    resetConsecutiveRounds(); // wrong 2
+    expect(getLevel()).toBe(1);
+  });
+
+  test('decreases level by 2 after 3 consecutive wrong rounds (adaptive staircase)', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP * 2; i += 1) completeRound();
+    expect(getLevel()).toBe(2);
+    resetConsecutiveRounds();
+    resetConsecutiveRounds();
+    resetConsecutiveRounds(); // 3 consecutive wrong → level 0
+    expect(getLevel()).toBe(0);
+  });
+
+  test('does not decrease level below 0 after 3 wrong rounds', () => {
+    resetConsecutiveRounds();
+    resetConsecutiveRounds();
+    resetConsecutiveRounds();
+    expect(getLevel()).toBe(0);
+  });
+
+  test('resets consecutive wrong counter after level decrease', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) completeRound();
+    expect(getLevel()).toBe(1);
+    resetConsecutiveRounds();
+    resetConsecutiveRounds();
+    resetConsecutiveRounds(); // 3 wrong → level 0, counter reset
+    resetConsecutiveRounds();
+    resetConsecutiveRounds(); // only 2 more wrong
+    expect(getLevel()).toBe(0);
+    expect(getConsecutiveWrongRounds()).toBe(2);
+  });
+
+  test('resets wrong counter when a round is completed correctly', () => {
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) completeRound();
+    expect(getLevel()).toBe(1);
+    resetConsecutiveRounds();
+    resetConsecutiveRounds(); // 2 wrong
+    completeRound(); // correct — resets wrong counter
+    resetConsecutiveRounds();
+    resetConsecutiveRounds(); // only 2 more wrong
+    expect(getLevel()).toBe(1);
+    expect(getConsecutiveWrongRounds()).toBe(2);
   });
 });
 
