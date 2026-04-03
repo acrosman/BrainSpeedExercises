@@ -10,7 +10,7 @@
 
 import * as game from './game.js';
 import * as render from './render.js';
-import { playFeedbackSound } from './audio.js';
+import { playFeedbackSound } from '../../components/audioService.js';
 import { saveProgress } from './progress.js';
 
 /** Mask display duration in ms. */

@@ -53,7 +53,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getThresholdHistory: jest.fn(() => [{ trial: 1, thresholdMs: 200, success: true }]),
 }));
 
-jest.unstable_mockModule('../audio.js', () => ({
+jest.unstable_mockModule('../../../components/audioService.js', () => ({
   playFeedbackSound: jest.fn(),
 }));
 
