@@ -53,11 +53,13 @@ const SUCCESS_FREQ_A_HZ = 740;
 /** Frequency of the second (higher) tone in the success chime (Hz). */
 const SUCCESS_FREQ_B_HZ = 940;
 
-/** Fundamental frequency of the first tone in the failure buzz (Hz). */
-const FAILURE_FREQ_A_HZ = 220;
+/** Fundamental frequency of the first tone in the failure chime (Hz). */
+const FAILURE_FREQ_A_HZ = 440;
 
-/** Frequency of the second (lower) tone in the failure buzz (Hz). */
-const FAILURE_FREQ_B_HZ = 170;
+/** Frequency of the second (lower) tone in the failure chime (Hz).
+ * A descending perfect fifth below FAILURE_FREQ_A_HZ creates a smooth,
+ * resolute negative feeling without a harsh buzz. */
+const FAILURE_FREQ_B_HZ = 294;
 
 // ── Shared audio context ──────────────────────────────────────────────────────
 
@@ -132,8 +134,10 @@ export function playSuccessSound() {
 }
 
 /**
- * Play a failure sound — a descending two-tone buzz.
+ * Play a failure sound — a smooth descending two-tone chime.
  *
+ * Uses sine waves on both tones for a clean sound that descends in pitch
+ * to convey a negative outcome without a harsh buzz.
  * Uses the shared AudioContext from {@link getAudioContext}.
  * Call after the first user gesture to satisfy browser autoplay policy.
  */
@@ -164,7 +168,7 @@ export function playFailureSound() {
     const gainB = ctx.createGain();
     toneB.connect(gainB);
     gainB.connect(ctx.destination);
-    toneB.type = 'sawtooth';
+    toneB.type = 'sine';
     toneB.frequency.setValueAtTime(FAILURE_FREQ_B_HZ, now + TONE_B_DELAY_S);
     gainB.gain.setValueAtTime(GAIN_NEAR_ZERO, now + TONE_B_DELAY_S);
     gainB.gain.exponentialRampToValueAtTime(TONE_B_PEAK_GAIN, now + TONE_B_ATTACK_END_S);
