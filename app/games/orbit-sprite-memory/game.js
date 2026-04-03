@@ -32,7 +32,7 @@ export const STREAK_TO_LEVEL_UP = 3;
 export const BASE_DISPLAY_MS = 1100;
 
 /** Display duration reduction per level, in ms. */
-export const DISPLAY_DECREMENT_MS = 90;
+export const DISPLAY_DECREMENT_MS = 20;
 
 /** Minimum image display duration, in ms. */
 export const MIN_DISPLAY_MS = 250;
@@ -52,6 +52,9 @@ let roundsPlayed = 0;
 /** @type {number} */
 let consecutiveCorrect = 0;
 
+/** @type {number} */
+let consecutiveWrong = 0;
+
 /** @type {boolean} */
 let running = false;
 
@@ -66,6 +69,7 @@ export function initGame() {
   level = 0;
   roundsPlayed = 0;
   consecutiveCorrect = 0;
+  consecutiveWrong = 0;
   running = false;
   startTime = null;
 }
@@ -263,12 +267,13 @@ export function evaluateSelection(round, selectedPositions) {
 }
 
 /**
- * Records a correct round and handles level progression.
+ * Records a correct round, handles level progression, and resets the wrong streak.
  */
 export function recordCorrectRound() {
   roundsPlayed += 1;
   score += 1;
   consecutiveCorrect += 1;
+  consecutiveWrong = 0;
 
   if (consecutiveCorrect >= STREAK_TO_LEVEL_UP) {
     level += 1;
@@ -277,15 +282,16 @@ export function recordCorrectRound() {
 }
 
 /**
- * Records an incorrect round, resets the level-up streak, and steps difficulty down.
- * Implements the adaptive staircase: an incorrect round decreases the level by one
- * (minimum 0), making the next round easier.
+ * Records an incorrect round and applies the adaptive staircase.
+ * After 3 consecutive incorrect rounds the level drops by 2 (minimum 0).
  */
 export function recordIncorrectRound() {
   roundsPlayed += 1;
   consecutiveCorrect = 0;
-  if (level > 0) {
-    level -= 1;
+  consecutiveWrong += 1;
+  if (consecutiveWrong >= 3) {
+    level = Math.max(0, level - 2);
+    consecutiveWrong = 0;
   }
 }
 
@@ -319,6 +325,16 @@ export function getRoundsPlayed() {
  */
 export function getConsecutiveCorrect() {
   return consecutiveCorrect;
+}
+
+/**
+ * Returns the number of consecutive wrong rounds in the current staircase window.
+ * Resets to 0 after 3 consecutive wrong rounds (when level decreases) or
+ * after any correct round.
+ * @returns {number}
+ */
+export function getConsecutiveWrong() {
+  return consecutiveWrong;
 }
 
 /**

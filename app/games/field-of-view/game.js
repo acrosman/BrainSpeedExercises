@@ -196,12 +196,13 @@ export function stopGame() {
 
 /**
  * Get a trial grid size from the current SOA.
- * Starts in a 3x3 grid and moves to 5x5 as SOA improves.
+ * Starts in a 3x3 grid and moves to 5x5 once SOA drops to 300ms,
+ * which is reachable during normal gameplay.
  *
  * @returns {number}
  */
 export function getGridSizeForCurrentSoa() {
-  return currentSoaMs <= 120 ? GRID_SIZES[1] : GRID_SIZES[0];
+  return currentSoaMs <= 300 ? GRID_SIZES[1] : GRID_SIZES[0];
 }
 
 /**

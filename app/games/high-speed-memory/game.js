@@ -60,6 +60,13 @@ let roundsCompleted = 0;
  */
 let consecutiveCorrectRounds = 0;
 
+/**
+ * Number of consecutive wrong rounds since the last correct round or staircase step.
+ * When this reaches 3, the level drops by 2 (adaptive staircase).
+ * @type {number}
+ */
+let consecutiveWrongRounds = 0;
+
 /** @type {boolean} */
 let running = false;
 
@@ -74,6 +81,7 @@ export function initGame() {
   level = 0;
   roundsCompleted = 0;
   consecutiveCorrectRounds = 0;
+  consecutiveWrongRounds = 0;
   running = false;
   startTime = null;
 }
@@ -184,13 +192,14 @@ export function addCorrectGroup() {
 
 /**
  * Mark the current round as complete.
- * Increments the consecutive-correct-rounds streak.
+ * Increments the consecutive-correct-rounds streak and resets the wrong streak.
  * The level only advances when ROUNDS_TO_LEVEL_UP consecutive correct rounds are reached,
  * at which point the streak resets to zero.
  */
 export function completeRound() {
   roundsCompleted += 1;
   consecutiveCorrectRounds += 1;
+  consecutiveWrongRounds = 0;
   if (consecutiveCorrectRounds >= ROUNDS_TO_LEVEL_UP) {
     level += 1;
     consecutiveCorrectRounds = 0;
@@ -198,15 +207,16 @@ export function completeRound() {
 }
 
 /**
- * Reset the consecutive-correct-rounds streak to zero and step difficulty down.
- * Implements the adaptive staircase: a wrong guess decreases the level by one
- * (minimum 0), making the next round easier.
+ * Reset the consecutive-correct-rounds streak and apply the adaptive staircase.
  * Called when the player clicks a Distractor card (wrong guess).
+ * After 3 consecutive wrong rounds the level drops by 2 (minimum 0).
  */
 export function resetConsecutiveRounds() {
   consecutiveCorrectRounds = 0;
-  if (level > 0) {
-    level -= 1;
+  consecutiveWrongRounds += 1;
+  if (consecutiveWrongRounds >= 3) {
+    level = Math.max(0, level - 2);
+    consecutiveWrongRounds = 0;
   }
 }
 
@@ -240,6 +250,16 @@ export function getRoundsCompleted() {
  */
 export function getConsecutiveCorrectRounds() {
   return consecutiveCorrectRounds;
+}
+
+/**
+ * Get the number of consecutive wrong rounds in the current staircase window.
+ * Resets to 0 after 3 consecutive wrong rounds (when level decreases) or
+ * after any correct round.
+ * @returns {number}
+ */
+export function getConsecutiveWrongRounds() {
+  return consecutiveWrongRounds;
 }
 
 /**

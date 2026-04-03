@@ -35,6 +35,7 @@ import {
   getLevel,
   getRoundsPlayed,
   getConsecutiveCorrect,
+  getConsecutiveWrong,
   isRunning,
 } from '../game.js';
 
@@ -225,18 +226,39 @@ describe('selection and scoring', () => {
     expect(getRoundsPlayed()).toBe(2);
   });
 
-  test('recordIncorrectRound decreases level by 1 when level is above 0 (adaptive staircase)',
+  test('recordIncorrectRound does not change level on first or second wrong round', () => {
+    recordCorrectRound();
+    recordCorrectRound();
+    recordCorrectRound(); // level → 1
+    recordIncorrectRound(); // wrong 1
+    expect(getLevel()).toBe(1);
+    recordIncorrectRound(); // wrong 2
+    expect(getLevel()).toBe(1);
+  });
+
+  test('decreases level by 2 after 3 consecutive wrong rounds (adaptive staircase)',
     () => {
-      recordCorrectRound();
-      recordCorrectRound();
-      recordCorrectRound(); // level → 1
-      expect(getLevel()).toBe(1);
+      recordCorrectRound(); recordCorrectRound(); recordCorrectRound(); // level 1
+      recordCorrectRound(); recordCorrectRound(); recordCorrectRound(); // level 2
       recordIncorrectRound();
+      recordIncorrectRound();
+      recordIncorrectRound(); // 3 consecutive wrong → level 0
       expect(getLevel()).toBe(0);
     });
 
   test('recordIncorrectRound does not decrease level below 0', () => {
     recordIncorrectRound();
+    recordIncorrectRound();
+    recordIncorrectRound();
     expect(getLevel()).toBe(0);
+  });
+
+  test('recordCorrectRound resets the wrong counter', () => {
+    recordCorrectRound(); recordCorrectRound(); recordCorrectRound(); // level 1
+    recordIncorrectRound(); recordIncorrectRound(); // 2 wrong
+    recordCorrectRound(); // resets wrong counter
+    recordIncorrectRound(); recordIncorrectRound(); // only 2 more wrong
+    expect(getLevel()).toBe(1);
+    expect(getConsecutiveWrong()).toBe(2);
   });
 });
