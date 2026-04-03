@@ -32,7 +32,7 @@ export const STREAK_TO_LEVEL_UP = 3;
 export const BASE_DISPLAY_MS = 1100;
 
 /** Display duration reduction per level, in ms. */
-export const DISPLAY_DECREMENT_MS = 20;
+export const DISPLAY_DECREMENT_MS = 90;
 
 /** Minimum image display duration, in ms. */
 export const MIN_DISPLAY_MS = 250;
