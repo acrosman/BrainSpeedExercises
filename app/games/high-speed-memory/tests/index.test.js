@@ -51,7 +51,6 @@ const {
   hideAllCards,
   startRound,
   handleCardClick,
-  playWrongSound,
 } = pluginModule;
 
 const gameMock = await import('../game.js');
@@ -312,85 +311,6 @@ describe('return to menu button', () => {
 
     expect(eventFired).toBe(true);
     jest.useRealTimers();
-  });
-});
-
-// ── playWrongSound ────────────────────────────────────────────────────────────
-
-describe('playWrongSound', () => {
-  test('does not throw when AudioContext is unavailable', () => {
-    expect(() => playWrongSound()).not.toThrow();
-  });
-
-  test('creates and plays an oscillator when AudioContext is available', () => {
-    const mockOsc = {
-      connect: jest.fn(),
-      type: '',
-      frequency: { setValueAtTime: jest.fn() },
-      gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
-      start: jest.fn(),
-      stop: jest.fn(),
-      onended: null,
-    };
-    const mockGainNode = {
-      connect: jest.fn(),
-      gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
-    };
-    const mockCtx = {
-      createOscillator: jest.fn(() => mockOsc),
-      createGain: jest.fn(() => mockGainNode),
-      destination: {},
-      currentTime: 0,
-      close: jest.fn().mockResolvedValue(undefined),
-    };
-    const OriginalAudioContext = globalThis.AudioContext;
-    globalThis.AudioContext = jest.fn(() => mockCtx);
-
-    expect(() => playWrongSound()).not.toThrow();
-    expect(mockOsc.start).toHaveBeenCalled();
-    if (mockOsc.onended) mockOsc.onended();
-
-    globalThis.AudioContext = OriginalAudioContext;
-  });
-
-  test('swallows errors thrown by the audio context', () => {
-    const OriginalAudioContext = globalThis.AudioContext;
-    globalThis.AudioContext = jest.fn(() => { throw new Error('Audio unavailable'); });
-
-    expect(() => playWrongSound()).not.toThrow();
-
-    globalThis.AudioContext = OriginalAudioContext;
-  });
-
-  test('osc.onended swallows ctx.close() rejection', () => {
-    const mockOsc = {
-      connect: jest.fn(),
-      type: '',
-      frequency: { setValueAtTime: jest.fn() },
-      gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
-      start: jest.fn(),
-      stop: jest.fn(),
-      onended: null,
-    };
-    const mockGainNode = {
-      connect: jest.fn(),
-      gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
-    };
-    const mockCtx = {
-      createOscillator: jest.fn(() => mockOsc),
-      createGain: jest.fn(() => mockGainNode),
-      destination: {},
-      currentTime: 0,
-      close: jest.fn().mockRejectedValue(new Error('close failed')),
-    };
-    const OriginalAudioContext = globalThis.AudioContext;
-    globalThis.AudioContext = jest.fn(() => mockCtx);
-
-    playWrongSound();
-    // Trigger onended — ctx.close() rejects, but the .catch(() => {}) swallows it
-    expect(() => { if (mockOsc.onended) mockOsc.onended(); }).not.toThrow();
-
-    globalThis.AudioContext = OriginalAudioContext;
   });
 });
 

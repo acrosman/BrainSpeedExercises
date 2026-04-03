@@ -1,4 +1,3 @@
-
 /**
  * index.js — Fast Piggie game plugin entry point for BrainSpeedExercises.
  *
@@ -9,6 +8,7 @@
  */
 
 import * as game from './game.js';
+import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
 const SPRITE_INSET = 2;
@@ -205,65 +205,6 @@ let _clickEnabled = false;
 let _selectedWedge = -1; // for keyboard navigation
 let _hoveredWedge = -1; // for mouse hover highlighting
 let _roundTimer = null; // setTimeout handle
-
-let _audioCtx = null;
-
-/**
- * Creates or returns the singleton AudioContext for sound effects.
- * @returns {AudioContext}
- */
-export function createAudioContext() {
-  if (!_audioCtx) {
-    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  return _audioCtx;
-}
-
-/**
- * Plays a single tone for sound feedback.
- * @param {AudioContext} audioCtx
- * @param {number} frequency
- * @param {number} startTime
- * @param {number} duration
- */
-function playTone(audioCtx, frequency, startTime, duration) {
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(frequency, startTime);
-
-  // Gentle envelope: ramp up then down to avoid clicks
-  gain.gain.setValueAtTime(0, startTime);
-  gain.gain.linearRampToValueAtTime(0.35, startTime + 0.02);
-  gain.gain.linearRampToValueAtTime(0, startTime + duration);
-
-  osc.start(startTime);
-  osc.stop(startTime + duration);
-}
-
-/**
- * Plays the success sound sequence.
- * @param {AudioContext} audioCtx
- */
-export function playSuccessSound(audioCtx) {
-  const now = audioCtx.currentTime;
-  playTone(audioCtx, 440, now, 0.15);
-  playTone(audioCtx, 660, now + 0.16, 0.15);
-}
-
-/**
- * Plays the failure sound sequence.
- * @param {AudioContext} audioCtx
- */
-export function playFailureSound(audioCtx) {
-  const now = audioCtx.currentTime;
-  playTone(audioCtx, 330, now, 0.15);
-  playTone(audioCtx, 220, now + 0.16, 0.15);
-}
 
 /**
  * Updates the score, round count, and display time in the UI.
@@ -493,8 +434,6 @@ function _resolveRound(wedge) {
     answerSpeedMs = Date.now() - _currentRound._imagesHiddenAt;
   }
 
-  const audioCtx = createAudioContext();
-
   if (correct) {
     game.addScore(imageCount, answerSpeedMs);
     highlightWedge(
@@ -505,7 +444,7 @@ function _resolveRound(wedge) {
       wedgeCount,
       'rgba(40, 167, 69, 0.45)',
     );
-    playSuccessSound(audioCtx);
+    playSuccessSound();
     _triggerFlash('correct');
     _feedbackEl.textContent = 'Correct! Well spotted.';
   } else {
@@ -529,7 +468,7 @@ function _resolveRound(wedge) {
       );
     }
     game.addMiss(imageCount);
-    playFailureSound(audioCtx);
+    playFailureSound();
     _triggerFlash('wrong');
     _feedbackEl.textContent = 'Not quite — the different piggie is highlighted.';
   }

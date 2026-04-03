@@ -7,6 +7,7 @@
  */
 
 import * as game from './game.js';
+import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 
 /** Delay before automatically starting the next round after answer submit. */
 const NEXT_ROUND_DELAY_MS = 900;
@@ -91,71 +92,6 @@ let _inputEnabled = false;
 
 /** @type {ReturnType<typeof game.createRound>|null} */
 let _currentRound = null;
-
-/**
- * Creates a short positive two-tone sound.
- */
-export function playPositiveSound() {
-  const AudioCtx = (typeof AudioContext !== 'undefined' && AudioContext)
-    || (typeof window !== 'undefined' && window.webkitAudioContext)
-    || null;
-  if (!AudioCtx) return;
-
-  try {
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc1.type = 'sine';
-    osc2.type = 'sine';
-    osc1.frequency.setValueAtTime(620, now);
-    osc2.frequency.setValueAtTime(820, now + 0.09);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.18, now + 0.03);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.12);
-    osc2.start(now + 0.09);
-    osc2.stop(now + 0.25);
-    osc2.onended = () => { ctx.close().catch(() => { }); };
-  } catch {
-    // Audio feedback is optional.
-  }
-}
-
-/**
- * Creates a short negative buzz.
- */
-export function playNegativeSound() {
-  const AudioCtx = (typeof AudioContext !== 'undefined' && AudioContext)
-    || (typeof window !== 'undefined' && window.webkitAudioContext)
-    || null;
-  if (!AudioCtx) return;
-
-  try {
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(200, now);
-    osc.frequency.linearRampToValueAtTime(140, now + 0.22);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.16, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.24);
-    osc.onended = () => { ctx.close().catch(() => { }); };
-  } catch {
-    // Audio feedback is optional.
-  }
-}
 
 /**
  * Flashes board edge to indicate a reviewed answer.
@@ -459,13 +395,13 @@ export function submitSelection() {
     game.recordCorrectRound();
     updateStats();
     flashBoard('success');
-    playPositiveSound();
+    playSuccessSound();
     announce('Correct. Reviewing positions before the next round.');
   } else {
     game.recordIncorrectRound();
     updateStats();
     flashBoard('failure');
-    playNegativeSound();
+    playFailureSound();
     announce('Incorrect. Reviewing positions before the next round.');
   }
 
