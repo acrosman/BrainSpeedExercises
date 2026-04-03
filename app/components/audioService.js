@@ -3,7 +3,7 @@
  *
  * Manages a single shared AudioContext for the entire application and
  * exposes named sound-effect functions that every game plugin can call.
- * Centralising audio here eliminates per-game context creation overhead
+ * Centralizing audio here eliminates per-game context creation overhead
  * and satisfies browser autoplay policies with a single shared context.
  *
  * @file Central audio service.
