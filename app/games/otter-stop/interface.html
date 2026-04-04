@@ -1,0 +1,132 @@
+<!-- HTML fragment injected into #game-container by the renderer.
+     Do NOT include <html>, <head>, or <body> tags. -->
+
+<section class="otter-stop" aria-labelledby="os-title">
+
+  <!-- ── Instructions panel (shown before game starts) ── -->
+  <div id="os-instructions" class="os-instructions">
+    <h2 id="os-title" class="os-instructions__heading">Otter Stop!</h2>
+    <p class="os-instructions__intro">
+      A stream of otters needs your help — but one sneaky otter means
+      <strong>STOP!</strong>
+    </p>
+    <h3 class="os-instructions__subheading">How to Play</h3>
+    <ul class="os-instructions__list">
+      <li>Otters appear one at a time in rapid succession.</li>
+      <li>
+        Press <kbd>Space</kbd> for every otter you see — <strong>except</strong>
+        the special no-go otter.
+      </li>
+      <li>When the no-go otter appears, do <strong>nothing</strong> — freeze!</li>
+      <li>The game speeds up as you improve. Good luck!</li>
+    </ul>
+    <button id="os-start-btn" type="button" class="os-btn os-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <!-- ── Active game area (hidden until Start is clicked) ── -->
+  <div id="os-game-area" class="os-game-area" hidden>
+
+    <!-- Live stats bar -->
+    <div class="os-stats" aria-live="polite" aria-atomic="true">
+      <span class="os-stat">Level: <strong id="os-level">1</strong></span>
+      <span class="os-stat">Score: <strong id="os-score">0</strong></span>
+      <span class="os-stat">
+        No-Go Hits: <strong id="os-nogo-hits">0</strong>
+      </span>
+      <span class="os-stat">
+        Interval: <strong id="os-interval">700</strong> ms
+      </span>
+    </div>
+
+    <!-- Image display area -->
+    <div
+      id="os-stimulus"
+      class="os-stimulus"
+      role="img"
+      aria-label="Current stimulus"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <img
+        id="os-stimulus-img"
+        class="os-stimulus__img"
+        src=""
+        alt=""
+        aria-hidden="true"
+      />
+    </div>
+
+    <!-- Feedback overlay: shown briefly after a no-go trial -->
+    <div
+      id="os-feedback"
+      class="os-feedback"
+      role="status"
+      aria-live="assertive"
+      aria-atomic="true"
+      hidden
+    >
+      <img
+        id="os-feedback-img"
+        class="os-feedback__img"
+        src=""
+        alt=""
+        aria-hidden="true"
+      />
+      <p id="os-feedback-text" class="os-feedback__text"></p>
+    </div>
+
+    <!-- Reminder -->
+    <p class="os-reminder">
+      Press <kbd>Space</kbd> for every otter — <strong>except</strong>
+      the no-go otter!
+    </p>
+
+    <!-- Controls -->
+    <div class="os-controls" role="group" aria-label="Game controls">
+      <button id="os-stop-btn" type="button" class="os-btn os-btn--secondary">
+        End Game
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ── End panel (shown after game ends) ── -->
+  <div id="os-end-panel" class="os-end-panel" hidden>
+    <h2 class="os-end-panel__heading">Game Over!</h2>
+
+    <dl class="os-results">
+      <div class="os-results__row">
+        <dt class="os-results__label">Score</dt>
+        <dd class="os-results__value" id="os-final-score">0</dd>
+      </div>
+      <div class="os-results__row">
+        <dt class="os-results__label">Personal Best</dt>
+        <dd class="os-results__value" id="os-final-best">0</dd>
+      </div>
+      <div class="os-results__row">
+        <dt class="os-results__label">No-Go Hits</dt>
+        <dd class="os-results__value" id="os-final-nogo">0</dd>
+      </div>
+      <div class="os-results__row">
+        <dt class="os-results__label">Misses</dt>
+        <dd class="os-results__value" id="os-final-misses">0</dd>
+      </div>
+      <div class="os-results__row">
+        <dt class="os-results__label">Trials</dt>
+        <dd class="os-results__value" id="os-final-trials">0</dd>
+      </div>
+    </dl>
+
+    <div class="os-end-panel__actions" role="group" aria-label="Post-game options">
+      <button id="os-play-again-btn" type="button" class="os-btn os-btn--primary">
+        Play Again
+      </button>
+      <button id="os-return-btn" type="button" class="os-btn os-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+
+</section>
