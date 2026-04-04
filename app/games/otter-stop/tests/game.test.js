@@ -22,16 +22,22 @@ import {
   IMAGE_KEYS,
   NO_GO_KEY,
   GO_KEYS,
+  setGoKeys,
 } from '../game.js';
+
+/** Default go keys used by the test suite (matches built-in defaults). */
+const DEFAULT_GO_KEYS = ['go-1.png', 'go-2.png', 'go-3.png'];
 
 beforeEach(() => {
   initGame();
+  // Restore go keys to defaults before each test to prevent cross-test leakage.
+  setGoKeys(DEFAULT_GO_KEYS);
 });
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 describe('IMAGE_KEYS / NO_GO_KEY / GO_KEYS', () => {
-  it('IMAGE_KEYS contains 4 entries', () => {
+  it('IMAGE_KEYS contains 4 entries by default', () => {
     expect(IMAGE_KEYS).toHaveLength(4);
   });
 
@@ -46,6 +52,37 @@ describe('IMAGE_KEYS / NO_GO_KEY / GO_KEYS', () => {
   it('GO_KEYS contains only go images (excludes NO_GO_KEY)', () => {
     expect(GO_KEYS).not.toContain(NO_GO_KEY);
     expect(GO_KEYS).toHaveLength(IMAGE_KEYS.length - 1);
+  });
+
+  it('default GO_KEYS filenames include a .png extension', () => {
+    GO_KEYS.forEach((k) => expect(k).toMatch(/\.png$/i));
+  });
+});
+
+// ── setGoKeys ─────────────────────────────────────────────────────────────────
+
+describe('setGoKeys()', () => {
+  it('updates GO_KEYS to the provided array', () => {
+    setGoKeys(['a.png', 'b.png']);
+    expect(GO_KEYS).toEqual(['a.png', 'b.png']);
+  });
+
+  it('updates IMAGE_KEYS to include the new go keys plus NO_GO_KEY', () => {
+    setGoKeys(['a.png', 'b.png']);
+    expect(IMAGE_KEYS).toEqual(['a.png', 'b.png', NO_GO_KEY]);
+  });
+
+  it('pickNextImage() picks from the new keys after setGoKeys()', () => {
+    setGoKeys(['custom.png']);
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0);
+    const { imageKey } = pickNextImage();
+    spy.mockRestore();
+    expect(imageKey).toBe('custom.png');
+  });
+
+  it('does not modify NO_GO_KEY', () => {
+    setGoKeys(['x.jpg']);
+    expect(NO_GO_KEY).toBe('no-go');
   });
 });
 
@@ -189,9 +226,9 @@ describe('pickNextImage()', () => {
   });
 
   it.each([
-    [0, 'go-1', false],
-    [0.25, 'go-2', false],
-    [0.5, 'go-3', false],
+    [0, 'go-1.png', false],
+    [0.25, 'go-2.png', false],
+    [0.5, 'go-3.png', false],
     [0.75, 'no-go', true],
   ])('Math.random()=%f → imageKey="%s", isNoGo=%s', (rand, expectedKey, expectedIsNoGo) => {
     randomSpy = jest.spyOn(Math, 'random').mockReturnValue(rand);

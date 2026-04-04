@@ -15,7 +15,7 @@ jest.unstable_mockModule('../game.js', () => ({
     duration: 8000,
     bestScore: 5,
   })),
-  pickNextImage: jest.fn(() => ({ imageKey: 'go-1', isNoGo: false })),
+  pickNextImage: jest.fn(() => ({ imageKey: 'go-1.png', isNoGo: false })),
   recordResponse: jest.fn(() => 'correct'),
   getCurrentIntervalMs: jest.fn(() => 1500),
   getScore: jest.fn(() => 5),
@@ -27,7 +27,8 @@ jest.unstable_mockModule('../game.js', () => ({
   getConsecutiveWrong: jest.fn(() => 0),
   getSessionBestScore: jest.fn(() => 5),
   isRunning: jest.fn(() => true),
-  IMAGE_KEYS: ['go-1', 'go-2', 'go-3', 'no-go'],
+  setGoKeys: jest.fn(),
+  IMAGE_KEYS: ['go-1.png', 'go-2.png', 'go-3.png', 'no-go'],
   NO_GO_KEY: 'no-go',
 }));
 
@@ -75,6 +76,7 @@ const {
   clearAllTimers,
   handleKeyDown,
   handleClick,
+  loadGoImages,
 } = indexModule;
 
 // ── 4. DOM helpers ────────────────────────────────────────────────────────────
@@ -136,7 +138,7 @@ describe('utility functions with null DOM refs (before init)', () => {
   });
 
   it('showImage() does not throw when DOM refs are null', () => {
-    expect(() => showImage('go-1')).not.toThrow();
+    expect(() => showImage('go-1.png')).not.toThrow();
   });
 
   it('hideImage() does not throw when DOM refs are null', () => {
@@ -337,12 +339,22 @@ describe('updateStats()', () => {
 // ── showImage / hideImage ─────────────────────────────────────────────────────
 
 describe('showImage()', () => {
-  it('sets the img src for a go image', () => {
+  it('sets the img src for a go image (path includes images/go/)', () => {
     const container = buildContainer();
     plugin.init(container);
-    showImage('go-1');
+    showImage('go-1.png');
     const img = container.querySelector('#os-stimulus-img');
     expect(img.src).toContain('go-1.png');
+    expect(img.src).toContain('go/');
+  });
+
+  it('sets the img src for the no-go image (path does not include go/)', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    showImage('no-go');
+    const img = container.querySelector('#os-stimulus-img');
+    expect(img.src).toContain('no-go.png');
+    expect(img.src).not.toContain('go/no-go');
   });
 
   it('sets alt text to "No-go otter" for the no-go image', () => {
@@ -356,14 +368,14 @@ describe('showImage()', () => {
   it('sets alt text to "Go otter" for a go image', () => {
     const container = buildContainer();
     plugin.init(container);
-    showImage('go-2');
+    showImage('go-2.png');
     const img = container.querySelector('#os-stimulus-img');
     expect(img.alt).toBe('Go otter');
   });
 
   it('does not throw when stimulus image element is absent (null container)', () => {
     plugin.init(null);
-    expect(() => showImage('go-1')).not.toThrow();
+    expect(() => showImage('go-1.png')).not.toThrow();
   });
 });
 
@@ -832,6 +844,52 @@ describe('stop() — window.api IPC call', () => {
   });
 });
 
+
+// ── loadGoImages ──────────────────────────────────────────────────────────────
+
+describe('loadGoImages()', () => {
+  it('calls window.api.invoke("games:listImages") when api is available', async () => {
+    const invokeMock = jest.fn().mockResolvedValue(['go-1.png', 'go-2.png']);
+    window.api = { invoke: invokeMock };
+    await loadGoImages();
+    expect(invokeMock).toHaveBeenCalledWith('games:listImages', {
+      gameId: 'otter-stop',
+      subfolder: 'go',
+    });
+    delete window.api;
+  });
+
+  it('calls game.setGoKeys() with the returned filenames', async () => {
+    const invokeMock = jest.fn().mockResolvedValue(['go-1.png', 'go-2.png']);
+    window.api = { invoke: invokeMock };
+    await loadGoImages();
+    expect(gameMock.setGoKeys).toHaveBeenCalledWith(['go-1.png', 'go-2.png']);
+    delete window.api;
+  });
+
+  it('does not call setGoKeys() when the returned array is empty', async () => {
+    const invokeMock = jest.fn().mockResolvedValue([]);
+    window.api = { invoke: invokeMock };
+    gameMock.setGoKeys.mockClear();
+    await loadGoImages();
+    expect(gameMock.setGoKeys).not.toHaveBeenCalled();
+    delete window.api;
+  });
+
+  it('does not throw when window.api is unavailable', async () => {
+    const origApi = window.api;
+    delete window.api;
+    await expect(loadGoImages()).resolves.toBeUndefined();
+    if (origApi) window.api = origApi;
+  });
+
+  it('does not throw when the IPC call rejects (falls back silently)', async () => {
+    const invokeMock = jest.fn().mockRejectedValue(new Error('IPC error'));
+    window.api = { invoke: invokeMock };
+    await expect(loadGoImages()).resolves.toBeUndefined();
+    delete window.api;
+  });
+});
 
 describe('button wiring', () => {
   it('start button calls start()', () => {

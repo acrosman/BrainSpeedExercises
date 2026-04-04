@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('api', {
     const validChannels = [
       'games:list',
       'games:load',
+      'games:listImages',
       'progress:save',
       'progress:load',
       'progress:reset',

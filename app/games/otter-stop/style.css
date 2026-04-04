@@ -129,8 +129,9 @@
 }
 
 .os-feedback__img {
-  max-width: 120px;
-  max-height: 120px;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   object-fit: contain;
 }
 

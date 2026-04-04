@@ -23,6 +23,9 @@ const ISI_MS = 120;
 /** Base path for image assets relative to the game folder (used by the renderer). */
 const IMAGE_BASE = './games/otter-stop/images/';
 
+/** Path to the go-stimulus image subfolder. */
+const IMAGE_BASE_GO = './games/otter-stop/images/go/';
+
 // ── DOM references — populated by init() ─────────────────────────────────────
 
 /** @type {HTMLElement|null} */
@@ -111,6 +114,32 @@ let _isiTimer = null;
 // ── DOM helpers ───────────────────────────────────────────────────────────────
 
 /**
+ * Fetch the list of go image filenames from the main process via IPC.
+ * Calls {@link game.setGoKeys} with the discovered filenames so that
+ * `pickNextImage()` uses the actual contents of images/go/ rather than
+ * hardcoded defaults.
+ *
+ * Falls back silently to the built-in defaults when `window.api` is not
+ * available (e.g. in a test environment) or when the IPC call rejects.
+ *
+ * @returns {Promise<void>}
+ */
+export async function loadGoImages() {
+  if (typeof window === 'undefined' || !window.api) return;
+  try {
+    const files = await window.api.invoke('games:listImages', {
+      gameId: 'otter-stop',
+      subfolder: 'go',
+    });
+    if (files && files.length > 0) {
+      game.setGoKeys(files);
+    }
+  } catch {
+    // Silently fall back to default GO_KEYS already set in game.js.
+  }
+}
+
+/**
  * Update the live stats bar with the latest values from the game module.
  */
 export function updateStats() {
@@ -122,12 +151,19 @@ export function updateStats() {
 
 /**
  * Show the image for a given image key in the stimulus area.
- * @param {string} imageKey - One of the IMAGE_KEYS from game.js.
+ *
+ * Go image keys are filenames (with extension) inside `images/go/`; the
+ * no-go key `'no-go'` maps to `images/no-go.png` at the top level.
+ *
+ * @param {string} imageKey - A go filename (e.g. 'go-1.png') or 'no-go'.
  */
 export function showImage(imageKey) {
   if (!_stimulusImg) return;
-  _stimulusImg.src = `${IMAGE_BASE}${imageKey}.png`;
-  _stimulusImg.alt = imageKey === game.NO_GO_KEY ? 'No-go otter' : 'Go otter';
+  const isNoGo = imageKey === game.NO_GO_KEY;
+  _stimulusImg.src = isNoGo
+    ? `${IMAGE_BASE}no-go.png`
+    : `${IMAGE_BASE_GO}${imageKey}`;
+  _stimulusImg.alt = isNoGo ? 'No-go otter' : 'Go otter';
   _stimulusImg.classList.remove('os-hidden');
 }
 
@@ -362,6 +398,11 @@ function init(container) {
   _finalTrialsEl = container.querySelector('#os-final-trials');
 
   game.initGame();
+
+  // Asynchronously populate GO_KEYS from the images/go/ directory.
+  // Resolves well before the player clicks "Start Game".
+  // eslint-disable-next-line no-console
+  loadGoImages().catch((err) => console.warn('Otter Stop!: failed to load go images:', err));
 
   if (_startBtn) {
     _startBtn.addEventListener('click', () => {

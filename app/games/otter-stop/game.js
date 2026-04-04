@@ -2,24 +2,49 @@
 /**
  * game.js — Pure game logic for Otter Stop!
  *
- * Implements a go/no-go rapid-response task. Three "go" images and one
+ * Implements a go/no-go rapid-response task. A set of "go" images and one
  * "no-go" image cycle in rapid succession. The player must press Space for
  * every go image and withhold on the no-go image. Speed and accuracy drive
  * an adaptive staircase that raises or lowers the display interval.
+ *
+ * Go image filenames are loaded at runtime from the images/go/ directory and
+ * supplied via setGoKeys(). Sensible defaults are used until then.
  *
  * No DOM access — all logic is pure and unit-testable.
  *
  * @file Otter Stop! game logic module.
  */
 
-/** Keys for each image asset (maps to files in the images/ directory). */
-export const IMAGE_KEYS = ['go-1', 'go-2', 'go-3', 'no-go'];
-
 /** The key that identifies the no-go stimulus. */
 export const NO_GO_KEY = 'no-go';
 
-/** Keys for go stimuli only (excludes the no-go key). */
-export const GO_KEYS = IMAGE_KEYS.filter((k) => k !== NO_GO_KEY);
+/**
+ * Filenames (including extension) for go stimuli, loaded from images/go/.
+ * Defaults are used until setGoKeys() is called by the controller.
+ *
+ * @type {string[]}
+ */
+export let GO_KEYS = ['go-1.png', 'go-2.png', 'go-3.png'];
+
+/**
+ * All stimulus keys: go filenames plus the no-go key.
+ * Updated automatically by setGoKeys().
+ *
+ * @type {string[]}
+ */
+export let IMAGE_KEYS = [...GO_KEYS, NO_GO_KEY];
+
+/**
+ * Set the go image keys from the scanned images/go/ directory.
+ * Updates both GO_KEYS and IMAGE_KEYS to reflect the new set.
+ *
+ * @param {string[]} keys - Filenames (with extension) for go images, e.g. ['go-1.png'].
+ */
+export function setGoKeys(keys) {
+  const goKeysCopy = keys.slice();
+  GO_KEYS = goKeysCopy;
+  IMAGE_KEYS = [...goKeysCopy, NO_GO_KEY];
+}
 
 /** Display interval at level 0 (milliseconds). */
 const BASE_INTERVAL_MS = 1500;
