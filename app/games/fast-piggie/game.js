@@ -8,6 +8,25 @@
  * @file Fast Piggie game logic module.
  */
 
+// ── Difficulty constants ───────────────────────────────────────────────────
+/** Display duration (ms) at level 0. */
+const INITIAL_DISPLAY_MS = 800;
+/** Fixed step (ms) subtracted each level while above the threshold. */
+const DISPLAY_STEP_MS = 100;
+/** Level at which fixed stepping gives way to proportional stepping. */
+const DISPLAY_STEP_THRESHOLD_MS = 100;
+/** Minimum (fastest) possible display duration in ms. */
+const MIN_DISPLAY_MS = 10;
+/** Number of images shown at level 0. */
+const INITIAL_IMAGE_COUNT = 3;
+/** Maximum number of images that can appear in a round. */
+const MAX_IMAGE_COUNT = 42;
+/** Maximum number of wedges on the wheel. */
+const MAX_WEDGE_COUNT = 42;
+/** Minimum number of wedges on the wheel. */
+const MIN_WEDGE_COUNT = 6;
+// ─────────────────────────────────────────────────────────────────────────────
+
 let score = 0;
 let roundsPlayed = 0;
 let running = false;
@@ -75,16 +94,37 @@ export function stopGame() {
 }
 
 /**
+ * Calculate the display duration in milliseconds for a given level.
+ *
+ * Steps down by DISPLAY_STEP_MS each level while above DISPLAY_STEP_THRESHOLD_MS.
+ * Once at or below the threshold, each subsequent level moves halfway to
+ * MIN_DISPLAY_MS (result rounded down to the nearest 5 ms).
+ * @param {number} lv - The level to calculate for.
+ * @returns {number} Display duration in ms.
+ */
+function calculateDisplayDuration(lv) {
+  let duration = INITIAL_DISPLAY_MS;
+  for (let i = 0; i < lv; i += 1) {
+    if (duration > DISPLAY_STEP_THRESHOLD_MS) {
+      duration = Math.max(duration - DISPLAY_STEP_MS, DISPLAY_STEP_THRESHOLD_MS);
+    } else {
+      const midpoint = (duration + MIN_DISPLAY_MS) / 2;
+      duration = Math.max(Math.floor(midpoint / 5) * 5, MIN_DISPLAY_MS);
+    }
+  }
+  return duration;
+}
+
+/**
  * Generate a new round's parameters based on the current level.
- * Display duration starts at 800ms and decreases by 100ms per level (minimum 25ms).
  * @param {number} currentLevel
  * @returns {{ wedgeCount: number, imageCount: number,
  *  displayDurationMs: number, outlierWedgeIndex: number }}
  */
 export function generateRound(currentLevel) {
-  const imageCount = Math.min(3 + currentLevel, 14);
-  const wedgeCount = Math.min(Math.max(6, imageCount), 14);
-  const displayDurationMs = Math.max(800 - currentLevel * 100, 25);
+  const imageCount = Math.min(INITIAL_IMAGE_COUNT + currentLevel, MAX_IMAGE_COUNT);
+  const wedgeCount = Math.min(Math.max(MIN_WEDGE_COUNT, imageCount), MAX_WEDGE_COUNT);
+  const displayDurationMs = calculateDisplayDuration(currentLevel);
   const outlierWedgeIndex = Math.floor(Math.random() * imageCount);
   return {
     wedgeCount,
@@ -211,13 +251,12 @@ export function getConsecutiveCorrect() {
 
 /**
  * Get the current difficulty parameters.
- * Display duration starts at 800ms and decreases by 100ms per level (minimum 25ms).
  * @returns {{ wedgeCount: number, imageCount: number, displayDurationMs: number }}
  */
 export function getCurrentDifficulty() {
-  const imageCount = Math.min(3 + level, 14);
-  const wedgeCount = Math.min(Math.max(6, imageCount), 14);
-  const displayDurationMs = Math.max(800 - level * 100, 25);
+  const imageCount = Math.min(INITIAL_IMAGE_COUNT + level, MAX_IMAGE_COUNT);
+  const wedgeCount = Math.min(Math.max(MIN_WEDGE_COUNT, imageCount), MAX_WEDGE_COUNT);
+  const displayDurationMs = calculateDisplayDuration(level);
   return { wedgeCount, imageCount, displayDurationMs };
 }
 

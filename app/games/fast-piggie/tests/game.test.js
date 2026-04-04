@@ -261,10 +261,15 @@ describe('generateRound(level)', () => {
     [4, 7, 7, 400],
     [5, 8, 8, 300],
     [6, 9, 9, 200],
-    [8, 11, 11, 25],
-    [11, 14, 14, 25],
-    [24, 14, 14, 25],
-    [100, 14, 14, 25],
+    [7, 10, 10, 100],
+    [8, 11, 11, 55],
+    [9, 12, 12, 30],
+    [10, 13, 13, 20],
+    [11, 14, 14, 15],
+    [12, 15, 15, 10],
+    [24, 27, 27, 10],
+    [39, 42, 42, 10],
+    [100, 42, 42, 10],
   ])('level=%i → wedgeCount=%i, imageCount=%i, displayDurationMs=%i',
     (roundNumber, wedgeCount, imageCount, displayDurationMs) => {
       const result = generateRound(roundNumber);
@@ -416,17 +421,24 @@ describe('getCurrentDifficulty()', () => {
       });
     });
 
-  it('returns { wedgeCount: 11, imageCount: 11, displayDurationMs: 25 } at level 8', () => {
+  it('returns { wedgeCount: 11, imageCount: 11, displayDurationMs: 55 } at level 8', () => {
     for (let i = 0; i < 24; i += 1) addScore();
     expect(getCurrentDifficulty()).toEqual({
-      wedgeCount: 11, imageCount: 11, displayDurationMs: 25,
+      wedgeCount: 11, imageCount: 11, displayDurationMs: 55,
     });
   });
 
-  it('returns { wedgeCount: 14, imageCount: 14, displayDurationMs: 25 } at level 24+', () => {
+  it('returns { wedgeCount: 27, imageCount: 27, displayDurationMs: 10 } at level 24', () => {
     for (let i = 0; i < 72; i += 1) addScore();
     expect(getCurrentDifficulty()).toEqual({
-      wedgeCount: 14, imageCount: 14, displayDurationMs: 25,
+      wedgeCount: 27, imageCount: 27, displayDurationMs: 10,
+    });
+  });
+
+  it('returns { wedgeCount: 42, imageCount: 42, displayDurationMs: 10 } at level 39+', () => {
+    for (let i = 0; i < 117; i += 1) addScore(); // 39 levels × 3 correct each
+    expect(getCurrentDifficulty()).toEqual({
+      wedgeCount: 42, imageCount: 42, displayDurationMs: 10,
     });
   });
 
