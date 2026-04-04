@@ -87,13 +87,14 @@ function buildContainer() {
   const el = document.createElement('div');
   el.innerHTML = `
     <div id="os-instructions"></div>
-    <div id="os-game-area" hidden></div>
-    <div id="os-stimulus" role="button" tabindex="0">
-      <img id="os-stimulus-img" src="" alt="" />
-    </div>
-    <div id="os-feedback" hidden>
-      <img id="os-feedback-img" src="" alt="" />
-      <p id="os-feedback-text"></p>
+    <div id="os-game-area" hidden>
+      <div id="os-stimulus" role="button" tabindex="0">
+        <img id="os-stimulus-img" src="" alt="" />
+        <div id="os-feedback" hidden>
+          <img id="os-feedback-img" src="" alt="" />
+          <p id="os-feedback-text"></p>
+        </div>
+      </div>
     </div>
     <div id="os-end-panel" hidden></div>
     <button id="os-start-btn"></button>

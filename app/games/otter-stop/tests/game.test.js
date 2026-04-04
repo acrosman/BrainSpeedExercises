@@ -16,10 +16,12 @@ import {
   getLevel,
   getConsecutiveCorrect,
   getConsecutiveWrong,
+  getForceGoNext,
   getSessionBestScore,
   isRunning,
   IMAGE_KEYS,
   NO_GO_KEY,
+  GO_KEYS,
 } from '../game.js';
 
 beforeEach(() => {
@@ -28,7 +30,7 @@ beforeEach(() => {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-describe('IMAGE_KEYS / NO_GO_KEY', () => {
+describe('IMAGE_KEYS / NO_GO_KEY / GO_KEYS', () => {
   it('IMAGE_KEYS contains 4 entries', () => {
     expect(IMAGE_KEYS).toHaveLength(4);
   });
@@ -39,6 +41,11 @@ describe('IMAGE_KEYS / NO_GO_KEY', () => {
 
   it('NO_GO_KEY equals "no-go"', () => {
     expect(NO_GO_KEY).toBe('no-go');
+  });
+
+  it('GO_KEYS contains only go images (excludes NO_GO_KEY)', () => {
+    expect(GO_KEYS).not.toContain(NO_GO_KEY);
+    expect(GO_KEYS).toHaveLength(IMAGE_KEYS.length - 1);
   });
 });
 
@@ -79,9 +86,9 @@ describe('initGame()', () => {
 
   it('resets level to 0', () => {
     startGame();
-    recordResponse(false, true);
-    recordResponse(false, true);
-    recordResponse(false, true); // level advances to 1
+    recordResponse(true, false); // correct no-go inhibition ×3 → level → 1
+    recordResponse(true, false);
+    recordResponse(true, false);
     stopGame();
     initGame();
     expect(getLevel()).toBe(0);
@@ -95,8 +102,8 @@ describe('initGame()', () => {
 
   it('resets consecutiveCorrect to 0', () => {
     startGame();
-    recordResponse(false, true);
-    recordResponse(false, true);
+    recordResponse(true, false); // correct no-go — increments consecutiveCorrect
+    recordResponse(true, false);
     stopGame();
     initGame();
     expect(getConsecutiveCorrect()).toBe(0);
@@ -108,6 +115,14 @@ describe('initGame()', () => {
     stopGame();
     initGame();
     expect(getConsecutiveWrong()).toBe(0);
+  });
+
+  it('resets forceGoNext to false', () => {
+    startGame();
+    recordResponse(false, false); // wrong go — sets forceGoNext
+    stopGame();
+    initGame();
+    expect(getForceGoNext()).toBe(false);
   });
 });
 
@@ -196,6 +211,38 @@ describe('pickNextImage()', () => {
     const { imageKey, isNoGo } = pickNextImage();
     expect(isNoGo).toBe(imageKey === NO_GO_KEY);
   });
+
+  describe('when forceGoNext is true (after a wrong outcome)', () => {
+    it('returns a go image (never the no-go image)', () => {
+      recordResponse(false, false); // wrong → forceGoNext = true
+      randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      const { isNoGo } = pickNextImage();
+      expect(isNoGo).toBe(false);
+    });
+
+    it('returns a key from GO_KEYS only', () => {
+      recordResponse(false, false); // wrong → forceGoNext = true
+      randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      const { imageKey } = pickNextImage();
+      expect(GO_KEYS).toContain(imageKey);
+    });
+
+    it('clears forceGoNext after being used', () => {
+      recordResponse(false, false); // wrong → forceGoNext = true
+      randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      pickNextImage();
+      expect(getForceGoNext()).toBe(false);
+    });
+
+    it('subsequent pickNextImage() can return no-go again', () => {
+      recordResponse(false, false); // wrong → forceGoNext = true
+      randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      pickNextImage(); // consumes forceGoNext
+      randomSpy.mockReturnValue(0.75); // next random → no-go index
+      const second = pickNextImage();
+      expect(second.isNoGo).toBe(true);
+    });
+  });
 });
 
 // ── recordResponse ────────────────────────────────────────────────────────────
@@ -226,9 +273,9 @@ describe('recordResponse()', () => {
       expect(getMisses()).toBe(0);
     });
 
-    it('increments consecutiveCorrect', () => {
+    it('does not increment consecutiveCorrect (only no-go inhibitions advance the streak)', () => {
       recordResponse(false, true);
-      expect(getConsecutiveCorrect()).toBe(1);
+      expect(getConsecutiveCorrect()).toBe(0);
     });
 
     it('resets consecutiveWrong to 0', () => {
@@ -259,7 +306,7 @@ describe('recordResponse()', () => {
     });
 
     it('resets consecutiveCorrect to 0', () => {
-      recordResponse(false, true); // correct first
+      recordResponse(true, false); // correct no-go first
       recordResponse(false, false); // now wrong
       expect(getConsecutiveCorrect()).toBe(0);
     });
@@ -267,6 +314,11 @@ describe('recordResponse()', () => {
     it('increments consecutiveWrong', () => {
       recordResponse(false, false);
       expect(getConsecutiveWrong()).toBe(1);
+    });
+
+    it('sets forceGoNext to true', () => {
+      recordResponse(false, false);
+      expect(getForceGoNext()).toBe(true);
     });
   });
 
@@ -289,6 +341,16 @@ describe('recordResponse()', () => {
       recordResponse(true, false);
       expect(getMisses()).toBe(0);
     });
+
+    it('increments consecutiveCorrect (no-go inhibitions advance the streak)', () => {
+      recordResponse(true, false);
+      expect(getConsecutiveCorrect()).toBe(1);
+    });
+
+    it('does not set forceGoNext', () => {
+      recordResponse(true, false);
+      expect(getForceGoNext()).toBe(false);
+    });
   });
 
   describe('no-go + Space pressed (false alarm / wrong)', () => {
@@ -306,52 +368,59 @@ describe('recordResponse()', () => {
       expect(getNoGoHits()).toBe(1);
     });
 
-    it('does not increment misses', () => {
-      recordResponse(true, true);
-      expect(getMisses()).toBe(0);
+    it('sets forceGoNext to true', () => {
+      recordResponse(true, true); // wrong no-go (false alarm)
+      expect(getForceGoNext()).toBe(true);
     });
   });
 
   describe('adaptive staircase — level advancement', () => {
-    it('level does not advance until 3 consecutive correct responses', () => {
+    it('level does not advance on two consecutive correct no-go inhibitions', () => {
+      recordResponse(true, false); // correct no-go
+      recordResponse(true, false); // correct no-go
+      expect(getLevel()).toBe(0);
+    });
+
+    it('level advances to 1 after 3 consecutive correct no-go inhibitions', () => {
+      recordResponse(true, false);
+      recordResponse(true, false);
+      recordResponse(true, false);
+      expect(getLevel()).toBe(1);
+    });
+
+    it('correct go responses do not advance the level (only no-go inhibitions count)', () => {
+      recordResponse(false, true); // correct go — should NOT advance streak
       recordResponse(false, true);
       recordResponse(false, true);
       expect(getLevel()).toBe(0);
     });
 
-    it('level advances to 1 after 3 consecutive correct responses', () => {
-      recordResponse(false, true);
-      recordResponse(false, true);
-      recordResponse(false, true);
-      expect(getLevel()).toBe(1);
-    });
-
     it('consecutiveCorrect resets to 0 after level advances', () => {
-      recordResponse(false, true);
-      recordResponse(false, true);
-      recordResponse(false, true);
+      recordResponse(true, false);
+      recordResponse(true, false);
+      recordResponse(true, false);
       expect(getConsecutiveCorrect()).toBe(0);
     });
 
     it('a wrong response breaks the correct streak', () => {
-      recordResponse(false, true);
-      recordResponse(false, true);
-      recordResponse(false, false); // wrong — breaks streak
-      recordResponse(false, true);
-      recordResponse(false, true);
+      recordResponse(true, false); // correct no-go
+      recordResponse(true, false); // correct no-go
+      recordResponse(false, false); // wrong go — breaks streak
+      recordResponse(true, false); // correct no-go
+      recordResponse(true, false); // correct no-go
       expect(getLevel()).toBe(0);
     });
 
-    it('level advances to 2 after 6 consecutive correct responses', () => {
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true);
+    it('level advances to 2 after 6 consecutive correct no-go inhibitions', () => {
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false);
       expect(getLevel()).toBe(2);
     });
   });
 
   describe('adaptive staircase — level drop', () => {
     it('level does not drop on first or second consecutive wrong', () => {
-      // First reach level 2
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true);
+      // First reach level 2 with no-go correct responses
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false);
       recordResponse(false, false);
       expect(getLevel()).toBe(2);
       recordResponse(false, false);
@@ -359,7 +428,7 @@ describe('recordResponse()', () => {
     });
 
     it('level drops by 2 after 3 consecutive wrong responses', () => {
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true); // level → 2
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
       recordResponse(false, false);
       recordResponse(false, false);
       recordResponse(false, false); // 3 consecutive wrong → level 0
@@ -374,7 +443,7 @@ describe('recordResponse()', () => {
     });
 
     it('consecutiveWrong resets after a level drop', () => {
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true); // level → 2
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
       recordResponse(false, false);
       recordResponse(false, false);
       recordResponse(false, false); // drop; wrong counter resets
@@ -384,10 +453,10 @@ describe('recordResponse()', () => {
     });
 
     it('a correct response resets the wrong streak', () => {
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true); // level → 2
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
       recordResponse(false, false);
       recordResponse(false, false);
-      recordResponse(false, true); // correct — resets wrong streak
+      recordResponse(false, true); // correct go — resets wrong streak
       recordResponse(false, false);
       recordResponse(false, false);
       expect(getLevel()).toBe(2); // no drop
@@ -402,23 +471,46 @@ describe('getCurrentIntervalMs()', () => {
     expect(getCurrentIntervalMs()).toBe(1500);
   });
 
-  it('returns 1450 at level 1 (after 3 correct)', () => {
-    recordResponse(false, true);
-    recordResponse(false, true);
-    recordResponse(false, true);
+  it('returns 1450 at level 1 (after 3 correct no-go inhibitions)', () => {
+    recordResponse(true, false);
+    recordResponse(true, false);
+    recordResponse(true, false);
     expect(getCurrentIntervalMs()).toBe(1450);
   });
 
   it('returns 150 at a high level (floor clamped)', () => {
-    // 3 correct per level, need level 27 → (1500 - 27*50 = 150)
-    for (let i = 0; i < 81; i += 1) recordResponse(false, true);
+    // 3 no-go correct per level, need level 27 → (1500 - 27*50 = 150)
+    for (let i = 0; i < 81; i += 1) recordResponse(true, false);
     expect(getCurrentIntervalMs()).toBe(150);
   });
 
   it('never returns less than 150 ms regardless of level', () => {
-    // Simulate many correct responses
-    for (let i = 0; i < 300; i += 1) recordResponse(false, true);
+    // Simulate many correct no-go inhibitions
+    for (let i = 0; i < 300; i += 1) recordResponse(true, false);
     expect(getCurrentIntervalMs()).toBeGreaterThanOrEqual(150);
+  });
+});
+
+// ── getForceGoNext ────────────────────────────────────────────────────────────
+
+describe('getForceGoNext()', () => {
+  it('returns false initially', () => {
+    expect(getForceGoNext()).toBe(false);
+  });
+
+  it('returns true after a wrong go response', () => {
+    recordResponse(false, false);
+    expect(getForceGoNext()).toBe(true);
+  });
+
+  it('returns true after a wrong no-go response (false alarm)', () => {
+    recordResponse(true, true);
+    expect(getForceGoNext()).toBe(true);
+  });
+
+  it('returns false after a correct no-go response', () => {
+    recordResponse(true, false);
+    expect(getForceGoNext()).toBe(false);
   });
 });
 

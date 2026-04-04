@@ -18,6 +18,9 @@ export const IMAGE_KEYS = ['go-1', 'go-2', 'go-3', 'no-go'];
 /** The key that identifies the no-go stimulus. */
 export const NO_GO_KEY = 'no-go';
 
+/** Keys for go stimuli only (excludes the no-go key). */
+export const GO_KEYS = IMAGE_KEYS.filter((k) => k !== NO_GO_KEY);
+
 /** Display interval at level 0 (milliseconds). */
 const BASE_INTERVAL_MS = 1500;
 
@@ -64,11 +67,18 @@ let startTime = null;
 /** Current difficulty level. */
 let level = 0;
 
-/** Consecutive correct-response streak. */
+/** Consecutive correct-response streak (counts correct no-go inhibitions only). */
 let consecutiveCorrect = 0;
 
 /** Consecutive wrong-response streak. */
 let consecutiveWrong = 0;
+
+/**
+ * Whether the next trial must be a go image (forced after any wrong outcome).
+ * Ensures the player gets a fair chance to respond correctly before facing
+ * another no-go stimulus.
+ */
+let forceGoNext = false;
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -86,6 +96,7 @@ export function initGame() {
   level = 0;
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
+  forceGoNext = false;
 }
 
 /**
@@ -130,12 +141,23 @@ export function stopGame() {
 // ── Trial helpers ─────────────────────────────────────────────────────────────
 
 /**
- * Pick the next image at random from the four available stimuli.
- * The four images are equally weighted, giving a 25% no-go rate.
+ * Pick the next image to display.
+ *
+ * If the previous trial ended with a wrong outcome (`forceGoNext` is true),
+ * the next trial is guaranteed to be a go image so the player always gets a
+ * fair chance to recover before facing another no-go stimulus.
+ *
+ * Otherwise an image is chosen at random from all four stimuli, giving a 25%
+ * no-go rate.
  *
  * @returns {{ imageKey: string, isNoGo: boolean }}
  */
 export function pickNextImage() {
+  if (forceGoNext) {
+    forceGoNext = false;
+    const idx = Math.floor(Math.random() * GO_KEYS.length);
+    return { imageKey: GO_KEYS[idx], isNoGo: false };
+  }
   const idx = Math.floor(Math.random() * IMAGE_KEYS.length);
   const imageKey = IMAGE_KEYS[idx];
   return { imageKey, isNoGo: imageKey === NO_GO_KEY };
@@ -145,16 +167,20 @@ export function pickNextImage() {
  * Record the outcome of a completed trial and apply the adaptive staircase.
  *
  * Correct responses:
- *   - Go image + Space pressed  → score +1, streak maintained
- *   - No-go image + no press   → score +1, streak maintained
+ *   - Go image + Space pressed  → score +1, wrong streak reset
+ *   - No-go image + no press   → score +1, streak +1 (only no-go inhibitions
+ *                                 count toward level advancement)
  *
  * Wrong responses:
- *   - Go image + no press      → miss +1, streak broken
- *   - No-go image + Space pressed → noGoHit +1, streak broken
+ *   - Go image + no press      → miss +1, streak broken, forceGoNext set
+ *   - No-go image + Space pressed → noGoHit +1, streak broken, forceGoNext set
  *
  * Staircase rules:
- *   - 3 consecutive correct → level +1, streak reset
+ *   - 3 consecutive correct no-go inhibitions → level +1, streak reset
  *   - 3 consecutive wrong   → level −2 (min 0), streak reset
+ *
+ * After any wrong outcome, `forceGoNext` is set so that `pickNextImage()` will
+ * guarantee a go stimulus on the very next trial.
  *
  * @param {boolean} isNoGo - Whether the current stimulus was the no-go image.
  * @param {boolean} spacePressed - Whether the player pressed Space this trial.
@@ -167,8 +193,11 @@ export function recordResponse(isNoGo, spacePressed) {
 
   if (correct) {
     score += 1;
-    consecutiveCorrect += 1;
     consecutiveWrong = 0;
+    // Only correct no-go inhibitions advance the level-up streak.
+    if (isNoGo) {
+      consecutiveCorrect += 1;
+    }
   } else {
     if (isNoGo) {
       noGoHits += 1;
@@ -177,6 +206,7 @@ export function recordResponse(isNoGo, spacePressed) {
     }
     consecutiveCorrect = 0;
     consecutiveWrong += 1;
+    forceGoNext = true;
   }
 
   // Apply staircase adjustments.
@@ -268,6 +298,14 @@ export function getConsecutiveWrong() {
  */
 export function getSessionBestScore() {
   return sessionBestScore;
+}
+
+/**
+ * Return whether the next trial is forced to be a go image.
+ * @returns {boolean}
+ */
+export function getForceGoNext() {
+  return forceGoNext;
 }
 
 /**
