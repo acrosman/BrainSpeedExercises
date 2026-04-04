@@ -11,7 +11,7 @@
  */
 import { app, BrowserWindow, ipcMain, session, screen } from 'electron';
 import debug from 'electron-debug';
-import { readFile } from 'fs/promises';
+import { readFile, readdir } from 'fs/promises';
 import path from 'path';
 import { loadProgress, saveProgress, resetProgress } from './app/progress/progressManager.js';
 import { scanGamesDirectory, loadGame } from './app/games/registry.js';
@@ -155,4 +155,22 @@ ipcMain.handle('games:load', async (event, gameId) => {
     throw new Error(`Could not read interface HTML for game: ${gameId}`);
   });
   return { manifest, html };
+});
+
+/**
+ * List image files (PNG and JPEG) in a given game's image subfolder.
+ * Used by game plugins to dynamically discover available stimulus images.
+ *
+ * @param {Electron.IpcMainInvokeEvent} event
+ * @param {{ gameId: string, subfolder: string }} params
+ * @returns {Promise<string[]>} Sorted array of filenames (with extension) in the subfolder.
+ */
+ipcMain.handle('games:listImages', async (event, { gameId, subfolder }) => {
+  const dirPath = path.join(gamesPath, gameId, 'images', subfolder);
+  try {
+    const files = await readdir(dirPath);
+    return files.filter((f) => /\.(png|jpe?g)$/i.test(f)).sort();
+  } catch {
+    return [];
+  }
 });
