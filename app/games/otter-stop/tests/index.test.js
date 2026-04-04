@@ -74,6 +74,7 @@ const {
   beginTrial,
   clearAllTimers,
   handleKeyDown,
+  handleClick,
 } = indexModule;
 
 // ── 4. DOM helpers ────────────────────────────────────────────────────────────
@@ -87,7 +88,9 @@ function buildContainer() {
   el.innerHTML = `
     <div id="os-instructions"></div>
     <div id="os-game-area" hidden></div>
-    <img id="os-stimulus-img" src="" alt="" />
+    <div id="os-stimulus" role="button" tabindex="0">
+      <img id="os-stimulus-img" src="" alt="" />
+    </div>
     <div id="os-feedback" hidden>
       <img id="os-feedback-img" src="" alt="" />
       <p id="os-feedback-text"></p>
@@ -140,11 +143,11 @@ describe('utility functions with null DOM refs (before init)', () => {
   });
 
   it('showFeedback("correct") does not throw when DOM refs are null', () => {
-    expect(() => showFeedback('correct')).not.toThrow();
+    expect(() => showFeedback('correct', true)).not.toThrow();
   });
 
   it('showFeedback("wrong") does not throw when DOM refs are null', () => {
-    expect(() => showFeedback('wrong')).not.toThrow();
+    expect(() => showFeedback('wrong', true)).not.toThrow();
   });
 
   it('hideFeedback() does not throw when DOM refs are null', () => {
@@ -384,50 +387,65 @@ describe('showFeedback()', () => {
   it('shows the feedback panel for a correct no-go outcome', () => {
     const container = buildContainer();
     plugin.init(container);
-    showFeedback('correct');
+    showFeedback('correct', true);
     const fb = container.querySelector('#os-feedback');
     expect(fb.hidden).toBe(false);
   });
 
-  it('shows the feedback panel for a wrong no-go outcome', () => {
+  it('shows the feedback panel for a wrong no-go outcome (false alarm)', () => {
     const container = buildContainer();
     plugin.init(container);
-    showFeedback('wrong');
+    showFeedback('wrong', true);
     const fb = container.querySelector('#os-feedback');
     expect(fb.hidden).toBe(false);
   });
 
-  it('sets feedback text "Great stop!" for correct', () => {
+  it('shows the feedback panel for a go miss (wrong + wasNoGo=false)', () => {
     const container = buildContainer();
     plugin.init(container);
-    showFeedback('correct');
+    showFeedback('wrong', false);
+    const fb = container.querySelector('#os-feedback');
+    expect(fb.hidden).toBe(false);
+  });
+
+  it('sets feedback text "Great stop!" for correct no-go', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    showFeedback('correct', true);
     expect(container.querySelector('#os-feedback-text').textContent).toBe('Great stop!');
   });
 
-  it('sets feedback text "Oops — too fast!" for wrong', () => {
+  it('sets feedback text "Oops — too fast!" for wrong no-go (false alarm)', () => {
     const container = buildContainer();
     plugin.init(container);
-    showFeedback('wrong');
+    showFeedback('wrong', true);
     expect(container.querySelector('#os-feedback-text').textContent).toBe('Oops \u2014 too fast!');
+  });
+
+  it('sets feedback text "Too slow!" for a missed go image', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    showFeedback('wrong', false);
+    expect(container.querySelector('#os-feedback-text').textContent).toBe('Too slow!');
   });
 
   it('calls AudioContext for correct outcome (success sound)', () => {
     const container = buildContainer();
     plugin.init(container);
     // Should not throw even though AudioContext is mocked
-    expect(() => showFeedback('correct')).not.toThrow();
+    expect(() => showFeedback('correct', true)).not.toThrow();
   });
 
   it('calls AudioContext for wrong outcome (failure sound)', () => {
     const container = buildContainer();
     plugin.init(container);
-    expect(() => showFeedback('wrong')).not.toThrow();
+    expect(() => showFeedback('wrong', true)).not.toThrow();
   });
 
   it('sets the correct CSS class for a correct outcome', () => {
     const container = buildContainer();
     plugin.init(container);
-    showFeedback('correct');
+    showFeedback('correct', true);
     const text = container.querySelector('#os-feedback-text');
     expect(text.className).toContain('os-feedback__text--correct');
   });
@@ -435,14 +453,14 @@ describe('showFeedback()', () => {
   it('sets the correct CSS class for a wrong outcome', () => {
     const container = buildContainer();
     plugin.init(container);
-    showFeedback('wrong');
+    showFeedback('wrong', true);
     const text = container.querySelector('#os-feedback-text');
     expect(text.className).toContain('os-feedback__text--wrong');
   });
 
   it('does not throw when container is null', () => {
     plugin.init(null);
-    expect(() => showFeedback('correct')).not.toThrow();
+    expect(() => showFeedback('correct', true)).not.toThrow();
   });
 });
 
@@ -450,7 +468,7 @@ describe('hideFeedback()', () => {
   it('hides the feedback panel', () => {
     const container = buildContainer();
     plugin.init(container);
-    showFeedback('correct');
+    showFeedback('correct', true);
     hideFeedback();
     const fb = container.querySelector('#os-feedback');
     expect(fb.hidden).toBe(true);
@@ -575,6 +593,34 @@ describe('endTrial()', () => {
     const fb = container.querySelector('#os-feedback');
     expect(fb.hidden).toBe(false);
   });
+
+  it('shows feedback when a go image was missed (wrong outcome)', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    // Force a wrong outcome on a go trial (player didn't press Space)
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1', isNoGo: false });
+    gameMock.recordResponse.mockReturnValueOnce('wrong');
+    beginTrial();
+    clearAllTimers();
+    endTrial();
+    const fb = container.querySelector('#os-feedback');
+    expect(fb.hidden).toBe(false);
+  });
+
+  it('does NOT show feedback when a go image was responded to correctly', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    // Force a correct outcome on a go trial
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1', isNoGo: false });
+    gameMock.recordResponse.mockReturnValueOnce('correct');
+    beginTrial();
+    clearAllTimers();
+    endTrial();
+    const fb = container.querySelector('#os-feedback');
+    expect(fb.hidden).toBe(true);
+  });
 });
 
 describe('scheduleNextTrial()', () => {
@@ -641,6 +687,65 @@ describe('handleKeyDown() — Space with active stimulus', () => {
   });
 });
 
+// ── handleClick ───────────────────────────────────────────────────────────────
+
+describe('handleClick()', () => {
+  it('records the response when game is running and a stimulus is active', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    beginTrial(); // activate a trial so _currentImageKey !== null
+    clearAllTimers();
+
+    handleClick();
+
+    expect(gameMock.recordResponse).toHaveBeenCalled();
+  });
+
+  it('is a no-op when game is not running', () => {
+    gameMock.isRunning.mockReturnValue(false);
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.recordResponse.mockClear();
+    handleClick();
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when no stimulus is active (_currentImageKey is null)', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start(); // _currentImageKey is null until beginTrial()
+    gameMock.recordResponse.mockClear();
+    handleClick();
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
+  });
+
+  it('clears the active trial timer when clicked mid-trial', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    beginTrial(); // sets _trialTimer
+    // Should not throw
+    expect(() => handleClick()).not.toThrow();
+    expect(gameMock.recordResponse).toHaveBeenCalled();
+  });
+
+  it('is wired to the stimulus element click event', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    beginTrial();
+    clearAllTimers();
+
+    // Clicking the stimulus element should trigger handleClick
+    const stimulusEl = container.querySelector('#os-stimulus');
+    gameMock.recordResponse.mockClear();
+    stimulusEl.click();
+
+    expect(gameMock.recordResponse).toHaveBeenCalled();
+  });
+});
+
 // ── endTrial — feedback timer callback ───────────────────────────────────────
 
 describe('endTrial() — feedback timer fires after no-go trial', () => {
@@ -661,6 +766,26 @@ describe('endTrial() — feedback timer fires after no-go trial', () => {
     jest.advanceTimersByTime(900);
 
     // Feedback should now be hidden and next trial scheduled
+    expect(container.querySelector('#os-feedback').hidden).toBe(true);
+  });
+});
+
+describe('endTrial() — feedback timer fires after go miss', () => {
+  it('hides feedback and schedules next trial after FEEDBACK_DURATION_MS', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1', isNoGo: false });
+    gameMock.recordResponse.mockReturnValueOnce('wrong'); // missed go image
+    beginTrial();
+    clearAllTimers();
+    endTrial(); // starts the feedback timer
+
+    expect(container.querySelector('#os-feedback').hidden).toBe(false);
+
+    jest.advanceTimersByTime(900);
+
     expect(container.querySelector('#os-feedback').hidden).toBe(true);
   });
 });

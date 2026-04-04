@@ -14,11 +14,11 @@
     <ul class="os-instructions__list">
       <li>Otters appear one at a time in rapid succession.</li>
       <li>
-        Press <kbd>Space</kbd> for every otter you see — <strong>except</strong>
-        the special no-go otter.
+        Press <kbd>Space</kbd> or <strong>click the image</strong> for every otter — you
+        <strong>must</strong> respond or it counts as a miss!
       </li>
-      <li>When the no-go otter appears, do <strong>nothing</strong> — freeze!</li>
-      <li>The game speeds up as you improve. Good luck!</li>
+      <li>When the sneaky <strong>no-go otter</strong> appears, do <strong>nothing</strong> — freeze!</li>
+      <li>The game speeds up as your accuracy improves. Good luck!</li>
     </ul>
     <button id="os-start-btn" type="button" class="os-btn os-btn--primary">
       Start Game
@@ -40,14 +40,13 @@
       </span>
     </div>
 
-    <!-- Image display area -->
+    <!-- Image display area — click anywhere on the image to respond -->
     <div
       id="os-stimulus"
       class="os-stimulus"
-      role="img"
-      aria-label="Current stimulus"
-      aria-live="assertive"
-      aria-atomic="true"
+      role="button"
+      tabindex="0"
+      aria-label="React to the otter — press Space or click when a go otter appears"
     >
       <img
         id="os-stimulus-img"
@@ -79,8 +78,8 @@
 
     <!-- Reminder -->
     <p class="os-reminder">
-      Press <kbd>Space</kbd> for every otter — <strong>except</strong>
-      the no-go otter!
+      Press <kbd>Space</kbd> or <strong>click the image</strong> for every otter —
+      <strong>except</strong> the no-go otter! Missing a go otter counts as wrong.
     </p>
 
     <!-- Controls -->

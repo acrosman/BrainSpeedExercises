@@ -31,6 +31,9 @@ let _instructionsEl = null;
 /** @type {HTMLElement|null} */
 let _gameAreaEl = null;
 
+/** @type {HTMLElement|null} */
+let _stimulusEl = null;
+
 /** @type {HTMLImageElement|null} */
 let _stimulusImg = null;
 
@@ -137,15 +140,27 @@ export function hideImage() {
 }
 
 /**
- * Display the feedback panel after a no-go trial.
- * @param {'correct' | 'wrong'} outcome - Whether the player correctly inhibited.
+ * Display the feedback panel after a trial that requires feedback.
+ * Feedback is shown for all no-go trials and for go images the player missed.
+ *
+ * @param {'correct' | 'wrong'} outcome - Whether the response was correct.
+ * @param {boolean} wasNoGo - Whether the stimulus was the no-go image.
  */
-export function showFeedback(outcome) {
+export function showFeedback(outcome, wasNoGo) {
   if (!_feedbackEl) return;
 
   const isCorrect = outcome === 'correct';
   const imgKey = isCorrect ? 'success' : 'failure';
-  const label = isCorrect ? 'Great stop!' : 'Oops — too fast!';
+
+  let label;
+  if (isCorrect) {
+    label = 'Great stop!';
+  } else if (wasNoGo) {
+    label = 'Oops \u2014 too fast!';
+  } else {
+    label = 'Too slow!';
+  }
+
   const cssClass = isCorrect ? 'os-feedback__text--correct' : 'os-feedback__text--wrong';
 
   if (_feedbackImg) {
@@ -192,6 +207,11 @@ export function showEndPanel(result) {
 /**
  * End the current trial, record the response, handle feedback, then schedule
  * the next trial (or end the game if it has been stopped).
+ *
+ * Feedback is shown for:
+ *  - All no-go trials (correct inhibition or false alarm).
+ *  - Go images the player failed to respond to in time (miss).
+ * Go images responded to correctly proceed immediately to keep the pace fast.
  */
 export function endTrial() {
   if (!game.isRunning()) return;
@@ -205,8 +225,10 @@ export function endTrial() {
 
   hideImage();
 
-  if (wasNoGo) {
-    showFeedback(outcome);
+  // Show feedback for no-go trials and for go images the player missed.
+  const needsFeedback = wasNoGo || outcome === 'wrong';
+  if (needsFeedback) {
+    showFeedback(outcome, wasNoGo);
     _feedbackTimer = setTimeout(() => {
       hideFeedback();
       scheduleNextTrial();
@@ -284,6 +306,24 @@ export function handleKeyDown(event) {
   endTrial();
 }
 
+/**
+ * Handle a click on the stimulus area. Equivalent to pressing Space.
+ * Allows mouse/touch users to respond to go images without using the keyboard.
+ */
+export function handleClick() {
+  if (!game.isRunning()) return;
+  if (_currentImageKey === null) return;
+
+  _spacePressedThisTrial = true;
+
+  // Respond immediately: clear the trial timer and process the trial end.
+  if (_trialTimer !== null) {
+    clearTimeout(_trialTimer);
+    _trialTimer = null;
+  }
+  endTrial();
+}
+
 // ── Plugin lifecycle ──────────────────────────────────────────────────────────
 
 /**
@@ -298,6 +338,7 @@ function init(container) {
 
   _instructionsEl = container.querySelector('#os-instructions');
   _gameAreaEl = container.querySelector('#os-game-area');
+  _stimulusEl = container.querySelector('#os-stimulus');
   _stimulusImg = container.querySelector('#os-stimulus-img');
   _feedbackEl = container.querySelector('#os-feedback');
   _feedbackImg = container.querySelector('#os-feedback-img');
@@ -347,6 +388,9 @@ function init(container) {
   }
 
   document.addEventListener('keydown', handleKeyDown);
+  if (_stimulusEl) {
+    _stimulusEl.addEventListener('click', handleClick);
+  }
 }
 
 /**
