@@ -290,11 +290,14 @@ export function clearAllTimers() {
  */
 export function handleKeyDown(event) {
   if (event.code !== 'Space') return;
+
+  // Always prevent the Space bar from scrolling the page while the game
+  // component is mounted — whether on the instructions screen, mid-trial,
+  // or on the end panel.
+  event.preventDefault();
+
   if (!game.isRunning()) return;
   if (_currentImageKey === null) return;
-
-  // Prevent page scroll.
-  event.preventDefault();
 
   _spacePressedThisTrial = true;
 

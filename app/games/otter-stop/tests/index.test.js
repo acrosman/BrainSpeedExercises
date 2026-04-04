@@ -518,24 +518,27 @@ describe('handleKeyDown()', () => {
     expect(preventDefaultSpy).not.toHaveBeenCalled();
   });
 
-  it('ignores Space when game is not running', () => {
+  it('calls preventDefault on Space even when game is not running (prevents page scroll)', () => {
     const container = buildContainer();
     gameMock.isRunning.mockReturnValue(false);
     plugin.init(container);
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true });
+    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
     const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
     handleKeyDown(event);
-    expect(preventDefaultSpy).not.toHaveBeenCalled();
+    // Space is always prevented from scrolling, but game logic is skipped
+    expect(preventDefaultSpy).toHaveBeenCalled();
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
   });
 
   it('calls preventDefault on Space when running with no active stimulus', () => {
-    // _currentImageKey is null between trials, so handleKeyDown returns early
     const container = buildContainer();
+    gameMock.isRunning.mockReturnValue(true);
     plugin.init(container);
-    // game is running but no active stimulus → early return before preventDefault
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true });
+    // game is running but no active stimulus (_currentImageKey is null) — does not trigger trial
+    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
+    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
     handleKeyDown(event);
-    // No error expected
+    expect(preventDefaultSpy).toHaveBeenCalled();
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
   });
 });
