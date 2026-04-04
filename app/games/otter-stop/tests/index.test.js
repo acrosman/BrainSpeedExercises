@@ -12,6 +12,7 @@ jest.unstable_mockModule('../game.js', () => ({
     noGoHits: 1,
     misses: 2,
     trialsCompleted: 10,
+    level: 0,
     duration: 8000,
     bestScore: 5,
   })),
@@ -260,7 +261,7 @@ describe('stop()', () => {
   it('does not throw when container is null', () => {
     plugin.init(null);
     gameMock.stopGame.mockReturnValueOnce({
-      score: 0, noGoHits: 0, misses: 0, trialsCompleted: 0, duration: 0, bestScore: 0,
+      score: 0, noGoHits: 0, misses: 0, trialsCompleted: 0, level: 0, duration: 0, bestScore: 0,
     });
     expect(() => plugin.stop()).not.toThrow();
   });
@@ -809,9 +810,17 @@ describe('endTrial() — feedback timer fires after go miss', () => {
 // ── stop() with window.api present ───────────────────────────────────────────
 
 describe('stop() — window.api IPC call', () => {
-  it('calls window.api.invoke("progress:save") when window.api is available', () => {
-    const invokeMock = jest.fn(() => Promise.resolve());
-    // Set api directly on the existing jsdom window global
+  it('calls progress:load then progress:save in the correct nested format', async () => {
+    const existingProgress = {
+      playerId: 'default',
+      games: {
+        'otter-stop': { highScore: 3, sessionsPlayed: 1, highestLevel: 0, lowestDisplayTime: 1200 },
+      },
+    };
+    const invokeMock = jest.fn((channel) => {
+      if (channel === 'progress:load') return Promise.resolve(existingProgress);
+      return Promise.resolve();
+    });
     window.api = { invoke: invokeMock };
 
     const container = buildContainer();
@@ -819,11 +828,88 @@ describe('stop() — window.api IPC call', () => {
     plugin.start();
     plugin.stop();
 
-    expect(invokeMock).toHaveBeenCalledWith('progress:save', expect.objectContaining({
-      gameId: 'otter-stop',
-    }));
+    // Flush all pending async microtasks/timers
+    await Promise.resolve();
+    await Promise.resolve();
 
-    // Cleanup
+    // progress:load must have been called
+    expect(invokeMock).toHaveBeenCalledWith('progress:load', { playerId: 'default' });
+
+    // progress:save must pass the full nested structure
+    expect(invokeMock).toHaveBeenCalledWith('progress:save', {
+      playerId: 'default',
+      data: expect.objectContaining({
+        games: expect.objectContaining({
+          'otter-stop': expect.objectContaining({
+            highScore: expect.any(Number),
+            sessionsPlayed: expect.any(Number),
+            lastPlayed: expect.any(String),
+            highestLevel: expect.any(Number),
+            lowestDisplayTime: expect.any(Number),
+          }),
+        }),
+      }),
+    });
+
+    delete window.api;
+  });
+
+  it('picks the higher highScore when the new score exceeds the stored value', async () => {
+    const existingProgress = {
+      playerId: 'default',
+      games: {
+        'otter-stop': {
+          highScore: 2, sessionsPlayed: 0, highestLevel: 0, lowestDisplayTime: 1400,
+        },
+      },
+    };
+    const savedData = {};
+    const invokeMock = jest.fn((channel, payload) => {
+      if (channel === 'progress:load') return Promise.resolve(existingProgress);
+      if (channel === 'progress:save') {
+        Object.assign(savedData, payload.data.games['otter-stop']);
+        return Promise.resolve();
+      }
+      return Promise.resolve();
+    });
+    window.api = { invoke: invokeMock };
+    // Mock returns score:5 (higher than stored 2)
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    plugin.stop();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(savedData.highScore).toBe(5); // max(2, 5)
+    delete window.api;
+  });
+
+  it('increments sessionsPlayed on each stop', async () => {
+    const existingProgress = {
+      playerId: 'default',
+      games: {
+        'otter-stop': {
+          highScore: 0, sessionsPlayed: 4, highestLevel: 0, lowestDisplayTime: 1400,
+        },
+      },
+    };
+    const savedData = {};
+    const invokeMock = jest.fn((channel, payload) => {
+      if (channel === 'progress:load') return Promise.resolve(existingProgress);
+      if (channel === 'progress:save') {
+        Object.assign(savedData, payload.data.games['otter-stop']);
+        return Promise.resolve();
+      }
+      return Promise.resolve();
+    });
+    window.api = { invoke: invokeMock };
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    plugin.stop();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(savedData.sessionsPlayed).toBe(5); // 4 + 1
     delete window.api;
   });
 
@@ -839,8 +925,16 @@ describe('stop() — window.api IPC call', () => {
 
     // Flush the microtask queue so the catch callback executes.
     await Promise.resolve();
+    await Promise.resolve();
 
     delete window.api;
+  });
+
+  it('does not throw when window.api is unavailable', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    expect(() => plugin.stop()).not.toThrow();
   });
 });
 

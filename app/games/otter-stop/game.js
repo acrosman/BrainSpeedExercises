@@ -139,7 +139,8 @@ export function startGame() {
 /**
  * Stop the game and return the final results.
  * @returns {{ score: number, noGoHits: number, misses: number,
- *             trialsCompleted: number, duration: number, bestScore: number }}
+ *             trialsCompleted: number, level: number, duration: number,
+ *             bestScore: number }}
  * @throws {Error} If the game is not running.
  */
 export function stopGame() {
@@ -158,6 +159,7 @@ export function stopGame() {
     noGoHits,
     misses,
     trialsCompleted,
+    level,
     duration,
     bestScore: sessionBestScore,
   };
