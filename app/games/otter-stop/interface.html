@@ -17,7 +17,7 @@
         Press <kbd>Space</kbd> or <strong>click the image</strong> for every otter — you
         <strong>must</strong> respond or it counts as a miss!
       </li>
-      <li>When the sneaky <strong>no-go otter</strong> appears, do <strong>nothing</strong> — freeze!</li>
+      <li>When the sneaky <strong>fish</strong> appears, do <strong>nothing</strong> — freeze!</li>
       <li>The game speeds up as your accuracy improves. Good luck!</li>
     </ul>
     <button id="os-start-btn" type="button" class="os-btn os-btn--primary">
@@ -41,37 +41,13 @@
     </div>
 
     <!-- Image display area — click anywhere on the image to respond -->
-    <div
-      id="os-stimulus"
-      class="os-stimulus"
-      role="button"
-      tabindex="0"
-      aria-label="React to the otter — press Space or click when a go otter appears"
-    >
-      <img
-        id="os-stimulus-img"
-        class="os-stimulus__img"
-        src=""
-        alt=""
-        aria-hidden="true"
-      />
+    <div id="os-stimulus" class="os-stimulus" role="button" tabindex="0"
+      aria-label="React to the otter — press Space or click when a go otter appears">
+      <img id="os-stimulus-img" class="os-stimulus__img" src="" alt="" aria-hidden="true" />
 
       <!-- Feedback overlay: shown briefly after a trial, displayed over the stimulus -->
-      <div
-        id="os-feedback"
-        class="os-feedback"
-        role="status"
-        aria-live="assertive"
-        aria-atomic="true"
-        hidden
-      >
-        <img
-          id="os-feedback-img"
-          class="os-feedback__img"
-          src=""
-          alt=""
-          aria-hidden="true"
-        />
+      <div id="os-feedback" class="os-feedback" role="status" aria-live="assertive" aria-atomic="true" hidden>
+        <img id="os-feedback-img" class="os-feedback__img" src="" alt="" aria-hidden="true" />
         <p id="os-feedback-text" class="os-feedback__text"></p>
       </div>
     </div>
