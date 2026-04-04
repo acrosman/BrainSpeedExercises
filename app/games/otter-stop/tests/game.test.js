@@ -398,20 +398,20 @@ describe('recordResponse()', () => {
 // ── getCurrentIntervalMs ──────────────────────────────────────────────────────
 
 describe('getCurrentIntervalMs()', () => {
-  it('returns 700 at level 0', () => {
-    expect(getCurrentIntervalMs()).toBe(700);
+  it('returns 1500 at level 0', () => {
+    expect(getCurrentIntervalMs()).toBe(1500);
   });
 
-  it('returns 650 at level 1 (after 3 correct)', () => {
+  it('returns 1450 at level 1 (after 3 correct)', () => {
     recordResponse(false, true);
     recordResponse(false, true);
     recordResponse(false, true);
-    expect(getCurrentIntervalMs()).toBe(650);
+    expect(getCurrentIntervalMs()).toBe(1450);
   });
 
   it('returns 150 at a high level (floor clamped)', () => {
-    // 3 correct per level, need level 11 → (700 - 11*50 = 150)
-    for (let i = 0; i < 33; i += 1) recordResponse(false, true);
+    // 3 correct per level, need level 27 → (1500 - 27*50 = 150)
+    for (let i = 0; i < 81; i += 1) recordResponse(false, true);
     expect(getCurrentIntervalMs()).toBe(150);
   });
 

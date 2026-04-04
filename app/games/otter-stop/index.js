@@ -375,14 +375,13 @@ function init(container) {
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
-      start();
     });
   }
 
   if (_returnBtn) {
     _returnBtn.addEventListener('click', () => {
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('game:return-to-menu'));
+        window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
       }
     });
   }

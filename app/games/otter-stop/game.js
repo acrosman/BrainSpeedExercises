@@ -19,7 +19,7 @@ export const IMAGE_KEYS = ['go-1', 'go-2', 'go-3', 'no-go'];
 export const NO_GO_KEY = 'no-go';
 
 /** Display interval at level 0 (milliseconds). */
-const BASE_INTERVAL_MS = 700;
+const BASE_INTERVAL_MS = 1500;
 
 /** How much the interval shrinks per level (milliseconds). */
 const INTERVAL_STEP_MS = 50;

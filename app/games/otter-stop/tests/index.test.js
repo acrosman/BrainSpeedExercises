@@ -17,7 +17,7 @@ jest.unstable_mockModule('../game.js', () => ({
   })),
   pickNextImage: jest.fn(() => ({ imageKey: 'go-1', isNoGo: false })),
   recordResponse: jest.fn(() => 'correct'),
-  getCurrentIntervalMs: jest.fn(() => 700),
+  getCurrentIntervalMs: jest.fn(() => 1500),
   getScore: jest.fn(() => 5),
   getNoGoHits: jest.fn(() => 1),
   getMisses: jest.fn(() => 2),
@@ -103,7 +103,7 @@ function buildContainer() {
     <strong id="os-level">1</strong>
     <strong id="os-score">0</strong>
     <strong id="os-nogo-hits">0</strong>
-    <strong id="os-interval">700</strong>
+    <strong id="os-interval">1500</strong>
     <strong id="os-final-score">0</strong>
     <strong id="os-final-best">0</strong>
     <strong id="os-final-nogo">0</strong>
@@ -847,7 +847,7 @@ describe('button wiring', () => {
     expect(gameMock.stopGame).toHaveBeenCalled();
   });
 
-  it('play-again button triggers a reset + start', () => {
+  it('play-again button returns to the instructions screen (reset only)', () => {
     const container = buildContainer();
     plugin.init(container);
     plugin.start();
@@ -855,15 +855,19 @@ describe('button wiring', () => {
     gameMock.startGame.mockClear();
     const btn = container.querySelector('#os-play-again-btn');
     btn.click();
+    // reset() calls initGame but does NOT call startGame — player returns to instructions
     expect(gameMock.initGame).toHaveBeenCalled();
-    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    // Instructions should be visible again
+    expect(container.querySelector('#os-instructions').hidden).toBe(false);
+    expect(container.querySelector('#os-game-area').hidden).toBe(true);
   });
 
-  it('return button dispatches game:return-to-menu event', () => {
+  it('return button dispatches bsx:return-to-main-menu event', () => {
     const container = buildContainer();
     plugin.init(container);
     const received = [];
-    window.addEventListener('game:return-to-menu', (e) => received.push(e));
+    window.addEventListener('bsx:return-to-main-menu', (e) => received.push(e));
     container.querySelector('#os-return-btn').click();
     expect(received).toHaveLength(1);
   });
