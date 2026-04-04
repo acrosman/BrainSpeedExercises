@@ -8,6 +8,7 @@
  */
 
 import * as game from './game.js';
+import { playFailureSound } from '../../components/audioService.js';
 
 /**
  * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
@@ -104,35 +105,6 @@ let _roundRestartTimer = null;
  * @type {ReturnType<typeof setTimeout>|null}
  */
 let _hideTimer = null;
-
-// ── Audio ─────────────────────────────────────────────────────────────────────
-
-/**
- * Play a short buzzer sound to indicate a wrong guess.
- * Uses the Web Audio API; silently no-ops if the API is unavailable.
- */
-export function playWrongSound() {
-  const AudioCtx = (typeof AudioContext !== 'undefined' && AudioContext)
-    || (typeof window !== 'undefined' && window.webkitAudioContext)
-    || null;
-  if (!AudioCtx) return;
-  try {
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(180, ctx.currentTime);
-    gain.gain.setValueAtTime(0.25, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.4);
-    osc.onended = () => { ctx.close().catch(() => {}); };
-  } catch {
-    // Ignore any audio initialization errors
-  }
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -332,7 +304,7 @@ export function handleCardClick(cardId) {
     // Wrong — reset streak, play sound, then restart the round after a brief delay
     game.resetConsecutiveRounds();
     markCardWrong(cardId);
-    playWrongSound();
+    playFailureSound();
     updateStats();
     announce('Wrong guess! The round will restart.');
 

@@ -44,9 +44,6 @@ const {
   drawBoard,
   clearImages,
   highlightWedge,
-  createAudioContext,
-  playSuccessSound,
-  playFailureSound,
 } = indexModule;
 
 // ---------------------------------------------------------------------------
@@ -241,18 +238,6 @@ describe('named exports', () => {
 
   it('highlightWedge is a function', () => {
     expect(typeof highlightWedge).toBe('function');
-  });
-
-  it('createAudioContext is a function', () => {
-    expect(typeof createAudioContext).toBe('function');
-  });
-
-  it('playSuccessSound is a function', () => {
-    expect(typeof playSuccessSound).toBe('function');
-  });
-
-  it('playFailureSound is a function', () => {
-    expect(typeof playFailureSound).toBe('function');
   });
 });
 
@@ -699,37 +684,6 @@ describe('highlightWedge()', () => {
     highlightWedge(ctx2d, 500, 500, 0, 6, 'red');
     expect(ctx2d.beginPath).toHaveBeenCalled();
     expect(ctx2d.fill).toHaveBeenCalled();
-  });
-});
-
-describe('createAudioContext()', () => {
-  it('returns an AudioContext instance', () => {
-    const ctx = createAudioContext();
-    expect(ctx).toBe(mockAudioCtx);
-  });
-
-  it('returns the same instance on repeated calls (singleton)', () => {
-    const ctx1 = createAudioContext();
-    const ctx2 = createAudioContext();
-    expect(ctx1).toBe(ctx2);
-  });
-});
-
-describe('playSuccessSound()', () => {
-  it('creates an oscillator and gain node', () => {
-    mockAudioCtx.createOscillator.mockClear();
-    playSuccessSound(mockAudioCtx);
-    expect(mockAudioCtx.createOscillator).toHaveBeenCalled();
-    expect(mockAudioCtx.createGain).toHaveBeenCalled();
-  });
-});
-
-describe('playFailureSound()', () => {
-  it('creates an oscillator and gain node', () => {
-    mockAudioCtx.createOscillator.mockClear();
-    playFailureSound(mockAudioCtx);
-    expect(mockAudioCtx.createOscillator).toHaveBeenCalled();
-    expect(mockAudioCtx.createGain).toHaveBeenCalled();
   });
 });
 
