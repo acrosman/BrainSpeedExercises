@@ -156,7 +156,7 @@ export function showFeedback(outcome, wasNoGo) {
   if (isCorrect) {
     label = 'Great stop!';
   } else if (wasNoGo) {
-    label = 'Oops \u2014 too fast!';
+    label = 'Oops — too fast!';
   } else {
     label = 'Too slow!';
   }
