@@ -190,13 +190,14 @@ describe('startGame() / stopGame()', () => {
     expect(() => stopGame()).toThrow('Game is not running.');
   });
 
-  it('stopGame() returns score, noGoHits, misses, trialsCompleted, duration, bestScore', () => {
+  it('stopGame() returns required fields including level', () => {
     startGame();
     const result = stopGame();
     expect(result).toHaveProperty('score');
     expect(result).toHaveProperty('noGoHits');
     expect(result).toHaveProperty('misses');
     expect(result).toHaveProperty('trialsCompleted');
+    expect(result).toHaveProperty('level');
     expect(result).toHaveProperty('duration');
     expect(result).toHaveProperty('bestScore');
   });
