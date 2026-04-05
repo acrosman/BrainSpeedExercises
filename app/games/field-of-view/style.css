@@ -311,8 +311,4 @@
     order: -1;
     width: min(88vw, 520px);
   }
-
-  .fov-response__center {
-    justify-content: center;
-  }
 }
