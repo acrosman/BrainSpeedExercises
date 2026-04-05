@@ -22,6 +22,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getScore: jest.fn(() => 3),
   getRoundsPlayed: jest.fn(() => 5),
   getLevel: jest.fn(() => 0),
+  getSpeedLevel: jest.fn(() => 0),
   getConsecutiveCorrect: jest.fn(() => 0),
   getCurrentDifficulty: jest.fn(() => ({
     wedgeCount: 6,

@@ -14,6 +14,7 @@ import {
   getScore,
   getRoundsPlayed,
   getLevel,
+  getSpeedLevel,
   getConsecutiveCorrect,
   getConsecutiveWrong,
   getCurrentDifficulty,
@@ -254,53 +255,60 @@ describe('generateRound(level)', () => {
   });
 
   it.each([
-    [0, 6, 3, 800],
-    [1, 6, 4, 700],
-    [2, 6, 5, 600],
-    [3, 6, 6, 500],
-    [4, 7, 7, 400],
-    [5, 8, 8, 300],
-    [6, 9, 9, 200],
-    [7, 10, 10, 100],
-    [8, 11, 11, 55],
-    [9, 12, 12, 30],
-    [10, 13, 13, 20],
-    [11, 14, 14, 15],
-    [12, 15, 15, 10],
-    [24, 27, 27, 10],
-    [39, 42, 42, 10],
-    [100, 42, 42, 10],
-  ])('level=%i → wedgeCount=%i, imageCount=%i, displayDurationMs=%i',
-    (roundNumber, wedgeCount, imageCount, displayDurationMs) => {
-      const result = generateRound(roundNumber);
+    // Synced phase (imageLevel === speedLevel, duration >= 100ms)
+    [0, 0, 6, 3, 800],
+    [1, 1, 6, 4, 700],
+    [2, 2, 6, 5, 600],
+    [3, 3, 6, 6, 500],
+    [4, 4, 7, 7, 400],
+    [5, 5, 8, 8, 300],
+    [6, 6, 9, 9, 200],
+    [7, 7, 10, 10, 100],
+    // Still synced at level 8 (speed becomes 55ms)
+    [8, 8, 11, 11, 55],
+    [9, 9, 12, 12, 30],
+    [10, 10, 13, 13, 20],
+    [11, 11, 14, 14, 15],
+    [12, 12, 15, 15, 10],
+    [24, 24, 27, 27, 10],
+    [39, 39, 42, 42, 10],
+    [100, 100, 42, 42, 10],
+    // Diverged phase (alternating: imageLevel ahead of speedLevel)
+    [9, 8, 12, 12, 55],
+    [10, 9, 13, 13, 30],
+    [12, 9, 15, 15, 30],
+    [15, 11, 18, 18, 15],
+  ])('imageLevel=%i, speedLevel=%i → wedgeCount=%i, imageCount=%i, displayDurationMs=%i',
+    (imgLv, spdLv, wedgeCount, imageCount, displayDurationMs) => {
+      const result = generateRound(imgLv, spdLv);
       expect(result.wedgeCount).toBe(wedgeCount);
       expect(result.imageCount).toBe(imageCount);
       expect(result.displayDurationMs).toBe(displayDurationMs);
     });
 
   it('generateRound does not modify score or roundsPlayed', () => {
-    generateRound(0);
+    generateRound(0, 0);
     expect(getScore()).toBe(0);
     expect(getRoundsPlayed()).toBe(0);
   });
 
   it('outlierWedgeIndex is in [0, imageCount) for Math.random() = 0', () => {
     randomSpy.mockReturnValue(0);
-    const { imageCount, outlierWedgeIndex } = generateRound(0);
+    const { imageCount, outlierWedgeIndex } = generateRound(0, 0);
     expect(outlierWedgeIndex).toBeGreaterThanOrEqual(0);
     expect(outlierWedgeIndex).toBeLessThan(imageCount);
   });
 
   it('outlierWedgeIndex is in [0, imageCount) for Math.random() = 0.5', () => {
     randomSpy.mockReturnValue(0.5);
-    const { imageCount, outlierWedgeIndex } = generateRound(0);
+    const { imageCount, outlierWedgeIndex } = generateRound(0, 0);
     expect(outlierWedgeIndex).toBeGreaterThanOrEqual(0);
     expect(outlierWedgeIndex).toBeLessThan(imageCount);
   });
 
   it('outlierWedgeIndex is in [0, imageCount) for Math.random() = 0.9999', () => {
     randomSpy.mockReturnValue(0.9999);
-    const { imageCount, outlierWedgeIndex } = generateRound(0);
+    const { imageCount, outlierWedgeIndex } = generateRound(0, 0);
     expect(outlierWedgeIndex).toBeGreaterThanOrEqual(0);
     expect(outlierWedgeIndex).toBeLessThan(imageCount);
   });
@@ -457,6 +465,88 @@ describe('getCurrentDifficulty()', () => {
 describe('isRunning()', () => {
   it('returns false after initGame()', () => {
     expect(isRunning()).toBe(false);
+  });
+});
+
+describe('getSpeedLevel()', () => {
+  it('returns 0 after initGame()', () => {
+    expect(getSpeedLevel()).toBe(0);
+  });
+
+  it('advances in sync with getLevel() while display duration is >= 100ms', () => {
+    // 7 level-ups produces duration=100ms (at threshold, not below)
+    for (let i = 0; i < 21; i += 1) addScore(); // 7 level-ups
+    expect(getLevel()).toBe(7);
+    expect(getSpeedLevel()).toBe(7);
+  });
+
+  it('still advances in sync on the level-up that hits exactly 100ms', () => {
+    // Level-up 7 → duration 100ms; the check is <100ms so both still increment
+    for (let i = 0; i < 24; i += 1) addScore(); // 8 level-ups
+    expect(getLevel()).toBe(8);
+    expect(getSpeedLevel()).toBe(8);
+  });
+
+  it('imageLevel advances but speedLevel does not on first sub-threshold level-up', () => {
+    for (let i = 0; i < 24; i += 1) addScore(); // imageLevel=8, speedLevel=8 (55ms)
+    addScore(); addScore(); addScore();           // imageLevel=9, speedLevel stays 8
+    expect(getLevel()).toBe(9);
+    expect(getSpeedLevel()).toBe(8);
+  });
+
+  it('both advance on the second sub-threshold level-up', () => {
+    for (let i = 0; i < 24; i += 1) addScore(); // imageLevel=8, speedLevel=8
+    addScore(); addScore(); addScore();           // imageLevel=9, speedLevel=8 (skip)
+    addScore(); addScore(); addScore();           // imageLevel=10, speedLevel=9 (both)
+    expect(getLevel()).toBe(10);
+    expect(getSpeedLevel()).toBe(9);
+  });
+
+  it('alternates correctly over four sub-threshold level-ups', () => {
+    for (let i = 0; i < 24; i += 1) addScore(); // → imageLevel=8, speedLevel=8
+    // skip, both, skip, both
+    for (let i = 0; i < 12; i += 1) addScore(); // 4 more level-ups
+    expect(getLevel()).toBe(12);
+    expect(getSpeedLevel()).toBe(10);
+  });
+
+  it('decreases in sync with imageLevel on addMiss() staircase in synced phase', () => {
+    for (let i = 0; i < 9; i += 1) addScore(); // imageLevel=3, speedLevel=3
+    addMiss(); addMiss(); addMiss();             // both drop by 2
+    expect(getLevel()).toBe(1);
+    expect(getSpeedLevel()).toBe(1);
+  });
+
+  it('imageLevel snaps to canonical value when staircase falls back into synced range', () => {
+    // After 24 addScores: imageLevel=8, speedLevel=8; then one more level-up (skip):
+    // imageLevel=9, speedLevel=8
+    for (let i = 0; i < 27; i += 1) addScore();
+    expect(getLevel()).toBe(9);
+    expect(getSpeedLevel()).toBe(8);
+    // 3 misses: speedLevel → 6; canonical imageLevel(6) = 6
+    addMiss(); addMiss(); addMiss();
+    expect(getLevel()).toBe(6);
+    expect(getSpeedLevel()).toBe(6);
+  });
+
+  it('imageLevel snaps to correct sub-threshold canonical value when staircase stays sub-threshold', () => {
+    // 14 level-ups: 8 synced + 6 alternating → imageLevel=14, speedLevel=11
+    for (let i = 0; i < 42; i += 1) addScore();
+    expect(getLevel()).toBe(14);
+    expect(getSpeedLevel()).toBe(11);
+    // 3 misses: speedLevel → 9; canonical imageLevel(9) = 8 + 2*(9-8) = 10
+    addMiss(); addMiss(); addMiss();
+    expect(getLevel()).toBe(10);
+    expect(getSpeedLevel()).toBe(9);
+  });
+
+  it('imageLevel returned by getCurrentDifficulty matches speedLevel after sub-threshold miss', () => {
+    for (let i = 0; i < 42; i += 1) addScore(); // imageLevel=14, speedLevel=11
+    addMiss(); addMiss(); addMiss();              // speedLevel=9, imageLevel=10
+    const { imageCount, displayDurationMs } = getCurrentDifficulty();
+    // imageCount = 3 + 10 = 13, displayDurationMs = calculateDisplayDuration(9) = 30ms
+    expect(imageCount).toBe(13);
+    expect(displayDurationMs).toBe(30);
   });
 });
 

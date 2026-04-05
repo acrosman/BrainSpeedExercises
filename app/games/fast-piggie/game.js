@@ -25,13 +25,23 @@ const MAX_IMAGE_COUNT = 42;
 const MAX_WEDGE_COUNT = 42;
 /** Minimum number of wedges on the wheel. */
 const MIN_WEDGE_COUNT = 6;
+/**
+ * The first speedLevel at which proportional display-duration stepping begins
+ * (i.e., where calculateDisplayDuration first returns < DISPLAY_STEP_THRESHOLD_MS).
+ */
+const TRANSITION_SPEED_LEVEL = Math.floor(
+  (INITIAL_DISPLAY_MS - DISPLAY_STEP_THRESHOLD_MS) / DISPLAY_STEP_MS,
+) + 1;
 // ─────────────────────────────────────────────────────────────────────────────
 
 let score = 0;
 let roundsPlayed = 0;
 let running = false;
 let startTime = null;
-let level = 0;
+let imageLevel = 0;
+let speedLevel = 0;
+/** When true, the next image-level advance will also advance the speed level. */
+let speedIncreaseNext = false;
 let consecutiveCorrect = 0;
 let consecutiveWrong = 0;
 
@@ -49,7 +59,9 @@ export function initGame() {
   roundsPlayed = 0;
   running = false;
   startTime = null;
-  level = 0;
+  imageLevel = 0;
+  speedLevel = 0;
+  speedIncreaseNext = false;
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
 }
@@ -94,6 +106,23 @@ export function stopGame() {
 }
 
 /**
+ * Compute the canonical imageLevel that corresponds to a given speedLevel,
+ * matching the original upward progression.
+ *
+ * In the synced phase (spdLv <= TRANSITION_SPEED_LEVEL) imageLevel equals
+ * speedLevel. In the alternating phase every speed-level increment requires two
+ * image-level increments, so the gap widens by one for every speed step.
+ * @param {number} spdLv
+ * @returns {number}
+ */
+function canonicalImageLevel(spdLv) {
+  if (spdLv <= TRANSITION_SPEED_LEVEL) {
+    return spdLv;
+  }
+  return TRANSITION_SPEED_LEVEL + 2 * (spdLv - TRANSITION_SPEED_LEVEL);
+}
+
+/**
  * Calculate the display duration in milliseconds for a given level.
  *
  * Steps down by DISPLAY_STEP_MS each level while above DISPLAY_STEP_THRESHOLD_MS.
@@ -116,15 +145,16 @@ function calculateDisplayDuration(lv) {
 }
 
 /**
- * Generate a new round's parameters based on the current level.
- * @param {number} currentLevel
+ * Generate a new round's parameters based on the current image and speed levels.
+ * @param {number} currentImageLevel - Drives the number of images shown.
+ * @param {number} currentSpeedLevel - Drives the display duration.
  * @returns {{ wedgeCount: number, imageCount: number,
  *  displayDurationMs: number, outlierWedgeIndex: number }}
  */
-export function generateRound(currentLevel) {
-  const imageCount = Math.min(INITIAL_IMAGE_COUNT + currentLevel, MAX_IMAGE_COUNT);
+export function generateRound(currentImageLevel, currentSpeedLevel) {
+  const imageCount = Math.min(INITIAL_IMAGE_COUNT + currentImageLevel, MAX_IMAGE_COUNT);
   const wedgeCount = Math.min(Math.max(MIN_WEDGE_COUNT, imageCount), MAX_WEDGE_COUNT);
-  const displayDurationMs = calculateDisplayDuration(currentLevel);
+  const displayDurationMs = calculateDisplayDuration(currentSpeedLevel);
   const outlierWedgeIndex = Math.floor(Math.random() * imageCount);
   return {
     wedgeCount,
@@ -176,8 +206,20 @@ export function addScore(guineaPigsThisRound, answerSpeedMs) {
   consecutiveCorrect += 1;
   consecutiveWrong = 0;
   if (consecutiveCorrect >= 3) {
-    level += 1;
+    imageLevel += 1;
     consecutiveCorrect = 0;
+    if (calculateDisplayDuration(speedLevel) < DISPLAY_STEP_THRESHOLD_MS) {
+      // Sub-threshold phase: alternate between image-only and both.
+      if (speedIncreaseNext) {
+        speedLevel += 1;
+        speedIncreaseNext = false;
+      } else {
+        speedIncreaseNext = true;
+      }
+    } else {
+      // Above/at threshold: image level and speed level advance together.
+      speedLevel += 1;
+    }
   }
   // Track most guinea pigs displayed in a round
   if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {
@@ -200,7 +242,9 @@ export function addMiss(guineaPigsThisRound) {
   consecutiveCorrect = 0;
   consecutiveWrong += 1;
   if (consecutiveWrong >= 3) {
-    level = Math.max(0, level - 2);
+    speedLevel = Math.max(0, speedLevel - 2);
+    imageLevel = canonicalImageLevel(speedLevel);
+    speedIncreaseNext = false;
     consecutiveWrong = 0;
   }
   // Track most guinea pigs displayed in a round (even if missed)
@@ -234,11 +278,21 @@ export function getRoundsPlayed() {
 }
 
 /**
- * Get the current level.
+ * Get the current image level (number of level-ups completed).
  * @returns {number}
  */
 export function getLevel() {
-  return level;
+  return imageLevel;
+}
+
+/**
+ * Get the current speed level (drives display duration).
+ * Advances in sync with imageLevel while display duration is >= 100ms;
+ * alternates with imageLevel once display duration drops below 100ms.
+ * @returns {number}
+ */
+export function getSpeedLevel() {
+  return speedLevel;
 }
 
 /**
@@ -254,9 +308,9 @@ export function getConsecutiveCorrect() {
  * @returns {{ wedgeCount: number, imageCount: number, displayDurationMs: number }}
  */
 export function getCurrentDifficulty() {
-  const imageCount = Math.min(INITIAL_IMAGE_COUNT + level, MAX_IMAGE_COUNT);
+  const imageCount = Math.min(INITIAL_IMAGE_COUNT + imageLevel, MAX_IMAGE_COUNT);
   const wedgeCount = Math.min(Math.max(MIN_WEDGE_COUNT, imageCount), MAX_WEDGE_COUNT);
-  const displayDurationMs = calculateDisplayDuration(level);
+  const displayDurationMs = calculateDisplayDuration(speedLevel);
   return { wedgeCount, imageCount, displayDurationMs };
 }
 
