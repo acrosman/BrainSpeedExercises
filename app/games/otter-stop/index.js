@@ -401,8 +401,8 @@ function init(container) {
 
   // Asynchronously populate GO_KEYS from the images/go/ directory.
   // Resolves well before the player clicks "Start Game".
-  // eslint-disable-next-line no-console
-  loadGoImages().catch((err) => console.warn('Otter Stop!: failed to load go images:', err));
+  // loadGoImages() silently handles all errors internally, so no .catch() is needed here.
+  loadGoImages();
 
   if (_startBtn) {
     _startBtn.addEventListener('click', () => {
