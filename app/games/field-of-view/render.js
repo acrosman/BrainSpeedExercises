@@ -141,13 +141,14 @@ export function setMaskVisible(maskEl, visible) {
  * }} els - Stat display elements.
  * @param {{
  *   soaMs: number,
+ *   thresholdMs: number,
  *   accuracy: number,
  *   trialsCompleted: number,
  * }} stats - Current game state values.
  */
 export function updateStats(els, stats) {
   if (els.soaEl) els.soaEl.textContent = String(stats.soaMs);
-  if (els.thresholdEl) els.thresholdEl.textContent = String(stats.soaMs);
+  if (els.thresholdEl) els.thresholdEl.textContent = String(stats.thresholdMs);
   if (els.accuracyEl) els.accuracyEl.textContent = percent(stats.accuracy);
   if (els.trialsEl) els.trialsEl.textContent = String(stats.trialsCompleted);
 }
@@ -205,6 +206,65 @@ export function updatePeripheralSelectionVisual(boardEl, selectedIndex) {
       el.classList.add('fov-cell--selected');
     } else {
       el.classList.remove('fov-cell--selected');
+    }
+  });
+}
+
+/**
+ * Render a location-selector grid for the player to pick the toy square.
+ *
+ * @param {HTMLElement|null} containerEl - Container element for the grid.
+ * @param {number} gridSize - Number of rows/columns (e.g. 3 for a 3×3 grid).
+ * @param {number} centerIndex - Index of the center cell (non-selectable).
+ * @param {function(number): void} onCellClick - Callback invoked with the cell
+ *   index when a non-center cell is clicked.
+ */
+export function renderLocationGrid(containerEl, gridSize, centerIndex, onCellClick) {
+  if (!containerEl) return;
+
+  containerEl.innerHTML = '';
+  containerEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+  containerEl.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+  const totalCells = gridSize * gridSize;
+  for (let i = 0; i < totalCells; i += 1) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'fov-loc-cell';
+    btn.dataset.index = String(i);
+
+    const row = Math.floor(i / gridSize) + 1;
+    const col = (i % gridSize) + 1;
+    btn.setAttribute('aria-label', `Row ${row}, column ${col}`);
+
+    if (i === centerIndex) {
+      btn.classList.add('fov-loc-cell--center');
+      btn.disabled = true;
+      btn.setAttribute('aria-label', 'Center (not selectable)');
+    } else {
+      btn.addEventListener('click', () => onCellClick(i));
+    }
+
+    containerEl.appendChild(btn);
+  }
+}
+
+/**
+ * Highlight the selected cell in the location selector grid.
+ *
+ * @param {HTMLElement|null} containerEl - The location selector container.
+ * @param {number|null} selectedIndex - Index of the selected cell, or null to
+ *   clear the selection.
+ */
+export function updateLocationSelectionVisual(containerEl, selectedIndex) {
+  if (!containerEl) return;
+  const cells = containerEl.querySelectorAll('.fov-loc-cell');
+  cells.forEach((el) => {
+    const index = Number(el.getAttribute('data-index'));
+    if (index === selectedIndex) {
+      el.classList.add('fov-loc-cell--selected');
+    } else {
+      el.classList.remove('fov-loc-cell--selected');
     }
   });
 }

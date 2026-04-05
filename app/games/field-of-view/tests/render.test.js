@@ -21,6 +21,8 @@ import {
   updateStats,
   renderThresholdTrend,
   updatePeripheralSelectionVisual,
+  renderLocationGrid,
+  updateLocationSelectionVisual,
 } from '../render.js';
 
 describe('percent', () => {
@@ -140,7 +142,7 @@ describe('setMaskVisible', () => {
 });
 
 describe('updateStats', () => {
-  test('populates stat elements', () => {
+  test('populates stat elements with separate soa and threshold values', () => {
     const soaEl = document.createElement('strong');
     const thresholdEl = document.createElement('strong');
     const accuracyEl = document.createElement('strong');
@@ -148,11 +150,11 @@ describe('updateStats', () => {
 
     updateStats(
       { soaEl, thresholdEl, accuracyEl, trialsEl },
-      { soaMs: 150, accuracy: 0.8, trialsCompleted: 5 },
+      { soaMs: 150, thresholdMs: 120, accuracy: 0.8, trialsCompleted: 5 },
     );
 
     expect(soaEl.textContent).toBe('150');
-    expect(thresholdEl.textContent).toBe('150');
+    expect(thresholdEl.textContent).toBe('120');
     expect(accuracyEl.textContent).toBe('80%');
     expect(trialsEl.textContent).toBe('5');
   });
@@ -160,7 +162,7 @@ describe('updateStats', () => {
   test('tolerates null elements', () => {
     expect(() => updateStats(
       { soaEl: null, thresholdEl: null, accuracyEl: null, trialsEl: null },
-      { soaMs: 100, accuracy: 0.5, trialsCompleted: 3 },
+      { soaMs: 100, thresholdMs: 80, accuracy: 0.5, trialsCompleted: 3 },
     )).not.toThrow();
   });
 });
@@ -244,5 +246,95 @@ describe('updatePeripheralSelectionVisual', () => {
 
   test('tolerates null boardEl', () => {
     expect(() => updatePeripheralSelectionVisual(null, 1)).not.toThrow();
+  });
+});
+
+describe('renderLocationGrid', () => {
+  test('creates the correct number of cells for a 3x3 grid', () => {
+    const container = document.createElement('div');
+    renderLocationGrid(container, 3, 4, () => {});
+    const cells = container.querySelectorAll('.fov-loc-cell');
+    expect(cells.length).toBe(9);
+  });
+
+  test('marks center cell as disabled with center class', () => {
+    const container = document.createElement('div');
+    renderLocationGrid(container, 3, 4, () => {});
+    const centerBtn = container.querySelector('[data-index="4"]');
+    expect(centerBtn.disabled).toBe(true);
+    expect(centerBtn.classList.contains('fov-loc-cell--center')).toBe(true);
+  });
+
+  test('calls onCellClick with correct index for non-center cell', () => {
+    const container = document.createElement('div');
+    const clicks = [];
+    renderLocationGrid(container, 3, 4, (i) => clicks.push(i));
+    const btn = container.querySelector('[data-index="1"]');
+    btn.click();
+    expect(clicks).toEqual([1]);
+  });
+
+  test('sets correct grid-template CSS on the container', () => {
+    const container = document.createElement('div');
+    renderLocationGrid(container, 3, 4, () => {});
+    expect(container.style.gridTemplateColumns).toBe('repeat(3, 1fr)');
+    expect(container.style.gridTemplateRows).toBe('repeat(3, 1fr)');
+  });
+
+  test('clears previous content before rendering', () => {
+    const container = document.createElement('div');
+    container.innerHTML = '<span>old</span>';
+    renderLocationGrid(container, 3, 4, () => {});
+    expect(container.querySelectorAll('span').length).toBe(0);
+  });
+
+  test('tolerates null containerEl', () => {
+    expect(() => renderLocationGrid(null, 3, 4, () => {})).not.toThrow();
+  });
+
+  test('each non-center cell has an accessible aria-label', () => {
+    const container = document.createElement('div');
+    renderLocationGrid(container, 3, 4, () => {});
+    const btn = container.querySelector('[data-index="0"]');
+    expect(btn.getAttribute('aria-label')).toBe('Row 1, column 1');
+  });
+});
+
+describe('updateLocationSelectionVisual', () => {
+  test('adds selected class to matching cell', () => {
+    const container = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.className = 'fov-loc-cell';
+    btn.setAttribute('data-index', '2');
+    container.appendChild(btn);
+
+    updateLocationSelectionVisual(container, 2);
+    expect(btn.classList.contains('fov-loc-cell--selected')).toBe(true);
+  });
+
+  test('removes selected class from non-matching cells', () => {
+    const container = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.className = 'fov-loc-cell fov-loc-cell--selected';
+    btn.setAttribute('data-index', '3');
+    container.appendChild(btn);
+
+    updateLocationSelectionVisual(container, 2);
+    expect(btn.classList.contains('fov-loc-cell--selected')).toBe(false);
+  });
+
+  test('clears all selections when selectedIndex is null', () => {
+    const container = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.className = 'fov-loc-cell fov-loc-cell--selected';
+    btn.setAttribute('data-index', '1');
+    container.appendChild(btn);
+
+    updateLocationSelectionVisual(container, null);
+    expect(btn.classList.contains('fov-loc-cell--selected')).toBe(false);
+  });
+
+  test('tolerates null containerEl', () => {
+    expect(() => updateLocationSelectionVisual(null, 1)).not.toThrow();
   });
 });

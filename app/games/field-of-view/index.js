@@ -72,6 +72,8 @@ let _returnBtn = null;
 let _centerPrimaryBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _centerSecondaryBtn = null;
+/** @type {HTMLElement|null} */
+let _locationSelectorEl = null;
 
 /** @type {ReturnType<typeof requestAnimationFrame>|null} */
 let _stimulusRafId = null;
@@ -132,6 +134,11 @@ function announce(message) {
  * Update game stats in the status bar.
  */
 function updateStats() {
+  const history = game.getThresholdHistory();
+  const thresholdMs = history.length > 0
+    ? Math.min(...history.map((entry) => entry.thresholdMs))
+    : game.getCurrentSoaMs();
+
   render.updateStats(
     {
       soaEl: _soaEl,
@@ -141,6 +148,7 @@ function updateStats() {
     },
     {
       soaMs: game.getCurrentSoaMs(),
+      thresholdMs,
       accuracy: game.getRecentAccuracy(),
       trialsCompleted: game.getTrialsCompleted(),
     },
@@ -242,14 +250,6 @@ function renderBoard(revealStimulus) {
       btn.textContent = ' ';
     }
 
-    btn.addEventListener('click', () => {
-      if (!_responseEnabled || !_currentTrial) return;
-      if (cell.index === _currentTrial.centerIndex) return;
-      _selectedPeripheralIndex = cell.index;
-      render.updatePeripheralSelectionVisual(_boardEl, _selectedPeripheralIndex);
-      attemptAutoSubmit();
-    });
-
     _boardEl.appendChild(btn);
   });
 }
@@ -298,7 +298,7 @@ function resetResponseSelection() {
   if (_centerPrimaryBtn) _centerPrimaryBtn.setAttribute('aria-pressed', 'false');
   if (_centerSecondaryBtn) _centerSecondaryBtn.setAttribute('aria-pressed', 'false');
 
-  render.updatePeripheralSelectionVisual(_boardEl, null);
+  render.updateLocationSelectionVisual(_locationSelectorEl, null);
 }
 
 /**
@@ -314,6 +314,21 @@ function enterResponsePhase() {
   if (_boardEl) _boardEl.hidden = false;
 
   renderBoard(false);
+
+  if (_locationSelectorEl && _currentTrial) {
+    _locationSelectorEl.hidden = false;
+    render.renderLocationGrid(
+      _locationSelectorEl,
+      _currentTrial.gridSize,
+      _currentTrial.centerIndex,
+      (index) => {
+        if (!_responseEnabled) return;
+        _selectedPeripheralIndex = index;
+        render.updateLocationSelectionVisual(_locationSelectorEl, index);
+        attemptAutoSubmit();
+      },
+    );
+  }
 
   resetResponseSelection();
 }
@@ -378,7 +393,6 @@ function startTrial() {
   if (!game.isRunning()) return;
   _currentTrial = game.createTrialLayout();
   updateStats();
-  announce('Watch center kitten and edge toy. The field mask follows immediately.');
   runStimulusPhase();
 }
 
@@ -489,6 +503,7 @@ function init(gameContainer) {
   _returnBtn = _container.querySelector('#fov-return-btn');
   _centerPrimaryBtn = _container.querySelector('#fov-center-primary');
   _centerSecondaryBtn = _container.querySelector('#fov-center-secondary');
+  _locationSelectorEl = _container.querySelector('#fov-location-selector');
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
@@ -570,6 +585,10 @@ function reset() {
   if (_boardEl) _boardEl.innerHTML = '';
   render.setStageMode(_stageEl, 'stimulus');
   render.setMaskVisible(_maskEl, false);
+  if (_locationSelectorEl) {
+    _locationSelectorEl.hidden = true;
+    _locationSelectorEl.innerHTML = '';
+  }
   if (_responseEl) _responseEl.hidden = true;
   if (_feedbackEl) _feedbackEl.textContent = '';
   if (_instructionsEl) _instructionsEl.hidden = false;
