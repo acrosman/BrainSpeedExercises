@@ -263,12 +263,6 @@
   background: #e5e7eb;
 }
 
-.fov-btn[disabled],
-.fov-cell[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .fov-feedback {
   margin-top: 0.75rem;
   min-height: 1.25rem;
