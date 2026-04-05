@@ -258,7 +258,7 @@ function _runRound() {
 
   _clickEnabled = false;
   _selectedWedge = -1;
-  const round = game.generateRound(game.getLevel());
+  const round = game.generateRound(game.getLevel(), game.getSpeedLevel());
   const { wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex } = round;
   // Generate slot assignment if needed
   let slotAssignment = null;

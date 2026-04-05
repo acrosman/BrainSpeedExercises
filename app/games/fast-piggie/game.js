@@ -8,11 +8,40 @@
  * @file Fast Piggie game logic module.
  */
 
+// ── Difficulty constants ───────────────────────────────────────────────────
+/** Display duration (ms) at level 0. */
+const INITIAL_DISPLAY_MS = 800;
+/** Fixed step (ms) subtracted each level while above the threshold. */
+const DISPLAY_STEP_MS = 100;
+/** Level at which fixed stepping gives way to proportional stepping. */
+const DISPLAY_STEP_THRESHOLD_MS = 100;
+/** Minimum (fastest) possible display duration in ms. */
+const MIN_DISPLAY_MS = 10;
+/** Number of images shown at level 0. */
+const INITIAL_IMAGE_COUNT = 3;
+/** Maximum number of images that can appear in a round. */
+const MAX_IMAGE_COUNT = 42;
+/** Maximum number of wedges on the wheel. */
+const MAX_WEDGE_COUNT = 42;
+/** Minimum number of wedges on the wheel. */
+const MIN_WEDGE_COUNT = 6;
+/**
+ * The first speedLevel at which proportional display-duration stepping begins
+ * (i.e., where calculateDisplayDuration first returns < DISPLAY_STEP_THRESHOLD_MS).
+ */
+const TRANSITION_SPEED_LEVEL = Math.floor(
+  (INITIAL_DISPLAY_MS - DISPLAY_STEP_THRESHOLD_MS) / DISPLAY_STEP_MS,
+) + 1;
+// ─────────────────────────────────────────────────────────────────────────────
+
 let score = 0;
 let roundsPlayed = 0;
 let running = false;
 let startTime = null;
-let level = 0;
+let imageLevel = 0;
+let speedLevel = 0;
+/** When true, the next image-level advance will also advance the speed level. */
+let speedIncreaseNext = false;
 let consecutiveCorrect = 0;
 let consecutiveWrong = 0;
 
@@ -30,7 +59,9 @@ export function initGame() {
   roundsPlayed = 0;
   running = false;
   startTime = null;
-  level = 0;
+  imageLevel = 0;
+  speedLevel = 0;
+  speedIncreaseNext = false;
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
 }
@@ -75,16 +106,55 @@ export function stopGame() {
 }
 
 /**
- * Generate a new round's parameters based on the current level.
- * Display duration starts at 800ms and decreases by 100ms per level (minimum 25ms).
- * @param {number} currentLevel
+ * Compute the canonical imageLevel that corresponds to a given speedLevel,
+ * matching the original upward progression.
+ *
+ * In the synced phase (spdLv <= TRANSITION_SPEED_LEVEL) imageLevel equals
+ * speedLevel. In the alternating phase every speed-level increment requires two
+ * image-level increments, so the gap widens by one for every speed step.
+ * @param {number} spdLv
+ * @returns {number}
+ */
+function canonicalImageLevel(spdLv) {
+  if (spdLv <= TRANSITION_SPEED_LEVEL) {
+    return spdLv;
+  }
+  return TRANSITION_SPEED_LEVEL + 2 * (spdLv - TRANSITION_SPEED_LEVEL);
+}
+
+/**
+ * Calculate the display duration in milliseconds for a given level.
+ *
+ * Steps down by DISPLAY_STEP_MS each level while above DISPLAY_STEP_THRESHOLD_MS.
+ * Once at or below the threshold, each subsequent level moves halfway to
+ * MIN_DISPLAY_MS (result rounded down to the nearest 5 ms).
+ * @param {number} lv - The level to calculate for.
+ * @returns {number} Display duration in ms.
+ */
+function calculateDisplayDuration(lv) {
+  let duration = INITIAL_DISPLAY_MS;
+  for (let i = 0; i < lv; i += 1) {
+    if (duration > DISPLAY_STEP_THRESHOLD_MS) {
+      duration = Math.max(duration - DISPLAY_STEP_MS, DISPLAY_STEP_THRESHOLD_MS);
+    } else {
+      const midpoint = (duration + MIN_DISPLAY_MS) / 2;
+      duration = Math.max(Math.floor(midpoint / 5) * 5, MIN_DISPLAY_MS);
+    }
+  }
+  return duration;
+}
+
+/**
+ * Generate a new round's parameters based on the current image and speed levels.
+ * @param {number} currentImageLevel - Drives the number of images shown.
+ * @param {number} currentSpeedLevel - Drives the display duration.
  * @returns {{ wedgeCount: number, imageCount: number,
  *  displayDurationMs: number, outlierWedgeIndex: number }}
  */
-export function generateRound(currentLevel) {
-  const imageCount = Math.min(3 + currentLevel, 14);
-  const wedgeCount = Math.min(Math.max(6, imageCount), 14);
-  const displayDurationMs = Math.max(800 - currentLevel * 100, 25);
+export function generateRound(currentImageLevel, currentSpeedLevel) {
+  const imageCount = Math.min(INITIAL_IMAGE_COUNT + currentImageLevel, MAX_IMAGE_COUNT);
+  const wedgeCount = Math.min(Math.max(MIN_WEDGE_COUNT, imageCount), MAX_WEDGE_COUNT);
+  const displayDurationMs = calculateDisplayDuration(currentSpeedLevel);
   const outlierWedgeIndex = Math.floor(Math.random() * imageCount);
   return {
     wedgeCount,
@@ -136,8 +206,20 @@ export function addScore(guineaPigsThisRound, answerSpeedMs) {
   consecutiveCorrect += 1;
   consecutiveWrong = 0;
   if (consecutiveCorrect >= 3) {
-    level += 1;
+    imageLevel += 1;
     consecutiveCorrect = 0;
+    if (calculateDisplayDuration(speedLevel) < DISPLAY_STEP_THRESHOLD_MS) {
+      // Sub-threshold phase: alternate between image-only and both.
+      if (speedIncreaseNext) {
+        speedLevel += 1;
+        speedIncreaseNext = false;
+      } else {
+        speedIncreaseNext = true;
+      }
+    } else {
+      // Above/at threshold: image level and speed level advance together.
+      speedLevel += 1;
+    }
   }
   // Track most guinea pigs displayed in a round
   if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {
@@ -160,7 +242,9 @@ export function addMiss(guineaPigsThisRound) {
   consecutiveCorrect = 0;
   consecutiveWrong += 1;
   if (consecutiveWrong >= 3) {
-    level = Math.max(0, level - 2);
+    speedLevel = Math.max(0, speedLevel - 2);
+    imageLevel = canonicalImageLevel(speedLevel);
+    speedIncreaseNext = false;
     consecutiveWrong = 0;
   }
   // Track most guinea pigs displayed in a round (even if missed)
@@ -194,11 +278,21 @@ export function getRoundsPlayed() {
 }
 
 /**
- * Get the current level.
+ * Get the current image level (number of level-ups completed).
  * @returns {number}
  */
 export function getLevel() {
-  return level;
+  return imageLevel;
+}
+
+/**
+ * Get the current speed level (drives display duration).
+ * Advances in sync with imageLevel while display duration is >= 100ms;
+ * alternates with imageLevel once display duration drops below 100ms.
+ * @returns {number}
+ */
+export function getSpeedLevel() {
+  return speedLevel;
 }
 
 /**
@@ -211,13 +305,12 @@ export function getConsecutiveCorrect() {
 
 /**
  * Get the current difficulty parameters.
- * Display duration starts at 800ms and decreases by 100ms per level (minimum 25ms).
  * @returns {{ wedgeCount: number, imageCount: number, displayDurationMs: number }}
  */
 export function getCurrentDifficulty() {
-  const imageCount = Math.min(3 + level, 14);
-  const wedgeCount = Math.min(Math.max(6, imageCount), 14);
-  const displayDurationMs = Math.max(800 - level * 100, 25);
+  const imageCount = Math.min(INITIAL_IMAGE_COUNT + imageLevel, MAX_IMAGE_COUNT);
+  const wedgeCount = Math.min(Math.max(MIN_WEDGE_COUNT, imageCount), MAX_WEDGE_COUNT);
+  const displayDurationMs = calculateDisplayDuration(speedLevel);
   return { wedgeCount, imageCount, displayDurationMs };
 }
 
