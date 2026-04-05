@@ -122,6 +122,10 @@
   cursor: default;
 }
 
+.fov-stage--response .fov-cell--center {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .fov-cell--hidden {
   color: transparent;
 }

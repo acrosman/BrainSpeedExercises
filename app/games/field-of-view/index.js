@@ -134,6 +134,11 @@ function announce(message) {
  * Update game stats in the status bar.
  */
 function updateStats() {
+  const history = game.getThresholdHistory();
+  const thresholdMs = history.length > 0
+    ? Math.min(...history.map((entry) => entry.thresholdMs))
+    : game.getCurrentSoaMs();
+
   render.updateStats(
     {
       soaEl: _soaEl,
@@ -143,6 +148,7 @@ function updateStats() {
     },
     {
       soaMs: game.getCurrentSoaMs(),
+      thresholdMs,
       accuracy: game.getRecentAccuracy(),
       trialsCompleted: game.getTrialsCompleted(),
     },

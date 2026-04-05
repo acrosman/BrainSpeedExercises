@@ -142,7 +142,7 @@ describe('setMaskVisible', () => {
 });
 
 describe('updateStats', () => {
-  test('populates stat elements', () => {
+  test('populates stat elements with separate soa and threshold values', () => {
     const soaEl = document.createElement('strong');
     const thresholdEl = document.createElement('strong');
     const accuracyEl = document.createElement('strong');
@@ -150,11 +150,11 @@ describe('updateStats', () => {
 
     updateStats(
       { soaEl, thresholdEl, accuracyEl, trialsEl },
-      { soaMs: 150, accuracy: 0.8, trialsCompleted: 5 },
+      { soaMs: 150, thresholdMs: 120, accuracy: 0.8, trialsCompleted: 5 },
     );
 
     expect(soaEl.textContent).toBe('150');
-    expect(thresholdEl.textContent).toBe('150');
+    expect(thresholdEl.textContent).toBe('120');
     expect(accuracyEl.textContent).toBe('80%');
     expect(trialsEl.textContent).toBe('5');
   });
@@ -162,7 +162,7 @@ describe('updateStats', () => {
   test('tolerates null elements', () => {
     expect(() => updateStats(
       { soaEl: null, thresholdEl: null, accuracyEl: null, trialsEl: null },
-      { soaMs: 100, accuracy: 0.5, trialsCompleted: 3 },
+      { soaMs: 100, thresholdMs: 80, accuracy: 0.5, trialsCompleted: 3 },
     )).not.toThrow();
   });
 });

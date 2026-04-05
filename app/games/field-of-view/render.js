@@ -141,13 +141,14 @@ export function setMaskVisible(maskEl, visible) {
  * }} els - Stat display elements.
  * @param {{
  *   soaMs: number,
+ *   thresholdMs: number,
  *   accuracy: number,
  *   trialsCompleted: number,
  * }} stats - Current game state values.
  */
 export function updateStats(els, stats) {
   if (els.soaEl) els.soaEl.textContent = String(stats.soaMs);
-  if (els.thresholdEl) els.thresholdEl.textContent = String(stats.soaMs);
+  if (els.thresholdEl) els.thresholdEl.textContent = String(stats.thresholdMs);
   if (els.accuracyEl) els.accuracyEl.textContent = percent(stats.accuracy);
   if (els.trialsEl) els.trialsEl.textContent = String(stats.trialsCompleted);
 }
