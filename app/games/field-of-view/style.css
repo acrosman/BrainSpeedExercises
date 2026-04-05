@@ -114,7 +114,7 @@
 }
 
 .fov-cell--center {
-  background: #d5d9de;
+  background: #e5e7eb;
 }
 
 .fov-cell--center[disabled] {
@@ -146,7 +146,7 @@
 
 .fov-response {
   margin-top: 0;
-  width: 128px;
+  width: 270px;
 }
 
 .fov-stats-help {
@@ -154,9 +154,14 @@
   font-size: 0.9rem;
 }
 
+#fov-kitten-question {
+  white-space: nowrap;
+  margin: 0 0 0.5rem;
+}
+
 .fov-response__center {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.5rem;
 }
 
@@ -184,6 +189,48 @@
   border: 4px solid #0f4aa3;
   box-shadow: 0 0 0 4px rgba(15, 74, 163, 0.28), 0 10px 18px rgba(15, 74, 163, 0.2);
   transform: translateY(-1px);
+}
+
+.fov-location-header {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.9rem;
+}
+
+.fov-location-selector {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  gap: 0.2rem;
+  background: #aeb4bb;
+  border: 1px solid #5f6974;
+  border-radius: 6px;
+  padding: 0.25rem;
+}
+
+.fov-loc-cell {
+  border: 1px solid #5f6974;
+  border-radius: 4px;
+  background: #e5e7eb;
+  cursor: pointer;
+}
+
+.fov-loc-cell--center {
+  background: #e5e7eb;
+  cursor: default;
+}
+
+.fov-loc-cell--center[disabled] {
+  opacity: 1;
+}
+
+.fov-loc-cell--selected {
+  background: #cfe8ff;
+  border-color: #0f4aa3;
+}
+
+.fov-loc-cell:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
 }
 
 .fov-controls {
@@ -266,8 +313,6 @@
   }
 
   .fov-response__center {
-    flex-direction: row;
-    flex-wrap: wrap;
     justify-content: center;
   }
 }

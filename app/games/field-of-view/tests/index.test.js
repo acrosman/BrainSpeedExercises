@@ -76,7 +76,9 @@ function buildContainer() {
       <div id="fov-board"></div>
       <div id="fov-mask" hidden></div>
     </div>
-    <div id="fov-response" hidden></div>
+    <div id="fov-response" hidden>
+      <div id="fov-location-selector" class="fov-location-selector" hidden></div>
+    </div>
     <div id="fov-feedback"></div>
     <strong id="fov-soa"></strong>
     <strong id="fov-threshold"></strong>
@@ -175,7 +177,7 @@ describe('field-of-view index', () => {
     jest.runAllTimers();
 
     const centerPrimary = document.querySelector('#fov-center-primary');
-    const peripheralCell = document.querySelector('[data-index="1"]');
+    const peripheralCell = document.querySelector('#fov-location-selector [data-index="1"]');
 
     centerPrimary.click();
     peripheralCell.click();
@@ -281,7 +283,7 @@ describe('field-of-view index', () => {
     jest.runAllTimers();
 
     document.querySelector('#fov-center-secondary').click();
-    document.querySelector('[data-index="1"]').click();
+    document.querySelector('#fov-location-selector [data-index="1"]').click();
 
     expect(gameMock.recordTrial).toHaveBeenCalled();
   });
@@ -301,7 +303,7 @@ describe('field-of-view index', () => {
     jest.runAllTimers();
 
     document.querySelector('#fov-center-primary').click();
-    document.querySelector('[data-index="1"]').click();
+    document.querySelector('#fov-location-selector [data-index="1"]').click();
 
     const stage = document.querySelector('#fov-stage');
     expect(stage.classList.contains('fov-stage--flash-correct')).toBe(true);
@@ -318,7 +320,7 @@ describe('field-of-view index', () => {
     jest.runAllTimers();
 
     document.querySelector('#fov-center-primary').click();
-    document.querySelector('[data-index="1"]').click();
+    document.querySelector('#fov-location-selector [data-index="1"]').click();
 
     jest.runOnlyPendingTimers();
     expect(gameMock.createTrialLayout).toHaveBeenCalledTimes(2);
