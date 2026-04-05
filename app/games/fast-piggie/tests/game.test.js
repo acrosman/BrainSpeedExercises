@@ -529,25 +529,27 @@ describe('getSpeedLevel()', () => {
     expect(getSpeedLevel()).toBe(6);
   });
 
-  it('imageLevel snaps to correct sub-threshold canonical value when staircase stays sub-threshold', () => {
-    // 14 level-ups: 8 synced + 6 alternating → imageLevel=14, speedLevel=11
-    for (let i = 0; i < 42; i += 1) addScore();
-    expect(getLevel()).toBe(14);
-    expect(getSpeedLevel()).toBe(11);
-    // 3 misses: speedLevel → 9; canonical imageLevel(9) = 8 + 2*(9-8) = 10
-    addMiss(); addMiss(); addMiss();
-    expect(getLevel()).toBe(10);
-    expect(getSpeedLevel()).toBe(9);
-  });
+  it('imageLevel snaps to correct sub-threshold canonical value when staircase stays sub-threshold',
+    () => {
+      // 14 level-ups: 8 synced + 6 alternating → imageLevel=14, speedLevel=11
+      for (let i = 0; i < 42; i += 1) addScore();
+      expect(getLevel()).toBe(14);
+      expect(getSpeedLevel()).toBe(11);
+      // 3 misses: speedLevel → 9; canonical imageLevel(9) = 8 + 2*(9-8) = 10
+      addMiss(); addMiss(); addMiss();
+      expect(getLevel()).toBe(10);
+      expect(getSpeedLevel()).toBe(9);
+    });
 
-  it('imageLevel returned by getCurrentDifficulty matches speedLevel after sub-threshold miss', () => {
-    for (let i = 0; i < 42; i += 1) addScore(); // imageLevel=14, speedLevel=11
-    addMiss(); addMiss(); addMiss();              // speedLevel=9, imageLevel=10
-    const { imageCount, displayDurationMs } = getCurrentDifficulty();
-    // imageCount = 3 + 10 = 13, displayDurationMs = calculateDisplayDuration(9) = 30ms
-    expect(imageCount).toBe(13);
-    expect(displayDurationMs).toBe(30);
-  });
+  it('imageLevel returned by getCurrentDifficulty matches speedLevel after sub-threshold miss',
+    () => {
+      for (let i = 0; i < 42; i += 1) addScore(); // imageLevel=14, speedLevel=11
+      addMiss(); addMiss(); addMiss();              // speedLevel=9, imageLevel=10
+      const { imageCount, displayDurationMs } = getCurrentDifficulty();
+      // imageCount = 3 + 10 = 13, displayDurationMs = calculateDisplayDuration(9) = 30ms
+      expect(imageCount).toBe(13);
+      expect(displayDurationMs).toBe(30);
+    });
 });
 
 describe('getBestStats()', () => {
