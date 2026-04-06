@@ -20,7 +20,11 @@
     "lint:fix": "eslint . --fix",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
-    "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage"
+    "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
+    "build:icons": "node scripts/build-icons.js",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish"
   },
   "dependencies": {
     "electron": "^39"
@@ -36,7 +40,15 @@
     "electron-debug": "^4",
     "eslint": "^9",
     "jest": "^30",
-    "jest-environment-jsdom": "^30"
+    "jest-environment-jsdom": "^30",
+    "@electron-forge/cli": "^7",
+    "@electron-forge/maker-dmg": "^7",
+    "@electron-forge/maker-squirrel": "^7",
+    "@electron-forge/maker-deb": "^7",
+    "@electron-forge/maker-rpm": "^7",
+    "@electron-forge/publisher-github": "^7",
+    "sharp": "^0.33",
+    "icon-gen": "^4"
   },
   "author": "Aaron Crosman",
   "license": "MIT",
