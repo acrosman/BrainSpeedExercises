@@ -26,13 +26,12 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish"
   },
-  "dependencies": {
-    "electron": "^39"
-  },
+  "dependencies": {},
   "overrides": {
     "yauzl": "^3.2.1"
   },
   "devDependencies": {
+    "electron": "^39",
     "@babel/core": "^7",
     "@babel/preset-env": "^7",
     "@jest/globals": "^29",
