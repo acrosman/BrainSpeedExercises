@@ -3,7 +3,7 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['node_modules/**'],
+    ignores: ['node_modules/**', 'out/**'],
   },
   js.configs.recommended,
   // Default rules for all files
@@ -20,7 +20,7 @@ export default [
   },
   // Main process (Node.js)
   {
-    files: ['main.js'],
+    files: ['main.js', 'forge.config.cjs', 'scripts/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.node,

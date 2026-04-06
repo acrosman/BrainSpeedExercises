@@ -12,7 +12,7 @@ module.exports = {
       /^\/\.github/, /^\/coverage/, /^\/__mocks__/,
       /^\/scripts/, 'contributing.md', 'CODE_OF_CONDUCT.md',
       '.eslint.config.js', 'jest.config.js', 'forge.config.cjs',
-      /\/tests\//, /.test.js$/, /assets\/icons\/source\.png$/
+      /\/tests\//, /.test.js$/, /assets\/icons\/source\.png$/,
     ],
   },
   rebuildConfig: {},
