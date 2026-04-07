@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const srcJpg = resolve(__dirname, '../app/games/high-speed-memory/images/thumbnail.jpg');
 const outDir = resolve(__dirname, '../assets/icons');
 const sourcePng = resolve(outDir, 'source.png');
-const iconPng = resolve(outDir, 'icon.png');
+const iconPng = resolve(outDir, 'app.png');
 
 async function main() {
   await mkdir(outDir, { recursive: true });

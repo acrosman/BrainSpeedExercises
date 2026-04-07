@@ -6,7 +6,7 @@ module.exports = {
     appId: 'com.aaroncrosman.brainspeedexercises',
     productName: 'Brain Speed Exercises',
     executableName: 'brain-speed-exercises',
-    icon: path.resolve(__dirname, 'assets/icons/icon'), // .icns/.ico/.png auto-appended
+    icon: path.resolve(__dirname, 'assets/icons/app'), // .icns/.ico/.png auto-appended
     asar: false, // dynamic import() of game modules
     ignore: [
       /^\/\.github/, /^\/coverage/, /^\/__mocks__/,

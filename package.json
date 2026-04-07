@@ -26,7 +26,9 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish"
   },
-  "dependencies": {},
+  "dependencies": {
+    "electron-debug": "^4"
+  },
   "overrides": {
     "yauzl": "^3.2.1"
   },
@@ -36,7 +38,6 @@
     "@babel/preset-env": "^7",
     "@jest/globals": "^29",
     "babel-jest": "^29",
-    "electron-debug": "^4",
     "eslint": "^9",
     "jest": "^30",
     "jest-environment-jsdom": "^30",
