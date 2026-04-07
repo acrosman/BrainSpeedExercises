@@ -194,39 +194,15 @@ The `result` object passed to `saveScore` supports these standard fields (all ha
 
 #### Game-specific extra fields
 
-For fields not covered by the standard set, pass an `extraFields` callback or object:
-
-```javascript
-// Callback form: receives the previous game record.
-saveScore('my-game', { score, sessionDurationMs }, (prev) => ({
-  myBestValue: Math.max(currentValue, prev.myBestValue || 0),
-}));
-
-// Object form: merged directly (no access to previous record).
-saveScore('my-game', { score, sessionDurationMs }, { staticField: 'value' });
-```
+For fields not covered by the standard set, pass an `extraFields` callback (receives the previous
+game record — useful for max/min logic on game-specific fields) or a plain object (merged directly
+without access to the previous record).
 
 #### Typical stop() pattern
 
-```javascript
-import { saveScore } from '../../components/scoreService.js';
-
-function stop() {
-  const result = game.stopGame();
-  const sessionDurationMs = timerService.stopTimer();
-
-  // Fire-and-forget: never await in stop() unless you need the returned record.
-  saveScore('my-game-id', {
-    score: result.score,
-    sessionDurationMs,
-    level: result.level,           // optional
-    lowestDisplayTime: result.ms,  // optional
-  });
-
-  showEndPanel(result);
-  return result;
-}
-```
+Import `saveScore` from `../../components/scoreService.js` and call it in `stop()`, passing the
+game ID, a result object with the standard fields, and an optional `extraFields` callback for any
+game-specific fields that need custom merge logic.
 
 ---
 

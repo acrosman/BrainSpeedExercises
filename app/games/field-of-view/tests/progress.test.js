@@ -65,7 +65,6 @@ describe('saveProgress', () => {
 
     // Wait for the async operations to complete.
     await new Promise((resolve) => { setTimeout(resolve, 0); });
-    await new Promise((resolve) => { setTimeout(resolve, 0); });
 
     expect(invoke).toHaveBeenCalledWith(
       'progress:save',
@@ -107,8 +106,6 @@ describe('saveProgress', () => {
     expect(() => saveProgress({ thresholdMs: 80, trialsCompleted: 2, recentAccuracy: 0.6 }))
       .not.toThrow();
 
-    await new Promise((resolve) => { setTimeout(resolve, 0); });
-    await new Promise((resolve) => { setTimeout(resolve, 0); });
     await new Promise((resolve) => { setTimeout(resolve, 0); });
   });
 

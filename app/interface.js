@@ -227,14 +227,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Clear History button: confirm, clear progress, close panel, and refresh cards.
+  // Clear History button: show inline confirm zone.
   const clearHistoryBtn = document.getElementById('clear-history-btn');
-  if (clearHistoryBtn) {
-    clearHistoryBtn.addEventListener('click', async () => {
-      const message = 'Are you sure you want to clear all play history? This cannot be undone?';
-      if (!window.confirm(message)) {
-        return;
-      }
+  const clearHistoryConfirm = document.getElementById('clear-history-confirm');
+  const clearHistoryCancelBtn = document.getElementById('clear-history-cancel-btn');
+  const clearHistoryOkBtn = document.getElementById('clear-history-ok-btn');
+
+  if (clearHistoryBtn && clearHistoryConfirm) {
+    clearHistoryBtn.addEventListener('click', () => {
+      clearHistoryConfirm.hidden = false;
+    });
+  }
+
+  if (clearHistoryCancelBtn && clearHistoryConfirm) {
+    clearHistoryCancelBtn.addEventListener('click', () => {
+      clearHistoryConfirm.hidden = true;
+    });
+  }
+
+  if (clearHistoryOkBtn && clearHistoryConfirm) {
+    clearHistoryOkBtn.addEventListener('click', async () => {
+      clearHistoryConfirm.hidden = true;
       await clearHistory();
       closeHistoryPanel();
       window.dispatchEvent(new Event('bsx:return-to-main-menu'));

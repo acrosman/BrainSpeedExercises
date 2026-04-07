@@ -95,6 +95,10 @@ describe('interface.js', () => {
       + '<div id="history-panel" hidden>'
       + '  <div id="history-panel-body"></div>'
       + '  <button id="clear-history-btn">Clear History</button>'
+      + '  <div id="clear-history-confirm" hidden>'
+      + '    <button id="clear-history-cancel-btn">Cancel</button>'
+      + '    <button id="clear-history-ok-btn">Clear All History</button>'
+      + '  </div>'
       + '  <button id="history-close-btn">Close</button>'
       + '</div>';
     document.head.innerHTML = '';
@@ -455,38 +459,47 @@ describe('interface.js', () => {
       expect(body.children.length).toBeGreaterThan(0);
     });
 
-    it('clears history and closes panel when Clear History is confirmed', async () => {
-      // Simulate user confirming the confirm dialog.
-      window.confirm = jest.fn(() => true);
-
+    it('shows the inline confirm zone when Clear History is clicked', async () => {
       setupApi();
       await domReadyCallback();
 
-      // Open the panel first.
+      document.getElementById('view-history-btn').click();
+      const confirmZone = document.getElementById('clear-history-confirm');
+      expect(confirmZone.hidden).toBe(true);
+
+      document.getElementById('clear-history-btn').click();
+      expect(confirmZone.hidden).toBe(false);
+    });
+
+    it('hides the confirm zone and does not clear when Cancel is clicked', async () => {
+      setupApi();
+      await domReadyCallback();
+
+      document.getElementById('view-history-btn').click();
+      document.getElementById('clear-history-btn').click();
+      expect(document.getElementById('clear-history-confirm').hidden).toBe(false);
+
+      document.getElementById('clear-history-cancel-btn').click();
+      expect(document.getElementById('clear-history-confirm').hidden).toBe(true);
+      expect(mockClearHistory).not.toHaveBeenCalled();
+    });
+
+    it('clears history and closes panel when Clear All History is confirmed', async () => {
+      setupApi();
+      await domReadyCallback();
+
       document.getElementById('view-history-btn').click();
       const panel = document.getElementById('history-panel');
       expect(panel.hidden).toBe(false);
 
-      // Click Clear History and flush async operations.
+      // Open confirm zone then confirm.
       document.getElementById('clear-history-btn').click();
+      document.getElementById('clear-history-ok-btn').click();
       await flush();
       await flush();
 
       expect(mockClearHistory).toHaveBeenCalledTimes(1);
       expect(panel.hidden).toBe(true);
-    });
-
-    it('does not clear history when the confirm dialog is cancelled', async () => {
-      window.confirm = jest.fn(() => false);
-
-      setupApi();
-      await domReadyCallback();
-
-      document.getElementById('view-history-btn').click();
-      document.getElementById('clear-history-btn').click();
-      await flush();
-
-      expect(mockClearHistory).not.toHaveBeenCalled();
     });
   });
 
