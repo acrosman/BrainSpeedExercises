@@ -456,4 +456,99 @@ describe('interface.js', () => {
       expect(typeof mod.computeTotalTimeToday).toBe('function');
     });
   });
+
+  // ── exported panel helpers ────────────────────────────────────────────────
+
+  describe('updatePlayTimeSummary()', () => {
+    it('shows the bar and sets totalEl text', async () => {
+      setupApi();
+      await domReadyCallback();
+      const { updatePlayTimeSummary } = await import('./interface.js');
+      const bar = document.getElementById('play-time-bar');
+      bar.hidden = true;
+      updatePlayTimeSummary({
+        games: { 'fast-piggie': { dailyTime: { '2024-01-15': 60000 } } },
+      });
+      expect(bar.hidden).toBe(false);
+      expect(document.getElementById('total-time-today').textContent).toBe('01:00');
+    });
+
+    it('handles missing bar element without throwing', async () => {
+      const { updatePlayTimeSummary } = await import('./interface.js');
+      document.getElementById('play-time-bar').remove();
+      expect(() => updatePlayTimeSummary({})).not.toThrow();
+    });
+  });
+
+  describe('hidePlayTimeSummary()', () => {
+    it('hides the bar', async () => {
+      setupApi();
+      await domReadyCallback();
+      const { hidePlayTimeSummary } = await import('./interface.js');
+      const bar = document.getElementById('play-time-bar');
+      bar.hidden = false;
+      hidePlayTimeSummary();
+      expect(bar.hidden).toBe(true);
+    });
+
+    it('handles missing bar element without throwing', async () => {
+      const { hidePlayTimeSummary } = await import('./interface.js');
+      document.getElementById('play-time-bar').remove();
+      expect(() => hidePlayTimeSummary()).not.toThrow();
+    });
+  });
+
+  describe('openHistoryPanel()', () => {
+    it('shows the panel', async () => {
+      setupApi();
+      await domReadyCallback();
+      const { openHistoryPanel } = await import('./interface.js');
+      const panel = document.getElementById('history-panel');
+      panel.hidden = true;
+      openHistoryPanel({}, MANIFESTS);
+      expect(panel.hidden).toBe(false);
+    });
+
+    it('handles missing panel element without throwing', async () => {
+      const { openHistoryPanel } = await import('./interface.js');
+      document.getElementById('history-panel').remove();
+      expect(() => openHistoryPanel({}, MANIFESTS)).not.toThrow();
+    });
+  });
+
+  describe('closeHistoryPanel()', () => {
+    it('hides the panel', async () => {
+      setupApi();
+      await domReadyCallback();
+      const { closeHistoryPanel } = await import('./interface.js');
+      const panel = document.getElementById('history-panel');
+      panel.hidden = false;
+      closeHistoryPanel();
+      expect(panel.hidden).toBe(true);
+    });
+
+    it('handles missing panel element without throwing', async () => {
+      const { closeHistoryPanel } = await import('./interface.js');
+      document.getElementById('history-panel').remove();
+      expect(() => closeHistoryPanel()).not.toThrow();
+    });
+  });
+
+  describe('historyBtnHandler re-registers after return to main menu', () => {
+    it('view history button still works after returning to main menu', async () => {
+      setupApi();
+      await domReadyCallback();
+
+      // Navigate into a game then return to menu (re-registers historyBtnHandler).
+      dispatchGameSelect();
+      await flush();
+      window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+      await flush();
+
+      // Click "View History" — exercises the reassigned historyBtnHandler.
+      document.getElementById('view-history-btn').click();
+      const panel = document.getElementById('history-panel');
+      expect(panel.hidden).toBe(false);
+    });
+  });
 });

@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 
 // Mock timerService so tests are not date-dependent.
 // Must be called before dynamic import of gameCard.js.
-jest.unstable_mockModule('./timerService.js', () => ({
+jest.unstable_mockModule('../timerService.js', () => ({
   formatDuration: jest.fn((ms) => {
     const s = Math.floor(ms / 1000);
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -10,7 +10,9 @@ jest.unstable_mockModule('./timerService.js', () => ({
   getTodayDateString: jest.fn(() => '2024-01-15'),
 }));
 
-const { createGameCard } = await import('./gameCard.js');
+const { createGameCard } = await import('../gameCard.js');
+
+// ── Shared test fixtures ───────────────────────────────────────────────────────
 
 const validManifest = {
   id: 'test-game',
@@ -18,6 +20,23 @@ const validManifest = {
   description: 'A test game description.',
   thumbnail: '/images/test.png',
 };
+
+/**
+ * Factory for game-specific manifests used in progress-display tests.
+ * All game manifests share the same description and thumbnail placeholder.
+ *
+ * @param {string} id - Game ID.
+ * @param {string} name - Display name.
+ * @returns {{ id: string, name: string, description: string, thumbnail: string }}
+ */
+function makeManifest(id, name) {
+  return {
+    id,
+    name,
+    description: 'Test desc',
+    thumbnail: '/images/test.png',
+  };
+}
 
 describe('createGameCard', () => {
   afterEach(() => {
@@ -87,71 +106,50 @@ describe('createGameCard', () => {
     expect(button.getAttribute('aria-label')).toBeTruthy();
   });
 
-  it('displays high score for Fast Piggie when provided', () => {
-    const manifest = {
-      id: 'fast-piggie',
-      name: 'Fast Piggie',
-      description: 'Test desc',
-      thumbnail: '/images/test.png',
-    };
+  it('displays high score when provided', () => {
     const progress = { highScore: 42 };
-    const card = createGameCard(manifest, progress);
+    const card = createGameCard(makeManifest('fast-piggie', 'Fast Piggie'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
     expect(scoreElem.textContent).toContain('42');
   });
 
+  it('displays highest level when provided', () => {
+    const progress = { highScore: 10, highestLevel: 4 };
+    const card = createGameCard(makeManifest('high-speed-memory', 'High Speed Memory'), progress);
+    const scoreElem = card.querySelector('.game-high-score');
+    expect(scoreElem).not.toBeNull();
+    // highestLevel 4 is displayed as level 5 (1-indexed)
+    expect(scoreElem.textContent).toContain('Max Level: 5');
+  });
+
   it('displays min display time when lowestDisplayTime is provided', () => {
-    const manifest = {
-      id: 'any-game',
-      name: 'Any Game',
-      description: 'Test desc',
-      thumbnail: '/images/test.png',
-    };
     const progress = { lowestDisplayTime: 84.2 };
-    const card = createGameCard(manifest, progress);
+    const card = createGameCard(makeManifest('any-game', 'Any Game'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
     expect(scoreElem.textContent).toContain('Min Display Time: 84.2ms');
   });
 
   it('displays lowestDisplayTime for field-of-view via generic progress', () => {
-    const manifest = {
-      id: 'field-of-view',
-      name: 'Field of View',
-      description: 'Test desc',
-      thumbnail: '/images/test.png',
-    };
     const progress = { lowestDisplayTime: 84.2 };
-    const card = createGameCard(manifest, progress);
+    const card = createGameCard(makeManifest('field-of-view', 'Field of View'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
     expect(scoreElem.textContent).toContain('84.2ms');
   });
 
   it('shows no progress element when progress has no displayable fields', () => {
-    const manifest = {
-      id: 'field-of-view',
-      name: 'Field of View',
-      description: 'Test desc',
-      thumbnail: '/images/test.png',
-    };
     const progress = {};
-    const card = createGameCard(manifest, progress);
+    const card = createGameCard(makeManifest('field-of-view', 'Field of View'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).toBeNull();
   });
 
   it('displays today\'s time played when dailyTime has an entry for today', () => {
-    const manifest = {
-      id: 'otter-stop',
-      name: 'Otter Stop!',
-      description: 'Test desc',
-      thumbnail: '/images/test.png',
-    };
     // '2024-01-15' matches the mocked getTodayDateString return value.
     const progress = { dailyTime: { '2024-01-15': 90000 } };
-    const card = createGameCard(manifest, progress);
+    const card = createGameCard(makeManifest('otter-stop', 'Otter Stop!'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
     // 90000 ms = 01:30
@@ -159,28 +157,16 @@ describe('createGameCard', () => {
   });
 
   it('does not display today label when dailyTime has no entry for today', () => {
-    const manifest = {
-      id: 'otter-stop',
-      name: 'Otter Stop!',
-      description: 'Test desc',
-      thumbnail: '/images/test.png',
-    };
     const progress = { dailyTime: { '2023-12-01': 90000 } };
-    const card = createGameCard(manifest, progress);
+    const card = createGameCard(makeManifest('otter-stop', 'Otter Stop!'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     // No other progress fields → no score elem
     expect(scoreElem).toBeNull();
   });
 
-  it('shows no progress element when progress has no displayable fields', () => {
-    const manifest = {
-      id: 'field-of-view',
-      name: 'Field of View',
-      description: 'Test desc',
-      thumbnail: '/images/test.png',
-    };
+  it('shows no progress element when dailyTime only has old dates', () => {
     const progress = { dailyTime: { '2023-01-01': 1000 } }; // old date
-    const card = createGameCard(manifest, progress);
+    const card = createGameCard(makeManifest('field-of-view', 'Field of View'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).toBeNull();
   });

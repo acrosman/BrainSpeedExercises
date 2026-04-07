@@ -5,26 +5,22 @@
  * with a CSS bar chart and a data table. All rendering is pure DOM manipulation
  * so it can be unit-tested without a real browser environment.
  *
+ * Bar colors are defined in `style.css` as CSS custom properties
+ * (`--chart-color-0` through `--chart-color-5`) and applied via
+ * `history-chart__bar--color-N` / `history-chart__legend-swatch--color-N` classes.
+ *
  * @file Play history visualization component.
  */
 
 import { formatDuration } from './timerService.js';
 
 /**
- * Color palette for game bars (cycles if more games than colors).
- * Chosen to satisfy WCAG 2.2 AA contrast against white backgrounds when used
- * alongside a text label, not relied on alone for information.
+ * Number of distinct color slots defined in `style.css`.
+ * Bars for game indices >= COLOR_SLOT_COUNT cycle back to slot 0.
  *
- * @type {string[]}
+ * @type {number}
  */
-const BAR_COLORS = [
-  '#005fcc',
-  '#c9510c',
-  '#238636',
-  '#8250df',
-  '#d1242f',
-  '#0969da',
-];
+const COLOR_SLOT_COUNT = 6;
 
 /**
  * Extract all unique YYYY-MM-DD date keys present across all games' dailyTime maps.
@@ -184,9 +180,9 @@ export function createBarChart(summaryData, gameIds, manifests) {
       const ms = dayData[gameId] || 0;
       const heightPct = Math.round((ms / maxMs) * 100);
       const bar = document.createElement('div');
-      bar.className = 'history-chart__bar';
+      const colorIndex = colIndex % COLOR_SLOT_COUNT;
+      bar.className = `history-chart__bar history-chart__bar--color-${colorIndex}`;
       bar.style.height = `${heightPct}%`;
-      bar.style.backgroundColor = BAR_COLORS[colIndex % BAR_COLORS.length];
       bar.title = `${getGameName(gameId, manifests)}: ${formatDuration(ms)}`;
       barsWrap.appendChild(bar);
     });
@@ -218,8 +214,8 @@ export function createBarChart(summaryData, gameIds, manifests) {
     const item = document.createElement('span');
     item.className = 'history-chart__legend-item';
     const swatch = document.createElement('span');
-    swatch.className = 'history-chart__legend-swatch';
-    swatch.style.backgroundColor = BAR_COLORS[colIndex % BAR_COLORS.length];
+    const colorIndex = colIndex % COLOR_SLOT_COUNT;
+    swatch.className = `history-chart__legend-swatch history-chart__legend-swatch--color-${colorIndex}`;
     swatch.setAttribute('aria-hidden', 'true');
     item.appendChild(swatch);
     item.appendChild(document.createTextNode(getGameName(gameId, manifests)));

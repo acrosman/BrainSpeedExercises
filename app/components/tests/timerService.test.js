@@ -20,7 +20,7 @@ import {
   isTimerRunning,
   formatDuration,
   getTodayDateString,
-} from './timerService.js';
+} from '../timerService.js';
 
 beforeEach(() => {
   jest.useFakeTimers();

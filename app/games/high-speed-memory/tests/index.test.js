@@ -2,7 +2,7 @@ import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globa
 
 // Mock timerService before other mocks and imports.
 jest.unstable_mockModule('../../../components/timerService.js', () => ({
-  startTimer: jest.fn(),
+  startTimer: jest.fn((cb) => { if (typeof cb === 'function') cb(1000); }),
   stopTimer: jest.fn(() => 0),
   resetTimer: jest.fn(),
   getElapsedMs: jest.fn(() => 0),

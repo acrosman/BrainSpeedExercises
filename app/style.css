@@ -1,4 +1,16 @@
 /* ── Reset / Base ───────────────────────────────────────────── */
+
+/* Chart color palette — 6 accessible colors + total-bar grey */
+:root {
+  --chart-color-0: #005fcc;
+  --chart-color-1: #c9510c;
+  --chart-color-2: #238636;
+  --chart-color-3: #8250df;
+  --chart-color-4: #d1242f;
+  --chart-color-5: #0969da;
+  --chart-color-total: #adb5bd;
+}
+
 *,
 *::before,
 *::after {
@@ -193,11 +205,16 @@ footer {
   inset: 0;
   background-color: rgba(0, 0, 0, 0.55);
   z-index: 1000;
-  display: flex;
+  display: none;
   align-items: flex-start;
   justify-content: center;
   padding: 2rem 1rem;
   overflow-y: auto;
+}
+
+/* Show when the hidden attribute is absent (set by JS). */
+.history-panel:not([hidden]) {
+  display: flex;
 }
 
 .history-panel__inner {
@@ -290,9 +307,25 @@ footer {
 }
 
 .history-chart__bar--total {
-  background-color: #adb5bd !important;
+  background-color: var(--chart-color-total);
   width: 10px;
 }
+
+/* Per-slot bar colors (indices cycle for > 6 games). */
+.history-chart__bar--color-0 { background-color: var(--chart-color-0); }
+.history-chart__bar--color-1 { background-color: var(--chart-color-1); }
+.history-chart__bar--color-2 { background-color: var(--chart-color-2); }
+.history-chart__bar--color-3 { background-color: var(--chart-color-3); }
+.history-chart__bar--color-4 { background-color: var(--chart-color-4); }
+.history-chart__bar--color-5 { background-color: var(--chart-color-5); }
+
+/* Legend swatch colors matching the bars above. */
+.history-chart__legend-swatch--color-0 { background-color: var(--chart-color-0); }
+.history-chart__legend-swatch--color-1 { background-color: var(--chart-color-1); }
+.history-chart__legend-swatch--color-2 { background-color: var(--chart-color-2); }
+.history-chart__legend-swatch--color-3 { background-color: var(--chart-color-3); }
+.history-chart__legend-swatch--color-4 { background-color: var(--chart-color-4); }
+.history-chart__legend-swatch--color-5 { background-color: var(--chart-color-5); }
 
 .history-chart__label {
   font-size: 0.75rem;
@@ -324,7 +357,7 @@ footer {
 }
 
 .history-chart__legend-swatch--total {
-  background-color: #adb5bd;
+  background-color: var(--chart-color-total);
 }
 
 /* ── History table ───────────────────────────────────────────────────────── */

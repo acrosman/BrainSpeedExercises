@@ -6,7 +6,7 @@ import {
 // 0 — Mock timerService (must be before other mocks and dynamic imports)
 // ---------------------------------------------------------------------------
 jest.unstable_mockModule('../../../components/timerService.js', () => ({
-  startTimer: jest.fn(),
+  startTimer: jest.fn((cb) => { if (typeof cb === 'function') cb(1000); }),
   stopTimer: jest.fn(() => 0),
   resetTimer: jest.fn(),
   getElapsedMs: jest.fn(() => 0),

@@ -50,7 +50,7 @@ function buildMockAudioContext(state = 'running') {
 }
 
 // Import module once — ESM modules are singletons per test file.
-const audioModule = await import('./audioService.js');
+const audioModule = await import('../audioService.js');
 const {
   getAudioContext,
   playSuccessSound,

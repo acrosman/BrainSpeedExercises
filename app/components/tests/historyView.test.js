@@ -17,7 +17,7 @@ import {
   createDataTable,
   createBarChart,
   buildHistoryPanel,
-} from './historyView.js';
+} from '../historyView.js';
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
 
@@ -257,6 +257,24 @@ describe('createBarChart()', () => {
     // At least one bar should have a height > 0%
     const hasNonZero = [...bars].some((b) => b.style.height !== '0%');
     expect(hasNonZero).toBe(true);
+  });
+
+  it('assigns color CSS class to each game bar', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const firstGroupBars = chart.querySelector('.history-chart__bars')
+      .querySelectorAll('.history-chart__bar:not(.history-chart__bar--total)');
+    // First game bar gets --color-0, second gets --color-1
+    expect(firstGroupBars[0].classList.contains('history-chart__bar--color-0')).toBe(true);
+    expect(firstGroupBars[1].classList.contains('history-chart__bar--color-1')).toBe(true);
+  });
+
+  it('assigns matching color CSS class to legend swatches', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const notTotalSel = '.history-chart__legend-swatch'
+      + ':not(.history-chart__legend-swatch--total)';
+    const swatches = chart.querySelectorAll(notTotalSel);
+    expect(swatches[0].classList.contains('history-chart__legend-swatch--color-0')).toBe(true);
+    expect(swatches[1].classList.contains('history-chart__legend-swatch--color-1')).toBe(true);
   });
 });
 
