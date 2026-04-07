@@ -11,6 +11,12 @@
   --chart-color-total: #adb5bd;
 }
 
+/* Ensure the HTML hidden attribute is always respected, even when a class
+   rule sets an explicit display value. */
+[hidden] {
+  display: none !important;
+}
+
 *,
 *::before,
 *::after {
