@@ -607,7 +607,8 @@ export default {
           // Get best stats from game logic
           bestStats = game.getBestStats();
           const today = timerService.getTodayDateString();
-          const prevDailyTime = (gameEntry.dailyTime && typeof gameEntry.dailyTime[today] === 'number')
+          const prevDailyTime = (gameEntry.dailyTime
+            && typeof gameEntry.dailyTime[today] === 'number')
             ? gameEntry.dailyTime[today] : 0;
           const updated = {
             ...existing,

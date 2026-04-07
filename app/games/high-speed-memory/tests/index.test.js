@@ -10,7 +10,7 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
   formatDuration: jest.fn(() => '00:00'),
   getTodayDateString: jest.fn(() => '2024-01-15'),
 }));
-const timerServiceMock = await import('../../../components/timerService.js');
+await import('../../../components/timerService.js');
 
 // Mock game.js so index.js can be tested in isolation.
 jest.unstable_mockModule('../game.js', () => ({

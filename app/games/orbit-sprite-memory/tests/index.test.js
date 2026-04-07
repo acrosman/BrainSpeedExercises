@@ -17,7 +17,7 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
   formatDuration: jest.fn(() => '00:00'),
   getTodayDateString: jest.fn(() => '2024-01-15'),
 }));
-const timerServiceMock = await import('../../../components/timerService.js');
+await import('../../../components/timerService.js');
 
 jest.unstable_mockModule('../game.js', () => ({
   TOTAL_SPRITES: 8,
