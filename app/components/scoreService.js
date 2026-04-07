@@ -46,8 +46,8 @@ export const DEFAULT_PLAYER_ID = 'default';
  *   Additional game-specific fields. Pass a function to receive the previous
  *   game record (useful for max/min logic on game-specific fields); pass a
  *   plain object to merge fields directly.
- * @returns {Promise<object|null>} The updated game record, or `null` on error or
- *   when `window.api` is unavailable.
+ * @returns {Promise<object|null>} The updated game record on success, or `null` if `window.api`
+ *   is unavailable or any error occurs during the load/save cycle.
  */
 export async function saveScore(gameId, result, extraFields = {}) {
   if (typeof window === 'undefined' || !window.api) return null;

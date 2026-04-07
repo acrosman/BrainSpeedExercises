@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const clearHistoryBtn = document.getElementById('clear-history-btn');
   if (clearHistoryBtn) {
     clearHistoryBtn.addEventListener('click', async () => {
-      const message = 'Are you sure you want to clear all play history? This cannot be undone.';
+      const message = 'Are you sure you want to clear all play history? This cannot be undone?';
       if (!window.confirm(message)) {
         return;
       }
