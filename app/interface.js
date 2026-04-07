@@ -79,7 +79,7 @@ export function hidePlayTimeSummary() {
 }
 
 /**
- * Load a game into the game container and initialise its plugin.
+ * Load a game into the game container and initialize its plugin.
  *
  * @param {string} gameId - The ID of the game to load.
  * @param {HTMLElement} gameContainer - The element that will receive the game HTML.
@@ -114,6 +114,10 @@ function handleGameLoadError(gameId, gameContainer, announcer, err) {
 /**
  * Open the history panel modal and populate it with the latest progress data.
  *
+ * Traps keyboard focus inside the panel while it is open: Tab cycles within
+ * the focusable children and Escape closes the panel. The rest of the page is
+ * made inert so background elements are not reachable via assistive technology.
+ *
  * @param {object} progress - Player progress object.
  * @param {Array<{id: string, name: string}>} manifests - Game manifests.
  */
@@ -126,17 +130,29 @@ export function openHistoryPanel(progress, manifests) {
   body.appendChild(buildHistoryPanel(progress, manifests));
   panel.hidden = false;
 
+  // Make the rest of the page inert so assistive technology stays in the modal.
+  document.querySelectorAll('body > *:not(#history-panel)').forEach((el) => {
+    el.setAttribute('inert', '');
+    el.setAttribute('aria-hidden', 'true');
+  });
+
   // Move focus to close button for accessibility.
   const closeBtn = document.getElementById('history-close-btn');
   if (closeBtn) closeBtn.focus();
 }
 
 /**
- * Close the history panel modal.
+ * Close the history panel modal and restore page interactivity.
  */
 export function closeHistoryPanel() {
   const panel = document.getElementById('history-panel');
   if (panel) panel.hidden = true;
+
+  // Restore all elements that were made inert when the panel opened.
+  document.querySelectorAll('[inert]').forEach((el) => {
+    el.removeAttribute('inert');
+    el.removeAttribute('aria-hidden');
+  });
 
   // Return focus to the button that opened the panel.
   const openBtn = document.getElementById('view-history-btn');
@@ -220,6 +236,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Close panel on Escape key.
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && historyPanel && !historyPanel.hidden) {
+      closeHistoryPanel();
+    }
+  });
+
   /**
    * Handle game selection event, load the game plugin, and inject its UI.
    * @param {CustomEvent} event - The game:select event.
@@ -268,6 +291,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           historyBtnHandler = () => openHistoryPanel(progress, manifests);
           viewHistoryBtn.addEventListener('click', historyBtnHandler);
         }
+      }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('Failed to reload progress or game list after returning to menu.', err);
+        updatePlayTimeSummary({});
       });
       // Re-attach event listener for game selection
       selector.addEventListener('game:select', async (event) => {

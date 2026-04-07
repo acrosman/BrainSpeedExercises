@@ -23,7 +23,7 @@ await jest.unstable_mockModule('./components/timerService.js', () => ({
   getTodayDateString: jest.fn(() => '2024-01-15'),
 }));
 
-// Mock historyView to keep tests focused on interface.js behaviour.
+// Mock historyView to keep tests focused on interface.js behavior.
 await jest.unstable_mockModule('./components/historyView.js', () => ({
   buildHistoryPanel: jest.fn(() => {
     const div = document.createElement('div');
@@ -509,6 +509,17 @@ describe('interface.js', () => {
       expect(panel.hidden).toBe(false);
     });
 
+    it('marks non-panel body children inert when panel opens', async () => {
+      setupApi();
+      await domReadyCallback();
+      const { openHistoryPanel } = await import('./interface.js');
+      openHistoryPanel({}, MANIFESTS);
+      // game-selector and game-container are direct body children and should be inert.
+      const gameSelector = document.getElementById('game-selector');
+      expect(gameSelector.hasAttribute('inert')).toBe(true);
+      expect(gameSelector.getAttribute('aria-hidden')).toBe('true');
+    });
+
     it('handles missing panel element without throwing', async () => {
       const { openHistoryPanel } = await import('./interface.js');
       document.getElementById('history-panel').remove();
@@ -527,10 +538,65 @@ describe('interface.js', () => {
       expect(panel.hidden).toBe(true);
     });
 
+    it('removes inert from background elements when panel closes', async () => {
+      setupApi();
+      await domReadyCallback();
+      const { openHistoryPanel, closeHistoryPanel } = await import('./interface.js');
+      openHistoryPanel({}, MANIFESTS);
+      closeHistoryPanel();
+      const gameSelector = document.getElementById('game-selector');
+      expect(gameSelector.hasAttribute('inert')).toBe(false);
+    });
+
     it('handles missing panel element without throwing', async () => {
       const { closeHistoryPanel } = await import('./interface.js');
       document.getElementById('history-panel').remove();
       expect(() => closeHistoryPanel()).not.toThrow();
+    });
+  });
+
+  describe('Escape key closes history panel', () => {
+    it('pressing Escape closes an open history panel', async () => {
+      setupApi();
+      await domReadyCallback();
+      const { openHistoryPanel } = await import('./interface.js');
+      openHistoryPanel({}, MANIFESTS);
+      const panel = document.getElementById('history-panel');
+      expect(panel.hidden).toBe(false);
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      expect(panel.hidden).toBe(true);
+    });
+
+    it('Escape does not throw when panel is already hidden', async () => {
+      setupApi();
+      await domReadyCallback();
+      const panel = document.getElementById('history-panel');
+      panel.hidden = true;
+      expect(() => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      }).not.toThrow();
+    });
+  });
+
+  describe('bsx:return-to-main-menu error handling', () => {
+    it('handles Promise.all rejection gracefully without leaving UI broken', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      const invoke = setupApi();
+      await domReadyCallback();
+
+      // Load a game so a subsequent return dispatches the handler.
+      dispatchGameSelect();
+      await flush();
+
+      // Make both IPC calls reject after returning to menu.
+      invoke.mockRejectedValue(new Error('IPC down'));
+      window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+      await flush();
+
+      // The app should not crash; play-time bar should still be in the DOM.
+      expect(document.getElementById('play-time-bar')).not.toBeNull();
+      consoleErrorSpy.mockRestore();
     });
   });
 

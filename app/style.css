@@ -156,6 +156,15 @@ footer {
   background-color: #004aa3;
 }
 
+.game-card button:active {
+  background-color: #003d8a;
+}
+
+.game-card button:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 2px;
+}
+
 .game-card .game-high-score {
   margin: 0 1rem 0.5rem;
   font-size: 0.8rem;

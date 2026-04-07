@@ -154,7 +154,7 @@ export function createDataTable(summaryData, gameIds, manifests) {
 /**
  * Create a visual CSS bar-chart section for the history data.
  *
- * Each day gets a group of coloured bars (one per game) sized proportionally
+ * Each day gets a group of colored bars (one per game) sized proportionally
  * to the maximum total play time across all days.
  *
  * @param {Array<{date: string, total: number}>} summaryData - Per-day totals.
