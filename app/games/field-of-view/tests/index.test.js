@@ -223,7 +223,7 @@ describe('field-of-view index', () => {
     expect(document.querySelector('#fov-final-best-threshold').textContent).toBe('200');
     expect(progressMock.saveProgress).toHaveBeenCalledWith(
       expect.objectContaining({ thresholdMs: 84.2, trialsCompleted: 4 }),
-      expect.any(Number),
+      0, // sessionDurationMs from mocked timerService.stopTimer() which returns 0
     );
   });
 

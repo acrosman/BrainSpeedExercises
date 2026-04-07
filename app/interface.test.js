@@ -433,9 +433,10 @@ describe('interface.js', () => {
       await domReadyCallback();
       document.getElementById('view-history-btn').click();
       const panel = document.getElementById('history-panel');
-      panel.dispatchEvent(new MouseEvent('click', { bubbles: true, target: panel }));
-      // Note: in jsdom event.target may differ; test that the event fires correctly.
-      expect(typeof panel.onclick === 'function' || true).toBe(true);
+      expect(panel.hidden).toBe(false); // confirm panel is open first
+      // Click directly on the panel element (the backdrop area)
+      panel.click();
+      expect(panel.hidden).toBe(true);
     });
 
     it('populates history panel body with content', async () => {

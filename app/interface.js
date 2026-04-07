@@ -191,11 +191,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── History panel wiring ──────────────────────────────────────────────────
 
+  /**
+   * Click handler for the View History button.
+   * Stored in a variable so it can be removed and re-registered after menu refresh.
+   * @type {Function}
+   */
+  let historyBtnHandler = () => openHistoryPanel(progress, manifests);
+
   const viewHistoryBtn = document.getElementById('view-history-btn');
   if (viewHistoryBtn) {
-    viewHistoryBtn.addEventListener('click', () => {
-      openHistoryPanel(progress, manifests);
-    });
+    viewHistoryBtn.addEventListener('click', historyBtnHandler);
   }
 
   const closeHistoryBtn = document.getElementById('history-close-btn');
@@ -257,9 +262,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Keep manifests up-to-date for history panel.
         manifests = updatedManifests;
         progress = updatedProgress;
-        // Update history button click handler with fresh data.
+        // Re-register history button handler with fresh data.
         if (viewHistoryBtn) {
-          viewHistoryBtn.onclick = () => openHistoryPanel(progress, manifests);
+          viewHistoryBtn.removeEventListener('click', historyBtnHandler);
+          historyBtnHandler = () => openHistoryPanel(progress, manifests);
+          viewHistoryBtn.addEventListener('click', historyBtnHandler);
         }
       });
       // Re-attach event listener for game selection
