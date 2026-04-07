@@ -47,10 +47,16 @@
         <div class="history-panel__inner">
             <div class="history-panel__header">
                 <h2 id="history-panel-title" class="history-panel__title">Play History</h2>
-                <button id="history-close-btn" type="button" class="history-panel__close"
-                    aria-label="Close play history">
-                    ✕
-                </button>
+                <div class="history-panel__header-actions">
+                    <button id="clear-history-btn" type="button" class="history-panel__clear-btn"
+                        aria-label="Clear all play history">
+                        Clear History
+                    </button>
+                    <button id="history-close-btn" type="button" class="history-panel__close"
+                        aria-label="Close play history">
+                        ✕
+                    </button>
+                </div>
             </div>
             <div id="history-panel-body" class="history-panel__body"></div>
         </div>

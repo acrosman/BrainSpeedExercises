@@ -249,11 +249,34 @@ footer {
   background: #ffffff;
 }
 
+.history-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .history-panel__title {
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
   color: #212529;
+}
+
+.history-panel__clear-btn {
+  background: none;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.5;
+  color: #dc3545;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.history-panel__clear-btn:hover {
+  background-color: #dc3545;
+  color: #ffffff;
 }
 
 .history-panel__close {

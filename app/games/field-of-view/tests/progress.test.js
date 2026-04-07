@@ -35,6 +35,7 @@ describe('GAME_ID', () => {
 describe('saveProgress', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete globalThis.window.api;
   });
 
   test('does nothing when window is undefined', () => {
@@ -48,13 +49,8 @@ describe('saveProgress', () => {
   });
 
   test('does nothing when window.api is undefined', () => {
-    const savedApi = globalThis.window.api;
-    delete globalThis.window.api;
-
     expect(() => saveProgress({ thresholdMs: 100, trialsCompleted: 3, recentAccuracy: 0.8 }))
       .not.toThrow();
-
-    globalThis.window.api = savedApi;
   });
 
   test('calls progress:save with correct data', async () => {
@@ -63,13 +59,11 @@ describe('saveProgress', () => {
       .mockResolvedValueOnce(existing)
       .mockResolvedValueOnce(undefined);
 
-    globalThis.window = globalThis.window || {};
-    const savedApi = globalThis.window.api;
     globalThis.window.api = { invoke };
 
     saveProgress({ thresholdMs: 100, trialsCompleted: 3, recentAccuracy: 0.8 });
 
-    // Wait for the async IIFE to run.
+    // Wait for the async operations to complete.
     await new Promise((resolve) => { setTimeout(resolve, 0); });
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
@@ -82,8 +76,6 @@ describe('saveProgress', () => {
     expect(savedData.games[GAME_ID].sessionsPlayed).toBe(3);
     expect(savedData.games[GAME_ID].lastThresholdMs).toBe(100);
     expect(typeof savedData.games[GAME_ID].lowestDisplayTime).toBe('number');
-
-    globalThis.window.api = savedApi;
   });
 
   test('falls back gracefully when progress:load rejects', async () => {
@@ -91,7 +83,6 @@ describe('saveProgress', () => {
       .mockRejectedValueOnce(new Error('load failed'))
       .mockResolvedValueOnce(undefined);
 
-    const savedApi = globalThis.window.api;
     globalThis.window.api = { invoke };
 
     expect(() => saveProgress({ thresholdMs: 80, trialsCompleted: 2, recentAccuracy: 0.6 }))
@@ -104,8 +95,6 @@ describe('saveProgress', () => {
       'progress:save',
       expect.anything(),
     );
-
-    globalThis.window.api = savedApi;
   });
 
   test('falls back gracefully when progress:save rejects', async () => {
@@ -113,7 +102,6 @@ describe('saveProgress', () => {
       .mockResolvedValueOnce({ playerId: 'default', games: {} })
       .mockRejectedValueOnce(new Error('save failed'));
 
-    const savedApi = globalThis.window.api;
     globalThis.window.api = { invoke };
 
     expect(() => saveProgress({ thresholdMs: 80, trialsCompleted: 2, recentAccuracy: 0.6 }))
@@ -122,8 +110,6 @@ describe('saveProgress', () => {
     await new Promise((resolve) => { setTimeout(resolve, 0); });
     await new Promise((resolve) => { setTimeout(resolve, 0); });
     await new Promise((resolve) => { setTimeout(resolve, 0); });
-
-    globalThis.window.api = savedApi;
   });
 
   test('writes dailyTime[today] into saved progress when sessionDurationMs > 0', async () => {

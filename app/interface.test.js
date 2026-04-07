@@ -32,6 +32,12 @@ await jest.unstable_mockModule('./components/historyView.js', () => ({
   }),
 }));
 
+// Mock scoreService to isolate interface.js from IPC in clearHistory tests.
+const mockClearHistory = jest.fn().mockResolvedValue(undefined);
+await jest.unstable_mockModule('./components/scoreService.js', () => ({
+  clearHistory: mockClearHistory,
+}));
+
 // Spy on document.addEventListener to capture the DOMContentLoaded callback before
 // importing interface.js, so tests can invoke it directly.
 const origDocAddEventListener = document.addEventListener.bind(document);
@@ -88,10 +94,12 @@ describe('interface.js', () => {
       + '</div>'
       + '<div id="history-panel" hidden>'
       + '  <div id="history-panel-body"></div>'
+      + '  <button id="clear-history-btn">Clear History</button>'
       + '  <button id="history-close-btn">Close</button>'
       + '</div>';
     document.head.innerHTML = '';
     mockGameInit.mockClear();
+    mockClearHistory.mockClear();
   });
 
   afterEach(() => {
@@ -445,6 +453,40 @@ describe('interface.js', () => {
       document.getElementById('view-history-btn').click();
       const body = document.getElementById('history-panel-body');
       expect(body.children.length).toBeGreaterThan(0);
+    });
+
+    it('clears history and closes panel when Clear History is confirmed', async () => {
+      // Simulate user confirming the confirm dialog.
+      window.confirm = jest.fn(() => true);
+
+      setupApi();
+      await domReadyCallback();
+
+      // Open the panel first.
+      document.getElementById('view-history-btn').click();
+      const panel = document.getElementById('history-panel');
+      expect(panel.hidden).toBe(false);
+
+      // Click Clear History and flush async operations.
+      document.getElementById('clear-history-btn').click();
+      await flush();
+      await flush();
+
+      expect(mockClearHistory).toHaveBeenCalledTimes(1);
+      expect(panel.hidden).toBe(true);
+    });
+
+    it('does not clear history when the confirm dialog is cancelled', async () => {
+      window.confirm = jest.fn(() => false);
+
+      setupApi();
+      await domReadyCallback();
+
+      document.getElementById('view-history-btn').click();
+      document.getElementById('clear-history-btn').click();
+      await flush();
+
+      expect(mockClearHistory).not.toHaveBeenCalled();
     });
   });
 

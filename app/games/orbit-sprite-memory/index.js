@@ -9,6 +9,7 @@
 import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
+import { saveScore } from '../../components/scoreService.js';
 
 /** Delay before automatically starting the next round after answer submit. */
 const NEXT_ROUND_DELAY_MS = 900;
@@ -524,48 +525,15 @@ function stop() {
   const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
 
-  (async () => {
-    if (typeof window !== 'undefined' && window.api) {
-      try {
-        let existing = { playerId: 'default', games: {} };
-        try {
-          existing = await window.api.invoke('progress:load', { playerId: 'default' }) || existing;
-        } catch {
-          existing = { playerId: 'default', games: {} };
-        }
-
-        const previous = (existing.games && existing.games['orbit-sprite-memory']) || {};
-        const lowestDisplayTime = game.getDisplayDurationMs(result.level);
-        const today = timerService.getTodayDateString();
-        const prevDailyTime = (previous.dailyTime && typeof previous.dailyTime[today] === 'number')
-          ? previous.dailyTime[today] : 0;
-        const payload = {
-          ...existing,
-          games: {
-            ...existing.games,
-            'orbit-sprite-memory': {
-              highScore: Math.max(result.score, previous.highScore || 0),
-              sessionsPlayed: (previous.sessionsPlayed || 0) + 1,
-              lastPlayed: new Date().toISOString(),
-              highestLevel: Math.max(result.level, previous.highestLevel || 0),
-              lowestDisplayTime: typeof previous.lowestDisplayTime === 'number'
-                ? Math.min(lowestDisplayTime, previous.lowestDisplayTime)
-                : lowestDisplayTime,
-              dailyTime: {
-                ...(previous.dailyTime || {}),
-                [today]: prevDailyTime + sessionDurationMs,
-              },
-            },
-          },
-        };
-
-        await window.api.invoke('progress:save', { playerId: 'default', data: payload });
-        updateBestStats(payload.games['orbit-sprite-memory']);
-      } catch {
-        // Progress saving is non-blocking for gameplay flow.
-      }
-    }
-  })();
+  // Persist progress — fire and forget (never blocks the UI).
+  saveScore('orbit-sprite-memory', {
+    score: result.score,
+    sessionDurationMs,
+    level: result.level,
+    lowestDisplayTime: game.getDisplayDurationMs(result.level),
+  }).then((record) => {
+    if (record) updateBestStats(record);
+  });
 
   showEndPanel(result);
   return result;

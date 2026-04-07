@@ -9,6 +9,7 @@
 import { createGameCard } from './components/gameCard.js';
 import { buildHistoryPanel } from './components/historyView.js';
 import { formatDuration, getTodayDateString } from './components/timerService.js';
+import { clearHistory } from './components/scoreService.js';
 
 /**
  * Inject a game-specific stylesheet into the document <head>.
@@ -223,6 +224,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (closeHistoryBtn) {
     closeHistoryBtn.addEventListener('click', () => {
       closeHistoryPanel();
+    });
+  }
+
+  // Clear History button: confirm, clear progress, close panel, and refresh cards.
+  const clearHistoryBtn = document.getElementById('clear-history-btn');
+  if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener('click', async () => {
+      const message = 'Are you sure you want to clear all play history? This cannot be undone.';
+      if (!window.confirm(message)) {
+        return;
+      }
+      await clearHistory();
+      closeHistoryPanel();
+      window.dispatchEvent(new Event('bsx:return-to-main-menu'));
     });
   }
 
