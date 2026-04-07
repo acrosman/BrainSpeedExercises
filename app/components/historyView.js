@@ -11,13 +11,13 @@
 import { formatDuration } from './timerService.js';
 
 /**
- * Colour palette for game bars (cycles if more games than colours).
+ * Color palette for game bars (cycles if more games than colors).
  * Chosen to satisfy WCAG 2.2 AA contrast against white backgrounds when used
  * alongside a text label, not relied on alone for information.
  *
  * @type {string[]}
  */
-const BAR_COLOURS = [
+const BAR_COLORS = [
   '#005fcc',
   '#c9510c',
   '#238636',
@@ -186,7 +186,7 @@ export function createBarChart(summaryData, gameIds, manifests) {
       const bar = document.createElement('div');
       bar.className = 'history-chart__bar';
       bar.style.height = `${heightPct}%`;
-      bar.style.backgroundColor = BAR_COLOURS[colIndex % BAR_COLOURS.length];
+      bar.style.backgroundColor = BAR_COLORS[colIndex % BAR_COLORS.length];
       bar.title = `${getGameName(gameId, manifests)}: ${formatDuration(ms)}`;
       barsWrap.appendChild(bar);
     });
@@ -219,7 +219,7 @@ export function createBarChart(summaryData, gameIds, manifests) {
     item.className = 'history-chart__legend-item';
     const swatch = document.createElement('span');
     swatch.className = 'history-chart__legend-swatch';
-    swatch.style.backgroundColor = BAR_COLOURS[colIndex % BAR_COLOURS.length];
+    swatch.style.backgroundColor = BAR_COLORS[colIndex % BAR_COLORS.length];
     swatch.setAttribute('aria-hidden', 'true');
     item.appendChild(swatch);
     item.appendChild(document.createTextNode(getGameName(gameId, manifests)));
