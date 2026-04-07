@@ -6,5 +6,8 @@
       "all-tests"
     ]
   },
-  "jest.showTerminalOnLaunch": false
+  "jest.showTerminalOnLaunch": false,
+  "cSpell.words": [
+    "Gabor"
+  ]
 }
