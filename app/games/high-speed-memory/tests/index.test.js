@@ -1,5 +1,17 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 
+// Mock timerService before other mocks and imports.
+jest.unstable_mockModule('../../../components/timerService.js', () => ({
+  startTimer: jest.fn(),
+  stopTimer: jest.fn(() => 0),
+  resetTimer: jest.fn(),
+  getElapsedMs: jest.fn(() => 0),
+  isTimerRunning: jest.fn(() => false),
+  formatDuration: jest.fn(() => '00:00'),
+  getTodayDateString: jest.fn(() => '2024-01-15'),
+}));
+const timerServiceMock = await import('../../../components/timerService.js');
+
 // Mock game.js so index.js can be tested in isolation.
 jest.unstable_mockModule('../game.js', () => ({
   PRIMARY_IMAGE: 'Primary.jpg',

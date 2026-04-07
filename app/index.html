@@ -24,6 +24,38 @@
         </section>
     </main>
 
+    <!-- ── Play-time summary bar ───────────────────────────────────────────── -->
+    <div id="play-time-bar" class="play-time-bar" hidden>
+        <span class="play-time-bar__label">
+            Today's total:
+            <strong id="total-time-today" aria-live="polite" aria-atomic="true">00:00</strong>
+        </span>
+        <button id="view-history-btn" type="button" class="play-time-bar__btn">
+            View History
+        </button>
+    </div>
+
+    <!-- ── History panel (modal overlay) ─────────────────────────────────── -->
+    <div
+        id="history-panel"
+        class="history-panel"
+        hidden
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="history-panel-title"
+    >
+        <div class="history-panel__inner">
+            <div class="history-panel__header">
+                <h2 id="history-panel-title" class="history-panel__title">Play History</h2>
+                <button id="history-close-btn" type="button" class="history-panel__close"
+                    aria-label="Close play history">
+                    ✕
+                </button>
+            </div>
+            <div id="history-panel-body" class="history-panel__body"></div>
+        </div>
+    </div>
+
     <footer>
         <p>Brain Speed Exercises</p>
     </footer>

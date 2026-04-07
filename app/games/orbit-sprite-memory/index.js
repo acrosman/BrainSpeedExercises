@@ -8,6 +8,7 @@
 
 import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
+import * as timerService from '../../components/timerService.js';
 
 /** Delay before automatically starting the next round after answer submit. */
 const NEXT_ROUND_DELAY_MS = 900;
@@ -80,6 +81,9 @@ let _finalBestLevelEl = null;
 
 /** @type {HTMLElement|null} */
 let _finalBestScoreEl = null;
+
+/** @type {HTMLElement|null} */
+let _sessionTimerEl = null;
 
 /** @type {ReturnType<typeof setTimeout>[]} */
 let _timers = [];
@@ -473,6 +477,7 @@ function init(gameContainer) {
   _finalLevelEl = _container.querySelector('#osm-final-level');
   _finalBestLevelEl = _container.querySelector('#osm-final-best-level');
   _finalBestScoreEl = _container.querySelector('#osm-final-best-score');
+  _sessionTimerEl = _container.querySelector('#osm-session-timer');
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
@@ -495,6 +500,12 @@ function start() {
   game.startGame();
   resetBoardVisualState();
 
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_gameAreaEl) _gameAreaEl.hidden = false;
@@ -511,6 +522,7 @@ function stop() {
   clearTimers();
   resetBoardVisualState();
   const result = game.stopGame();
+  const sessionDurationMs = timerService.stopTimer();
 
   (async () => {
     if (typeof window !== 'undefined' && window.api) {
@@ -524,6 +536,9 @@ function stop() {
 
         const previous = (existing.games && existing.games['orbit-sprite-memory']) || {};
         const lowestDisplayTime = game.getDisplayDurationMs(result.level);
+        const today = timerService.getTodayDateString();
+        const prevDailyTime = (previous.dailyTime && typeof previous.dailyTime[today] === 'number')
+          ? previous.dailyTime[today] : 0;
         const payload = {
           ...existing,
           games: {
@@ -536,6 +551,10 @@ function stop() {
               lowestDisplayTime: typeof previous.lowestDisplayTime === 'number'
                 ? Math.min(lowestDisplayTime, previous.lowestDisplayTime)
                 : lowestDisplayTime,
+              dailyTime: {
+                ...(previous.dailyTime || {}),
+                [today]: prevDailyTime + sessionDurationMs,
+              },
             },
           },
         };
@@ -559,6 +578,9 @@ function reset() {
   clearTimers();
   resetBoardVisualState();
   game.initGame();
+
+  timerService.resetTimer();
+  if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
 
   _currentRound = null;
   _inputEnabled = false;

@@ -2,6 +2,19 @@ import {
   describe, it, expect, beforeEach, afterEach, jest,
 } from '@jest/globals';
 
+// ── 0. Mock timerService ──────────────────────────────────────────────────────
+
+jest.unstable_mockModule('../../../components/timerService.js', () => ({
+  startTimer: jest.fn(),
+  stopTimer: jest.fn(() => 0),
+  resetTimer: jest.fn(),
+  getElapsedMs: jest.fn(() => 0),
+  isTimerRunning: jest.fn(() => false),
+  formatDuration: jest.fn(() => '00:00'),
+  getTodayDateString: jest.fn(() => '2024-01-15'),
+}));
+const timerServiceMock = await import('../../../components/timerService.js');
+
 // ── 1. Mock game.js ───────────────────────────────────────────────────────────
 
 jest.unstable_mockModule('../game.js', () => ({

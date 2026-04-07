@@ -10,6 +10,7 @@
 
 import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
+import * as timerService from '../../components/timerService.js';
 
 /** Human-readable name returned as part of the plugin contract. */
 const name = 'Otter Stop!';
@@ -75,6 +76,9 @@ let _nogoHitsEl = null;
 
 /** @type {HTMLElement|null} */
 let _intervalEl = null;
+
+/** @type {HTMLElement|null} */
+let _sessionTimerEl = null;
 
 /** @type {HTMLElement|null} */
 let _finalScoreEl = null;
@@ -391,6 +395,7 @@ function init(container) {
   _scoreEl = container.querySelector('#os-score');
   _nogoHitsEl = container.querySelector('#os-nogo-hits');
   _intervalEl = container.querySelector('#os-interval');
+  _sessionTimerEl = container.querySelector('#os-session-timer');
   _finalScoreEl = container.querySelector('#os-final-score');
   _finalBestEl = container.querySelector('#os-final-best');
   _finalNogoEl = container.querySelector('#os-final-nogo');
@@ -443,6 +448,12 @@ function start() {
   game.initGame();
   game.startGame();
 
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_gameAreaEl) _gameAreaEl.hidden = false;
@@ -471,6 +482,7 @@ function stop() {
   hideFeedback();
 
   const result = game.stopGame();
+  const sessionDurationMs = timerService.stopTimer();
   const lowestDisplayTime = game.getCurrentIntervalMs();
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
@@ -487,6 +499,9 @@ function stop() {
           // If load fails, proceed with empty defaults.
         }
         const prev = (existing.games && existing.games['otter-stop']) || {};
+        const today = timerService.getTodayDateString();
+        const prevDailyTime = (prev.dailyTime && typeof prev.dailyTime[today] === 'number')
+          ? prev.dailyTime[today] : 0;
         const updated = {
           ...existing,
           games: {
@@ -499,6 +514,10 @@ function stop() {
               lowestDisplayTime: typeof prev.lowestDisplayTime === 'number'
                 ? Math.min(lowestDisplayTime, prev.lowestDisplayTime)
                 : lowestDisplayTime,
+              dailyTime: {
+                ...(prev.dailyTime || {}),
+                [today]: prevDailyTime + sessionDurationMs,
+              },
             },
           },
         };
@@ -521,6 +540,9 @@ function reset() {
   hideImage();
   hideFeedback();
   game.initGame();
+
+  timerService.resetTimer();
+  if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;

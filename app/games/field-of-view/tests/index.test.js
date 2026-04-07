@@ -7,6 +7,18 @@ import {
   afterEach,
 } from '@jest/globals';
 
+// Mock timerService before other mocks and imports.
+jest.unstable_mockModule('../../../components/timerService.js', () => ({
+  startTimer: jest.fn(),
+  stopTimer: jest.fn(() => 0),
+  resetTimer: jest.fn(),
+  getElapsedMs: jest.fn(() => 0),
+  isTimerRunning: jest.fn(() => false),
+  formatDuration: jest.fn(() => '00:00'),
+  getTodayDateString: jest.fn(() => '2024-01-15'),
+}));
+const timerServiceMock = await import('../../../components/timerService.js');
+
 jest.unstable_mockModule('../game.js', () => ({
   initGame: jest.fn(),
   startGame: jest.fn(),
@@ -211,6 +223,7 @@ describe('field-of-view index', () => {
     expect(document.querySelector('#fov-final-best-threshold').textContent).toBe('200');
     expect(progressMock.saveProgress).toHaveBeenCalledWith(
       expect.objectContaining({ thresholdMs: 84.2, trialsCompleted: 4 }),
+      expect.any(Number),
     );
   });
 

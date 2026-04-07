@@ -6,6 +6,8 @@
  * @file Game card UI component for BrainSpeedExercises.
  */
 
+import { formatDuration, getTodayDateString } from './timerService.js';
+
 /**
  * Creates a game card element for the game-selection screen.
  *
@@ -20,6 +22,7 @@
  *   displayed as level + 1). Standard field for all games that track levels.
  * @param {number} [progress.lowestDisplayTime] - The lowest display time achieved, in
  *   milliseconds. Standard field for all games that track image display speed.
+ * @param {object} [progress.dailyTime] - Map of YYYY-MM-DD → milliseconds played.
  * @returns {HTMLElement} An <article> element representing the game card.
  */
 export function createGameCard(manifest, progress) {
@@ -49,6 +52,12 @@ export function createGameCard(manifest, progress) {
     if (typeof progress.highScore === 'number') details.push(`Top Score: ${progress.highScore}`);
     if (typeof progress.highestLevel === 'number') details.push(`Max Level: ${progress.highestLevel + 1}`);
     if (typeof progress.lowestDisplayTime === 'number') details.push(`Min Display Time: ${progress.lowestDisplayTime}ms`);
+    // Show time played today if available.
+    const today = getTodayDateString();
+    if (progress.dailyTime && typeof progress.dailyTime[today] === 'number'
+        && progress.dailyTime[today] > 0) {
+      details.push(`Today: ${formatDuration(progress.dailyTime[today])}`);
+    }
     if (details.length > 0) {
       scoreElem.textContent = details.join(' | ');
       scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);

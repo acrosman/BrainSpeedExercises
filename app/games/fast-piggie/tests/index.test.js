@@ -3,6 +3,20 @@ import {
 } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
+// 0 — Mock timerService (must be before other mocks and dynamic imports)
+// ---------------------------------------------------------------------------
+jest.unstable_mockModule('../../../components/timerService.js', () => ({
+  startTimer: jest.fn(),
+  stopTimer: jest.fn(() => 0),
+  resetTimer: jest.fn(),
+  getElapsedMs: jest.fn(() => 0),
+  isTimerRunning: jest.fn(() => false),
+  formatDuration: jest.fn(() => '00:00'),
+  getTodayDateString: jest.fn(() => '2024-01-15'),
+}));
+const timerServiceMock = await import('../../../components/timerService.js');
+
+// ---------------------------------------------------------------------------
 // 1 — Mock game.js (must be called before dynamic import of index.js)
 // ---------------------------------------------------------------------------
 jest.unstable_mockModule('../game.js', () => ({
