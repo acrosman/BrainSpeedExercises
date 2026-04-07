@@ -1,0 +1,173 @@
+.directional-processing {
+  color: #1f2933;
+}
+
+/* ── Panels ──────────────────────────────────────────────────────────────────── */
+
+.dp-panel {
+  background: #f2f4f7;
+  border: 1px solid #c9d1d9;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+/* ── Stats bar ───────────────────────────────────────────────────────────────── */
+
+.dp-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Stage (canvas wrapper) ──────────────────────────────────────────────────── */
+
+.dp-stage {
+  position: relative;
+  width: min(88vw, 420px);
+  margin: 0 auto 1rem;
+}
+
+.dp-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border: 2px solid #616b75;
+  border-radius: 8px;
+  background: rgb(128, 128, 128);
+}
+
+/* Flash overlay feedback — applied to the stage element after a response. */
+.dp-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 8px;
+  opacity: 0;
+  z-index: 3;
+}
+
+.dp-stage--flash-correct::after {
+  background: rgba(16, 185, 129, 0.34);
+  opacity: 1;
+}
+
+.dp-stage--flash-wrong::after {
+  background: rgba(239, 68, 68, 0.34);
+  opacity: 1;
+}
+
+/* ── Response panel ──────────────────────────────────────────────────────────── */
+
+.dp-response {
+  margin: 0 auto;
+  max-width: 420px;
+  text-align: center;
+}
+
+.dp-response__prompt {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+}
+
+/* D-pad layout: Up centered, Left/Right on the middle row, Down centered. */
+.dp-direction-pad {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dp-direction-pad__row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.dp-dir-btn {
+  width: 100px;
+  height: 56px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 2px solid #5f6974;
+  border-radius: 8px;
+  background: #e5e7eb;
+  color: #1f2933;
+  cursor: pointer;
+  transition: background 0.1s, transform 0.1s;
+}
+
+.dp-dir-btn:hover {
+  background: #d1d5db;
+}
+
+.dp-dir-btn:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.dp-dir-btn:active {
+  transform: scale(0.96);
+}
+
+.dp-dir-btn--selected {
+  background: #cfe8ff;
+  border-color: #0f4aa3;
+}
+
+/* ── Feedback region ─────────────────────────────────────────────────────────── */
+
+.dp-feedback {
+  min-height: 1.5rem;
+  margin-top: 0.75rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────────── */
+
+.dp-controls {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────────── */
+
+.dp-btn {
+  background: #dbe2ea;
+  color: #111827;
+  border: 1px solid #5f6974;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dp-btn--primary {
+  background: #0f4aa3;
+  color: #ffffff;
+  border-color: #0b3b83;
+}
+
+.dp-btn--secondary {
+  background: #e5e7eb;
+}
+
+.dp-btn:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .dp-dir-btn {
+    width: 80px;
+    height: 48px;
+    font-size: 0.875rem;
+  }
+}

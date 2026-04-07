@@ -1,0 +1,9 @@
+{
+  "id": "directional-processing",
+  "name": "Directional Processing",
+  "description": "Identify the direction of a briefly-displayed moving Gabor pattern. Trains rapid visual motion perception and brain-speed response.",
+  "version": "0.1.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.png",
+  "author": "BrainSpeed Exercises"
+}
