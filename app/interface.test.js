@@ -501,9 +501,21 @@ describe('interface.js', () => {
       expect(mockClearHistory).toHaveBeenCalledTimes(1);
       expect(panel.hidden).toBe(true);
     });
-  });
+    it('resets the confirm zone to hidden when the panel is re-opened', async () => {
+      setupApi();
+      await domReadyCallback();
 
-  // ── computeTotalTimeToday ─────────────────────────────────────────────────
+      // Open the panel, show the confirm zone, close the panel.
+      document.getElementById('view-history-btn').click();
+      document.getElementById('clear-history-btn').click();
+      expect(document.getElementById('clear-history-confirm').hidden).toBe(false);
+      document.getElementById('history-close-btn').click();
+
+      // Re-open; confirm zone should be hidden again.
+      document.getElementById('view-history-btn').click();
+      expect(document.getElementById('clear-history-confirm').hidden).toBe(true);
+    });
+  });
 
   describe('computeTotalTimeToday()', () => {
     it('is exported', async () => {

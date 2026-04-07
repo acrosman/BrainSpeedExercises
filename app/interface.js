@@ -129,6 +129,11 @@ export function openHistoryPanel(progress, manifests) {
 
   body.innerHTML = '';
   body.appendChild(buildHistoryPanel(progress, manifests));
+
+  // Ensure the inline confirm zone is hidden when the panel opens.
+  const confirmZone = document.getElementById('clear-history-confirm');
+  if (confirmZone) confirmZone.hidden = true;
+
   panel.hidden = false;
 
   // Make the rest of the page inert so assistive technology stays in the modal.
