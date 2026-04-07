@@ -11,6 +11,12 @@
   --chart-color-total: #adb5bd;
 }
 
+/* Ensure the HTML hidden attribute is always respected, even when a class
+   rule sets an explicit display value. */
+[hidden] {
+  display: none !important;
+}
+
 *,
 *::before,
 *::after {
@@ -249,11 +255,34 @@ footer {
   background: #ffffff;
 }
 
+.history-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .history-panel__title {
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
   color: #212529;
+}
+
+.history-panel__clear-btn {
+  background: none;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.5;
+  color: #dc3545;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.history-panel__clear-btn:hover {
+  background-color: #dc3545;
+  color: #ffffff;
 }
 
 .history-panel__close {
@@ -270,6 +299,58 @@ footer {
 
 .history-panel__close:hover {
   background-color: #f1f3f5;
+}
+
+.history-panel__confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+}
+
+.history-panel__confirm-text {
+  font-size: 0.9rem;
+  color: #664d03;
+}
+
+.history-panel__confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.history-panel__confirm-cancel {
+  background: none;
+  border: 1px solid #6c757d;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  color: #495057;
+  transition: background-color 0.1s ease;
+}
+
+.history-panel__confirm-cancel:hover {
+  background-color: #e9ecef;
+}
+
+.history-panel__confirm-ok {
+  background: #dc3545;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  color: #ffffff;
+  transition: background-color 0.1s ease;
+}
+
+.history-panel__confirm-ok:hover {
+  background-color: #bb2d3b;
+  border-color: #bb2d3b;
 }
 
 .history-panel__body {

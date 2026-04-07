@@ -127,17 +127,6 @@ app.on('activate', () => {
   }
 });
 
-/**
- * Example IPC message handler.
- */
-ipcMain.on('sample_message', (event, args) => {
-  // Sample useless response.
-  mainWindow.webContents.send('sample_response', {
-    message: 'Interface sent a message to main: ' + args.message_content,
-  });
-  return true;
-});
-
 ipcMain.handle('progress:load', async (event, { playerId }) => loadProgress(playerId));
 
 ipcMain.handle('progress:save', async (event, { playerId, data }) => saveProgress(playerId, data));

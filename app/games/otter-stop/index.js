@@ -11,6 +11,7 @@
 import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
+import { saveScore } from '../../components/scoreService.js';
 
 /** Human-readable name returned as part of the plugin contract. */
 const name = 'Otter Stop!';
@@ -464,13 +465,7 @@ function start() {
 }
 
 /**
- * Stop the game, show the end panel, and persist progress via IPC.
- *
- * Follows the same load → merge → save pattern used by every other game:
- * 1. Loads the existing progress record for the default player.
- * 2. Merges updated `otter-stop` stats (highScore, highestLevel, lowestDisplayTime,
- *    sessionsPlayed, lastPlayed) into the record.
- * 3. Saves the complete updated record back via `progress:save`.
+ * Stop the game, show the end panel, and persist progress via the score service.
  *
  * @returns {{ score: number, noGoHits: number, misses: number,
  *             trialsCompleted: number, level: number, duration: number,
@@ -483,50 +478,17 @@ function stop() {
 
   const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
-  const lowestDisplayTime = game.getCurrentIntervalMs();
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   showEndPanel(result);
 
   // Persist progress — fire and forget (never blocks the UI).
-  (async () => {
-    if (typeof window !== 'undefined' && window.api) {
-      try {
-        let existing = { playerId: 'default', games: {} };
-        try {
-          existing = await window.api.invoke('progress:load', { playerId: 'default' }) || existing;
-        } catch {
-          // If load fails, proceed with empty defaults.
-        }
-        const prev = (existing.games && existing.games['otter-stop']) || {};
-        const today = timerService.getTodayDateString();
-        const prevDailyTime = (prev.dailyTime && typeof prev.dailyTime[today] === 'number')
-          ? prev.dailyTime[today] : 0;
-        const updated = {
-          ...existing,
-          games: {
-            ...existing.games,
-            'otter-stop': {
-              highScore: Math.max(result.score, prev.highScore || 0),
-              sessionsPlayed: (prev.sessionsPlayed || 0) + 1,
-              lastPlayed: new Date().toISOString(),
-              highestLevel: Math.max(result.level, prev.highestLevel || 0),
-              lowestDisplayTime: typeof prev.lowestDisplayTime === 'number'
-                ? Math.min(lowestDisplayTime, prev.lowestDisplayTime)
-                : lowestDisplayTime,
-              dailyTime: {
-                ...(prev.dailyTime || {}),
-                [today]: prevDailyTime + sessionDurationMs,
-              },
-            },
-          },
-        };
-        await window.api.invoke('progress:save', { playerId: 'default', data: updated });
-      } catch {
-        // Swallow all progress load/save errors — never interrupt gameplay.
-      }
-    }
-  })();
+  saveScore('otter-stop', {
+    score: result.score,
+    sessionDurationMs,
+    level: result.level,
+    lowestDisplayTime: game.getCurrentIntervalMs(),
+  });
 
   return result;
 }

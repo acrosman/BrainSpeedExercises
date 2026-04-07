@@ -10,6 +10,7 @@
 import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
+import { saveScore } from '../../components/scoreService.js';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
 const SPRITE_INSET = 2;
@@ -564,9 +565,9 @@ export default {
 
   /**
    * Stop the game, persist progress, and show final score.
-   * @returns {object} Game result
+   * @returns {Promise<object>} Game result
    */
-  stop() {
+  async stop() {
     if (_roundTimer) {
       clearTimeout(_roundTimer);
       _roundTimer = null;
@@ -575,89 +576,30 @@ export default {
     const result = game.stopGame();
     const sessionDurationMs = timerService.stopTimer();
 
-    let highScore = result.score;
-    let bestStats = game.getBestStats();
-    // Return a promise for test compatibility
-    return (async () => {
-      try {
-        let existing = { playerId: 'default', games: {} };
-        let gameEntry = {
-          highScore: 0,
-          sessionsPlayed: 0,
-          lastPlayed: null,
-          maxLevel: 0,
-          maxPiggies: 0,
-          lowestDisplayTime: null,
-        };
-        if (typeof window !== 'undefined' && window.api) {
-          try {
-            // Always call progress:load first
-            existing = await window.api.invoke(
-              'progress:load',
-              { playerId: 'default' },
-            ) || existing;
-            if (existing.games && existing.games['fast-piggie']) {
-              gameEntry = { ...gameEntry, ...existing.games['fast-piggie'] };
-            }
-          } catch {
-            // If load fails, still proceed to save with defaults
-          }
-          // Only update highScore if the new score is higher
-          highScore = Math.max(gameEntry.highScore || 0, result.score);
-          // Get best stats from game logic
-          bestStats = game.getBestStats();
-          const today = timerService.getTodayDateString();
-          const prevDailyTime = (gameEntry.dailyTime
-            && typeof gameEntry.dailyTime[today] === 'number')
-            ? gameEntry.dailyTime[today] : 0;
-          const updated = {
-            ...existing,
-            games: {
-              ...existing.games,
-              'fast-piggie': {
-                ...gameEntry,
-                highScore,
-                sessionsPlayed: (gameEntry.sessionsPlayed || 0) + 1,
-                lastPlayed: new Date().toISOString(),
-                maxLevel:
-                  typeof bestStats.maxScore === 'number'
-                    ? bestStats.maxScore
-                    : gameEntry.maxLevel || 0,
-                maxPiggies:
-                  typeof bestStats.mostGuineaPigs === 'number'
-                    ? bestStats.mostGuineaPigs
-                    : gameEntry.maxPiggies || 0,
-                lowestDisplayTime:
-                  typeof bestStats.topSpeedMs === 'number'
-                    ? bestStats.topSpeedMs
-                    : gameEntry.lowestDisplayTime || null,
-                dailyTime: {
-                  ...(gameEntry.dailyTime || {}),
-                  [today]: prevDailyTime + sessionDurationMs,
-                },
-              },
-            },
-          };
-          // Always call progress:save, even if load failed
-          await window.api.invoke(
-            'progress:save',
-            {
-              playerId: 'default',
-              data: updated,
-            },
-          );
-        }
-      } catch {
-        // Swallow all errors from progress load/save
-      }
+    // Hide the stop button synchronously so it is gone immediately.
+    _stopBtn.hidden = true;
 
-      _showEndPanel(result.score, highScore);
-      if (_feedbackEl) {
-        _feedbackEl.textContent = `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
-      }
-      _stopBtn.hidden = true;
-      return result;
-    })();
+    const bestStats = game.getBestStats();
+    const savedRecord = await saveScore('fast-piggie', {
+      score: result.score,
+      sessionDurationMs,
+      level: typeof bestStats.maxScore === 'number' ? bestStats.maxScore : undefined,
+      lowestDisplayTime: typeof bestStats.topSpeedMs === 'number'
+        ? bestStats.topSpeedMs
+        : undefined,
+    }, (prev) => ({
+      maxPiggies: Math.max(
+        typeof bestStats.mostGuineaPigs === 'number' ? bestStats.mostGuineaPigs : 0,
+        prev.maxPiggies || 0,
+      ),
+    }));
+
+    const highScore = savedRecord ? savedRecord.highScore : result.score;
+    _showEndPanel(result.score, highScore);
+    if (_feedbackEl) {
+      _feedbackEl.textContent = `Game over! Final score: ${result.score} in ${result.roundsPlayed} rounds.`;
+    }
+    return result;
   },
 
   /**

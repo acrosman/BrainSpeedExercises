@@ -10,6 +10,7 @@
 import * as game from './game.js';
 import { playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
+import { saveScore } from '../../components/scoreService.js';
 
 /**
  * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
@@ -464,46 +465,13 @@ function stop() {
   const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
 
-  // Save progress asynchronously — fire and forget
-  (async () => {
-    if (typeof window !== 'undefined' && window.api) {
-      try {
-        let existing = { playerId: 'default', games: {} };
-        try {
-          existing = await window.api.invoke('progress:load', { playerId: 'default' }) || existing;
-        } catch {
-          // If load fails, continue with defaults
-        }
-        const prev = (existing.games && existing.games['high-speed-memory']) || {};
-        const lowestDisplayTime = game.getDisplayDurationMs(result.level);
-        const today = timerService.getTodayDateString();
-        const prevDailyTime = (prev.dailyTime && typeof prev.dailyTime[today] === 'number')
-          ? prev.dailyTime[today] : 0;
-        const updated = {
-          ...existing,
-          games: {
-            ...existing.games,
-            'high-speed-memory': {
-              highScore: Math.max(result.score, prev.highScore || 0),
-              sessionsPlayed: (prev.sessionsPlayed || 0) + 1,
-              lastPlayed: new Date().toISOString(),
-              highestLevel: Math.max(result.level, prev.highestLevel || 0),
-              lowestDisplayTime: typeof prev.lowestDisplayTime === 'number'
-                ? Math.min(lowestDisplayTime, prev.lowestDisplayTime)
-                : lowestDisplayTime,
-              dailyTime: {
-                ...(prev.dailyTime || {}),
-                [today]: prevDailyTime + sessionDurationMs,
-              },
-            },
-          },
-        };
-        await window.api.invoke('progress:save', { playerId: 'default', data: updated });
-      } catch {
-        // Swallow all progress save/load errors
-      }
-    }
-  })();
+  // Persist progress — fire and forget (never blocks the UI).
+  saveScore('high-speed-memory', {
+    score: result.score,
+    sessionDurationMs,
+    level: result.level,
+    lowestDisplayTime: game.getDisplayDurationMs(result.level),
+  });
 
   showEndPanel(result);
   return result;

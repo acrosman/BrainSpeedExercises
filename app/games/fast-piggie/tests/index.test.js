@@ -936,10 +936,7 @@ describe('progress saving', () => {
 
     plugin.init(buildContainer());
     plugin.start();
-    plugin.stop();
-
-    await Promise.resolve();
-    await Promise.resolve();
+    await plugin.stop();
 
     expect(mockApi.invoke).toHaveBeenCalledWith('progress:load', { playerId: 'default' });
     expect(mockApi.invoke).toHaveBeenCalledWith(
@@ -993,10 +990,7 @@ describe('progress saving', () => {
 
     plugin.init(buildContainer());
     plugin.start();
-    plugin.stop();
-
-    await Promise.resolve();
-    await Promise.resolve();
+    await plugin.stop();
 
     const loadCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:load');
     expect(typeof loadCall[1]).toBe('object');
@@ -1019,10 +1013,7 @@ describe('progress saving', () => {
 
     plugin.init(buildContainer());
     plugin.start();
-    plugin.stop();
-
-    await Promise.resolve();
-    await Promise.resolve();
+    await plugin.stop();
 
     const saveCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:save');
     expect(typeof saveCall[1]).toBe('object');
@@ -1052,10 +1043,7 @@ describe('progress saving', () => {
 
     plugin.init(buildContainer());
     plugin.start();
-    plugin.stop();
-
-    await Promise.resolve();
-    await Promise.resolve();
+    await plugin.stop();
 
     const saveCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:save');
     expect(saveCall[1].data.games['fast-piggie'].highScore).toBe(10);
@@ -1269,9 +1257,7 @@ describe('dailyTime accumulation', () => {
     };
     globalThis.api = mockApi;
 
-    plugin.stop();
-    await Promise.resolve();
-    await Promise.resolve();
+    await plugin.stop();
 
     const saved = savedPayloads[0];
     expect(saved).toBeDefined();
@@ -1305,9 +1291,7 @@ describe('dailyTime accumulation', () => {
     };
     globalThis.api = mockApi;
 
-    plugin.stop();
-    await Promise.resolve();
-    await Promise.resolve();
+    await plugin.stop();
 
     // 30000 (existing) + 60000 (new) = 90000
     expect(savedPayloads[0].data.games['fast-piggie'].dailyTime['2024-01-15']).toBe(90000);

@@ -32,6 +32,12 @@ await jest.unstable_mockModule('./components/historyView.js', () => ({
   }),
 }));
 
+// Mock scoreService to isolate interface.js from IPC in clearHistory tests.
+const mockClearHistory = jest.fn().mockResolvedValue(undefined);
+await jest.unstable_mockModule('./components/scoreService.js', () => ({
+  clearHistory: mockClearHistory,
+}));
+
 // Spy on document.addEventListener to capture the DOMContentLoaded callback before
 // importing interface.js, so tests can invoke it directly.
 const origDocAddEventListener = document.addEventListener.bind(document);
@@ -88,10 +94,16 @@ describe('interface.js', () => {
       + '</div>'
       + '<div id="history-panel" hidden>'
       + '  <div id="history-panel-body"></div>'
+      + '  <button id="clear-history-btn">Clear History</button>'
+      + '  <div id="clear-history-confirm" hidden>'
+      + '    <button id="clear-history-cancel-btn">Cancel</button>'
+      + '    <button id="clear-history-ok-btn">Clear All History</button>'
+      + '  </div>'
       + '  <button id="history-close-btn">Close</button>'
       + '</div>';
     document.head.innerHTML = '';
     mockGameInit.mockClear();
+    mockClearHistory.mockClear();
   });
 
   afterEach(() => {
@@ -446,9 +458,64 @@ describe('interface.js', () => {
       const body = document.getElementById('history-panel-body');
       expect(body.children.length).toBeGreaterThan(0);
     });
-  });
 
-  // ── computeTotalTimeToday ─────────────────────────────────────────────────
+    it('shows the inline confirm zone when Clear History is clicked', async () => {
+      setupApi();
+      await domReadyCallback();
+
+      document.getElementById('view-history-btn').click();
+      const confirmZone = document.getElementById('clear-history-confirm');
+      expect(confirmZone.hidden).toBe(true);
+
+      document.getElementById('clear-history-btn').click();
+      expect(confirmZone.hidden).toBe(false);
+    });
+
+    it('hides the confirm zone and does not clear when Cancel is clicked', async () => {
+      setupApi();
+      await domReadyCallback();
+
+      document.getElementById('view-history-btn').click();
+      document.getElementById('clear-history-btn').click();
+      expect(document.getElementById('clear-history-confirm').hidden).toBe(false);
+
+      document.getElementById('clear-history-cancel-btn').click();
+      expect(document.getElementById('clear-history-confirm').hidden).toBe(true);
+      expect(mockClearHistory).not.toHaveBeenCalled();
+    });
+
+    it('clears history and closes panel when Clear All History is confirmed', async () => {
+      setupApi();
+      await domReadyCallback();
+
+      document.getElementById('view-history-btn').click();
+      const panel = document.getElementById('history-panel');
+      expect(panel.hidden).toBe(false);
+
+      // Open confirm zone then confirm.
+      document.getElementById('clear-history-btn').click();
+      document.getElementById('clear-history-ok-btn').click();
+      await flush();
+      await flush();
+
+      expect(mockClearHistory).toHaveBeenCalledTimes(1);
+      expect(panel.hidden).toBe(true);
+    });
+    it('resets the confirm zone to hidden when the panel is re-opened', async () => {
+      setupApi();
+      await domReadyCallback();
+
+      // Open the panel, show the confirm zone, close the panel.
+      document.getElementById('view-history-btn').click();
+      document.getElementById('clear-history-btn').click();
+      expect(document.getElementById('clear-history-confirm').hidden).toBe(false);
+      document.getElementById('history-close-btn').click();
+
+      // Re-open; confirm zone should be hidden again.
+      document.getElementById('view-history-btn').click();
+      expect(document.getElementById('clear-history-confirm').hidden).toBe(true);
+    });
+  });
 
   describe('computeTotalTimeToday()', () => {
     it('is exported', async () => {

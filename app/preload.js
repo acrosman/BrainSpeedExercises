@@ -16,35 +16,6 @@ const { contextBridge, ipcRenderer } = require('electron');
  */
 contextBridge.exposeInMainWorld('api', {
   /**
-   * Send a message to the main process on an allowed channel.
-   * @param {string} channel - The IPC channel.
-   * @param {*} data - Data to send.
-   */
-  send: (channel, data) => {
-    // List channels to allow.
-    const validChannels = [
-      'sample_message',
-    ];
-    if (validChannels.includes(channel)) {
-      ipcRenderer.send(channel, data);
-    }
-  },
-  /**
-   * Listen for a message from the main process on an allowed channel.
-   * @param {string} channel - The IPC channel.
-   * @param {Function} func - Callback to handle the message.
-   */
-  receive: (channel, func) => {
-    // List channels to allow.
-    const validChannels = [
-      'sample_response',
-    ];
-    if (validChannels.includes(channel)) {
-      // Remove the event to avoid information leaks.
-      ipcRenderer.on(channel, (event, ...args) => func(...args));
-    }
-  },
-  /**
    * Invoke an IPC call to the main process on an allowed channel.
    * @param {string} channel - The IPC channel.
    * @param {*} data - Data to send.

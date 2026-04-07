@@ -128,7 +128,8 @@ Games must all have a welcome screen that explains how to play, and a consistent
 The core game logic must be in `game.js` as pure functions, or helper libraries, that can be easily unit tested.
 The `index.js` file should export the plugin API (`init`, `start`, `stop`, `reset`) that the renderer calls.
 
-When the player clicks "Stop" or finishes the game, the plugin must return a result object that includes at least a `score` property.
+When the player clicks "Stop" or finishes the game, the plugin's `stop()` method **must use the Score Service** (`app/components/scoreService.js`) to save the result. Do **not** call `window.api.invoke('progress:save', ...)` directly from game code. See §5a below.
+
 The renderer will take care of saving progress via IPC. When the player subsequently leaves the game, they must be returned to the main welcome screen with the list of games.
 All game cards should have been updated with any updated scores.
 
@@ -163,6 +164,45 @@ When the renderer asks to load a game by ID, the main process:
   }
 }
 ```
+
+### 5a — Score Service (`app/components/scoreService.js`)
+
+All game plugins **must** use the centralized Score Service to save results. Never call
+`window.api.invoke('progress:save', ...)` directly from game code.
+
+Public API:
+
+| Function | Purpose |
+|---|---|
+| `saveScore(gameId, result, extraFields?)` | Save a session result and update stored stats |
+| `loadProgress()` | Load the full progress record for the default player |
+| `loadGameScore(gameId)` | Load the saved record for a specific game |
+| `clearHistory()` | Clear all player history for the default player |
+
+#### `saveScore` standard fields
+
+The `result` object passed to `saveScore` supports these standard fields (all handled automatically):
+
+| Field | Type | Stored as | Merge strategy |
+|---|---|---|---|
+| `score` | `number` | `highScore` | Max with previous |
+| `sessionDurationMs` | `number` | `dailyTime[today]` | Accumulated |
+| `level` | `number` (optional) | `highestLevel` | Max with previous |
+| `lowestDisplayTime` | `number` (optional) | `lowestDisplayTime` | Min with previous |
+
+`sessionsPlayed` (incremented) and `lastPlayed` (ISO timestamp) are always written automatically.
+
+#### Game-specific extra fields
+
+For fields not covered by the standard set, pass an `extraFields` callback (receives the previous
+game record — useful for max/min logic on game-specific fields) or a plain object (merged directly
+without access to the previous record).
+
+#### Typical stop() pattern
+
+Import `saveScore` from `../../components/scoreService.js` and call it in `stop()`, passing the
+game ID, a result object with the standard fields, and an optional `extraFields` callback for any
+game-specific fields that need custom merge logic.
 
 ---
 

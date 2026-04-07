@@ -9,6 +9,7 @@
 import { createGameCard } from './components/gameCard.js';
 import { buildHistoryPanel } from './components/historyView.js';
 import { formatDuration, getTodayDateString } from './components/timerService.js';
+import { clearHistory } from './components/scoreService.js';
 
 /**
  * Inject a game-specific stylesheet into the document <head>.
@@ -128,6 +129,11 @@ export function openHistoryPanel(progress, manifests) {
 
   body.innerHTML = '';
   body.appendChild(buildHistoryPanel(progress, manifests));
+
+  // Ensure the inline confirm zone is hidden when the panel opens.
+  const confirmZone = document.getElementById('clear-history-confirm');
+  if (confirmZone) confirmZone.hidden = true;
+
   panel.hidden = false;
 
   // Make the rest of the page inert so assistive technology stays in the modal.
@@ -223,6 +229,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (closeHistoryBtn) {
     closeHistoryBtn.addEventListener('click', () => {
       closeHistoryPanel();
+    });
+  }
+
+  // Clear History button: show inline confirm zone.
+  const clearHistoryBtn = document.getElementById('clear-history-btn');
+  const clearHistoryConfirm = document.getElementById('clear-history-confirm');
+  const clearHistoryCancelBtn = document.getElementById('clear-history-cancel-btn');
+  const clearHistoryOkBtn = document.getElementById('clear-history-ok-btn');
+
+  if (clearHistoryBtn && clearHistoryConfirm) {
+    clearHistoryBtn.addEventListener('click', () => {
+      clearHistoryConfirm.hidden = false;
+    });
+  }
+
+  if (clearHistoryCancelBtn && clearHistoryConfirm) {
+    clearHistoryCancelBtn.addEventListener('click', () => {
+      clearHistoryConfirm.hidden = true;
+    });
+  }
+
+  if (clearHistoryOkBtn && clearHistoryConfirm) {
+    clearHistoryOkBtn.addEventListener('click', async () => {
+      clearHistoryConfirm.hidden = true;
+      await clearHistory();
+      closeHistoryPanel();
+      window.dispatchEvent(new Event('bsx:return-to-main-menu'));
     });
   }
 
