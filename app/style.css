@@ -1,4 +1,16 @@
 /* ── Reset / Base ───────────────────────────────────────────── */
+
+/* Chart color palette — 6 accessible colors + total-bar grey */
+:root {
+  --chart-color-0: #005fcc;
+  --chart-color-1: #c9510c;
+  --chart-color-2: #238636;
+  --chart-color-3: #8250df;
+  --chart-color-4: #d1242f;
+  --chart-color-5: #0969da;
+  --chart-color-total: #adb5bd;
+}
+
 *,
 *::before,
 *::after {
@@ -145,5 +157,239 @@ footer {
 }
 
 .game-card button:active {
-  background-color: #003880;
+  background-color: #003d8a;
 }
+
+.game-card button:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 2px;
+}
+
+.game-card .game-high-score {
+  margin: 0 1rem 0.5rem;
+  font-size: 0.8rem;
+  color: #495057;
+}
+
+/* ── Play-time summary bar ───────────────────────────────────────────────── */
+.play-time-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1.5rem;
+  background-color: #e9ecef;
+  border-top: 1px solid #dee2e6;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.play-time-bar__label {
+  flex: 1;
+}
+
+.play-time-bar__label strong {
+  color: #212529;
+  font-weight: 700;
+}
+
+.play-time-bar__btn {
+  padding: 0.375rem 0.875rem;
+  background-color: #343a40;
+  color: #f8f9fa;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.play-time-bar__btn:hover {
+  background-color: #212529;
+}
+
+/* ── History panel (modal overlay) ──────────────────────────────────────── */
+.history-panel {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+/* Show when the hidden attribute is absent (set by JS). */
+.history-panel:not([hidden]) {
+  display: flex;
+}
+
+.history-panel__inner {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  display: flex;
+  flex-direction: column;
+}
+
+.history-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+}
+
+.history-panel__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: #212529;
+}
+
+.history-panel__close {
+  background: none;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 1.125rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  color: #495057;
+  transition: background-color 0.1s ease;
+}
+
+.history-panel__close:hover {
+  background-color: #f1f3f5;
+}
+
+.history-panel__body {
+  padding: 1.5rem;
+  flex: 1;
+}
+
+.history-panel__empty {
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+/* ── History chart ───────────────────────────────────────────────────────── */
+.history-chart {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.history-chart__bars {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  height: 160px;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 0;
+  min-width: fit-content;
+}
+
+.history-chart__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 60px;
+}
+
+.history-chart__bar {
+  width: 16px;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.2s ease;
+}
+
+.history-chart__bar--total {
+  background-color: var(--chart-color-total);
+  width: 10px;
+}
+
+/* Per-slot bar colors (indices cycle for > 6 games). */
+.history-chart__bar--color-0 { background-color: var(--chart-color-0); }
+.history-chart__bar--color-1 { background-color: var(--chart-color-1); }
+.history-chart__bar--color-2 { background-color: var(--chart-color-2); }
+.history-chart__bar--color-3 { background-color: var(--chart-color-3); }
+.history-chart__bar--color-4 { background-color: var(--chart-color-4); }
+.history-chart__bar--color-5 { background-color: var(--chart-color-5); }
+
+/* Legend swatch colors matching the bars above. */
+.history-chart__legend-swatch--color-0 { background-color: var(--chart-color-0); }
+.history-chart__legend-swatch--color-1 { background-color: var(--chart-color-1); }
+.history-chart__legend-swatch--color-2 { background-color: var(--chart-color-2); }
+.history-chart__legend-swatch--color-3 { background-color: var(--chart-color-3); }
+.history-chart__legend-swatch--color-4 { background-color: var(--chart-color-4); }
+.history-chart__legend-swatch--color-5 { background-color: var(--chart-color-5); }
+
+.history-chart__label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+.history-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.history-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #495057;
+}
+
+.history-chart__legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.history-chart__legend-swatch--total {
+  background-color: var(--chart-color-total);
+}
+
+/* ── History table ───────────────────────────────────────────────────────── */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.history-table th,
+.history-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.history-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #212529;
+}
+
+.history-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+

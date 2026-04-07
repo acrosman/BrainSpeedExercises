@@ -9,6 +9,7 @@
  */
 
 import * as game from './game.js';
+import { getTodayDateString } from '../../components/timerService.js';
 
 /** Game identifier used for progress persistence. */
 export const GAME_ID = 'field-of-view';
@@ -19,8 +20,9 @@ export const GAME_ID = 'field-of-view';
  * Only call this when an actual session was played (trialsCompleted > 0).
  *
  * @param {{ thresholdMs: number, trialsCompleted: number, recentAccuracy: number }} result
+ * @param {number} [sessionDurationMs=0]
  */
-export function saveProgress(result) {
+export function saveProgress(result, sessionDurationMs = 0) {
   (async () => {
     if (typeof window === 'undefined' || !window.api) return;
 
@@ -37,6 +39,10 @@ export function saveProgress(result) {
       const previousBest = Number(previous.bestThresholdMs || Number.POSITIVE_INFINITY);
       const nextBest = Math.min(previousBest, result.thresholdMs);
 
+      const today = getTodayDateString();
+      const prevDailyTime = (previous.dailyTime && typeof previous.dailyTime[today] === 'number')
+        ? previous.dailyTime[today] : 0;
+
       const updated = {
         ...existing,
         games: {
@@ -51,6 +57,10 @@ export function saveProgress(result) {
             lastRecentAccuracy: result.recentAccuracy,
             thresholdHistory: game.getThresholdHistory(),
             trialsCompleted: result.trialsCompleted,
+            dailyTime: {
+              ...(previous.dailyTime || {}),
+              [today]: prevDailyTime + sessionDurationMs,
+            },
           },
         },
       };

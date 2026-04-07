@@ -12,6 +12,7 @@ import * as game from './game.js';
 import * as render from './render.js';
 import { playFeedbackSound } from '../../components/audioService.js';
 import { saveProgress } from './progress.js';
+import * as timerService from '../../components/timerService.js';
 
 /** Mask display duration in ms. */
 const MASK_DURATION_MS = 120;
@@ -74,6 +75,9 @@ let _centerPrimaryBtn = null;
 let _centerSecondaryBtn = null;
 /** @type {HTMLElement|null} */
 let _locationSelectorEl = null;
+
+/** @type {HTMLElement|null} */
+let _sessionTimerEl = null;
 
 /** @type {ReturnType<typeof requestAnimationFrame>|null} */
 let _stimulusRafId = null;
@@ -504,6 +508,7 @@ function init(gameContainer) {
   _centerPrimaryBtn = _container.querySelector('#fov-center-primary');
   _centerSecondaryBtn = _container.querySelector('#fov-center-secondary');
   _locationSelectorEl = _container.querySelector('#fov-location-selector');
+  _sessionTimerEl = _container.querySelector('#fov-session-timer');
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
@@ -531,6 +536,12 @@ function init(gameContainer) {
 function start() {
   game.startGame();
 
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_gameAreaEl) _gameAreaEl.hidden = false;
@@ -554,6 +565,7 @@ function stop() {
   clearAsyncHandles();
 
   const result = game.isRunning() ? game.stopGame() : buildIdleResult();
+  const sessionDurationMs = timerService.stopTimer();
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = false;
@@ -564,7 +576,7 @@ function stop() {
   updateThresholdTrend();
 
   if (result.trialsCompleted > 0) {
-    saveProgress(result);
+    saveProgress(result, sessionDurationMs);
   }
 
   return result;
@@ -576,6 +588,9 @@ function stop() {
 function reset() {
   clearAsyncHandles();
   game.initGame();
+
+  timerService.resetTimer();
+  if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
 
   _currentTrial = null;
   _responseEnabled = false;

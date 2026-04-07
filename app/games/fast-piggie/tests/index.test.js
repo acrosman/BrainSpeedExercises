@@ -3,6 +3,20 @@ import {
 } from '@jest/globals';
 
 // ---------------------------------------------------------------------------
+// 0 — Mock timerService (must be before other mocks and dynamic imports)
+// ---------------------------------------------------------------------------
+jest.unstable_mockModule('../../../components/timerService.js', () => ({
+  startTimer: jest.fn((cb) => { if (typeof cb === 'function') cb(1000); }),
+  stopTimer: jest.fn(() => 0),
+  resetTimer: jest.fn(),
+  getElapsedMs: jest.fn(() => 0),
+  isTimerRunning: jest.fn(() => false),
+  formatDuration: jest.fn(() => '00:00'),
+  getTodayDateString: jest.fn(() => '2024-01-15'),
+}));
+await import('../../../components/timerService.js');
+
+// ---------------------------------------------------------------------------
 // 1 — Mock game.js (must be called before dynamic import of index.js)
 // ---------------------------------------------------------------------------
 jest.unstable_mockModule('../game.js', () => ({
@@ -1218,5 +1232,84 @@ describe('_showEndPanel and _returnToMainMenu', () => {
       container.querySelector('#fp-return-btn').click();
       container.querySelector('#fp-return-btn').click();
     }).not.toThrow();
+  });
+});
+
+// ===========================================================================
+// dailyTime accumulation
+// ===========================================================================
+describe('dailyTime accumulation', () => {
+  let timerMod;
+
+  beforeEach(async () => {
+    timerMod = await import('../../../components/timerService.js');
+    plugin.init(buildContainer());
+    plugin.start();
+  });
+
+  afterEach(() => {
+    delete globalThis.api;
+  });
+
+  it('writes dailyTime[today] into the saved progress when stopTimer returns > 0', async () => {
+    timerMod.stopTimer.mockReturnValueOnce(90000);
+    timerMod.getTodayDateString.mockReturnValue('2024-01-15');
+
+    const mockProgress = { playerId: 'default', games: {} };
+    const savedPayloads = [];
+    const mockApi = {
+      invoke: jest.fn((channel, payload) => {
+        if (channel === 'progress:load') return Promise.resolve(mockProgress);
+        if (channel === 'progress:save') {
+          savedPayloads.push(payload);
+          return Promise.resolve();
+        }
+        return Promise.resolve();
+      }),
+    };
+    globalThis.api = mockApi;
+
+    plugin.stop();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const saved = savedPayloads[0];
+    expect(saved).toBeDefined();
+    expect(saved.data.games['fast-piggie'].dailyTime['2024-01-15']).toBe(90000);
+  });
+
+  it('accumulates dailyTime on top of an existing entry for the same day', async () => {
+    timerMod.stopTimer.mockReturnValueOnce(60000);
+    timerMod.getTodayDateString.mockReturnValue('2024-01-15');
+
+    const mockProgress = {
+      playerId: 'default',
+      games: {
+        'fast-piggie': {
+          highScore: 0,
+          sessionsPlayed: 1,
+          dailyTime: { '2024-01-15': 30000 },
+        },
+      },
+    };
+    const savedPayloads = [];
+    const mockApi = {
+      invoke: jest.fn((channel, payload) => {
+        if (channel === 'progress:load') return Promise.resolve(mockProgress);
+        if (channel === 'progress:save') {
+          savedPayloads.push(payload);
+          return Promise.resolve();
+        }
+        return Promise.resolve();
+      }),
+    };
+    globalThis.api = mockApi;
+
+    plugin.stop();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // 30000 (existing) + 60000 (new) = 90000
+    expect(savedPayloads[0].data.games['fast-piggie'].dailyTime['2024-01-15']).toBe(90000);
   });
 });

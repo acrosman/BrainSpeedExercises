@@ -9,6 +9,7 @@
 
 import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
+import * as timerService from '../../components/timerService.js';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
 const SPRITE_INSET = 2;
@@ -197,6 +198,9 @@ let _playAgainBtn = null;
 let _returnToMenuBtn = null;
 let _finalScoreEl = null;
 let _finalHighScoreEl = null;
+
+/** @type {HTMLElement|null} */
+let _sessionTimerEl = null;
 
 // Game state
 let _images = null; // [commonImage, outlierImage]
@@ -510,6 +514,7 @@ export default {
     _flashEl = container.querySelector('#fp-flash');
     _finalScoreEl = container.querySelector('#fp-final-score');
     _finalHighScoreEl = container.querySelector('#fp-final-high-score');
+    _sessionTimerEl = container.querySelector('#fp-session-timer');
 
     // Pre-load images
     const base = new URL('../fast-piggie/images/', import.meta.url).href;
@@ -548,6 +553,11 @@ export default {
     if (_gameAreaEl) _gameAreaEl.hidden = false;
     if (_endPanelEl) _endPanelEl.hidden = true;
     game.startGame();
+    timerService.startTimer((elapsedMs) => {
+      if (_sessionTimerEl) {
+        _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+      }
+    });
     _updateStats();
     _runRound();
   },
@@ -563,6 +573,7 @@ export default {
     }
     _clickEnabled = false;
     const result = game.stopGame();
+    const sessionDurationMs = timerService.stopTimer();
 
     let highScore = result.score;
     let bestStats = game.getBestStats();
@@ -595,6 +606,10 @@ export default {
           highScore = Math.max(gameEntry.highScore || 0, result.score);
           // Get best stats from game logic
           bestStats = game.getBestStats();
+          const today = timerService.getTodayDateString();
+          const prevDailyTime = (gameEntry.dailyTime
+            && typeof gameEntry.dailyTime[today] === 'number')
+            ? gameEntry.dailyTime[today] : 0;
           const updated = {
             ...existing,
             games: {
@@ -616,6 +631,10 @@ export default {
                   typeof bestStats.topSpeedMs === 'number'
                     ? bestStats.topSpeedMs
                     : gameEntry.lowestDisplayTime || null,
+                dailyTime: {
+                  ...(gameEntry.dailyTime || {}),
+                  [today]: prevDailyTime + sessionDurationMs,
+                },
               },
             },
           };
@@ -654,6 +673,8 @@ export default {
     _currentRound = null;
     _selectedWedge = -1;
     _hoveredWedge = -1;
+    timerService.resetTimer();
+    if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
     if (_ctx && _canvas) {
       _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
     }

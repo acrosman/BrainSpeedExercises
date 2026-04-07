@@ -10,6 +10,16 @@ import {
   beforeEach,
 } from '@jest/globals';
 
+jest.unstable_mockModule('../../../components/timerService.js', () => ({
+  startTimer: jest.fn(),
+  stopTimer: jest.fn(() => 0),
+  resetTimer: jest.fn(),
+  getElapsedMs: jest.fn(() => 0),
+  isTimerRunning: jest.fn(() => false),
+  formatDuration: jest.fn(() => '00:00'),
+  getTodayDateString: jest.fn(() => '2024-01-15'),
+}));
+
 jest.unstable_mockModule('../game.js', () => ({
   getThresholdHistory: jest.fn(() => []),
 }));
@@ -114,5 +124,66 @@ describe('saveProgress', () => {
     await new Promise((resolve) => { setTimeout(resolve, 0); });
 
     globalThis.window.api = savedApi;
+  });
+
+  test('writes dailyTime[today] into saved progress when sessionDurationMs > 0', async () => {
+    const timerMod = await import('../../../components/timerService.js');
+    timerMod.getTodayDateString.mockReturnValue('2024-01-15');
+
+    const existing = { playerId: 'default', games: {} };
+    const savedPayloads = [];
+    const invoke = jest.fn()
+      .mockResolvedValueOnce(existing)
+      .mockImplementation((channel, payload) => {
+        if (channel === 'progress:save') savedPayloads.push(payload);
+        return Promise.resolve();
+      });
+
+    globalThis.window.api = { invoke };
+
+    saveProgress(
+      { thresholdMs: 100, trialsCompleted: 3, recentAccuracy: 0.8 },
+      90000,
+    );
+
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    expect(savedPayloads[0].data.games[GAME_ID].dailyTime['2024-01-15']).toBe(90000);
+  });
+
+  test('accumulates dailyTime on top of an existing entry for the same day', async () => {
+    const timerMod = await import('../../../components/timerService.js');
+    timerMod.getTodayDateString.mockReturnValue('2024-01-15');
+
+    const existing = {
+      playerId: 'default',
+      games: {
+        [GAME_ID]: {
+          sessionsPlayed: 1,
+          dailyTime: { '2024-01-15': 30000 },
+        },
+      },
+    };
+    const savedPayloads = [];
+    const invoke = jest.fn()
+      .mockResolvedValueOnce(existing)
+      .mockImplementation((channel, payload) => {
+        if (channel === 'progress:save') savedPayloads.push(payload);
+        return Promise.resolve();
+      });
+
+    globalThis.window.api = { invoke };
+
+    saveProgress(
+      { thresholdMs: 100, trialsCompleted: 3, recentAccuracy: 0.8 },
+      60000,
+    );
+
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    // 30000 (existing) + 60000 (new) = 90000
+    expect(savedPayloads[0].data.games[GAME_ID].dailyTime['2024-01-15']).toBe(90000);
   });
 });

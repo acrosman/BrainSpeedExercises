@@ -9,6 +9,7 @@
 
 import * as game from './game.js';
 import { playFailureSound } from '../../components/audioService.js';
+import * as timerService from '../../components/timerService.js';
 
 /**
  * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
@@ -73,6 +74,9 @@ let _streakEl = null;
 
 /** @type {HTMLElement|null} */
 let _displayTimeEl = null;
+
+/** @type {HTMLElement|null} */
+let _sessionTimerEl = null;
 
 // ── Round state (reset each round) ────────────────────────────────────────────
 
@@ -410,6 +414,7 @@ function init(gameContainer) {
   _finalLevelEl = _container.querySelector('#hsm-final-level');
   _streakEl = _container.querySelector('#hsm-streak');
   _displayTimeEl = _container.querySelector('#hsm-display-time');
+  _sessionTimerEl = _container.querySelector('#hsm-session-timer');
 
   if (_startBtn) {
     _startBtn.addEventListener('click', () => start());
@@ -435,6 +440,12 @@ function init(gameContainer) {
 function start() {
   game.startGame();
 
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_gameAreaEl) _gameAreaEl.hidden = false;
@@ -451,6 +462,7 @@ function start() {
 function stop() {
   clearTimers();
   const result = game.stopGame();
+  const sessionDurationMs = timerService.stopTimer();
 
   // Save progress asynchronously — fire and forget
   (async () => {
@@ -464,6 +476,9 @@ function stop() {
         }
         const prev = (existing.games && existing.games['high-speed-memory']) || {};
         const lowestDisplayTime = game.getDisplayDurationMs(result.level);
+        const today = timerService.getTodayDateString();
+        const prevDailyTime = (prev.dailyTime && typeof prev.dailyTime[today] === 'number')
+          ? prev.dailyTime[today] : 0;
         const updated = {
           ...existing,
           games: {
@@ -476,6 +491,10 @@ function stop() {
               lowestDisplayTime: typeof prev.lowestDisplayTime === 'number'
                 ? Math.min(lowestDisplayTime, prev.lowestDisplayTime)
                 : lowestDisplayTime,
+              dailyTime: {
+                ...(prev.dailyTime || {}),
+                [today]: prevDailyTime + sessionDurationMs,
+              },
             },
           },
         };
@@ -496,6 +515,9 @@ function stop() {
 function reset() {
   clearTimers();
   game.initGame();
+
+  timerService.resetTimer();
+  if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
 
   _roundGrid = [];
   _flipLock = false;
