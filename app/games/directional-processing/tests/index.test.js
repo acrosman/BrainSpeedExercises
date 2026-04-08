@@ -49,16 +49,16 @@ jest.unstable_mockModule('../../../components/audioService.js', () => ({
   playFeedbackSound: jest.fn(),
 }));
 
-jest.unstable_mockModule('../progress.js', () => ({
-  saveProgress: jest.fn(),
+jest.unstable_mockModule('../../../components/scoreService.js', () => ({
+  saveScore: jest.fn(),
 }));
 
 const pluginModule = await import('../index.js');
 const plugin = pluginModule.default;
 const { announce, updateStats, handleKeyDown } = pluginModule;
-const gameMock     = await import('../game.js');
-const progressMock = await import('../progress.js');
-const gaborMock    = await import('../gabor.js');
+const gameMock        = await import('../game.js');
+const scoreServiceMock = await import('../../../components/scoreService.js');
+const gaborMock       = await import('../gabor.js');
 
 // ── DOM helper ────────────────────────────────────────────────────────────────
 
@@ -71,7 +71,7 @@ function buildContainer() {
     <div id="dp-stage" class="dp-stage">
       <canvas id="dp-canvas" width="400" height="400"></canvas>
     </div>
-    <div id="dp-response" hidden></div>
+    <div id="dp-response"></div>
     <div id="dp-feedback"></div>
     <strong id="dp-level">1</strong>
     <strong id="dp-score">0</strong>
@@ -190,13 +190,62 @@ describe('directional-processing plugin', () => {
     jest.clearAllTimers();
   });
 
-  it('after stimulus and mask phases response panel becomes visible', () => {
+  it('after stimulus and mask phases direction buttons become enabled', () => {
     plugin.start();
     jest.runAllTimers();
-    expect(document.querySelector('#dp-response').hidden).toBe(false);
+    expect(document.querySelector('#dp-btn-up').disabled).toBe(false);
+    expect(document.querySelector('#dp-btn-right').disabled).toBe(false);
   });
 
   // ── response via button clicks ────────────────────────────────────────────
+
+  it('direction buttons are disabled during the stimulus phase', () => {
+    plugin.start();
+    // Before timers fire, we are still in the stimulus phase.
+    expect(document.querySelector('#dp-btn-up').disabled).toBe(true);
+    jest.clearAllTimers();
+  });
+
+  it('wrong response highlights the correct direction button', () => {
+    plugin.start();
+    jest.runAllTimers(); // advance to response phase
+
+    document.querySelector('#dp-btn-up').click(); // wrong (correct is 'right')
+
+    expect(
+      document.querySelector('#dp-btn-right').classList.contains('dp-dir-btn--correct'),
+    ).toBe(true);
+  });
+
+  it('correct button highlight is cleared when next trial starts', () => {
+    plugin.start();
+    jest.runAllTimers();
+
+    document.querySelector('#dp-btn-up').click(); // wrong
+
+    // Confirm the highlight is present.
+    expect(
+      document.querySelector('#dp-btn-right').classList.contains('dp-dir-btn--correct'),
+    ).toBe(true);
+
+    // Fire the inter-trial timer → startTrial() → clearDirectionHighlights().
+    jest.runOnlyPendingTimers();
+
+    expect(
+      document.querySelector('#dp-btn-right').classList.contains('dp-dir-btn--correct'),
+    ).toBe(false);
+  });
+
+  it('correct response does not add a highlight to any button', () => {
+    plugin.start();
+    jest.runAllTimers();
+
+    document.querySelector('#dp-btn-right').click(); // correct
+
+    const anyHighlighted = ['#dp-btn-up', '#dp-btn-down', '#dp-btn-left', '#dp-btn-right']
+      .some((sel) => document.querySelector(sel).classList.contains('dp-dir-btn--correct'));
+    expect(anyHighlighted).toBe(false);
+  });
 
   it('correct direction button records a successful trial', () => {
     plugin.start();
@@ -335,22 +384,23 @@ describe('directional-processing plugin', () => {
     expect(document.querySelector('#dp-final-trials').textContent).toBe('8');
   });
 
-  it('stop calls saveProgress when trialsCompleted > 0', () => {
+  it('stop calls saveScore when trialsCompleted > 0', () => {
     plugin.start();
     plugin.stop();
-    expect(progressMock.saveProgress).toHaveBeenCalledWith(
-      expect.objectContaining({ score: 5, level: 2, trialsCompleted: 8 }),
-      0,
+    expect(scoreServiceMock.saveScore).toHaveBeenCalledWith(
+      'directional-processing',
+      expect.objectContaining({ score: 5, level: 2, sessionDurationMs: 0 }),
+      expect.objectContaining({ lastTrialsCompleted: 8 }),
     );
   });
 
-  it('stop does not call saveProgress when trialsCompleted is 0', () => {
+  it('stop does not call saveScore when trialsCompleted is 0', () => {
     gameMock.isRunning.mockReturnValueOnce(false);
     gameMock.getTrialsCompleted.mockReturnValueOnce(0);
-    progressMock.saveProgress.mockClear();
+    scoreServiceMock.saveScore.mockClear();
 
     plugin.stop();
-    expect(progressMock.saveProgress).not.toHaveBeenCalled();
+    expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
   });
 
   it('stop returns idle result when game is not running', () => {
@@ -537,8 +587,9 @@ describe('directional-processing plugin', () => {
     plugin.start();
     jest.runAllTimers();
 
-    // After running all timers the response phase should eventually be entered.
-    expect(document.querySelector('#dp-response').hidden).toBe(false);
+    // After running all timers the response phase should eventually be entered
+    // and the direction buttons become enabled.
+    expect(document.querySelector('#dp-btn-up').disabled).toBe(false);
   });
 
   // ── stop during mask phase ────────────────────────────────────────────────

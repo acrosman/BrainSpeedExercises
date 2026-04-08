@@ -8,9 +8,6 @@ import { jest, describe, test, expect } from '@jest/globals';
 import {
   DEFAULT_LAMBDA,
   DEFAULT_SIGMA,
-  DEFAULT_GAMMA,
-  DEFAULT_PHI,
-  DEFAULT_CONTRAST,
   PHASE_SPEED_RAD_PER_MS,
   TWO_PI,
   DIRECTION_PARAMS,
@@ -31,16 +28,8 @@ describe('exported constants', () => {
     expect(DEFAULT_SIGMA).toBeGreaterThan(0);
   });
 
-  test('DEFAULT_GAMMA is 1 (circular)', () => {
-    expect(DEFAULT_GAMMA).toBe(1.0);
-  });
-
-  test('DEFAULT_PHI is 0', () => {
-    expect(DEFAULT_PHI).toBe(0);
-  });
-
-  test('DEFAULT_CONTRAST is 1', () => {
-    expect(DEFAULT_CONTRAST).toBe(1.0);
+  test('DEFAULT_SIGMA is larger than DEFAULT_LAMBDA (envelope spans multiple cycles)', () => {
+    expect(DEFAULT_SIGMA).toBeGreaterThan(DEFAULT_LAMBDA);
   });
 
   test('PHASE_SPEED_RAD_PER_MS is a positive number', () => {

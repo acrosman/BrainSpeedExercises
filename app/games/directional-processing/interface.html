@@ -45,8 +45,10 @@
       ></canvas>
     </div>
 
-    <!-- Direction response buttons: shown during the response phase. -->
-    <div id="dp-response" class="dp-response" hidden>
+    <!-- Direction response buttons: always visible; buttons are disabled
+         during the stimulus and mask phases and enabled once it is time
+         to respond. The correct answer is highlighted after a wrong response. -->
+    <div id="dp-response" class="dp-response">
       <p id="dp-response-prompt" class="dp-response__prompt">
         Which direction did the pattern move?
       </p>

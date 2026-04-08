@@ -112,6 +112,20 @@
   transform: scale(0.96);
 }
 
+/* Highlight the correct direction button after a wrong response. */
+.dp-dir-btn--correct {
+  background: #bbf7d0;
+  border-color: #15803d;
+  color: #14532d;
+}
+
+/* Visual treatment for the disabled (non-response) phase. */
+.dp-dir-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .dp-dir-btn--selected {
   background: #cfe8ff;
   border-color: #0f4aa3;

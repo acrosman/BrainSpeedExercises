@@ -6,7 +6,6 @@
  *
  * Rendering of Gabor patches and the visual mask is delegated to gabor.js.
  * Core game logic (staircase, scoring) lives in game.js.
- * Progress persistence is handled by progress.js.
  *
  * @file Directional Processing game plugin (UI/controller layer).
  */
@@ -14,8 +13,11 @@
 import * as game from './game.js';
 import { drawGabor, drawMask, getDirectionParams, PHASE_SPEED_RAD_PER_MS } from './gabor.js';
 import { playFeedbackSound } from '../../components/audioService.js';
-import { saveProgress } from './progress.js';
+import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
+
+/** Game identifier used for progress persistence (must match manifest.json id). */
+const GAME_ID = 'directional-processing';
 
 // ── Timing constants ──────────────────────────────────────────────────────────
 
@@ -42,8 +44,6 @@ let _endPanelEl = null;
 let _canvasEl = null;
 /** @type {HTMLElement|null} */
 let _stageEl = null;
-/** @type {HTMLElement|null} */
-let _responseEl = null;
 /** @type {HTMLElement|null} */
 let _feedbackEl = null;
 /** @type {HTMLElement|null} */
@@ -102,6 +102,44 @@ let _nextTrialTimer = null;
 let _flashTimer = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Enable or disable all four direction buttons.
+ *
+ * Buttons are disabled during the stimulus and mask phases so the player
+ * cannot submit a response prematurely, and re-enabled once the response
+ * phase begins. Using disabled (rather than hidden) keeps the controls
+ * visible throughout the game so the layout never shifts.
+ *
+ * @param {boolean} enabled
+ */
+function setDirectionButtonsEnabled(enabled) {
+  [_upBtn, _downBtn, _leftBtn, _rightBtn].forEach((btn) => {
+    if (btn) btn.disabled = !enabled;
+  });
+}
+
+/**
+ * Highlight the button that represents the correct answer.
+ * Called after a wrong response so the player can see what they missed.
+ *
+ * @param {string} direction - One of 'up', 'down', 'left', 'right'.
+ */
+function highlightCorrectButton(direction) {
+  const map = { up: _upBtn, down: _downBtn, left: _leftBtn, right: _rightBtn };
+  const btn = map[direction];
+  if (btn) btn.classList.add('dp-dir-btn--correct');
+}
+
+/**
+ * Remove the correct-answer highlight from all direction buttons.
+ * Called at the start of each new trial.
+ */
+function clearDirectionHighlights() {
+  [_upBtn, _downBtn, _leftBtn, _rightBtn].forEach((btn) => {
+    if (btn) btn.classList.remove('dp-dir-btn--correct');
+  });
+}
 
 /**
  * Get a high-precision timestamp, falling back to Date.now when unavailable.
@@ -187,13 +225,13 @@ function clearAsyncHandles() {
 }
 
 /**
- * Show the direction-response panel and focus the first button.
+ * Enable the direction buttons and focus the first one so keyboard users
+ * are ready to respond. The response panel is always visible; only the
+ * interactive state of the buttons changes.
  */
 function enterResponsePhase() {
   _responseEnabled = true;
-  if (_responseEl) {
-    _responseEl.hidden = false;
-  }
+  setDirectionButtonsEnabled(true);
   // Move focus to the Up button so keyboard users are ready to respond.
   if (_upBtn) {
     _upBtn.focus();
@@ -232,7 +270,7 @@ function runMaskPhase() {
  */
 function runStimulusPhase(direction, contrast, displayDurationMs) {
   _responseEnabled = false;
-  if (_responseEl) _responseEl.hidden = true;
+  setDirectionButtonsEnabled(false);
   if (_feedbackEl) _feedbackEl.textContent = '';
 
   const { theta, phiDirection } = getDirectionParams(direction);
@@ -260,11 +298,13 @@ function runStimulusPhase(direction, contrast, displayDurationMs) {
 }
 
 /**
- * Begin a new trial: pick a direction, update stats, and start the stimulus.
+ * Begin a new trial: clear any previous answer highlight, pick a direction,
+ * update stats, and start the stimulus animation.
  */
 function startTrial() {
   if (!game.isRunning()) return;
 
+  clearDirectionHighlights();
   _currentDirection = game.pickDirection();
   const { displayDurationMs, contrast } = game.getCurrentLevelConfig();
 
@@ -281,7 +321,7 @@ export function handleDirectionResponse(direction) {
   if (!_responseEnabled) return;
 
   _responseEnabled = false;
-  if (_responseEl) _responseEl.hidden = true;
+  setDirectionButtonsEnabled(false);
 
   const success = direction === _currentDirection;
   game.recordTrial({ success });
@@ -293,6 +333,8 @@ export function handleDirectionResponse(direction) {
   if (success) {
     announce('Correct!');
   } else {
+    // Highlight the correct button so the player can see what they missed.
+    highlightCorrectButton(_currentDirection);
     announce(`Incorrect — direction was ${_currentDirection}.`);
   }
 
@@ -379,7 +421,6 @@ function init(gameContainer) {
   _endPanelEl     = _container.querySelector('#dp-end-panel');
   _canvasEl       = _container.querySelector('#dp-canvas');
   _stageEl        = _container.querySelector('#dp-stage');
-  _responseEl     = _container.querySelector('#dp-response');
   _feedbackEl     = _container.querySelector('#dp-feedback');
   _levelEl        = _container.querySelector('#dp-level');
   _scoreEl        = _container.querySelector('#dp-score');
@@ -415,6 +456,7 @@ function init(gameContainer) {
 
   document.addEventListener('keydown', handleKeyDown);
 
+  setDirectionButtonsEnabled(false);
   updateStats();
 }
 
@@ -433,8 +475,10 @@ function start() {
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl)     _endPanelEl.hidden = true;
   if (_gameAreaEl)     _gameAreaEl.hidden = false;
-  if (_responseEl)     _responseEl.hidden = true;
   if (_feedbackEl)     _feedbackEl.textContent = '';
+
+  clearDirectionHighlights();
+  setDirectionButtonsEnabled(false);
 
   startTrial();
 }
@@ -447,6 +491,8 @@ function start() {
 function stop() {
   clearAsyncHandles();
   _responseEnabled = false;
+  setDirectionButtonsEnabled(false);
+  clearDirectionHighlights();
 
   const result = game.isRunning() ? game.stopGame() : {
     score: game.getScore(),
@@ -457,11 +503,16 @@ function stop() {
   const sessionDurationMs = timerService.stopTimer();
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
-  if (_responseEl) _responseEl.hidden = true;
   showEndPanel(result);
 
   if (result.trialsCompleted > 0) {
-    saveProgress(result, sessionDurationMs);
+    saveScore(GAME_ID, {
+      score: result.score,
+      level: result.level,
+      sessionDurationMs,
+    }, {
+      lastTrialsCompleted: result.trialsCompleted,
+    });
   }
 
   return result;
@@ -480,11 +531,12 @@ function reset() {
 
   if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
   if (_feedbackEl) _feedbackEl.textContent = '';
-  if (_responseEl) _responseEl.hidden = true;
   if (_instructionsEl) _instructionsEl.hidden = false;
   if (_gameAreaEl)     _gameAreaEl.hidden = true;
   if (_endPanelEl)     _endPanelEl.hidden = true;
 
+  clearDirectionHighlights();
+  setDirectionButtonsEnabled(false);
   updateStats();
 }
 

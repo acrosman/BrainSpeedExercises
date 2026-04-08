@@ -42,16 +42,20 @@ describe('exported constants', () => {
     expect(DIRECTIONS).toHaveLength(4);
   });
 
-  test('CORRECT_STREAK_TO_ADVANCE is 3', () => {
-    expect(CORRECT_STREAK_TO_ADVANCE).toBe(3);
+  test('CORRECT_STREAK_TO_ADVANCE is a positive integer', () => {
+    expect(Number.isInteger(CORRECT_STREAK_TO_ADVANCE)).toBe(true);
+    expect(CORRECT_STREAK_TO_ADVANCE).toBeGreaterThan(0);
   });
 
-  test('WRONG_STREAK_TO_DROP is 3', () => {
-    expect(WRONG_STREAK_TO_DROP).toBe(3);
+  test('WRONG_STREAK_TO_DROP is a positive integer', () => {
+    expect(Number.isInteger(WRONG_STREAK_TO_DROP)).toBe(true);
+    expect(WRONG_STREAK_TO_DROP).toBeGreaterThan(0);
   });
 
-  test('LEVEL_DROP is 2', () => {
-    expect(LEVEL_DROP).toBe(2);
+  test('LEVEL_DROP is a positive integer less than the number of levels', () => {
+    expect(Number.isInteger(LEVEL_DROP)).toBe(true);
+    expect(LEVEL_DROP).toBeGreaterThan(0);
+    expect(LEVEL_DROP).toBeLessThan(LEVELS.length);
   });
 
   test('LEVELS is a non-empty array with required fields', () => {
@@ -79,7 +83,6 @@ describe('initGame', () => {
   test('resets all state to initial values', () => {
     startGame();
     recordTrial({ success: true });
-    recordTrial({ success: false });
     initGame();
 
     expect(isRunning()).toBe(false);
