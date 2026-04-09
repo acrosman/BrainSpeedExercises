@@ -1,0 +1,94 @@
+<section class="directional-processing" aria-labelledby="dp-title">
+  <h2 id="dp-title">Directional Processing</h2>
+
+  <!-- Instructions panel: shown before the game starts and after reset. -->
+  <div id="dp-instructions" class="dp-panel">
+    <h3>How to Play</h3>
+    <p>
+      A moving pattern will appear briefly on screen. Your task is to identify
+      which direction it moves — Up, Down, Left, or Right.
+    </p>
+    <ol>
+      <li>Watch the pattern carefully — it will only appear for a short time.</li>
+      <li>After a brief mask, use the on-screen buttons or arrow keys to respond.</li>
+      <li>Get 3 correct in a row to advance to a harder level.</li>
+      <li>Get 3 wrong in a row to drop back 2 levels.</li>
+    </ol>
+    <p>
+      As you advance, the pattern becomes harder to see: shorter display time and
+      lower contrast force your visual cortex to work faster.
+    </p>
+    <button id="dp-start-btn" type="button" class="dp-btn dp-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <!-- Main game area: shown while a session is active. -->
+  <div id="dp-game-area" class="dp-panel" hidden>
+    <div class="dp-stats" aria-live="polite" aria-atomic="true">
+      <span>Level: <strong id="dp-level">1</strong></span>
+      <span>Score: <strong id="dp-score">0</strong></span>
+      <span>Round: <strong id="dp-trials">0</strong></span>
+      <span>Streak: <strong id="dp-streak">0</strong></span>
+      <span>Session: <strong id="dp-session-timer" aria-live="polite">00:00</strong></span>
+    </div>
+
+    <div class="dp-stage" id="dp-stage">
+      <!-- The Gabor patch is drawn here; mask is applied by filling with gray. -->
+      <canvas
+        id="dp-canvas"
+        class="dp-canvas"
+        width="400"
+        height="400"
+        aria-label="Directional motion stimulus"
+        role="img"
+      ></canvas>
+    </div>
+
+    <!-- Direction response buttons: always visible; buttons are disabled
+         during the stimulus and mask phases and enabled once it is time
+         to respond. The correct answer is highlighted after a wrong response. -->
+    <div id="dp-response" class="dp-response">
+      <p id="dp-response-prompt" class="dp-response__prompt">
+        Which direction did the pattern move?
+      </p>
+      <div class="dp-direction-pad" role="group" aria-labelledby="dp-response-prompt">
+        <button id="dp-btn-up" type="button" class="dp-dir-btn dp-dir-btn--up"
+          aria-label="Up">&#8679; Up</button>
+        <div class="dp-direction-pad__row">
+          <button id="dp-btn-left" type="button" class="dp-dir-btn dp-dir-btn--left"
+            aria-label="Left">&#8678; Left</button>
+          <button id="dp-btn-right" type="button" class="dp-dir-btn dp-dir-btn--right"
+            aria-label="Right">Right &#8680;</button>
+        </div>
+        <button id="dp-btn-down" type="button" class="dp-dir-btn dp-dir-btn--down"
+          aria-label="Down">&#8681; Down</button>
+      </div>
+    </div>
+
+    <!-- Live feedback region (correct / incorrect). -->
+    <div id="dp-feedback" class="dp-feedback" role="status" aria-live="polite"></div>
+
+    <div class="dp-controls">
+      <button id="dp-stop-btn" type="button" class="dp-btn dp-btn--secondary">
+        End Game
+      </button>
+    </div>
+  </div>
+
+  <!-- End panel: shown when the session ends. -->
+  <div id="dp-end-panel" class="dp-panel" hidden>
+    <h3>Session Complete</h3>
+    <p>Level Reached: <strong id="dp-final-level">1</strong></p>
+    <p>Score (correct answers): <strong id="dp-final-score">0</strong></p>
+    <p>Total Rounds: <strong id="dp-final-trials">0</strong></p>
+    <div class="dp-controls">
+      <button id="dp-play-again-btn" type="button" class="dp-btn dp-btn--primary">
+        Play Again
+      </button>
+      <button id="dp-return-btn" type="button" class="dp-btn dp-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+</section>
