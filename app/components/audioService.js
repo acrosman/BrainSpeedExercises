@@ -61,6 +61,35 @@ const FAILURE_FREQ_A_HZ = 440;
  * resolute negative feeling without a harsh buzz. */
 const FAILURE_FREQ_B_HZ = 294;
 
+// ── Frequency sweep constants ─────────────────────────────────────────────────
+
+/**
+ * Low frequency boundary for frequency sweeps (Hz).
+ * Used as the start of an upward sweep or the end of a downward sweep.
+ */
+export const SWEEP_LOW_FREQ_HZ = 300;
+
+/**
+ * High frequency boundary for frequency sweeps (Hz).
+ * Used as the end of an upward sweep or the start of a downward sweep.
+ */
+export const SWEEP_HIGH_FREQ_HZ = 3000;
+
+/** Peak gain for frequency sweep sounds. */
+const SWEEP_PEAK_GAIN = 0.25;
+
+/**
+ * Attack duration (s) — time to ramp from silence to peak gain at sweep onset.
+ * A short ramp prevents audible clicks at the start of the sweep.
+ */
+const SWEEP_ATTACK_S = 0.015;
+
+/**
+ * Release duration (s) — time to ramp from peak gain to silence at sweep end.
+ * A short ramp prevents audible clicks at the end of the sweep.
+ */
+const SWEEP_RELEASE_S = 0.015;
+
 // ── Shared audio context ──────────────────────────────────────────────────────
 
 /** @type {AudioContext|null} Shared audio context reused across all games. */
@@ -194,35 +223,6 @@ export function playFeedbackSound(isSuccess) {
     playFailureSound();
   }
 }
-
-// ── Frequency sweep constants ─────────────────────────────────────────────────
-
-/**
- * Low frequency boundary for frequency sweeps (Hz).
- * Used as the start of an upward sweep or the end of a downward sweep.
- */
-export const SWEEP_LOW_FREQ_HZ = 300;
-
-/**
- * High frequency boundary for frequency sweeps (Hz).
- * Used as the end of an upward sweep or the start of a downward sweep.
- */
-export const SWEEP_HIGH_FREQ_HZ = 3000;
-
-/** Peak gain for frequency sweep sounds. */
-const SWEEP_PEAK_GAIN = 0.25;
-
-/**
- * Attack duration (s) — time to ramp from silence to peak gain at sweep onset.
- * A short ramp prevents audible clicks at the start of the sweep.
- */
-const SWEEP_ATTACK_S = 0.015;
-
-/**
- * Release duration (s) — time to ramp from peak gain to silence at sweep end.
- * A short ramp prevents audible clicks at the end of the sweep.
- */
-const SWEEP_RELEASE_S = 0.015;
 
 /**
  * Schedule a single frequency sweep on the Web Audio graph.

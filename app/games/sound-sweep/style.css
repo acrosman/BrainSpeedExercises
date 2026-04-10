@@ -52,11 +52,10 @@
   display: block;
 }
 
-.ss-response__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.ss-response__row {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  max-width: 480px;
 }
 
 /* ── Sequence response buttons ───────────────────────────────────────────────── */
@@ -178,11 +177,6 @@
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 480px) {
-  .ss-response__grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.4rem;
-  }
-
   .ss-seq-btn {
     padding: 0.5rem 0.25rem;
   }
