@@ -123,7 +123,7 @@ describe('stop', () => {
 
   test('does not throw when container is null', async () => {
     plugin.init(null);
-    await expect(plugin.stop()).resolves.not.toThrow();
+    await expect(plugin.stop()).resolves.toBeDefined();
   });
 });
 
