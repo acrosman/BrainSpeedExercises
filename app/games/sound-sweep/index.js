@@ -174,7 +174,7 @@ function startTrial() {
   _responseEnabled = false;
   setResponseButtonsEnabled(false);
   if (_replayBtn) _replayBtn.disabled = true;
-  announce('Listen\u2026');
+  announce('Listen...');
 
   updateStats();
 
@@ -209,7 +209,7 @@ export function handleSequenceResponse(response) {
   if (success) {
     announce('Correct!');
   } else {
-    announce(`Incorrect \u2014 the sequence was ${formatSequenceLabel(_currentSequence)}.`);
+    announce(`Incorrect - the sequence was ${formatSequenceLabel(_currentSequence)}.`);
   }
 
   if (game.isRunning()) {
@@ -240,7 +240,7 @@ function formatSequenceLabel(sequence) {
   return sequence
     .split('-')
     .map((d) => d.charAt(0).toUpperCase() + d.slice(1))
-    .join('\u2011'); // non-breaking hyphen
+    .join('-');
 }
 
 /**
