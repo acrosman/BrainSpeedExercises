@@ -1,0 +1,9 @@
+{
+  "id": "sound-sweep",
+  "name": "Sound Sweep",
+  "description": "Hear two rapid frequency sweeps and identify the sequence — Up-Up, Up-Down, Down-Up, or Down-Down. Trains the brain's ability to process fast auditory transitions.",
+  "version": "0.1.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.png",
+  "author": "BrainSpeed Exercises"
+}

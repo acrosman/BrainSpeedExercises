@@ -61,6 +61,35 @@ const FAILURE_FREQ_A_HZ = 440;
  * resolute negative feeling without a harsh buzz. */
 const FAILURE_FREQ_B_HZ = 294;
 
+// ── Frequency sweep constants ─────────────────────────────────────────────────
+
+/**
+ * Low frequency boundary for frequency sweeps (Hz).
+ * Used as the start of an upward sweep or the end of a downward sweep.
+ */
+export const SWEEP_LOW_FREQ_HZ = 300;
+
+/**
+ * High frequency boundary for frequency sweeps (Hz).
+ * Used as the end of an upward sweep or the start of a downward sweep.
+ */
+export const SWEEP_HIGH_FREQ_HZ = 3000;
+
+/** Peak gain for frequency sweep sounds. */
+const SWEEP_PEAK_GAIN = 0.25;
+
+/**
+ * Attack duration (s) — time to ramp from silence to peak gain at sweep onset.
+ * A short ramp prevents audible clicks at the start of the sweep.
+ */
+const SWEEP_ATTACK_S = 0.015;
+
+/**
+ * Release duration (s) — time to ramp from peak gain to silence at sweep end.
+ * A short ramp prevents audible clicks at the end of the sweep.
+ */
+const SWEEP_RELEASE_S = 0.015;
+
 // ── Shared audio context ──────────────────────────────────────────────────────
 
 /** @type {AudioContext|null} Shared audio context reused across all games. */
@@ -192,5 +221,100 @@ export function playFeedbackSound(isSuccess) {
     playSuccessSound();
   } else {
     playFailureSound();
+  }
+}
+
+/**
+ * Schedule a single frequency sweep on the Web Audio graph.
+ *
+ * Internal helper used by {@link playSweepPair}. Uses `linearRampToValueAtTime`
+ * for the frequency ramp so the perceived pitch changes at a constant rate.
+ *
+ * The gain envelope clamps attack/release times so that very short sweeps
+ * (where durationS < SWEEP_ATTACK_S + SWEEP_RELEASE_S) still schedule valid
+ * parameter events and play without browser errors.
+ *
+ * @param {AudioContext} ctx - The shared audio context.
+ * @param {string} direction - 'up' (low→high) or 'down' (high→low).
+ * @param {number} startTime - AudioContext time (seconds) at which the sweep starts.
+ * @param {number} durationS - Duration of the sweep in seconds.
+ */
+function scheduleSweep(ctx, direction, startTime, durationS) {
+  const fromFreq = direction === 'up' ? SWEEP_LOW_FREQ_HZ : SWEEP_HIGH_FREQ_HZ;
+  const toFreq = direction === 'up' ? SWEEP_HIGH_FREQ_HZ : SWEEP_LOW_FREQ_HZ;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = 'sine';
+
+  osc.frequency.setValueAtTime(fromFreq, startTime);
+  osc.frequency.linearRampToValueAtTime(toFreq, startTime + durationS);
+
+  // Clamp the attack end to at most half the sweep duration so it never
+  // exceeds the release start point, even for very brief sweeps.
+  const attackEnd = Math.min(startTime + SWEEP_ATTACK_S, startTime + durationS / 2);
+  // Clamp the release start so it never precedes the attack end.
+  const releaseStart = Math.max(startTime + durationS - SWEEP_RELEASE_S, attackEnd);
+
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(SWEEP_PEAK_GAIN, attackEnd);
+  gain.gain.setValueAtTime(SWEEP_PEAK_GAIN, releaseStart);
+  gain.gain.linearRampToValueAtTime(0, startTime + durationS);
+
+  osc.start(startTime);
+  osc.stop(startTime + durationS);
+}
+
+/**
+ * Schedule a pair of frequency sweeps with an inter-stimulus interval.
+ *
+ * Both sweeps are scheduled immediately using the Web Audio API clock for
+ * sample-accurate timing. The function does not block; audio plays asynchronously.
+ *
+ * Call from a plugin's trial loop. The caller is responsible for enabling
+ * the response UI after the appropriate delay
+ * (`sweepDurationMs * 2 + isiMs`).
+ *
+ * Returns without scheduling audio if inputs are invalid (wrong array length,
+ * unknown direction string, non-positive sweepDurationMs, or negative isiMs).
+ *
+ * @param {string[]} sequence - Two-element array, e.g. `['up', 'down']`.
+ * @param {object} options - Sweep configuration.
+ * @param {number} options.sweepDurationMs - Duration of each sweep in milliseconds (> 0).
+ * @param {number} options.isiMs - Silence between the two sweeps in milliseconds (>= 0).
+ */
+export function playSweepPair(sequence, { sweepDurationMs, isiMs }) {
+  const validDirections = ['up', 'down'];
+  if (
+    !Array.isArray(sequence)
+    || sequence.length !== 2
+    || !validDirections.includes(sequence[0])
+    || !validDirections.includes(sequence[1])
+    || typeof sweepDurationMs !== 'number'
+    || sweepDurationMs <= 0
+    || typeof isiMs !== 'number'
+    || isiMs < 0
+  ) {
+    return;
+  }
+
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => { });
+    }
+
+    const sweepS = sweepDurationMs / 1000;
+    const isiS = isiMs / 1000;
+    const now = ctx.currentTime;
+
+    scheduleSweep(ctx, sequence[0], now, sweepS);
+    scheduleSweep(ctx, sequence[1], now + sweepS + isiS, sweepS);
+  } catch {
+    // Ignore audio errors in unsupported environments.
   }
 }
