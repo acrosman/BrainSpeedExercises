@@ -3,7 +3,7 @@
  * audioService.test.js - Unit tests for the central audio service.
  *
  * Covers all exported functions: getAudioContext, playSuccessSound,
- * playFailureSound, and playFeedbackSound.
+ * playFailureSound, playFeedbackSound, and playSweepPair.
  */
 import {
   jest,
@@ -14,7 +14,7 @@ import {
 
 /**
  * Build a complete mock AudioContext that satisfies all method calls made
- * by playSuccessSound and playFailureSound.
+ * by playSuccessSound, playFailureSound, and playSweepPair.
  *
  * @param {string} state - Initial context state ('running' | 'suspended' | 'closed').
  * @returns {{ mockCtx: object, MockAC: jest.Mock }}
@@ -23,7 +23,10 @@ function buildMockAudioContext(state = 'running') {
   const mockOscillator = {
     connect: jest.fn(),
     type: '',
-    frequency: { setValueAtTime: jest.fn() },
+    frequency: {
+      setValueAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
+    },
     start: jest.fn(),
     stop: jest.fn(),
   };
@@ -32,6 +35,7 @@ function buildMockAudioContext(state = 'running') {
     connect: jest.fn(),
     gain: {
       setValueAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
       exponentialRampToValueAtTime: jest.fn(),
     },
   };
@@ -56,6 +60,9 @@ const {
   playSuccessSound,
   playFailureSound,
   playFeedbackSound,
+  playSweepPair,
+  SWEEP_LOW_FREQ_HZ,
+  SWEEP_HIGH_FREQ_HZ,
 } = audioModule;
 
 describe('getAudioContext', () => {
@@ -322,6 +329,136 @@ describe('playFeedbackSound', () => {
 
     expect(() => playFeedbackSound(true)).not.toThrow();
     expect(() => playFeedbackSound(false)).not.toThrow();
+
+    globalThis.AudioContext = original;
+  });
+});
+
+describe('playSweepPair', () => {
+  test('exported frequency constants are positive numbers', () => {
+    expect(typeof SWEEP_LOW_FREQ_HZ).toBe('number');
+    expect(typeof SWEEP_HIGH_FREQ_HZ).toBe('number');
+    expect(SWEEP_LOW_FREQ_HZ).toBeGreaterThan(0);
+    expect(SWEEP_HIGH_FREQ_HZ).toBeGreaterThan(SWEEP_LOW_FREQ_HZ);
+  });
+
+  test('schedules two oscillators when AudioContext is running', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    expect(() => playSweepPair(['up', 'down'], { sweepDurationMs: 200, isiMs: 200 }))
+      .not.toThrow();
+    // One oscillator per sweep → 2 total
+    expect(mockCtx.createOscillator).toHaveBeenCalledTimes(2);
+    expect(mockCtx.createGain).toHaveBeenCalledTimes(2);
+
+    globalThis.AudioContext = original;
+  });
+
+  test('resumes a suspended context before scheduling', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('suspended');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playSweepPair(['up', 'up'], { sweepDurationMs: 100, isiMs: 100 });
+    expect(mockCtx.resume).toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('handles resume rejection gracefully', async () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('suspended');
+    mockCtx.resume = jest.fn().mockRejectedValue(new Error('cannot resume'));
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    expect(() => playSweepPair(['down', 'up'], { sweepDurationMs: 150, isiMs: 150 }))
+      .not.toThrow();
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    globalThis.AudioContext = original;
+  });
+
+  test('does not throw when no AudioContext is available', () => {
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    delete globalThis.AudioContext;
+    if (globalThis.window) delete globalThis.window.webkitAudioContext;
+
+    expect(() => playSweepPair(['up', 'down'], { sweepDurationMs: 200, isiMs: 200 }))
+      .not.toThrow();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('swallows errors thrown during oscillator setup', () => {
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const ThrowingCtx = {
+      state: 'running',
+      currentTime: 0,
+      destination: {},
+      createOscillator: jest.fn(() => { throw new Error('osc error'); }),
+      createGain: jest.fn(),
+    };
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => ThrowingCtx);
+
+    expect(() => playSweepPair(['up', 'down'], { sweepDurationMs: 200, isiMs: 200 }))
+      .not.toThrow();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('up sweep ramps frequency from low to high', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playSweepPair(['up', 'down'], { sweepDurationMs: 200, isiMs: 200 });
+
+    // First oscillator created is the 'up' sweep.
+    const firstOscCall = mockCtx.createOscillator.mock.results[0].value;
+    expect(firstOscCall.frequency.setValueAtTime)
+      .toHaveBeenCalledWith(SWEEP_LOW_FREQ_HZ, expect.any(Number));
+    expect(firstOscCall.frequency.linearRampToValueAtTime)
+      .toHaveBeenCalledWith(SWEEP_HIGH_FREQ_HZ, expect.any(Number));
+
+    globalThis.AudioContext = original;
+  });
+
+  test('down sweep ramps frequency from high to low', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playSweepPair(['down', 'up'], { sweepDurationMs: 200, isiMs: 200 });
+
+    // First oscillator created is the 'down' sweep.
+    const firstOscCall = mockCtx.createOscillator.mock.results[0].value;
+    expect(firstOscCall.frequency.setValueAtTime)
+      .toHaveBeenCalledWith(SWEEP_HIGH_FREQ_HZ, expect.any(Number));
+    expect(firstOscCall.frequency.linearRampToValueAtTime)
+      .toHaveBeenCalledWith(SWEEP_LOW_FREQ_HZ, expect.any(Number));
 
     globalThis.AudioContext = original;
   });

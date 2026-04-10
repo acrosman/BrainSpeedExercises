@@ -194,3 +194,100 @@ export function playFeedbackSound(isSuccess) {
     playFailureSound();
   }
 }
+
+// ── Frequency sweep constants ─────────────────────────────────────────────────
+
+/**
+ * Low frequency boundary for frequency sweeps (Hz).
+ * Used as the start of an upward sweep or the end of a downward sweep.
+ */
+export const SWEEP_LOW_FREQ_HZ = 300;
+
+/**
+ * High frequency boundary for frequency sweeps (Hz).
+ * Used as the end of an upward sweep or the start of a downward sweep.
+ */
+export const SWEEP_HIGH_FREQ_HZ = 3000;
+
+/** Peak gain for frequency sweep sounds. */
+const SWEEP_PEAK_GAIN = 0.25;
+
+/**
+ * Attack duration (s) — time to ramp from silence to peak gain at sweep onset.
+ * A short ramp prevents audible clicks at the start of the sweep.
+ */
+const SWEEP_ATTACK_S = 0.015;
+
+/**
+ * Release duration (s) — time to ramp from peak gain to silence at sweep end.
+ * A short ramp prevents audible clicks at the end of the sweep.
+ */
+const SWEEP_RELEASE_S = 0.015;
+
+/**
+ * Schedule a single frequency sweep on the Web Audio graph.
+ *
+ * Internal helper used by {@link playSweepPair}. Uses `linearRampToValueAtTime`
+ * for the frequency ramp so the perceived pitch changes at a constant rate.
+ *
+ * @param {AudioContext} ctx - The shared audio context.
+ * @param {string} direction - 'up' (low→high) or 'down' (high→low).
+ * @param {number} startTime - AudioContext time (seconds) at which the sweep starts.
+ * @param {number} durationS - Duration of the sweep in seconds.
+ */
+function scheduleSweep(ctx, direction, startTime, durationS) {
+  const fromFreq = direction === 'up' ? SWEEP_LOW_FREQ_HZ : SWEEP_HIGH_FREQ_HZ;
+  const toFreq = direction === 'up' ? SWEEP_HIGH_FREQ_HZ : SWEEP_LOW_FREQ_HZ;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = 'sine';
+
+  osc.frequency.setValueAtTime(fromFreq, startTime);
+  osc.frequency.linearRampToValueAtTime(toFreq, startTime + durationS);
+
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(SWEEP_PEAK_GAIN, startTime + SWEEP_ATTACK_S);
+  gain.gain.setValueAtTime(SWEEP_PEAK_GAIN, startTime + durationS - SWEEP_RELEASE_S);
+  gain.gain.linearRampToValueAtTime(0, startTime + durationS);
+
+  osc.start(startTime);
+  osc.stop(startTime + durationS);
+}
+
+/**
+ * Schedule a pair of frequency sweeps with an inter-stimulus interval.
+ *
+ * Both sweeps are scheduled immediately using the Web Audio API clock for
+ * sample-accurate timing. The function does not block; audio plays asynchronously.
+ *
+ * Call from a plugin's trial loop. The caller is responsible for enabling
+ * the response UI after the appropriate delay
+ * (`sweepDurationMs * 2 + isiMs`).
+ *
+ * @param {string[]} sequence - Two-element array, e.g. `['up', 'down']`.
+ * @param {object} options - Sweep configuration.
+ * @param {number} options.sweepDurationMs - Duration of each sweep in milliseconds.
+ * @param {number} options.isiMs - Silence between the two sweeps in milliseconds.
+ */
+export function playSweepPair(sequence, { sweepDurationMs, isiMs }) {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => { });
+    }
+
+    const sweepS = sweepDurationMs / 1000;
+    const isiS = isiMs / 1000;
+    const now = ctx.currentTime;
+
+    scheduleSweep(ctx, sequence[0], now, sweepS);
+    scheduleSweep(ctx, sequence[1], now + sweepS + isiS, sweepS);
+  } catch {
+    // Ignore audio errors in unsupported environments.
+  }
+}
