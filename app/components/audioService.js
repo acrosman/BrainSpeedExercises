@@ -230,6 +230,10 @@ export function playFeedbackSound(isSuccess) {
  * Internal helper used by {@link playSweepPair}. Uses `linearRampToValueAtTime`
  * for the frequency ramp so the perceived pitch changes at a constant rate.
  *
+ * The gain envelope clamps attack/release times so that very short sweeps
+ * (where durationS < SWEEP_ATTACK_S + SWEEP_RELEASE_S) still schedule valid
+ * parameter events and play without browser errors.
+ *
  * @param {AudioContext} ctx - The shared audio context.
  * @param {string} direction - 'up' (low→high) or 'down' (high→low).
  * @param {number} startTime - AudioContext time (seconds) at which the sweep starts.
@@ -248,9 +252,15 @@ function scheduleSweep(ctx, direction, startTime, durationS) {
   osc.frequency.setValueAtTime(fromFreq, startTime);
   osc.frequency.linearRampToValueAtTime(toFreq, startTime + durationS);
 
+  // Clamp the attack end to at most half the sweep duration so it never
+  // exceeds the release start point, even for very brief sweeps.
+  const attackEnd = Math.min(startTime + SWEEP_ATTACK_S, startTime + durationS / 2);
+  // Clamp the release start so it never precedes the attack end.
+  const releaseStart = Math.max(startTime + durationS - SWEEP_RELEASE_S, attackEnd);
+
   gain.gain.setValueAtTime(0, startTime);
-  gain.gain.linearRampToValueAtTime(SWEEP_PEAK_GAIN, startTime + SWEEP_ATTACK_S);
-  gain.gain.setValueAtTime(SWEEP_PEAK_GAIN, startTime + durationS - SWEEP_RELEASE_S);
+  gain.gain.linearRampToValueAtTime(SWEEP_PEAK_GAIN, attackEnd);
+  gain.gain.setValueAtTime(SWEEP_PEAK_GAIN, releaseStart);
   gain.gain.linearRampToValueAtTime(0, startTime + durationS);
 
   osc.start(startTime);
@@ -267,12 +277,29 @@ function scheduleSweep(ctx, direction, startTime, durationS) {
  * the response UI after the appropriate delay
  * (`sweepDurationMs * 2 + isiMs`).
  *
+ * Returns without scheduling audio if inputs are invalid (wrong array length,
+ * unknown direction string, non-positive sweepDurationMs, or negative isiMs).
+ *
  * @param {string[]} sequence - Two-element array, e.g. `['up', 'down']`.
  * @param {object} options - Sweep configuration.
- * @param {number} options.sweepDurationMs - Duration of each sweep in milliseconds.
- * @param {number} options.isiMs - Silence between the two sweeps in milliseconds.
+ * @param {number} options.sweepDurationMs - Duration of each sweep in milliseconds (> 0).
+ * @param {number} options.isiMs - Silence between the two sweeps in milliseconds (>= 0).
  */
 export function playSweepPair(sequence, { sweepDurationMs, isiMs }) {
+  const validDirections = ['up', 'down'];
+  if (
+    !Array.isArray(sequence)
+    || sequence.length !== 2
+    || !validDirections.includes(sequence[0])
+    || !validDirections.includes(sequence[1])
+    || typeof sweepDurationMs !== 'number'
+    || sweepDurationMs <= 0
+    || typeof isiMs !== 'number'
+    || isiMs < 0
+  ) {
+    return;
+  }
+
   const ctx = getAudioContext();
   if (!ctx) return;
 

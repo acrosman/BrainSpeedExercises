@@ -83,7 +83,7 @@ function buildContainer() {
     <div id="ss-game-area" hidden></div>
     <div id="ss-end-panel" hidden></div>
     <div id="ss-feedback"></div>
-    <p id="ss-status"></p>
+    <p id="ss-status" tabindex="-1"></p>
     <strong id="ss-level">1</strong>
     <strong id="ss-score">0</strong>
     <strong id="ss-trials">0</strong>
@@ -151,6 +151,20 @@ describe('sound-sweep plugin', () => {
     plugin.start();
     expect(document.querySelector('#ss-instructions').hidden).toBe(true);
     expect(document.querySelector('#ss-game-area').hidden).toBe(false);
+  });
+
+  it('start moves focus to #ss-status', () => {
+    plugin.start();
+    expect(document.activeElement).toBe(document.querySelector('#ss-status'));
+    jest.clearAllTimers();
+  });
+
+  it('start clears feedback text', () => {
+    // Simulate leftover feedback from a previous round
+    document.querySelector('#ss-feedback').textContent = 'Old feedback';
+    plugin.start();
+    expect(document.querySelector('#ss-feedback').textContent).toBe('');
+    jest.clearAllTimers();
   });
 
   it('start calls game.startGame()', () => {
@@ -493,6 +507,25 @@ describe('sound-sweep plugin', () => {
     jest.clearAllTimers();
   });
 
+  it('calling init() multiple times does not accumulate keydown handlers', () => {
+    // Re-initialise twice more to simulate returning to the game multiple times.
+    const container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    plugin.init(container);
+
+    // Advance to response phase.
+    plugin.start();
+    jest.runAllTimers();
+    gameMock.recordTrial.mockClear();
+
+    // Dispatch a real DOM keydown event — should fire only once even though
+    // init() was called multiple times.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '2', bubbles: true }));
+    expect(gameMock.recordTrial).toHaveBeenCalledTimes(1);
+    jest.clearAllTimers();
+  });
+
   // ── button click wiring ───────────────────────────────────────────────────
 
   it('start button click starts the game', () => {
@@ -524,10 +557,11 @@ describe('sound-sweep plugin', () => {
 
   // ── exported helpers ──────────────────────────────────────────────────────
 
-  it('announce writes text to both feedback and status elements', () => {
+  it('announce writes text to status element only', () => {
     announce('test message');
-    expect(document.querySelector('#ss-feedback').textContent).toBe('test message');
     expect(document.querySelector('#ss-status').textContent).toBe('test message');
+    // feedback element is not written by announce(); it stays empty
+    expect(document.querySelector('#ss-feedback').textContent).toBe('');
   });
 
   it('updateStats populates all stat elements', () => {

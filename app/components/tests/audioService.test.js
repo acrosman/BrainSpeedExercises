@@ -462,4 +462,89 @@ describe('playSweepPair', () => {
 
     globalThis.AudioContext = original;
   });
+
+  test('returns without scheduling when sequence array is not length 2', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playSweepPair(['up'], { sweepDurationMs: 200, isiMs: 200 });
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+
+    playSweepPair([], { sweepDurationMs: 200, isiMs: 200 });
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('returns without scheduling when a direction is not "up" or "down"', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playSweepPair(['up', 'left'], { sweepDurationMs: 200, isiMs: 200 });
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+
+    playSweepPair(['diagonal', 'down'], { sweepDurationMs: 200, isiMs: 200 });
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('returns without scheduling when sweepDurationMs is not a positive number', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playSweepPair(['up', 'down'], { sweepDurationMs: 0, isiMs: 200 });
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+
+    playSweepPair(['up', 'down'], { sweepDurationMs: -100, isiMs: 200 });
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+
+    playSweepPair(['up', 'down'], { sweepDurationMs: 'fast', isiMs: 200 });
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('returns without scheduling when isiMs is negative', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playSweepPair(['up', 'down'], { sweepDurationMs: 200, isiMs: -1 });
+    expect(mockCtx.createOscillator).not.toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('schedules sweeps correctly when sweepDurationMs is very short (clamped envelope)', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    // 5 ms is shorter than SWEEP_ATTACK_S (15 ms) + SWEEP_RELEASE_S (15 ms);
+    // the envelope clamping should still schedule without browser errors.
+    expect(() => playSweepPair(['up', 'down'], { sweepDurationMs: 5, isiMs: 0 }))
+      .not.toThrow();
+    expect(mockCtx.createOscillator).toHaveBeenCalledTimes(2);
+
+    globalThis.AudioContext = original;
+  });
 });

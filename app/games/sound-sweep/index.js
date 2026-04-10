@@ -111,16 +111,26 @@ function setResponseButtonsEnabled(enabled) {
 }
 
 /**
- * Post a status or feedback message to the live-region elements.
+ * Post a status message to the assertive live region (`#ss-status`).
+ *
+ * Writing to a single live region avoids duplicate screen-reader announcements
+ * that would occur when both `#ss-status` (assertive parent) and `#ss-feedback`
+ * (polite) hold the same text simultaneously. Falls back to `#ss-feedback` only
+ * when `#ss-status` is unavailable.
+ *
+ * Use this for trial-phase prompts ("Listen…", "Which sequence did you hear?").
+ * Write result feedback ("Correct!", "Incorrect…") directly to `_feedbackEl`
+ * via {@link handleSequenceResponse} so those go through the polite channel.
  *
  * @param {string} message
  */
 export function announce(message) {
-  if (_feedbackEl) {
-    _feedbackEl.textContent = message;
-  }
   if (_statusEl) {
     _statusEl.textContent = message;
+    return;
+  }
+  if (_feedbackEl) {
+    _feedbackEl.textContent = message;
   }
 }
 
@@ -174,6 +184,7 @@ function startTrial() {
   _responseEnabled = false;
   setResponseButtonsEnabled(false);
   if (_replayBtn) _replayBtn.disabled = true;
+  if (_feedbackEl) _feedbackEl.textContent = '';
   announce('Listen...');
 
   updateStats();
@@ -206,11 +217,12 @@ export function handleSequenceResponse(response) {
   updateStats();
   playFeedbackSound(success);
 
-  if (success) {
-    announce('Correct!');
-  } else {
-    announce(`Incorrect - the sequence was ${formatSequenceLabel(_currentSequence)}.`);
-  }
+  // Write result feedback directly to the polite live region (#ss-feedback)
+  // so it does not also trigger the assertive #ss-status announcer.
+  const feedbackMsg = success
+    ? 'Correct!'
+    : `Incorrect - the sequence was ${formatSequenceLabel(_currentSequence)}.`;
+  if (_feedbackEl) _feedbackEl.textContent = feedbackMsg;
 
   if (game.isRunning()) {
     _nextTrialTimer = setTimeout(() => {
@@ -346,6 +358,9 @@ function init(gameContainer) {
   if (_duBtn) _duBtn.addEventListener('click', () => handleSequenceResponse('down-up'));
   if (_ddBtn) _ddBtn.addEventListener('click', () => handleSequenceResponse('down-down'));
 
+  // Remove any existing handler before registering to guarantee exactly one
+  // keydown listener regardless of how many times init() is called.
+  document.removeEventListener('keydown', handleKeyDown);
   document.addEventListener('keydown', handleKeyDown);
 
   setResponseButtonsEnabled(false);
@@ -368,6 +383,10 @@ function start() {
   if (_endPanelEl)     _endPanelEl.hidden = true;
   if (_gameAreaEl)     _gameAreaEl.hidden = false;
   if (_feedbackEl)     _feedbackEl.textContent = '';
+
+  // Move focus to the status element so keyboard users land in the game area
+  // rather than remaining on the now-hidden Start button (WCAG 2.4.3).
+  if (_statusEl) _statusEl.focus();
 
   setResponseButtonsEnabled(false);
 
