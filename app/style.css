@@ -474,3 +474,149 @@ footer {
   background-color: #f8f9fa;
 }
 
+/* ── Shared Game Welcome Panel ──────────────────────────────────────────── */
+/*
+ * .game-welcome — shared welcome/instructions panel used across all games.
+ * Apply alongside any game-specific class to get the standard card layout.
+ */
+.game-welcome {
+  max-width: 560px;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  box-sizing: border-box;
+}
+
+.game-welcome h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.game-welcome p {
+  margin: 0 0 0.75rem;
+}
+
+.game-welcome ul,
+.game-welcome ol {
+  margin: 0 0 1.25rem 1.25rem;
+  padding: 0;
+}
+
+.game-welcome li {
+  line-height: 1.7;
+  margin-bottom: 0.25rem;
+}
+
+.game-welcome kbd {
+  display: inline-block;
+  padding: 0 0.35em;
+  font-family: monospace;
+  font-size: 0.875em;
+  border: 1px solid #adb5bd;
+  border-radius: 3px;
+  background-color: #f1f3f5;
+}
+
+/* ── Shared Game End Panel ──────────────────────────────────────────────── */
+/*
+ * .game-end-panel — shared end-of-game results panel used across all games.
+ * Apply alongside any game-specific class to get the standard results layout.
+ */
+.game-end-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.game-end-panel h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* Results definition list */
+.game-results {
+  width: 100%;
+  margin: 0;
+  border: 1px solid #c0c8d4;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.game-results__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.game-results__row:last-child {
+  border-bottom: none;
+}
+
+.game-results__label {
+  font-weight: 600;
+  color: #333;
+}
+
+.game-results__value {
+  color: #111;
+  font-variant-numeric: tabular-nums;
+}
+
+/* End panel action buttons */
+.game-end-panel__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Shared Game Buttons ────────────────────────────────────────────────── */
+/*
+ * .game-btn — shared button style for all game screens (welcome and end panels).
+ * Use .game-btn--primary for "Start Game" / "Play Again" and
+ * .game-btn--secondary for "Return to Menu".
+ */
+.game-btn {
+  padding: 0.55rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.game-btn:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 3px;
+}
+
+.game-btn--primary {
+  background: #005fcc;
+  color: #fff;
+  border-color: #004fa3;
+}
+
+.game-btn--primary:hover {
+  background: #004fa3;
+}
+
+.game-btn--secondary {
+  background: #6c757d;
+  color: #fff;
+  border-color: #545b62;
+}
+
+.game-btn--secondary:hover {
+  background: #545b62;
+}
+

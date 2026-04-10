@@ -2,7 +2,7 @@
   <h2 id="ss-title">Sound Sweep</h2>
 
   <!-- Instructions panel: shown before the game starts and after reset. -->
-  <div id="ss-instructions" class="ss-panel">
+  <div id="ss-instructions" class="ss-panel game-welcome">
     <h3>How to Play</h3>
     <p>
       You will hear two rapid frequency sweeps in quick succession.
@@ -23,7 +23,7 @@
       Eventually the sounds become very brief chirps that challenge your brain to
       process fast auditory transitions.
     </p>
-    <button id="ss-start-btn" type="button" class="ss-btn ss-btn--primary">
+    <button id="ss-start-btn" type="button" class="ss-btn ss-btn--primary game-btn game-btn--primary">
       Start Game
     </button>
   </div>
@@ -93,16 +93,29 @@
   </div>
 
   <!-- End panel: shown when the session ends. -->
-  <div id="ss-end-panel" class="ss-panel" hidden>
-    <h3>Session Complete</h3>
-    <p>Level Reached: <strong id="ss-final-level">1</strong></p>
-    <p>Score (correct answers): <strong id="ss-final-score">0</strong></p>
-    <p>Total Rounds: <strong id="ss-final-trials">0</strong></p>
-    <div class="ss-controls">
-      <button id="ss-play-again-btn" type="button" class="ss-btn ss-btn--primary">
+  <div id="ss-end-panel" class="ss-panel game-end-panel" hidden>
+    <h2>Session Complete</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Level Reached</dt>
+        <dd class="game-results__value" id="ss-final-level">1</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Score (correct answers)</dt>
+        <dd class="game-results__value" id="ss-final-score">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Total Rounds</dt>
+        <dd class="game-results__value" id="ss-final-trials">0</dd>
+      </div>
+    </dl>
+
+    <div class="ss-controls game-end-panel__actions">
+      <button id="ss-play-again-btn" type="button" class="ss-btn ss-btn--primary game-btn game-btn--primary">
         Play Again
       </button>
-      <button id="ss-return-btn" type="button" class="ss-btn ss-btn--secondary">
+      <button id="ss-return-btn" type="button" class="ss-btn ss-btn--secondary game-btn game-btn--secondary">
         Return to Menu
       </button>
     </div>
