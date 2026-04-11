@@ -677,3 +677,138 @@ describe('endMarkingPhase()', () => {
       .toBe('Track the targets...');
   });
 });
+
+// ── Extra coverage: RAF tick callback ─────────────────────────────────────────
+
+describe('startTrackingAnimation — tick callback coverage', () => {
+  it('invokes game.tickPhysics and repositions circles when RAF fires', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([{ id: 0, x: 100, y: 100, radius: 30, isTarget: false }]);
+
+    // Capture the RAF callback so we can invoke it manually.
+    let capturedTick;
+    global.requestAnimationFrame = jest.fn((cb) => {
+      capturedTick = cb;
+      return 1;
+    });
+
+    // isRunning returns true so the tick body executes (not early-return).
+    gameMock.isRunning.mockReturnValue(true);
+    startTrackingAnimation(5000);
+
+    // Invoke tick with timestamp=100: _lastFrameMs is null → delta = 0.
+    // The recursive requestAnimationFrame call just captures but doesn't invoke.
+    capturedTick(100);
+    expect(gameMock.tickPhysics).toHaveBeenCalledWith(0, expect.any(Object));
+  });
+
+  it('computes non-zero delta on the second tick frame', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([{ id: 0, x: 100, y: 100, radius: 30, isTarget: false }]);
+
+    const ticks = [];
+    global.requestAnimationFrame = jest.fn((cb) => {
+      ticks.push(cb);
+      return ticks.length;
+    });
+
+    // Keep isRunning true so tick body executes on both calls.
+    gameMock.isRunning.mockReturnValue(true);
+    startTrackingAnimation(5000);
+
+    // First tick: _lastFrameMs is null → delta = 0. RAF re-captures into ticks[1].
+    ticks[0](100);
+
+    // Second tick: delta = 116 - 100 = 16. RAF re-captures into ticks[2] (not invoked).
+    ticks[1](116);
+    expect(gameMock.tickPhysics).toHaveBeenCalledWith(16, expect.any(Object));
+  });
+
+  it('tracking timeout triggers stopTrackingAnimation and enterResponsePhase', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    startTrackingAnimation(5000);
+
+    // Advance fake timers past durationMs to fire the tracking timeout.
+    jest.runAllTimers();
+    // enterResponsePhase adds mot-arena--response to the arena.
+    expect(container.querySelector('#mot-arena').classList.contains('mot-arena--response'))
+      .toBe(true);
+  });
+});
+
+// ── Extra coverage: submitResponse feedback timer callback ────────────────────
+
+describe('submitResponse — feedback timer callback', () => {
+  it('fires beginRound after FEEDBACK_DURATION_MS', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([]);
+    await submitResponse();
+
+    const roundsBefore = gameMock.initRound.mock.calls.length;
+    jest.runAllTimers();
+    expect(gameMock.initRound.mock.calls.length).toBeGreaterThan(roundsBefore);
+  });
+});
+
+// ── Extra coverage: returnToMainMenu ─────────────────────────────────────────
+
+describe('returnToMainMenu via Return to Menu button', () => {
+  it('dispatches bsx:return-to-main-menu custom event on window', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    const listener = jest.fn();
+    window.addEventListener('bsx:return-to-main-menu', listener);
+    container.querySelector('#mot-return').click();
+    window.removeEventListener('bsx:return-to-main-menu', listener);
+    expect(listener).toHaveBeenCalled();
+  });
+});
+
+// ── Extra coverage: timerService callback in start() ─────────────────────────
+
+describe('start() — session timer callback', () => {
+  it('updates session timer element when timerService fires the callback', () => {
+    // Make startTimer immediately invoke its callback with a duration value.
+    timerServiceMock.startTimer.mockImplementationOnce((cb) => cb(5000));
+    timerServiceMock.formatDuration.mockReturnValue('01:23');
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    expect(container.querySelector('#mot-session-timer').textContent).toBe('01:23');
+  });
+});
+
+// ── Button wiring ─────────────────────────────────────────────────────────────
+
+describe('button wiring', () => {
+  it('stop button calls stop()', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    const btn = container.querySelector('#mot-stop');
+    await btn.click();
+    expect(gameMock.stopGame).toHaveBeenCalled();
+  });
+
+  it('submit button calls submitResponse()', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([]);
+    const btn = container.querySelector('#mot-submit');
+    await btn.click();
+    expect(gameMock.evaluateResponse).toHaveBeenCalled();
+  });
+
+  it('play-again button calls reset() then start()', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    const btn = container.querySelector('#mot-play-again');
+    btn.click();
+    // reset calls initGame, start calls startGame
+    expect(gameMock.initGame).toHaveBeenCalled();
+    expect(gameMock.startGame).toHaveBeenCalled();
+  });
+});
