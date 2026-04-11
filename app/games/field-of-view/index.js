@@ -13,6 +13,7 @@ import * as render from './render.js';
 import { playFeedbackSound } from '../../components/audioService.js';
 import { saveProgress } from './progress.js';
 import * as timerService from '../../components/timerService.js';
+import { returnToMainMenu } from '../../components/gameUtils.js';
 
 /** Mask display duration in ms. */
 const MASK_DURATION_MS = 120;
@@ -458,15 +459,6 @@ function buildIdleResult() {
     recentAccuracy: game.getRecentAccuracy(),
     duration: 0,
   };
-}
-
-/**
- * Dispatch app-level event to return to the game selector screen.
- */
-function returnToMainMenu() {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
-  }
 }
 
 /** Human-readable plugin name. */

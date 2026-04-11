@@ -13,6 +13,7 @@
 import * as game from './game.js';
 import { playSweepPair, playFeedbackSound } from '../../components/audioService.js';
 import { saveScore } from '../../components/scoreService.js';
+import { returnToMainMenu } from '../../components/gameUtils.js';
 import * as timerService from '../../components/timerService.js';
 
 /** Game identifier used for progress persistence (must match manifest.json id). */
@@ -289,15 +290,6 @@ function showEndPanel(result) {
   if (_finalScoreEl) _finalScoreEl.textContent = String(result.score);
   if (_finalTrialsEl) _finalTrialsEl.textContent = String(result.trialsCompleted);
   if (_endPanelEl) _endPanelEl.hidden = false;
-}
-
-/**
- * Dispatch the app-level event that returns the user to the game selector.
- */
-function returnToMainMenu() {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
-  }
 }
 
 // ── Plugin contract ───────────────────────────────────────────────────────────

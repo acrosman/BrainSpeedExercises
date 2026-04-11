@@ -30,6 +30,21 @@ jest.unstable_mockModule('../../../components/scoreService.js', () => ({
 }));
 await import('../../../components/scoreService.js');
 
+// ── 1b. Mock audioService ─────────────────────────────────────────────────────
+
+jest.unstable_mockModule('../../../components/audioService.js', () => ({
+  playSuccessSound: jest.fn(),
+  playFailureSound: jest.fn(),
+}));
+const audioServiceMock = await import('../../../components/audioService.js');
+
+// ── 1c. Mock gameUtils ────────────────────────────────────────────────────────
+
+jest.unstable_mockModule('../../../components/gameUtils.js', () => ({
+  returnToMainMenu: jest.fn(),
+}));
+const gameUtilsMock = await import('../../../components/gameUtils.js');
+
 // ── 2. Mock game.js ───────────────────────────────────────────────────────────
 
 jest.unstable_mockModule('../game.js', () => ({
@@ -89,6 +104,7 @@ const {
   announce,
   updateStats,
   setRandomBackground,
+  loadBackgroundImages,
   renderCircles,
   repositionCircleElements,
   highlightTargets,
@@ -132,7 +148,6 @@ function buildContainer() {
     <strong id="mot-session-timer">00:00</strong>
     <p id="mot-phase-label"></p>
     <div id="mot-feedback"></div>
-    <button id="mot-submit" hidden></button>
     <button id="mot-stop"></button>
     <button id="mot-start"></button>
     <button id="mot-play-again"></button>
@@ -152,11 +167,14 @@ beforeEach(() => {
   gameMock.isRunning.mockReturnValue(true);
   global.requestAnimationFrame = jest.fn(() => 1);
   global.cancelAnimationFrame = jest.fn();
+  // Reset ARENA_BACKGROUNDS between tests
+  ARENA_BACKGROUNDS.length = 0;
 });
 
 afterEach(() => {
   jest.useRealTimers();
   document.body.innerHTML = '';
+  delete window.api;
 });
 
 // ── 7. Tests ──────────────────────────────────────────────────────────────────
@@ -172,10 +190,8 @@ describe('exported constants', () => {
     expect(FEEDBACK_DURATION_MS).toBeGreaterThan(0);
   });
 
-  it('ARENA_BACKGROUNDS is a non-empty array of strings', () => {
+  it('ARENA_BACKGROUNDS is an array', () => {
     expect(Array.isArray(ARENA_BACKGROUNDS)).toBe(true);
-    expect(ARENA_BACKGROUNDS.length).toBeGreaterThan(0);
-    ARENA_BACKGROUNDS.forEach((bg) => expect(typeof bg).toBe('string'));
   });
 
   it('CIRCLE_PALETTES is a non-empty array with hi/mid/lo properties', () => {
@@ -368,14 +384,48 @@ describe('updateStats()', () => {
 });
 
 describe('setRandomBackground(arenaEl)', () => {
-  it('sets backgroundImage style on the provided element', () => {
+  it('sets backgroundImage style when backgrounds are loaded', () => {
+    ARENA_BACKGROUNDS.push('bg-1.png');
     const el = document.createElement('div');
     setRandomBackground(el);
     expect(el.style.backgroundImage).toMatch(/url\(/);
   });
 
+  it('is a no-op when no backgrounds are loaded', () => {
+    const el = document.createElement('div');
+    setRandomBackground(el);
+    expect(el.style.backgroundImage).toBe('');
+  });
+
   it('handles null arenaEl without throwing', () => {
     expect(() => setRandomBackground(null)).not.toThrow();
+  });
+});
+
+describe('loadBackgroundImages()', () => {
+  it('is a no-op when window.api is not available', async () => {
+    delete window.api;
+    await expect(loadBackgroundImages()).resolves.toBeUndefined();
+    expect(ARENA_BACKGROUNDS.length).toBe(0);
+  });
+
+  it('populates ARENA_BACKGROUNDS from IPC result', async () => {
+    window.api = { invoke: jest.fn().mockResolvedValue(['bg-1.png', 'bg-2.png']) };
+    await loadBackgroundImages();
+    expect(ARENA_BACKGROUNDS).toEqual(['bg-1.png', 'bg-2.png']);
+  });
+
+  it('does not modify ARENA_BACKGROUNDS when IPC returns empty array', async () => {
+    ARENA_BACKGROUNDS.push('existing.png');
+    window.api = { invoke: jest.fn().mockResolvedValue([]) };
+    await loadBackgroundImages();
+    expect(ARENA_BACKGROUNDS).toEqual(['existing.png']);
+  });
+
+  it('silently falls back when IPC rejects', async () => {
+    window.api = { invoke: jest.fn().mockRejectedValue(new Error('IPC error')) };
+    await expect(loadBackgroundImages()).resolves.toBeUndefined();
+    expect(ARENA_BACKGROUNDS.length).toBe(0);
   });
 });
 
@@ -494,13 +544,6 @@ describe('enterResponsePhase()', () => {
       .toBe(true);
   });
 
-  it('shows submit button', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    enterResponsePhase();
-    expect(container.querySelector('#mot-submit').hidden).toBe(false);
-  });
-
   it('announces a message via feedbackEl', () => {
     const container = buildContainer();
     plugin.init(container);
@@ -510,32 +553,61 @@ describe('enterResponsePhase()', () => {
 });
 
 describe('handleCircleClick(event)', () => {
-  it('selects a .mot-circle element on click', () => {
+  it('selects a .mot-circle element on click (distractor — no auto-submit)', () => {
+    // Override getCurrentCircles so no circles are targets → no auto-submit triggered
+    gameMock.getCurrentCircles.mockReturnValueOnce([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
+    ]);
     const container = buildContainer();
     plugin.init(container);
-    // beginRound resets _selectedIds and renders circles from the initRound mock
-    beginRound();
+    renderCircles([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
+    ]);
+    enterResponsePhase();
     const circleEl = container.querySelector('#mot-circle-0');
-    const event = { target: circleEl };
-    // patch closest onto the element
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
-    handleCircleClick(event);
+    handleCircleClick({ target: circleEl });
     expect(circleEl.classList.contains('mot-circle--selected')).toBe(true);
     expect(circleEl.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('deselects a circle on second click', () => {
+    // Two distractors → selecting one never reaches auto-submit threshold of 0
+    gameMock.getCurrentCircles.mockReturnValue([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
+    ]);
     const container = buildContainer();
     plugin.init(container);
-    // beginRound resets _selectedIds and renders circles from the initRound mock
-    beginRound();
+    renderCircles([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
+    ]);
+    enterResponsePhase();
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
-    const event = { target: circleEl };
-    handleCircleClick(event);
-    handleCircleClick(event);
+    handleCircleClick({ target: circleEl });
+    handleCircleClick({ target: circleEl });
     expect(circleEl.classList.contains('mot-circle--selected')).toBe(false);
     expect(circleEl.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('auto-submits when selected count reaches numTargets', async () => {
+    // 1 target circle: clicking it should trigger submitResponse automatically
+    gameMock.getCurrentCircles.mockReturnValue([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
+    ]);
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([{ id: 0, x: 100, y: 100, radius: 30, isTarget: true }]);
+    enterResponsePhase();
+    const circleEl = container.querySelector('#mot-circle-0');
+    circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
+    handleCircleClick({ target: circleEl });
+    // submitResponse is called asynchronously but synchronously schedules evaluation
+    expect(gameMock.evaluateResponse).toHaveBeenCalled();
   });
 
   it('ignores clicks on non-circle elements', () => {
@@ -548,7 +620,7 @@ describe('handleCircleClick(event)', () => {
 });
 
 describe('submitResponse()', () => {
-  it('hides submit button and calls game.evaluateResponse', async () => {
+  it('calls game.evaluateResponse', async () => {
     const container = buildContainer();
     plugin.init(container);
     renderCircles([
@@ -556,7 +628,6 @@ describe('submitResponse()', () => {
       { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
     ]);
     await submitResponse();
-    expect(container.querySelector('#mot-submit').hidden).toBe(true);
     expect(gameMock.evaluateResponse).toHaveBeenCalled();
   });
 
@@ -568,6 +639,28 @@ describe('submitResponse()', () => {
     expect(gameMock.recordRoundResult).toHaveBeenCalledWith(true);
   });
 
+  it('plays success sound on correct response', async () => {
+    gameMock.evaluateResponse.mockReturnValueOnce(
+      { correct: true, correctCount: 1, totalTargets: 1 },
+    );
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([]);
+    await submitResponse();
+    expect(audioServiceMock.playSuccessSound).toHaveBeenCalled();
+  });
+
+  it('plays failure sound on incorrect response', async () => {
+    gameMock.evaluateResponse.mockReturnValueOnce(
+      { correct: false, correctCount: 0, totalTargets: 1 },
+    );
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([]);
+    await submitResponse();
+    expect(audioServiceMock.playFailureSound).toHaveBeenCalled();
+  });
+
   it('adds mot-circle--correct to correctly selected target circles', async () => {
     const container = buildContainer();
     plugin.init(container);
@@ -576,11 +669,19 @@ describe('submitResponse()', () => {
     // Manually select circle 0 so _selectedIds contains 0
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
+    // Use only-distractor mock so handleCircleClick does not auto-submit
+    gameMock.getCurrentCircles.mockReturnValueOnce([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
+    ]);
     handleCircleClick({ target: circleEl });
 
     gameMock.evaluateResponse.mockReturnValueOnce(
       { correct: true, correctCount: 1, totalTargets: 1 },
     );
+    // Restore target state for submitResponse
+    gameMock.getCurrentCircles.mockReturnValueOnce([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
+    ]);
     await submitResponse();
     expect(circleEl.classList.contains('mot-circle--correct')).toBe(true);
   });
@@ -757,14 +858,11 @@ describe('submitResponse — feedback timer callback', () => {
 // ── Extra coverage: returnToMainMenu ─────────────────────────────────────────
 
 describe('returnToMainMenu via Return to Menu button', () => {
-  it('dispatches bsx:return-to-main-menu custom event on window', () => {
+  it('calls returnToMainMenu when return button is clicked', () => {
     const container = buildContainer();
     plugin.init(container);
-    const listener = jest.fn();
-    window.addEventListener('bsx:return-to-main-menu', listener);
     container.querySelector('#mot-return').click();
-    window.removeEventListener('bsx:return-to-main-menu', listener);
-    expect(listener).toHaveBeenCalled();
+    expect(gameUtilsMock.returnToMainMenu).toHaveBeenCalled();
   });
 });
 
@@ -791,15 +889,6 @@ describe('button wiring', () => {
     const btn = container.querySelector('#mot-stop');
     await btn.click();
     expect(gameMock.stopGame).toHaveBeenCalled();
-  });
-
-  it('submit button calls submitResponse()', async () => {
-    const container = buildContainer();
-    plugin.init(container);
-    renderCircles([]);
-    const btn = container.querySelector('#mot-submit');
-    await btn.click();
-    expect(gameMock.evaluateResponse).toHaveBeenCalled();
   });
 
   it('play-again button calls reset() then start()', () => {

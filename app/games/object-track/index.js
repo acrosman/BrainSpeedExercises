@@ -10,6 +10,8 @@
 import * as game from './game.js';
 import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
+import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
+import { returnToMainMenu } from '../../components/gameUtils.js';
 
 // ── Exported constants ────────────────────────────────────────────────────────
 
@@ -19,13 +21,14 @@ export const MARKING_DURATION_MS = 2000;
 /** Duration (ms) feedback is shown before the next round begins. */
 export const FEEDBACK_DURATION_MS = 1500;
 
-/** Background image paths for the arena. */
-export const ARENA_BACKGROUNDS = [
-  'images/bg-1.jpg',
-  'images/bg-2.jpg',
-  'images/bg-3.jpg',
-  'images/bg-4.jpg',
-];
+/**
+ * Background image filenames for the arena (populated at runtime by
+ * loadBackgroundImages via the games:listImages IPC channel).
+ * Starts empty; the arena falls back to its CSS background-color.
+ *
+ * @type {string[]}
+ */
+export const ARENA_BACKGROUNDS = [];
 
 /** Color palettes for the circles (hi/mid/lo gradient stops). */
 export const CIRCLE_PALETTES = [
@@ -40,7 +43,7 @@ export const CIRCLE_PALETTES = [
 // ── Private constants ─────────────────────────────────────────────────────────
 
 /** Base URL path for game assets (used when setting background images). */
-const GAME_ASSET_BASE = './games/object-track/';
+const GAME_ASSET_BASE = './games/object-track/images/bg/';
 
 // ── Private DOM references ────────────────────────────────────────────────────
 
@@ -64,8 +67,6 @@ let _roundEl = null;
 let _phaseLabel = null;
 /** @type {HTMLElement|null} */
 let _feedbackEl = null;
-/** @type {HTMLButtonElement|null} */
-let _submitBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _stopBtn = null;
 /** @type {HTMLButtonElement|null} */
@@ -152,13 +153,39 @@ export function updateStats() {
 // ── Arena background ──────────────────────────────────────────────────────────
 
 /**
+ * Scan the game's `images/bg/` directory via IPC and populate ARENA_BACKGROUNDS
+ * with the discovered PNG filenames.
+ *
+ * Falls back silently when `window.api` is unavailable (e.g. in tests) or the
+ * IPC call rejects.
+ *
+ * @returns {Promise<void>}
+ */
+export async function loadBackgroundImages() {
+  if (typeof window === 'undefined' || !window.api) return;
+  try {
+    const files = await window.api.invoke('games:listImages', {
+      gameId: 'object-track',
+      subfolder: 'bg',
+    });
+    if (files && files.length > 0) {
+      ARENA_BACKGROUNDS.length = 0;
+      files.forEach((f) => ARENA_BACKGROUNDS.push(f));
+    }
+  } catch {
+    // Silently fall back — arena will use its CSS background-color.
+  }
+}
+
+/**
  * Apply a random background image to the arena element.
+ * No-op when no backgrounds have been loaded.
  *
  * @param {HTMLElement|null} arenaEl - The arena container element.
  * @returns {void}
  */
 export function setRandomBackground(arenaEl) {
-  if (!arenaEl) return;
+  if (!arenaEl || ARENA_BACKGROUNDS.length === 0) return;
   const bg = ARENA_BACKGROUNDS[Math.floor(Math.random() * ARENA_BACKGROUNDS.length)];
   arenaEl.style.backgroundImage = `url('${GAME_ASSET_BASE}${bg}')`;
 }
@@ -292,15 +319,16 @@ export function enterResponsePhase() {
     _arenaEl.classList.add('mot-arena--response');
     _arenaEl.addEventListener('click', handleCircleClick);
   }
-  if (_submitBtn) _submitBtn.hidden = false;
   if (_phaseLabel) _phaseLabel.textContent = 'Click the targets you tracked!';
-  announce('Circles stopped. Click the targets you tracked, then Submit.');
+  announce('Circles stopped. Click each target you tracked.');
 }
 
 /**
  * Handle a click on the arena during the response phase.
  *
- * Toggles the selected state of the clicked circle element.
+ * Toggles the selected state of the clicked circle element. When the
+ * player has selected as many circles as there are targets the response
+ * is submitted automatically.
  *
  * @param {MouseEvent} event - The click event from the arena.
  * @returns {void}
@@ -318,6 +346,11 @@ export function handleCircleClick(event) {
     el.classList.add('mot-circle--selected');
     el.setAttribute('aria-pressed', 'true');
   }
+  // Auto-submit once the player has selected all required targets.
+  const numTargets = game.getCurrentCircles().filter((c) => c.isTarget).length;
+  if (_selectedIds.size >= numTargets) {
+    submitResponse();
+  }
 }
 
 /**
@@ -326,7 +359,6 @@ export function handleCircleClick(event) {
  * @returns {Promise<void>}
  */
 export async function submitResponse() {
-  if (_submitBtn) _submitBtn.hidden = true;
   if (_arenaEl) {
     _arenaEl.classList.remove('mot-arena--response');
     _arenaEl.removeEventListener('click', handleCircleClick);
@@ -349,6 +381,11 @@ export async function submitResponse() {
   announce(msg);
   if (_phaseLabel) {
     _phaseLabel.textContent = evalResult.correct ? 'Correct!' : 'Not quite...';
+  }
+  if (evalResult.correct) {
+    playSuccessSound();
+  } else {
+    playFailureSound();
   }
 
   _feedbackTimer = setTimeout(() => {
@@ -410,19 +447,6 @@ export function endMarkingPhase() {
   startTrackingAnimation(config.trackingDurationMs);
 }
 
-// ── Navigation helper ─────────────────────────────────────────────────────────
-
-/**
- * Fire the custom event that signals the app to return to the main menu.
- *
- * @returns {void}
- */
-function returnToMainMenu() {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
-  }
-}
-
 // ── Plugin lifecycle ──────────────────────────────────────────────────────────
 
 /**
@@ -448,7 +472,6 @@ function init(gameContainer) {
   _roundEl = q('#mot-round');
   _phaseLabel = q('#mot-phase-label');
   _feedbackEl = q('#mot-feedback');
-  _submitBtn = q('#mot-submit');
   _stopBtn = q('#mot-stop');
   _startBtn = q('#mot-start');
   _playAgainBtn = q('#mot-play-again');
@@ -460,9 +483,11 @@ function init(gameContainer) {
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
-  if (_submitBtn) _submitBtn.addEventListener('click', () => submitResponse());
   if (_playAgainBtn) _playAgainBtn.addEventListener('click', () => { reset(); start(); });
   if (_returnBtn) _returnBtn.addEventListener('click', () => returnToMainMenu());
+
+  // Load background images asynchronously; silently falls back if unavailable.
+  loadBackgroundImages();
 }
 
 /**

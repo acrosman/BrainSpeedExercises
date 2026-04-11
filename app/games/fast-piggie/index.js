@@ -11,6 +11,7 @@ import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
+import { returnToMainMenu } from '../../components/gameUtils.js';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
 const SPRITE_INSET = 2;
@@ -542,7 +543,7 @@ export default {
       });
     }
     if (_returnToMenuBtn) {
-      _returnToMenuBtn.addEventListener('click', () => _returnToMainMenu());
+      _returnToMenuBtn.addEventListener('click', () => returnToMainMenu());
     }
   },
 
@@ -628,13 +629,3 @@ export default {
     if (_endPanelEl) _endPanelEl.hidden = true;
   },
 };
-
-/**
- * Return to the main game selection screen, removing modal and resetting UI.
- */
-function _returnToMainMenu() {
-  // Dispatch a custom event to notify the app shell to return to main menu
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
-  }
-}
