@@ -23,12 +23,12 @@
       <li>Use <kbd>Tab</kbd> and <kbd>Enter</kbd> for keyboard navigation.</li>
     </ul>
     <!--
-      Use both game-specific button classes and the shared .game-btn classes.
+      Use only the shared game-btn classes for panel buttons (start, play-again, return).
       game-btn--primary = blue "Start Game" / "Play Again" buttons.
-      game-btn--secondary = grey "Return to Menu" button.
+      game-btn--secondary = red "Return to Menu" button.
     -->
     <button type="button" id="game-template-start"
-      class="game-template__btn game-template__btn--start game-btn game-btn--primary">
+      class="game-btn game-btn--primary">
       Start Game
     </button>
   </div>
@@ -65,7 +65,7 @@
     Add or remove rows to match the metrics your game tracks.
   -->
   <div id="game-template-end-panel" class="game-template__end-panel game-end-panel" hidden>
-    <h2>Game Over!</h2>
+    <h2>Session Ended</h2>
 
     <dl class="game-results">
       <div class="game-results__row">

@@ -482,6 +482,7 @@ footer {
 .game-welcome {
   max-width: 560px;
   width: 100%;
+  margin: 0 auto;
   background: #ffffff;
   border: 1px solid #dee2e6;
   border-radius: 8px;
@@ -532,6 +533,7 @@ footer {
   gap: 1.25rem;
   width: 100%;
   max-width: 420px;
+  margin: 0 auto;
 }
 
 .game-end-panel h2 {
@@ -611,12 +613,12 @@ footer {
 }
 
 .game-btn--secondary {
-  background: #6c757d;
+  background: #c0392b;
   color: #fff;
-  border-color: #545b62;
+  border-color: #922b21;
 }
 
 .game-btn--secondary:hover {
-  background: #545b62;
+  background: #922b21;
 }
 

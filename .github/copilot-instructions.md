@@ -217,67 +217,20 @@ panels. These classes provide a consistent layout, typography, and styling acros
 
 #### Welcome Panel (`.game-welcome`)
 
-Add the `.game-welcome` class alongside any game-specific class on the instructions/welcome `<div>`.
-The welcome panel must follow this structure (based on Fast Piggie):
-
-```html
-<div id="GAME-instructions" class="GAME-instructions game-welcome">
-  <h3>How to Play</h3>
-  <p>One-sentence summary of the game objective.</p>
-  <ul>
-    <!-- Bullet-point steps describing how to play -->
-  </ul>
-  <button id="GAME-start-btn" type="button"
-    class="GAME-btn GAME-btn--primary game-btn game-btn--primary">
-    Start Game
-  </button>
-</div>
-```
-
-Rules:
-- The `<h2>` game title must appear **outside** the welcome panel, directly in the `<section>`.
-- The welcome panel always starts with `<h3>How to Play</h3>`.
-- Instructions must be a `<ul>` or `<ol>` list — never bare paragraphs.
-- The Start Game button must use both `game-btn` and `game-btn--primary` classes.
-- Do not include implementation details (e.g., image asset file names) in the welcome panel.
+Add the `.game-welcome` class on the instructions/welcome `<div>`.
+The welcome panel always starts with `<h3>How to Play</h3>`, followed by a brief objective sentence
+and a `<ul>` or `<ol>` list of steps. The Start Game button must use `game-btn game-btn--primary`.
+The `<h2>` game title must appear **outside** the panel, directly in the `<section>`.
+Do not include implementation details (e.g., image asset file names) in the welcome panel.
 
 #### End Panel (`.game-end-panel` + `.game-results`)
 
-Add both `.game-end-panel` and your game-specific class to the end panel container.
-Use a `<dl>` with `.game-results` for the results table (based on Otter Stop):
-
-```html
-<div id="GAME-end-panel" class="GAME-end-panel game-end-panel" hidden>
-  <h2>Game Over!</h2>
-
-  <dl class="game-results">
-    <div class="game-results__row">
-      <dt class="game-results__label">Score</dt>
-      <dd class="game-results__value" id="GAME-final-score">0</dd>
-    </div>
-    <!-- Add one row per metric your game tracks -->
-  </dl>
-
-  <div class="GAME-end-actions game-end-panel__actions" role="group" aria-label="Post-game options">
-    <button id="GAME-play-again-btn" type="button"
-      class="GAME-btn GAME-btn--primary game-btn game-btn--primary">
-      Play Again
-    </button>
-    <button id="GAME-return-btn" type="button"
-      class="GAME-btn GAME-btn--secondary game-btn game-btn--secondary">
-      Return to Menu
-    </button>
-  </div>
-</div>
-```
-
-Rules:
-- The end panel heading must be `<h2>` (not `<h3>`), matching the heading level used in the section.
-- Results must use a `<dl>/<dt>/<dd>` table, never bare `<p>` tags.
-- Each result row is a `<div class="game-results__row">` containing one `<dt>` and one `<dd>`.
-- The "Play Again" button must use `game-btn game-btn--primary`.
-- The "Return to Menu" button must use `game-btn game-btn--secondary`.
-- The `<dd>` for each result must have a unique ID so `index.js` can update it via `textContent`.
+Add `.game-end-panel` to the end panel container. Use the heading `<h2>Session Ended</h2>`.
+Display results in a `<dl>` with `.game-results`. Each result row is a
+`<div class="game-results__row">` containing one `<dt class="game-results__label">` and one
+`<dd class="game-results__value" id="...">`. The `<dd>` IDs are updated by `index.js` via
+`textContent`. Use `game-btn game-btn--primary` for "Play Again" and `game-btn game-btn--secondary`
+for "Return to Menu" — do **not** apply game-specific button classes to these shared panel buttons.
 
 #### Available Shared Classes
 
@@ -292,7 +245,7 @@ Rules:
 | `.game-end-panel__actions` | Flex container for post-game action buttons |
 | `.game-btn` | Base shared button style (padding, border-radius, font-weight) |
 | `.game-btn--primary` | Blue primary button (Start Game, Play Again) |
-| `.game-btn--secondary` | Grey secondary button (Return to Menu) |
+| `.game-btn--secondary` | Red secondary button (Return to Menu) |
 
 See `app/games/_template/interface.html` for a complete annotated example.
 
