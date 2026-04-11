@@ -154,7 +154,7 @@ function buildContainer() {
         <div id="fp-flash" class="fp-flash"></div>
         <div class="fp-controls">
           <button id="fp-continue-btn" class="fp-btn" hidden>Continue</button>
-          <button id="fp-stop-btn" class="fp-btn fp-btn--secondary">End Game</button>
+          <button id="fp-stop-btn" class="game-btn game-btn--secondary">End Game</button>
         </div>
       </div>
       <div id="fp-end-panel" class="fp-end-panel game-end-panel" hidden>

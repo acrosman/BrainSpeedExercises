@@ -1,23 +1,18 @@
 .orbit-memory {
-  --osm-bg: #f6f2e9;
   --osm-text: #1e2a33;
-  --osm-accent: #cc6e2f;
-  --osm-accent-dark: #9f4d1d;
+  --osm-accent: #2b6cb0;
+  --osm-accent-dark: #1a4f8a;
   --osm-border: #ccd8df;
   --osm-board: #ffffff;
   --osm-focus: #005fcc;
   color: var(--osm-text);
-  background: radial-gradient(circle at 20% 0%, #fff9ef 0%, var(--osm-bg) 55%, #ece4d7 100%);
-  border: 1px solid var(--osm-border);
+  background: #f8f9fa;
   border-radius: 18px;
   padding: 1rem;
 }
 
 .osm-panel {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid var(--osm-border);
-  border-radius: 12px;
-  padding: 1rem;
+  /* Styling delegated to shared .game-welcome / .game-end-panel classes */
 }
 
 .osm-stats {

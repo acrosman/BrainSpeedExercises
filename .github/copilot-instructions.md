@@ -232,6 +232,11 @@ Display results in a `<dl>` with `.game-results`. Each result row is a
 `textContent`. Use `game-btn game-btn--primary` for "Play Again" and `game-btn game-btn--secondary`
 for "Return to Menu" — do **not** apply game-specific button classes to these shared panel buttons.
 
+#### In-Game Controls
+
+The "End Game" button in the active game area must also use `game-btn game-btn--secondary`.
+Do not apply game-specific button classes to this button.
+
 #### Available Shared Classes
 
 | Class | Purpose |
@@ -245,7 +250,7 @@ for "Return to Menu" — do **not** apply game-specific button classes to these 
 | `.game-end-panel__actions` | Flex container for post-game action buttons |
 | `.game-btn` | Base shared button style (padding, border-radius, font-weight) |
 | `.game-btn--primary` | Blue primary button (Start Game, Play Again) |
-| `.game-btn--secondary` | Red secondary button (Return to Menu) |
+| `.game-btn--secondary` | Red secondary button (Return to Menu, End Game) |
 
 See `app/games/_template/interface.html` for a complete annotated example.
 
