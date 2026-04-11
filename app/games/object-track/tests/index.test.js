@@ -402,6 +402,18 @@ describe('setRandomBackground(arenaEl)', () => {
   });
 });
 
+describe('loadBackgroundImages() → setRandomBackground() integration', () => {
+  it('setRandomBackground uses images populated by loadBackgroundImages', async () => {
+    window.api = { invoke: jest.fn().mockResolvedValue(['bg-1.png', 'bg-2.png']) };
+    await loadBackgroundImages();
+    expect(ARENA_BACKGROUNDS.length).toBe(2);
+    const el = document.createElement('div');
+    setRandomBackground(el);
+    expect(el.style.backgroundImage).toMatch(/url\(/);
+    expect(el.style.backgroundImage).toMatch(/bg-[12]\.png/);
+  });
+});
+
 describe('loadBackgroundImages()', () => {
   it('is a no-op when window.api is not available', async () => {
     delete window.api;
@@ -416,9 +428,11 @@ describe('loadBackgroundImages()', () => {
   });
 
   it('does not modify ARENA_BACKGROUNDS when IPC returns empty array', async () => {
+    // Pre-populate with an entry to prove the guard condition prevents clearing
     ARENA_BACKGROUNDS.push('existing.png');
     window.api = { invoke: jest.fn().mockResolvedValue([]) };
     await loadBackgroundImages();
+    // Guard: files.length > 0 is false, so ARENA_BACKGROUNDS must not be cleared
     expect(ARENA_BACKGROUNDS).toEqual(['existing.png']);
   });
 
@@ -554,42 +568,46 @@ describe('enterResponsePhase()', () => {
 
 describe('handleCircleClick(event)', () => {
   it('selects a .mot-circle element on click (distractor — no auto-submit)', () => {
-    // Override getCurrentCircles so no circles are targets → no auto-submit triggered
-    gameMock.getCurrentCircles.mockReturnValueOnce([
+    // 3 targets, only 1 click → threshold not reached
+    gameMock.getCurrentCircles.mockReturnValue([
       { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
-      { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
+      { id: 2, x: 300, y: 300, radius: 30, isTarget: true },
+      { id: 3, x: 400, y: 400, radius: 30, isTarget: true },
     ]);
     const container = buildContainer();
     plugin.init(container);
     renderCircles([
       { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
-      { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
     ]);
-    enterResponsePhase();
+    enterResponsePhase(); // caches _numTargets = 3
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
-    handleCircleClick({ target: circleEl });
+    handleCircleClick({ target: circleEl }); // 1 selected < 3 → no auto-submit
     expect(circleEl.classList.contains('mot-circle--selected')).toBe(true);
     expect(circleEl.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('deselects a circle on second click', () => {
-    // Two distractors → selecting one never reaches auto-submit threshold of 0
+    // 3 targets → clicking circle 0 twice ends at 0 selected, no auto-submit
     gameMock.getCurrentCircles.mockReturnValue([
       { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
-      { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
+      { id: 2, x: 300, y: 300, radius: 30, isTarget: true },
+      { id: 3, x: 400, y: 400, radius: 30, isTarget: true },
     ]);
     const container = buildContainer();
     plugin.init(container);
     renderCircles([
       { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
-      { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
     ]);
-    enterResponsePhase();
+    enterResponsePhase(); // caches _numTargets = 3
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
-    handleCircleClick({ target: circleEl });
-    handleCircleClick({ target: circleEl });
+    handleCircleClick({ target: circleEl }); // 1 selected
+    handleCircleClick({ target: circleEl }); // 0 selected
     expect(circleEl.classList.contains('mot-circle--selected')).toBe(false);
     expect(circleEl.getAttribute('aria-pressed')).toBe('false');
   });
@@ -602,11 +620,10 @@ describe('handleCircleClick(event)', () => {
     const container = buildContainer();
     plugin.init(container);
     renderCircles([{ id: 0, x: 100, y: 100, radius: 30, isTarget: true }]);
-    enterResponsePhase();
+    enterResponsePhase(); // caches _numTargets = 1
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
-    handleCircleClick({ target: circleEl });
-    // submitResponse is called asynchronously but synchronously schedules evaluation
+    handleCircleClick({ target: circleEl }); // 1 selected >= 1 → auto-submit
     expect(gameMock.evaluateResponse).toHaveBeenCalled();
   });
 
@@ -662,26 +679,23 @@ describe('submitResponse()', () => {
   });
 
   it('adds mot-circle--correct to correctly selected target circles', async () => {
+    // Use 3 targets so 1 click won't auto-submit (_numTargets = 3)
+    gameMock.getCurrentCircles.mockReturnValue([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
+      { id: 2, x: 300, y: 300, radius: 30, isTarget: true },
+    ]);
     const container = buildContainer();
     plugin.init(container);
-    // beginRound resets _selectedIds and renders circles from mock
     beginRound();
-    // Manually select circle 0 so _selectedIds contains 0
+    enterResponsePhase(); // caches _numTargets = 3
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
-    // Use only-distractor mock so handleCircleClick does not auto-submit
-    gameMock.getCurrentCircles.mockReturnValueOnce([
-      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
-    ]);
-    handleCircleClick({ target: circleEl });
+    handleCircleClick({ target: circleEl }); // 1 of 3 → no auto-submit
 
     gameMock.evaluateResponse.mockReturnValueOnce(
       { correct: true, correctCount: 1, totalTargets: 1 },
     );
-    // Restore target state for submitResponse
-    gameMock.getCurrentCircles.mockReturnValueOnce([
-      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
-    ]);
     await submitResponse();
     expect(circleEl.classList.contains('mot-circle--correct')).toBe(true);
   });

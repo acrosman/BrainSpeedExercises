@@ -110,6 +110,9 @@ let _lastFrameMs = null;
 /** @type {{ hi: string, mid: string, lo: string }} Current circle color palette. */
 let _currentPalette = CIRCLE_PALETTES[0];
 
+/** @type {number} Number of targets for the current round (cached at response phase entry). */
+let _numTargets = 0;
+
 // ── Timer management ──────────────────────────────────────────────────────────
 
 /**
@@ -315,6 +318,7 @@ export function stopTrackingAnimation() {
  */
 export function enterResponsePhase() {
   _selectedIds = new Set();
+  _numTargets = game.getCurrentCircles().filter((c) => c.isTarget).length;
   if (_arenaEl) {
     _arenaEl.classList.add('mot-arena--response');
     _arenaEl.addEventListener('click', handleCircleClick);
@@ -347,8 +351,7 @@ export function handleCircleClick(event) {
     el.setAttribute('aria-pressed', 'true');
   }
   // Auto-submit once the player has selected all required targets.
-  const numTargets = game.getCurrentCircles().filter((c) => c.isTarget).length;
-  if (_selectedIds.size >= numTargets) {
+  if (_selectedIds.size >= _numTargets) {
     submitResponse();
   }
 }
