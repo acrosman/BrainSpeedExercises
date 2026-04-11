@@ -3,7 +3,7 @@
   <h2 id="fp-title">Fast Piggie</h2>
 
   <!-- Instructions panel: shown before the game starts -->
-  <div id="fp-instructions" class="fp-instructions">
+  <div id="fp-instructions" class="fp-instructions game-welcome">
     <h3>How to Play</h3>
     <p>A spinning wheel of guinea pigs will flash on screen briefly. One of them looks a little different — spot the odd
       one out before they disappear!</p>
@@ -13,7 +13,7 @@
       <li>Use arrow keys to navigate wedges and press <kbd>Enter</kbd> or <kbd>Space</kbd> to confirm.</li>
       <li>Rounds get harder (more wedges, less time) as your score grows!</li>
     </ul>
-    <button id="fp-start-btn" class="fp-btn fp-btn--primary">
+    <button id="fp-start-btn" class="game-btn game-btn--primary">
       Start Game
     </button>
   </div>
@@ -49,22 +49,32 @@
 
     <!-- Controls -->
     <div class="fp-controls">
-      <button id="fp-stop-btn" class="fp-btn fp-btn--secondary">
+      <button id="fp-stop-btn" class="game-btn game-btn--secondary">
         End Game
       </button>
     </div>
 
   </div>
 
-  <div id="fp-end-panel" class="fp-end-panel" hidden>
-    <h3>Game Over!</h3>
-    <p>Final Score: <strong id="fp-final-score">0</strong></p>
-    <p>Personal Best: <strong id="fp-final-high-score">0</strong></p>
-    <div class="fp-end-panel__actions">
-      <button id="fp-play-again-btn" type="button" class="fp-btn fp-btn--primary">
+  <div id="fp-end-panel" class="fp-end-panel game-end-panel" hidden>
+    <h2>Session Ended</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Score</dt>
+        <dd class="game-results__value" id="fp-final-score">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Personal Best</dt>
+        <dd class="game-results__value" id="fp-final-high-score">0</dd>
+      </div>
+    </dl>
+
+    <div class="fp-end-panel__actions game-end-panel__actions">
+      <button id="fp-play-again-btn" type="button" class="game-btn game-btn--primary">
         Play Again
       </button>
-      <button id="fp-return-btn" type="button" class="fp-btn fp-btn--secondary">
+      <button id="fp-return-btn" type="button" class="game-btn game-btn--secondary">
         Return to Menu
       </button>
     </div>

@@ -128,6 +128,10 @@ Games must all have a welcome screen that explains how to play, and a consistent
 The core game logic must be in `game.js` as pure functions, or helper libraries, that can be easily unit tested.
 The `index.js` file should export the plugin API (`init`, `start`, `stop`, `reset`) that the renderer calls.
 
+Each game's `interface.html` **must** use the shared CSS classes from `app/style.css` for its welcome
+and end panels (`.game-welcome`, `.game-end-panel`, `.game-results`, etc.). See §5b for details and
+required HTML structure. The `_template` game is the canonical starting point for all new games.
+
 When the player clicks "Stop" or finishes the game, the plugin's `stop()` method **must use the Score Service** (`app/components/scoreService.js`) to save the result. Do **not** call `window.api.invoke('progress:save', ...)` directly from game code. See §5a below.
 
 The renderer will take care of saving progress via IPC. When the player subsequently leaves the game, they must be returned to the main welcome screen with the list of games.
@@ -206,7 +210,52 @@ game-specific fields that need custom merge logic.
 
 ---
 
-## Coding Style
+### 5b — Shared Game Screen Components
+
+All games **must** use the shared CSS classes defined in `app/style.css` for their welcome and end
+panels. These classes provide a consistent layout, typography, and styling across all games.
+
+#### Welcome Panel (`.game-welcome`)
+
+Add the `.game-welcome` class on the instructions/welcome `<div>`.
+The welcome panel always starts with `<h3>How to Play</h3>`, followed by a brief objective sentence
+and a `<ul>` or `<ol>` list of steps. The Start Game button must use `game-btn game-btn--primary`.
+The `<h2>` game title must appear **outside** the panel, directly in the `<section>`.
+Do not include implementation details (e.g., image asset file names) in the welcome panel.
+
+#### End Panel (`.game-end-panel` + `.game-results`)
+
+Add `.game-end-panel` to the end panel container. Use the heading `<h2>Session Ended</h2>`.
+Display results in a `<dl>` with `.game-results`. Each result row is a
+`<div class="game-results__row">` containing one `<dt class="game-results__label">` and one
+`<dd class="game-results__value" id="...">`. The `<dd>` IDs are updated by `index.js` via
+`textContent`. Use `game-btn game-btn--primary` for "Play Again" and `game-btn game-btn--secondary`
+for "Return to Menu" — do **not** apply game-specific button classes to these shared panel buttons.
+
+#### In-Game Controls
+
+The "End Game" button in the active game area must also use `game-btn game-btn--secondary`.
+Do not apply game-specific button classes to this button.
+
+#### Available Shared Classes
+
+| Class | Purpose |
+|---|---|
+| `.game-welcome` | Welcome/instructions panel card (padding, border, border-radius, background) |
+| `.game-end-panel` | End-of-game results panel (flex column, centered, max-width) |
+| `.game-results` | Results `<dl>` table (border, border-radius, overflow) |
+| `.game-results__row` | One result row inside `.game-results` |
+| `.game-results__label` | `<dt>` label in a result row |
+| `.game-results__value` | `<dd>` value in a result row (tabular numerals) |
+| `.game-end-panel__actions` | Flex container for post-game action buttons |
+| `.game-btn` | Base shared button style (padding, border-radius, font-weight) |
+| `.game-btn--primary` | Blue primary button (Start Game, Play Again) |
+| `.game-btn--secondary` | Red secondary button (Return to Menu, End Game) |
+
+See `app/games/_template/interface.html` for a complete annotated example.
+
+---
+
 
 All files and functions must include JSDoc comments. Use descriptive names for variables and functions. Use US English spelling (e.g. "initialize" not "initialise").
 

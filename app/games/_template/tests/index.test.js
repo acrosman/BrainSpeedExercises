@@ -1,5 +1,13 @@
 import { jest } from '@jest/globals';
 
+// Mock scoreService so stop() doesn't make IPC calls.
+jest.unstable_mockModule('../../../components/scoreService.js', () => ({
+  saveScore: jest.fn(() => Promise.resolve({ highScore: 10 })),
+  loadProgress: jest.fn(() => Promise.resolve({})),
+  loadGameScore: jest.fn(() => Promise.resolve({})),
+  clearHistory: jest.fn(() => Promise.resolve()),
+}));
+
 // Mock game.js so index.js can be tested in isolation.
 jest.unstable_mockModule('../game.js', () => ({
   initGame: jest.fn(),
@@ -9,6 +17,23 @@ jest.unstable_mockModule('../game.js', () => ({
 }));
 
 const plugin = (await import('../index.js')).default;
+
+/** Build a minimal container element that mirrors the template interface.html structure. */
+function buildContainer() {
+  const el = document.createElement('div');
+  el.innerHTML = `
+    <div id="game-template-instructions"></div>
+    <div id="game-template-play-area" hidden></div>
+    <div id="game-template-end-panel" hidden>
+      <dd id="game-template-final-score">0</dd>
+    </div>
+    <button id="game-template-start"></button>
+    <button id="game-template-stop"></button>
+    <button id="game-template-play-again"></button>
+    <button id="game-template-return"></button>
+  `;
+  return el;
+}
 
 // ─── Plugin contract ──────────────────────────────────────────────────────────
 
@@ -45,22 +70,23 @@ describe('start', () => {
   let container;
 
   beforeEach(() => {
-    container = document.createElement('div');
+    container = buildContainer();
     plugin.init(container);
   });
 
-  test('updates the status element when present', () => {
-    const status = document.createElement('p');
-    status.className = 'game-template__status';
-    container.appendChild(status);
-
+  test('hides the instructions panel', () => {
     plugin.start();
-
-    expect(status.textContent).toBe('Playing\u2026');
+    expect(container.querySelector('#game-template-instructions').hidden).toBe(true);
   });
 
-  test('does not throw when the status element is absent', () => {
-    expect(() => plugin.start()).not.toThrow();
+  test('shows the play area', () => {
+    plugin.start();
+    expect(container.querySelector('#game-template-play-area').hidden).toBe(false);
+  });
+
+  test('hides the end panel', () => {
+    plugin.start();
+    expect(container.querySelector('#game-template-end-panel').hidden).toBe(true);
   });
 
   test('does not throw when container is null', () => {
@@ -75,32 +101,29 @@ describe('stop', () => {
   let container;
 
   beforeEach(() => {
-    container = document.createElement('div');
+    container = buildContainer();
     plugin.init(container);
+    plugin.start();
   });
 
-  test('returns the result from game logic', () => {
-    const result = plugin.stop();
+  test('returns the result from game logic', async () => {
+    const result = await plugin.stop();
     expect(result).toMatchObject({ score: 10, duration: 5 });
   });
 
-  test('updates the status element with the score when present', () => {
-    const status = document.createElement('p');
-    status.className = 'game-template__status';
-    container.appendChild(status);
-
-    plugin.stop();
-
-    expect(status.textContent).toContain('10');
+  test('shows the end panel', async () => {
+    await plugin.stop();
+    expect(container.querySelector('#game-template-end-panel').hidden).toBe(false);
   });
 
-  test('does not throw when the status element is absent', () => {
-    expect(() => plugin.stop()).not.toThrow();
+  test('writes the score into the final-score element', async () => {
+    await plugin.stop();
+    expect(container.querySelector('#game-template-final-score').textContent).toBe('10');
   });
 
-  test('does not throw when container is null', () => {
+  test('does not throw when container is null', async () => {
     plugin.init(null);
-    expect(() => plugin.stop()).not.toThrow();
+    await expect(plugin.stop()).resolves.toBeDefined();
   });
 });
 
@@ -110,22 +133,24 @@ describe('reset', () => {
   let container;
 
   beforeEach(() => {
-    container = document.createElement('div');
+    container = buildContainer();
     plugin.init(container);
+    plugin.start();
   });
 
-  test('resets the status element text when present', () => {
-    const status = document.createElement('p');
-    status.className = 'game-template__status';
-    container.appendChild(status);
-
+  test('shows the instructions panel', () => {
     plugin.reset();
-
-    expect(status.textContent).toBe('Press Start to play.');
+    expect(container.querySelector('#game-template-instructions').hidden).toBe(false);
   });
 
-  test('does not throw when the status element is absent', () => {
-    expect(() => plugin.reset()).not.toThrow();
+  test('hides the play area', () => {
+    plugin.reset();
+    expect(container.querySelector('#game-template-play-area').hidden).toBe(true);
+  });
+
+  test('hides the end panel', () => {
+    plugin.reset();
+    expect(container.querySelector('#game-template-end-panel').hidden).toBe(true);
   });
 
   test('does not throw when container is null', () => {

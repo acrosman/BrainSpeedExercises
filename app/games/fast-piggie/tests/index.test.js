@@ -154,16 +154,24 @@ function buildContainer() {
         <div id="fp-flash" class="fp-flash"></div>
         <div class="fp-controls">
           <button id="fp-continue-btn" class="fp-btn" hidden>Continue</button>
-          <button id="fp-stop-btn" class="fp-btn fp-btn--secondary">End Game</button>
+          <button id="fp-stop-btn" class="game-btn game-btn--secondary">End Game</button>
         </div>
       </div>
-      <div id="fp-end-panel" class="fp-end-panel" hidden>
-        <h3>Game Over!</h3>
-        <p>Your score: <strong id="fp-final-score">0</strong></p>
-        <p>Personal best: <strong id="fp-final-high-score">0</strong></p>
-        <div class="fp-end-panel__actions">
-          <button id="fp-play-again-btn" type="button" class="fp-btn fp-btn--primary">Play Again</button>
-          <button id="fp-return-btn" type="button" class="fp-btn fp-btn--secondary">Return to Menu</button>
+      <div id="fp-end-panel" class="fp-end-panel game-end-panel" hidden>
+        <h2>Session Ended</h2>
+        <dl class="game-results">
+          <div class="game-results__row">
+            <dt class="game-results__label">Score</dt>
+            <dd class="game-results__value" id="fp-final-score">0</dd>
+          </div>
+          <div class="game-results__row">
+            <dt class="game-results__label">Personal Best</dt>
+            <dd class="game-results__value" id="fp-final-high-score">0</dd>
+          </div>
+        </dl>
+        <div class="fp-end-panel__actions game-end-panel__actions">
+          <button id="fp-play-again-btn" type="button" class="game-btn game-btn--primary">Play Again</button>
+          <button id="fp-return-btn" type="button" class="game-btn game-btn--secondary">Return to Menu</button>
         </div>
       </div>
     </section>
@@ -1198,11 +1206,11 @@ describe('_resolveRound — no slot assignment when imageCount equals wedgeCount
 // _showEndPanel and _returnToMainMenu
 // ===========================================================================
 describe('_showEndPanel and _returnToMainMenu', () => {
-  it('end panel contains Game Over heading after stop()', async () => {
+  it('end panel contains Session Ended heading after stop()', async () => {
     plugin.start();
     await plugin.stop();
     const endPanel = container.querySelector('#fp-end-panel');
-    expect(endPanel.textContent).toContain('Game Over');
+    expect(endPanel.textContent).toContain('Session Ended');
   });
 
   it('clicking #fp-play-again-btn resets and restarts game', () => {

@@ -2,7 +2,7 @@
   <h2 id="dp-title">Directional Processing</h2>
 
   <!-- Instructions panel: shown before the game starts and after reset. -->
-  <div id="dp-instructions" class="dp-panel">
+  <div id="dp-instructions" class="dp-panel game-welcome">
     <h3>How to Play</h3>
     <p>
       A moving pattern will appear briefly on screen. Your task is to identify
@@ -18,7 +18,7 @@
       As you advance, the pattern becomes harder to see: shorter display time and
       lower contrast force your visual cortex to work faster.
     </p>
-    <button id="dp-start-btn" type="button" class="dp-btn dp-btn--primary">
+    <button id="dp-start-btn" type="button" class="game-btn game-btn--primary">
       Start Game
     </button>
   </div>
@@ -70,23 +70,36 @@
     <div id="dp-feedback" class="dp-feedback" role="status" aria-live="polite"></div>
 
     <div class="dp-controls">
-      <button id="dp-stop-btn" type="button" class="dp-btn dp-btn--secondary">
+      <button id="dp-stop-btn" type="button" class="game-btn game-btn--secondary">
         End Game
       </button>
     </div>
   </div>
 
   <!-- End panel: shown when the session ends. -->
-  <div id="dp-end-panel" class="dp-panel" hidden>
-    <h3>Session Complete</h3>
-    <p>Level Reached: <strong id="dp-final-level">1</strong></p>
-    <p>Score (correct answers): <strong id="dp-final-score">0</strong></p>
-    <p>Total Rounds: <strong id="dp-final-trials">0</strong></p>
-    <div class="dp-controls">
-      <button id="dp-play-again-btn" type="button" class="dp-btn dp-btn--primary">
+  <div id="dp-end-panel" class="dp-panel game-end-panel" hidden>
+    <h2>Session Ended</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Level Reached</dt>
+        <dd class="game-results__value" id="dp-final-level">1</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Score (correct answers)</dt>
+        <dd class="game-results__value" id="dp-final-score">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Total Rounds</dt>
+        <dd class="game-results__value" id="dp-final-trials">0</dd>
+      </div>
+    </dl>
+
+    <div class="dp-controls game-end-panel__actions">
+      <button id="dp-play-again-btn" type="button" class="game-btn game-btn--primary">
         Play Again
       </button>
-      <button id="dp-return-btn" type="button" class="dp-btn dp-btn--secondary">
+      <button id="dp-return-btn" type="button" class="game-btn game-btn--secondary">
         Return to Menu
       </button>
     </div>

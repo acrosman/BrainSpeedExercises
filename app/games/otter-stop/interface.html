@@ -3,14 +3,15 @@
 
 <section class="otter-stop" aria-labelledby="os-title">
 
+  <h2 id="os-title">Otter Stop!</h2>
+
   <!-- ── Instructions panel (shown before game starts) ── -->
-  <div id="os-instructions" class="os-instructions">
-    <h2 id="os-title" class="os-instructions__heading">Otter Stop!</h2>
+  <div id="os-instructions" class="os-instructions game-welcome">
+    <h3 class="os-instructions__subheading">How to Play</h3>
     <p class="os-instructions__intro">
       A stream of otters needs your help — but one sneaky otter means
       <strong>STOP!</strong>
     </p>
-    <h3 class="os-instructions__subheading">How to Play</h3>
     <ul class="os-instructions__list">
       <li>Otters appear one at a time in rapid succession.</li>
       <li>
@@ -20,7 +21,7 @@
       <li>When the sneaky <strong>fish</strong> appears, do <strong>nothing</strong> — freeze!</li>
       <li>The game speeds up as your accuracy improves. Good luck!</li>
     </ul>
-    <button id="os-start-btn" type="button" class="os-btn os-btn--primary">
+    <button id="os-start-btn" type="button" class="game-btn game-btn--primary">
       Start Game
     </button>
   </div>
@@ -61,7 +62,7 @@
 
     <!-- Controls -->
     <div class="os-controls" role="group" aria-label="Game controls">
-      <button id="os-stop-btn" type="button" class="os-btn os-btn--secondary">
+      <button id="os-stop-btn" type="button" class="game-btn game-btn--secondary">
         End Game
       </button>
     </div>
@@ -69,37 +70,37 @@
   </div>
 
   <!-- ── End panel (shown after game ends) ── -->
-  <div id="os-end-panel" class="os-end-panel" hidden>
-    <h2 class="os-end-panel__heading">Game Over!</h2>
+  <div id="os-end-panel" class="os-end-panel game-end-panel" hidden>
+    <h2 class="os-end-panel__heading">Session Ended</h2>
 
-    <dl class="os-results">
-      <div class="os-results__row">
-        <dt class="os-results__label">Score</dt>
-        <dd class="os-results__value" id="os-final-score">0</dd>
+    <dl class="os-results game-results">
+      <div class="os-results__row game-results__row">
+        <dt class="os-results__label game-results__label">Score</dt>
+        <dd class="os-results__value game-results__value" id="os-final-score">0</dd>
       </div>
-      <div class="os-results__row">
-        <dt class="os-results__label">Personal Best</dt>
-        <dd class="os-results__value" id="os-final-best">0</dd>
+      <div class="os-results__row game-results__row">
+        <dt class="os-results__label game-results__label">Personal Best</dt>
+        <dd class="os-results__value game-results__value" id="os-final-best">0</dd>
       </div>
-      <div class="os-results__row">
-        <dt class="os-results__label">No-Go Hits</dt>
-        <dd class="os-results__value" id="os-final-nogo">0</dd>
+      <div class="os-results__row game-results__row">
+        <dt class="os-results__label game-results__label">No-Go Hits</dt>
+        <dd class="os-results__value game-results__value" id="os-final-nogo">0</dd>
       </div>
-      <div class="os-results__row">
-        <dt class="os-results__label">Misses</dt>
-        <dd class="os-results__value" id="os-final-misses">0</dd>
+      <div class="os-results__row game-results__row">
+        <dt class="os-results__label game-results__label">Misses</dt>
+        <dd class="os-results__value game-results__value" id="os-final-misses">0</dd>
       </div>
-      <div class="os-results__row">
-        <dt class="os-results__label">Trials</dt>
-        <dd class="os-results__value" id="os-final-trials">0</dd>
+      <div class="os-results__row game-results__row">
+        <dt class="os-results__label game-results__label">Trials</dt>
+        <dd class="os-results__value game-results__value" id="os-final-trials">0</dd>
       </div>
     </dl>
 
-    <div class="os-end-panel__actions" role="group" aria-label="Post-game options">
-      <button id="os-play-again-btn" type="button" class="os-btn os-btn--primary">
+    <div class="os-end-panel__actions game-end-panel__actions" role="group" aria-label="Post-game options">
+      <button id="os-play-again-btn" type="button" class="game-btn game-btn--primary">
         Play Again
       </button>
-      <button id="os-return-btn" type="button" class="os-btn os-btn--secondary">
+      <button id="os-return-btn" type="button" class="game-btn game-btn--secondary">
         Return to Menu
       </button>
     </div>

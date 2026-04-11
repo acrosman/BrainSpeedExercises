@@ -1,28 +1,19 @@
 <section class="field-of-view" aria-labelledby="fov-title">
   <h2 id="fov-title">Field of View</h2>
 
-  <div id="fov-instructions" class="fov-panel">
+  <div id="fov-instructions" class="fov-panel game-welcome">
     <h3>How to Play</h3>
     <p>
-      Phase 1 and 2 happen together: a kitten appears in the center while a toy appears on
-      an outer-edge cell. After a brief flash, the field image masks the board.
+      A kitten appears in the center while a toy appears on an outer-edge cell.
+      After a brief flash, the field image masks the board.
     </p>
     <ol>
       <li>Memorize which kitten appeared in the center.</li>
       <li>Memorize where the toy appeared in the periphery (outer edge).</li>
       <li>After the field mask, select the kitten and click the toy location.</li>
-      <li>The game adapts your SOA with a 1-up / 2-down staircase.</li>
+      <li>The game adapts your display time with a 1-up / 2-down staircase.</li>
     </ol>
-
-    <h4>Image Assets In Use</h4>
-    <ul>
-      <li>primaryKitten.png (center option 1)</li>
-      <li>secondaryKitten.png (center option 2)</li>
-      <li>toy1.png and toy2.png (peripheral targets)</li>
-      <li>Field.png (full-field visual mask)</li>
-    </ul>
-
-    <button id="fov-start-btn" type="button" class="fov-btn fov-btn--primary">
+    <button id="fov-start-btn" type="button" class="game-btn game-btn--primary">
       Start Game
     </button>
   </div>
@@ -83,24 +74,35 @@
     </section>
 
     <div class="fov-controls">
-      <button id="fov-stop-btn" type="button" class="fov-btn fov-btn--secondary">
+      <button id="fov-stop-btn" type="button" class="game-btn game-btn--secondary">
         End Game
       </button>
     </div>
   </div>
 
-  <div id="fov-end-panel" class="fov-panel" hidden>
-    <h3>Session Complete</h3>
-    <p>Current Threshold: <strong id="fov-final-threshold">500</strong> ms</p>
-    <p>Recent Accuracy: <strong id="fov-final-accuracy">0%</strong></p>
-    <p>
-      Session Best Threshold: <strong id="fov-final-best-threshold">500</strong> ms
-    </p>
-    <div class="fov-controls">
-      <button id="fov-play-again-btn" type="button" class="fov-btn fov-btn--primary">
+  <div id="fov-end-panel" class="fov-panel game-end-panel" hidden>
+    <h2>Session Ended</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Current Threshold (ms)</dt>
+        <dd class="game-results__value" id="fov-final-threshold">500</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Recent Accuracy</dt>
+        <dd class="game-results__value" id="fov-final-accuracy">0%</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Session Best Threshold (ms)</dt>
+        <dd class="game-results__value" id="fov-final-best-threshold">500</dd>
+      </div>
+    </dl>
+
+    <div class="fov-controls game-end-panel__actions">
+      <button id="fov-play-again-btn" type="button" class="game-btn game-btn--primary">
         Play Again
       </button>
-      <button id="fov-return-btn" type="button" class="fov-btn fov-btn--secondary">
+      <button id="fov-return-btn" type="button" class="game-btn game-btn--secondary">
         Return to Menu
       </button>
     </div>

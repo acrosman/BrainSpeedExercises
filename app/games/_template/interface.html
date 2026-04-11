@@ -2,30 +2,95 @@
      Do NOT include <html>, <head>, or <body> tags. -->
 
 <section class="game-template" aria-labelledby="game-template-heading">
-  <header class="game-template__header">
-    <h2 id="game-template-heading" class="game-template__title">Template Game</h2>
-    <p class="game-template__score" aria-live="polite" aria-atomic="true">Score: <span id="game-template-score">0</span>
-    </p>
-  </header>
 
-  <div class="game-template__play-area" role="main">
-    <!-- Replace this placeholder with your game's interactive content. -->
-    <p class="game-template__placeholder">Game content goes here.</p>
+  <h2 id="game-template-heading" class="game-template__title">Template Game</h2>
+
+  <!-- ── Instructions panel (shown before game starts and after reset) ── -->
+  <!--
+    Use both a game-specific class and the shared .game-welcome class.
+    The shared class provides consistent card layout and typography.
+    Your game-specific class can add overrides as needed.
+  -->
+  <div id="game-template-instructions" class="game-template__instructions game-welcome">
+    <h3>How to Play</h3>
+    <p>
+      One-sentence summary of the game objective so the player knows what to do.
+    </p>
+    <ul>
+      <li>Step one — describe the core action the player must take.</li>
+      <li>Step two — describe any secondary action or timing element.</li>
+      <li>Step three — describe the progression / difficulty mechanic.</li>
+      <li>Use <kbd>Tab</kbd> and <kbd>Enter</kbd> for keyboard navigation.</li>
+    </ul>
+    <!--
+      Use only the shared game-btn classes for panel buttons (start, play-again, return).
+      game-btn--primary = blue "Start Game" / "Play Again" buttons.
+      game-btn--secondary = red "Return to Menu" button.
+    -->
+    <button type="button" id="game-template-start"
+      class="game-btn game-btn--primary">
+      Start Game
+    </button>
   </div>
 
-  <footer class="game-template__controls">
-    <p class="game-template__status" aria-live="polite" aria-atomic="true">Press Start to play.</p>
+  <!-- ── Active game area (hidden until Start is clicked) ── -->
+  <div id="game-template-play-area" class="game-template__play-area" hidden>
 
-    <div class="game-template__buttons" role="group" aria-label="Game controls">
-      <button type="button" id="game-template-start" class="game-template__btn game-template__btn--start">
-        Start
-      </button>
-      <button type="button" id="game-template-stop" class="game-template__btn game-template__btn--stop">
-        Stop
-      </button>
-      <button type="button" id="game-template-reset" class="game-template__btn game-template__btn--reset">
-        Reset
+    <!-- Live stats bar: update values via JS each round -->
+    <div class="game-template__stats" aria-live="polite" aria-atomic="true">
+      <span>Score: <strong id="game-template-score">0</strong></span>
+      <span>Session: <strong id="game-template-timer" aria-live="polite">00:00</strong></span>
+    </div>
+
+    <!-- Replace this placeholder with your game's interactive content -->
+    <p class="game-template__placeholder">Game content goes here.</p>
+
+    <!-- Screen-reader feedback region -->
+    <div id="game-template-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Controls -->
+    <div class="game-template__controls" role="group" aria-label="Game controls">
+      <button type="button" id="game-template-stop"
+        class="game-btn game-btn--secondary">
+        End Game
       </button>
     </div>
-  </footer>
+
+  </div>
+
+  <!-- ── End panel (shown after the game ends) ── -->
+  <!--
+    Use both a game-specific class and the shared .game-end-panel class.
+    The results table uses <dl>/<dt>/<dd> with shared .game-results classes.
+    Add or remove rows to match the metrics your game tracks.
+  -->
+  <div id="game-template-end-panel" class="game-template__end-panel game-end-panel" hidden>
+    <h2>Session Ended</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Score</dt>
+        <dd class="game-results__value" id="game-template-final-score">0</dd>
+      </div>
+      <!-- Add more rows for additional metrics (e.g. level, accuracy, best score): -->
+      <!--
+      <div class="game-results__row">
+        <dt class="game-results__label">Personal Best</dt>
+        <dd class="game-results__value" id="game-template-final-best">0</dd>
+      </div>
+      -->
+    </dl>
+
+    <div class="game-end-panel__actions" role="group" aria-label="Post-game options">
+      <button type="button" id="game-template-play-again"
+        class="game-template__btn game-btn game-btn--primary">
+        Play Again
+      </button>
+      <button type="button" id="game-template-return"
+        class="game-template__btn game-btn game-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+
 </section>

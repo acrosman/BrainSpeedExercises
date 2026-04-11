@@ -1,7 +1,7 @@
 <section class="orbit-memory" aria-labelledby="osm-title">
   <h2 id="osm-title">Orbit Sprite Memory</h2>
 
-  <div id="osm-instructions" class="osm-panel">
+  <div id="osm-instructions" class="osm-panel game-welcome">
     <h3>How to Play</h3>
     <p>
       Watch the images around the circle. One image is the <strong>target</strong> for this round,
@@ -15,7 +15,7 @@
       <li>Get three correct rounds in a row to level up.</li>
       <li>Higher levels show more distractors and reduce display time.</li>
     </ul>
-    <button id="osm-start-btn" type="button" class="osm-btn osm-btn--primary">Start Game</button>
+    <button id="osm-start-btn" type="button" class="game-btn game-btn--primary">Start Game</button>
   </div>
 
   <div id="osm-game-area" hidden>
@@ -40,21 +40,37 @@
     </div>
 
     <div class="osm-controls">
-      <button id="osm-stop-btn" type="button" class="osm-btn osm-btn--secondary">End Game</button>
+      <button id="osm-stop-btn" type="button" class="game-btn game-btn--secondary">End Game</button>
     </div>
   </div>
 
-  <div id="osm-end-panel" class="osm-panel" hidden>
-    <h3>Game Over</h3>
-    <p>Final Score: <strong id="osm-final-score">0</strong></p>
-    <p>Highest Level Reached: <strong id="osm-final-level">1</strong></p>
-    <p>All-Time Best Level: <strong id="osm-final-best-level">1</strong></p>
-    <p>All-Time Best Score: <strong id="osm-final-best-score">0</strong></p>
-    <div class="osm-end-actions">
-      <button id="osm-play-again-btn" type="button" class="osm-btn osm-btn--primary">
+  <div id="osm-end-panel" class="osm-panel game-end-panel" hidden>
+    <h2>Session Ended</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Score</dt>
+        <dd class="game-results__value" id="osm-final-score">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Highest Level Reached</dt>
+        <dd class="game-results__value" id="osm-final-level">1</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">All-Time Best Level</dt>
+        <dd class="game-results__value" id="osm-final-best-level">1</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">All-Time Best Score</dt>
+        <dd class="game-results__value" id="osm-final-best-score">0</dd>
+      </div>
+    </dl>
+
+    <div class="osm-end-actions game-end-panel__actions">
+      <button id="osm-play-again-btn" type="button" class="game-btn game-btn--primary">
         Play Again
       </button>
-      <button id="osm-return-btn" type="button" class="osm-btn osm-btn--secondary">
+      <button id="osm-return-btn" type="button" class="game-btn game-btn--secondary">
         Return to Menu
       </button>
     </div>
