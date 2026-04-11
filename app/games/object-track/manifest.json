@@ -1,0 +1,9 @@
+{
+  "id": "object-track",
+  "name": "Object Track",
+  "description": "Track multiple moving targets among identical distractors to sharpen attention and visual memory.",
+  "version": "1.0.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumb.png",
+  "author": "BrainSpeedExercises"
+}

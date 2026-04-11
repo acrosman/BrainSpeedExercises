@@ -1,0 +1,80 @@
+<!-- HTML fragment for Object Track game -->
+
+<section class="mot-game" aria-labelledby="mot-heading">
+
+  <h2 id="mot-heading" class="mot-game__title">Object Track</h2>
+
+  <!-- Instructions panel -->
+  <div id="mot-instructions" class="mot-game__instructions game-welcome">
+    <h3>How to Play</h3>
+    <p>Watch which circles briefly highlight — those are your targets.</p>
+    <ol>
+      <li>Observe the highlighted circles during the marking phase.</li>
+      <li>Keep tracking the same circles as all move around the arena.</li>
+      <li>Click each circle you believe was a target when movement stops.</li>
+      <li>Submit your selection — 3 correct rounds advances the level.</li>
+    </ol>
+    <button type="button" id="mot-start" class="game-btn game-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <!-- Active game area -->
+  <div id="mot-play-area" class="mot-game__play-area" hidden>
+
+    <div class="mot-game__stats" aria-live="polite" aria-atomic="true">
+      <span>Score: <strong id="mot-score">0</strong></span>
+      <span>Level: <strong id="mot-level">1</strong></span>
+      <span>Round: <strong id="mot-round">1</strong></span>
+      <span>Time: <strong id="mot-session-timer" aria-live="polite">00:00</strong></span>
+    </div>
+
+    <p id="mot-phase-label" class="mot-game__phase-label" aria-live="polite" aria-atomic="true">
+    </p>
+
+    <div id="mot-arena" class="mot-game__arena" role="region" aria-label="Game arena"></div>
+
+    <div id="mot-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+    </div>
+
+    <div class="mot-game__controls" role="group" aria-label="Game controls">
+      <button type="button" id="mot-submit" class="game-btn game-btn--primary" hidden>
+        Submit Selection
+      </button>
+      <button type="button" id="mot-stop" class="game-btn game-btn--secondary">
+        End Game
+      </button>
+    </div>
+
+  </div>
+
+  <!-- End panel -->
+  <div id="mot-end-panel" class="mot-game__end-panel game-end-panel" hidden>
+    <h2>Session Ended</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Score</dt>
+        <dd class="game-results__value" id="mot-final-score">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Level Reached</dt>
+        <dd class="game-results__value" id="mot-final-level">1</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Rounds Played</dt>
+        <dd class="game-results__value" id="mot-final-rounds">0</dd>
+      </div>
+    </dl>
+
+    <div class="game-end-panel__actions" role="group" aria-label="Post-game options">
+      <button type="button" id="mot-play-again" class="game-btn game-btn--primary">
+        Play Again
+      </button>
+      <button type="button" id="mot-return" class="game-btn game-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+
+</section>

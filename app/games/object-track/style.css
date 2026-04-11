@@ -1,0 +1,173 @@
+/**
+ * style.css — Scoped styles for the Object Track game.
+ *
+ * All selectors are prefixed with .mot- to prevent collisions with global styles.
+ * Shared panel classes (.game-welcome, .game-end-panel, etc.) are defined in
+ * app/style.css and are not duplicated here.
+ */
+
+/* ── Layout ──────────────────────────────────────────────────────────────────── */
+
+.mot-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.mot-game__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text, #e8eaf6);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* ── Play area ───────────────────────────────────────────────────────────────── */
+
+.mot-game__play-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+}
+
+/* ── Stats bar ───────────────────────────────────────────────────────────────── */
+
+.mot-game__stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.25rem;
+  font-size: 1rem;
+  color: var(--color-text, #e8eaf6);
+  width: 100%;
+}
+
+/* ── Phase label ─────────────────────────────────────────────────────────────── */
+
+.mot-game__phase-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-accent, #7ec8f7);
+  text-align: center;
+  min-height: 1.5em;
+  margin: 0.25rem 0;
+}
+
+/* ── Arena ───────────────────────────────────────────────────────────────────── */
+
+.mot-game__arena {
+  position: relative;
+  width: 100%;
+  height: 420px;
+  background-color: #1a2744;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 2px solid rgba(126, 200, 247, 0.25);
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────────── */
+
+.mot-game__controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* ── Circle base ─────────────────────────────────────────────────────────────── */
+
+.mot-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%,
+    var(--mot-c-hi, #7ec8f7) 0%,
+    var(--mot-c-mid, #1a73c8) 55%,
+    var(--mot-c-lo, #0a3a6e) 100%
+  );
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25);
+  border: 3px solid transparent;
+  pointer-events: none;
+  cursor: default;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Allow interaction only during response phase */
+.mot-arena--response .mot-circle {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ── Target reveal (marking phase) ──────────────────────────────────────────── */
+
+.mot-circle--target-reveal {
+  border-color: #ff9900;
+  box-shadow:
+    0 0 0 4px #ff9900,
+    0 0 18px 6px rgba(255, 153, 0, 0.7),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+  animation: mot-target-pulse 0.45s infinite alternate;
+}
+
+@keyframes mot-target-pulse {
+  from {
+    border-color: #ff9900;
+    box-shadow:
+      0 0 0 4px #ff9900,
+      0 0 18px 6px rgba(255, 153, 0, 0.7),
+      0 4px 12px rgba(0, 0, 0, 0.5);
+    transform: scale(1);
+  }
+  to {
+    border-color: #ffe066;
+    box-shadow:
+      0 0 0 6px #ffe066,
+      0 0 28px 10px rgba(255, 224, 102, 0.85),
+      0 4px 12px rgba(0, 0, 0, 0.5);
+    transform: scale(1.12);
+  }
+}
+
+/* ── Selected (response phase) ───────────────────────────────────────────────── */
+
+.mot-circle--selected {
+  border-color: #ffd700;
+  box-shadow:
+    0 0 0 4px #ffd700,
+    0 0 16px 4px rgba(255, 215, 0, 0.65),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Feedback states ─────────────────────────────────────────────────────────── */
+
+.mot-circle--correct {
+  border-color: #22c55e;
+  box-shadow:
+    0 0 0 4px #22c55e,
+    0 0 18px 6px rgba(34, 197, 94, 0.65),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.mot-circle--missed {
+  border-color: #ef4444;
+  box-shadow:
+    0 0 0 4px #ef4444,
+    0 0 18px 6px rgba(239, 68, 68, 0.65),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+}
