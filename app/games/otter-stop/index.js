@@ -12,6 +12,7 @@ import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
+import { returnToMainMenu } from '../../components/gameUtils.js';
 
 /** Human-readable name returned as part of the plugin contract. */
 const name = 'Otter Stop!';
@@ -429,11 +430,7 @@ function init(container) {
   }
 
   if (_returnBtn) {
-    _returnBtn.addEventListener('click', () => {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
-      }
-    });
+    _returnBtn.addEventListener('click', () => returnToMainMenu());
   }
 
   document.addEventListener('keydown', handleKeyDown);

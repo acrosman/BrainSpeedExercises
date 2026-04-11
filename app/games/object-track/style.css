@@ -1,0 +1,198 @@
+/**
+ * style.css — Scoped styles for the Object Track game.
+ *
+ * All selectors are prefixed with .mot- to prevent collisions with global styles.
+ * Shared panel classes (.game-welcome, .game-end-panel, etc.) are defined in
+ * app/style.css and are not duplicated here.
+ */
+
+/* ── Layout ──────────────────────────────────────────────────────────────────── */
+
+.mot-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: #f8f9fa;
+  color: #212529; /* ~14.5:1 contrast on #f8f9fa */
+}
+
+.mot-game__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* ── Play area ───────────────────────────────────────────────────────────────── */
+
+.mot-game__play-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+}
+
+/* ── Stats bar ───────────────────────────────────────────────────────────────── */
+
+.mot-game__stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #212529;
+  width: 100%;
+}
+
+/* ── Phase label ─────────────────────────────────────────────────────────────── */
+
+.mot-game__phase-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #004ea8; /* 7.1:1 contrast on #f8f9fa — WCAG AA large + normal */
+  text-align: center;
+  min-height: 1.5em;
+  margin: 0.25rem 0;
+}
+
+/* ── Arena ───────────────────────────────────────────────────────────────────── */
+
+.mot-game__arena {
+  position: relative;
+  width: 100%;
+  height: 420px;
+  background-color: #1a2744;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 2px solid #adb5bd;
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────────── */
+
+.mot-game__controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* ── Circle base ─────────────────────────────────────────────────────────────── */
+
+/*
+ * 3D ball effect:
+ *  Layer 1 — bright specular highlight (top-left off-axis, white radial)
+ *  Layer 2 — subtle bottom reflection (opposite pole, low-opacity white)
+ *  Layer 3 — sphere body using per-palette CSS custom properties
+ *
+ * The `outline` property is used for state rings instead of `border` so
+ * the circular shape is never distorted.
+ */
+
+.mot-circle {
+  position: absolute;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(255, 255, 255, 0.0) 40%
+    ),
+    radial-gradient(
+      circle at 58% 72%,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.0) 36%
+    ),
+    radial-gradient(
+      circle at 46% 48%,
+      var(--mot-c-hi, #7ec8f7) 0%,
+      var(--mot-c-mid, #1a73c8) 50%,
+      var(--mot-c-lo, #0a3a6e) 100%
+    );
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.55),
+    0 3px 6px rgba(0, 0, 0, 0.35);
+  outline: 3px solid transparent;
+  outline-offset: 2px;
+  pointer-events: none;
+  cursor: default;
+  transition:
+    outline-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Allow interaction only during response phase */
+.mot-arena--response .mot-circle {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ── Target reveal (marking phase) ──────────────────────────────────────────── */
+
+.mot-circle--target-reveal {
+  outline-color: #ff9900;
+  box-shadow:
+    0 0 0 4px #ff9900,
+    0 0 18px 6px rgba(255, 153, 0, 0.7),
+    0 8px 24px rgba(0, 0, 0, 0.55);
+  animation: mot-target-pulse 0.45s infinite alternate;
+}
+
+@keyframes mot-target-pulse {
+  from {
+    outline-color: #ff9900;
+    box-shadow:
+      0 0 0 4px #ff9900,
+      0 0 18px 6px rgba(255, 153, 0, 0.7),
+      0 8px 24px rgba(0, 0, 0, 0.55);
+    transform: scale(1);
+  }
+  to {
+    outline-color: #ffe066;
+    box-shadow:
+      0 0 0 6px #ffe066,
+      0 0 28px 10px rgba(255, 224, 102, 0.85),
+      0 8px 24px rgba(0, 0, 0, 0.55);
+    transform: scale(1.12);
+  }
+}
+
+/* ── Selected (response phase) ───────────────────────────────────────────────── */
+
+.mot-circle--selected {
+  outline-color: #ffd700;
+  box-shadow:
+    0 0 0 4px #ffd700,
+    0 0 16px 4px rgba(255, 215, 0, 0.65),
+    0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+/* ── Feedback states ─────────────────────────────────────────────────────────── */
+
+.mot-circle--correct {
+  outline-color: #22c55e;
+  box-shadow:
+    0 0 0 4px #22c55e,
+    0 0 18px 6px rgba(34, 197, 94, 0.65),
+    0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+.mot-circle--missed {
+  outline-color: #ef4444;
+  box-shadow:
+    0 0 0 4px #ef4444,
+    0 0 18px 6px rgba(239, 68, 68, 0.65),
+    0 8px 24px rgba(0, 0, 0, 0.55);
+}

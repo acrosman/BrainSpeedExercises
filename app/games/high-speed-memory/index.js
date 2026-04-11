@@ -11,6 +11,7 @@ import * as game from './game.js';
 import { playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
+import { returnToMainMenu } from '../../components/gameUtils.js';
 
 /**
  * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
@@ -347,15 +348,6 @@ function onRoundComplete() {
 }
 
 /**
- * Dispatch the app-level event to return to the main game-selection screen.
- * Safe to call in non-browser (test) environments.
- */
-function returnToMainMenu() {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
-  }
-}
-
 /**
  * Clear any pending timers (used during stop/reset).
  */
