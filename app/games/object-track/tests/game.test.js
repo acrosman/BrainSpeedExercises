@@ -467,10 +467,9 @@ describe('initGame', () => {
   });
 
   it('resets level to 0', () => {
-    for (let i = 0; i < 9; i++) { startGame(); recordRoundResult(true); stopGame(); initGame(); }
-    // simulate level up directly
+    // Advance level by recording CORRECT_TO_ADVANCE consecutive correct rounds.
     startGame();
-    for (let i = 0; i < 3; i++) recordRoundResult(true);
+    for (let i = 0; i < CORRECT_TO_ADVANCE; i += 1) recordRoundResult(true);
     expect(getLevel()).toBe(1);
     initGame();
     expect(getLevel()).toBe(0);
