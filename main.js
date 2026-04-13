@@ -78,7 +78,10 @@ function createWindow() {
  * App ready event handler. Initializes the main window.
  * @event
  */
-app.on('ready', createWindow);
+app.on('ready', () => {
+  log.info('BrainSpeedExercises starting up');
+  createWindow();
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
@@ -87,6 +90,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  log.info('BrainSpeedExercises shutting down');
 });
 
 // Extra security filters.

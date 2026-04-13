@@ -6,6 +6,7 @@ const mockWriteFile = jest.fn();
 const mockRename = jest.fn();
 const mockUnlink = jest.fn();
 const mockGetPath = jest.fn();
+const mockLogInfo = jest.fn();
 
 jest.unstable_mockModule('fs/promises', () => ({
   default: {
@@ -18,6 +19,21 @@ jest.unstable_mockModule('fs/promises', () => ({
 
 jest.unstable_mockModule('electron', () => ({
   app: { getPath: mockGetPath },
+}));
+
+jest.unstable_mockModule('electron-log', () => ({
+  default: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: mockLogInfo,
+    verbose: jest.fn(),
+    debug: jest.fn(),
+    initialize: jest.fn(),
+    transports: {
+      file: { level: 'info', resolvePathFn: jest.fn() },
+      console: { level: 'warn' },
+    },
+  },
 }));
 
 const { loadProgress, saveProgress, resetProgress } = await import('./progressManager.js');
@@ -94,6 +110,14 @@ describe('saveProgress', () => {
     const written = JSON.parse(mockWriteFile.mock.calls[0][1]);
     expect(written.lastUpdated >= before).toBe(true);
     expect(written.lastUpdated <= after).toBe(true);
+  });
+
+  test('logs an info message including the saved file path', async () => {
+    await saveProgress('player1', { playerId: 'player1', games: {} });
+
+    expect(mockLogInfo).toHaveBeenCalledWith(
+      expect.stringContaining('/mock/userData/player1.json'),
+    );
   });
 });
 
