@@ -11,6 +11,7 @@
  */
 import { app, BrowserWindow, ipcMain, session, screen } from 'electron';
 import debug from 'electron-debug';
+import log from 'electron-log';
 import { readFile, readdir } from 'fs/promises';
 import path from 'path';
 import { loadProgress, saveProgress, resetProgress } from './app/progress/progressManager.js';
@@ -21,7 +22,11 @@ debug();
 // Developer mode flag.
 const isDev = !app.isPackaged;
 
-debug();
+// Configure electron-log.
+// In development, show all levels in the console; in production, only warnings+.
+log.transports.file.level = 'info';
+log.transports.console.level = isDev ? 'debug' : 'warn';
+log.initialize();
 
 // Get rid of the deprecated default.
 app.allowRendererProcessReuse = true;
@@ -162,4 +167,19 @@ ipcMain.handle('games:listImages', async (event, { gameId, subfolder }) => {
   } catch {
     return [];
   }
+});
+
+/**
+ * Receive a log message from a renderer process and write it through electron-log.
+ *
+ * The renderer sends `{ level, message }` via the `log:send` IPC channel.
+ * Unrecognised levels fall back to `info`.
+ *
+ * @param {Electron.IpcMainInvokeEvent} event
+ * @param {{ level: string, message: string }} params
+ */
+ipcMain.handle('log:send', (event, { level, message }) => {
+  const validLevels = ['error', 'warn', 'info', 'verbose', 'debug', 'silly'];
+  const fn = validLevels.includes(level) ? level : 'info';
+  log[fn](`[renderer] ${message}`);
 });
