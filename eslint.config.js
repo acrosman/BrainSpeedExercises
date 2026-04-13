@@ -15,7 +15,7 @@ export default [
       semi: ['error', 'always'],
       'comma-dangle': ['error', 'always-multiline'],
       'max-len': ['error', { code: 100, ignoreUrls: true, ignoreTemplateLiterals: true }],
-      'no-console': 'warn',
+      'no-console': 'error',
     },
   },
   // Scripts (Node.js) — console allowed for build tooling

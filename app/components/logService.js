@@ -26,6 +26,33 @@ export const LOG_LEVELS = /** @type {const} */ (
 );
 
 /**
+ * Safely serialize a single log argument to a string.
+ *
+ * - `Error` instances are serialized as `"<name>: <message>\n<stack>"` so
+ *   that message and stack are never lost (plain `JSON.stringify` returns `{}`
+ *   for Error objects).
+ * - Other objects are serialized via `JSON.stringify`; if that throws (e.g.
+ *   circular references) the value falls back to `String(a)`.
+ * - Primitives are converted with `String()`.
+ *
+ * @param {*} a - The value to serialize.
+ * @returns {string}
+ */
+function serializeArg(a) {
+  if (a instanceof Error) {
+    return a.stack ? `${a.name}: ${a.message}\n${a.stack}` : `${a.name}: ${a.message}`;
+  }
+  if (typeof a === 'object' && a !== null) {
+    try {
+      return JSON.stringify(a);
+    } catch {
+      return String(a);
+    }
+  }
+  return String(a);
+}
+
+/**
  * Send a log message to the main process via the `log:send` IPC channel.
  *
  * Safe to call when `window.api` is unavailable (e.g., in a test environment
@@ -37,9 +64,7 @@ export const LOG_LEVELS = /** @type {const} */ (
  */
 export function log(level, ...args) {
   if (typeof window === 'undefined' || !window.api) return;
-  const message = args
-    .map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
-    .join(' ');
+  const message = args.map(serializeArg).join(' ');
   // Fire-and-forget: if the IPC channel is unavailable (e.g., main process restarting)
   // the logging call fails silently so it never disrupts the caller.
   window.api.invoke('log:send', { level, message }).catch(() => {});

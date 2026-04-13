@@ -87,6 +87,39 @@ describe('log()', () => {
     });
   });
 
+  it('serializes Error arguments to include name, message, and stack', () => {
+    const { mock } = buildApiMock();
+    global.window = { api: { invoke: mock } };
+
+    const err = new Error('something broke');
+    log('error', err);
+
+    const call = mock.mock.calls[0][1];
+    expect(call.message).toContain('Error: something broke');
+  });
+
+  it('falls back to String() for circular objects that cannot be JSON-serialized', () => {
+    const { mock } = buildApiMock();
+    global.window = { api: { invoke: mock } };
+
+    const circular = {};
+    circular.self = circular;
+    expect(() => log('warn', 'circular:', circular)).not.toThrow();
+    expect(mock).toHaveBeenCalled();
+  });
+
+  it('serializes null as the string "null"', () => {
+    const { mock } = buildApiMock();
+    global.window = { api: { invoke: mock } };
+
+    log('info', null);
+
+    expect(mock).toHaveBeenCalledWith('log:send', {
+      level: 'info',
+      message: 'null',
+    });
+  });
+
   it('passes the provided level through unchanged', () => {
     const { mock } = buildApiMock();
     global.window = { api: { invoke: mock } };
