@@ -16,6 +16,7 @@ BrainSpeedExercises is an Electron desktop application that delivers a series of
 | Linting                  | [ESLint](https://eslint.org/) (flat config) | Airbnb-style rules; see `.eslint.config.js` |
 | Accessibility standard   | WCAG 2.2 Level AA                           | Required for all UI                         |
 | Progress persistence     | Node `fs` (JSON flat-file) via IPC          | No external database required               |
+| Logging                  | [`electron-log`](https://github.com/megahertz/electron-log) | Main process + IPC bridge for renderer |
 
 > **Dependency policy:** All NPM packages are updated regularly. Pin to a major-version range (e.g. `"^38"`) rather than exact versions, and run `npm audit` on every PR.
 
@@ -98,6 +99,7 @@ Valid channels (extend as needed):
 | `games:load`    | renderer → main | Load a specific game by ID               |
 | `progress:save` | renderer → main | Persist player progress                  |
 | `progress:load` | renderer → main | Retrieve player progress                 |
+| `log:send`      | renderer → main | Forward a log message to `electron-log`  |
 
 ### 3 — Renderer Process (`app/interface.js`)
 
@@ -210,6 +212,50 @@ game-specific fields that need custom merge logic.
 
 ---
 
+### 5c — Logging Service
+
+All application code **must** use the centralized logging service instead of `console.*` calls.
+The `no-console` ESLint rule is enforced; scripts under `scripts/` are exempt.
+
+#### Main process (`main.js`, `registry.js`, and any other Node-context file)
+
+Import `electron-log` directly:
+
+```js
+import log from 'electron-log';
+log.warn('Skipping game: manifest missing fields');
+log.error('IPC handler failed', err);
+```
+
+#### Renderer process (game plugins, `interface.js`, `components/*.js`)
+
+Import `logger` from the shared Log Service:
+
+```js
+import { logger } from '../../components/logService.js';
+// Adjust the relative path to logService.js as needed.
+logger.error('Failed to load game', err);
+logger.warn('Unexpected state', { gameId });
+logger.info('Game started', gameId);
+```
+
+The `logger` object exposes one method per level: `error`, `warn`, `info`, `verbose`, `debug`.
+Each call fires a `log:send` IPC message to the main process, where it is written through
+`electron-log`. The call is fire-and-forget — logging failures never interrupt gameplay.
+
+**Never** call `window.api.invoke('log:send', ...)` directly. Always use `logger.*`.
+
+#### Testing
+
+Mock `electron-log` with `jest.unstable_mockModule('electron-log', ...)` in Node-environment tests
+(`/** @jest-environment node */`). A shared manual mock is also available at
+`__mocks__/electron-log.js` for automatic mocking.
+
+For renderer-side tests that exercise code which calls `logger.*`, set `global.window.api.invoke`
+to a `jest.fn()` and assert on `'log:send'` calls, or simply verify the call count is correct.
+
+---
+
 ### 5b — Shared Game Screen Components
 
 All games **must** use the shared CSS classes defined in `app/style.css` for their welcome and end
@@ -270,7 +316,8 @@ Rules summary:
 - Airbnb-style base: `eslint-config-airbnb-base`
 - Enforce `const`/`let` (no `var`)
 - Single quotes, trailing commas, semicolons required
-- `no-console` warnings in renderer code; allowed in main process
+- `no-console` error in all app code; use the logging service instead (see §5c)
+- `no-console` is **off** only for scripts under `scripts/`
 - Max line length: 100 characters
 - All files under `app/` and root JS files are linted; `node_modules/` is excluded
 
@@ -307,6 +354,8 @@ Use the vscode built-in test runner whenever possible.
 ### Mocking Electron
 
 The Jest config maps Electron's Node modules to lightweight mocks in `__mocks__/electron.js`. Never import Electron APIs directly in renderer-side code — always use the `window.api` bridge.
+
+A matching mock for `electron-log` lives in `__mocks__/electron-log.js`. Tests for main-process modules that import `electron-log` should use `jest.unstable_mockModule('electron-log', ...)` (see `registry.test.js` for an example).
 
 ---
 

@@ -10,6 +10,7 @@ import { createGameCard } from './components/gameCard.js';
 import { buildHistoryPanel } from './components/historyView.js';
 import { formatDuration, getTodayDateString } from './components/timerService.js';
 import { clearHistory } from './components/scoreService.js';
+import { logger } from './components/logService.js';
 
 /**
  * Inject a game-specific stylesheet into the document <head>.
@@ -105,8 +106,7 @@ async function loadAndInitGame(gameId, gameContainer, announcer) {
  * @param {Error} [err] - The error that caused the failure.
  */
 function handleGameLoadError(gameId, gameContainer, announcer, err) {
-  // eslint-disable-next-line no-console
-  console.error(`Failed to load game "${gameId}".`, err);
+  logger.error(`Failed to load game "${gameId}".`, err);
   announcer.textContent = 'Failed to load game. Returning to menu.';
   // Return to the game-selection screen so the player is not left on a blank page.
   window.dispatchEvent(new Event('bsx:return-to-main-menu'));
@@ -196,8 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     manifests = await window.api.invoke('games:list');
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to load game list:', err);
+    logger.error('Failed to load game list:', err);
     gameSelector.textContent = 'Unable to load games. Please restart the app.';
   }
   manifests.forEach((manifest) => {
@@ -325,8 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           viewHistoryBtn.addEventListener('click', historyBtnHandler);
         }
       }).catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to reload progress or game list after returning to menu.', err);
+        logger.error('Failed to reload progress or game list after returning to menu.', err);
         updatePlayTimeSummary({});
       });
       // Re-attach event listener for game selection

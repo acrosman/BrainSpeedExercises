@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
       'progress:save',
       'progress:load',
       'progress:reset',
+      'log:send',
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);

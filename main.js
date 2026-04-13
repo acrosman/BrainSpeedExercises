@@ -11,6 +11,7 @@
  */
 import { app, BrowserWindow, ipcMain, session, screen } from 'electron';
 import debug from 'electron-debug';
+import log from 'electron-log';
 import { readFile, readdir } from 'fs/promises';
 import path from 'path';
 import { loadProgress, saveProgress, resetProgress } from './app/progress/progressManager.js';
@@ -21,7 +22,12 @@ debug();
 // Developer mode flag.
 const isDev = !app.isPackaged;
 
-debug();
+// Initialize electron-log, then configure transport levels.
+// initialize() must be called first so that default transports are created
+// before we override their levels.
+log.initialize();
+log.transports.file.level = 'info';
+log.transports.console.level = isDev ? 'debug' : 'warn';
 
 // Get rid of the deprecated default.
 app.allowRendererProcessReuse = true;
@@ -72,7 +78,10 @@ function createWindow() {
  * App ready event handler. Initializes the main window.
  * @event
  */
-app.on('ready', createWindow);
+app.on('ready', () => {
+  log.info('BrainSpeedExercises starting up');
+  createWindow();
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
@@ -81,6 +90,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  log.info('BrainSpeedExercises shutting down');
 });
 
 // Extra security filters.
@@ -162,4 +175,48 @@ ipcMain.handle('games:listImages', async (event, { gameId, subfolder }) => {
   } catch {
     return [];
   }
+});
+
+/**
+ * Maximum number of characters accepted from renderer-provided log messages.
+ *
+ * @type {number}
+ */
+const MAX_RENDERER_LOG_MESSAGE_LENGTH = 1000;
+
+/**
+ * Normalize an untrusted renderer log payload into safe values for logging.
+ *
+ * @param {unknown} payload Untrusted IPC payload from the renderer process.
+ * @returns {{ level: string, message: string }} Safe log level and message values.
+ */
+function normalizeRendererLogPayload(payload) {
+  const validLevels = ['error', 'warn', 'info', 'verbose', 'debug'];
+  const parsedPayload = payload !== null
+    && typeof payload === 'object'
+    && !Array.isArray(payload)
+    ? payload
+    : {};
+  const level = typeof parsedPayload.level === 'string'
+    && validLevels.includes(parsedPayload.level)
+    ? parsedPayload.level
+    : 'info';
+  const message = String(parsedPayload.message ?? '')
+    .slice(0, MAX_RENDERER_LOG_MESSAGE_LENGTH);
+
+  return { level, message };
+}
+
+/**
+ * Receive a log message from a renderer process and write it through electron-log.
+ *
+ * The renderer sends `{ level, message }` via the `log:send` IPC channel.
+ * Unrecognised levels fall back to `info`.
+ *
+ * @param {Electron.IpcMainInvokeEvent} event
+ * @param {unknown} payload Untrusted renderer log payload.
+ */
+ipcMain.handle('log:send', (event, payload) => {
+  const { level, message } = normalizeRendererLogPayload(payload);
+  log[level](`[renderer] ${message}`);
 });

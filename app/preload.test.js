@@ -45,7 +45,9 @@ describe('preload.js', () => {
   });
 
   describe('invoke', () => {
-    it.each(['games:list', 'games:load', 'progress:save', 'progress:load', 'progress:reset'])(
+    it.each([
+      'games:list', 'games:load', 'progress:save', 'progress:load', 'progress:reset', 'log:send',
+    ])(
       'calls ipcRenderer.invoke for allowed channel "%s"',
       async (channel) => {
         await api.invoke(channel, { data: 1 });

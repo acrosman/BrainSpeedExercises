@@ -10,6 +10,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import log from 'electron-log';
 
 const REQUIRED_FIELDS = ['id', 'name', 'description', 'entryPoint'];
 
@@ -36,7 +37,7 @@ export async function scanGamesDirectory(gamesPath) {
           const manifest = JSON.parse(raw);
           const missingFields = REQUIRED_FIELDS.filter((f) => !manifest[f]);
           if (missingFields.length > 0) {
-            console.warn(
+            log.warn(
               `Skipping game "${dir.name}": manifest missing required fields: ${missingFields.join(', ')}`,
             );
             return null;
@@ -46,7 +47,7 @@ export async function scanGamesDirectory(gamesPath) {
           }
           return manifest;
         } catch (err) {
-          console.warn(`Skipping game "${dir.name}": ${err.message}`);
+          log.warn(`Skipping game "${dir.name}": ${err.message}`);
           return null;
         }
       }),

@@ -10,6 +10,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
+import log from 'electron-log';
 
 function validatePlayerId(playerId) {
   if (typeof playerId !== 'string' || playerId.trim() === '') {
@@ -58,6 +59,7 @@ export async function saveProgress(playerId, data) {
   const tmpPath = `${filePath}.tmp`;
   await fs.writeFile(tmpPath, JSON.stringify(toSave, null, 2), 'utf8');
   await fs.rename(tmpPath, filePath);
+  log.info(`Progress saved for player "${playerId}": ${filePath}`);
 }
 
 /**

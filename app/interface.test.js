@@ -157,7 +157,6 @@ describe('interface.js', () => {
       });
 
     it('shows an error message when games:list rejects', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const invoke = jest.fn().mockImplementation((channel) => {
         if (channel === 'progress:load') return Promise.resolve({});
         if (channel === 'games:list') return Promise.reject(new Error('IPC error'));
@@ -165,10 +164,12 @@ describe('interface.js', () => {
       });
       global.window.api = { invoke, on: jest.fn() };
       await domReadyCallback();
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load game list:', expect.any(Error));
+      expect(invoke).toHaveBeenCalledWith('log:send', expect.objectContaining({
+        level: 'error',
+        message: expect.stringContaining('Failed to load game list:'),
+      }));
       expect(document.getElementById('game-selector').textContent)
         .toContain('Unable to load games');
-      consoleErrorSpy.mockRestore();
     });
 
     it('shows the play-time bar after loading', async () => {
@@ -648,7 +649,6 @@ describe('interface.js', () => {
 
   describe('bsx:return-to-main-menu error handling', () => {
     it('handles Promise.all rejection gracefully without leaving UI broken', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
       const invoke = setupApi();
       await domReadyCallback();
 
@@ -663,7 +663,6 @@ describe('interface.js', () => {
 
       // The app should not crash; play-time bar should still be in the DOM.
       expect(document.getElementById('play-time-bar')).not.toBeNull();
-      consoleErrorSpy.mockRestore();
     });
   });
 

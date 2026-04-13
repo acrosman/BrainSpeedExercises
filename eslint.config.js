@@ -15,12 +15,12 @@ export default [
       semi: ['error', 'always'],
       'comma-dangle': ['error', 'always-multiline'],
       'max-len': ['error', { code: 100, ignoreUrls: true, ignoreTemplateLiterals: true }],
-      'no-console': 'warn',
+      'no-console': 'error',
     },
   },
-  // Main process (Node.js)
+  // Scripts (Node.js) — console allowed for build tooling
   {
-    files: ['main.js', 'forge.config.cjs', 'scripts/**/*.js'],
+    files: ['forge.config.cjs', 'scripts/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -28,6 +28,15 @@ export default [
     },
     rules: {
       'no-console': 'off',
+    },
+  },
+  // Main process and Node.js backend — use electron-log, not console
+  {
+    files: ['main.js', 'app/games/registry.js', 'app/progress/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
     },
   },
   // Renderer process (browser)
@@ -47,18 +56,6 @@ export default [
         ...globals.node,
         ...globals.commonjs,
       },
-    },
-  },
-  // Game registry and progress (Node.js backend)
-  {
-    files: ['app/games/registry.js', 'app/progress/**/*.js'],
-    languageOptions: {
-      globals: {
-        ...globals.node,
-      },
-    },
-    rules: {
-      'no-console': 'off',
     },
   },
   // Game plugin source files (can use browser globals)

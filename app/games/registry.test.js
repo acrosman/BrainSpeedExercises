@@ -25,10 +25,22 @@ jest.unstable_mockModule('fs/promises', () => ({
   },
 }));
 
-// In Jest's ESM VM-modules mode, directly assigning a jest.fn() to
-// console.warn is more reliable than jest.spyOn across the module boundary.
-const mockConsoleWarn = jest.fn();
-const originalConsoleWarn = console.warn;
+const mockLogWarn = jest.fn();
+
+jest.unstable_mockModule('electron-log', () => ({
+  default: {
+    error: jest.fn(),
+    warn: mockLogWarn,
+    info: jest.fn(),
+    verbose: jest.fn(),
+    debug: jest.fn(),
+    initialize: jest.fn(),
+    transports: {
+      file: { level: 'info', resolvePathFn: jest.fn() },
+      console: { level: 'warn' },
+    },
+  },
+}));
 
 const mockPlugin = {
   name: 'Test Game',
@@ -50,13 +62,8 @@ function dirent(name, isDir = true) {
 
 beforeEach(() => {
   jest.resetAllMocks();
-  // Re-attach the warn mock after resetAllMocks clears its state.
-  console.warn = mockConsoleWarn;
 });
 
-afterAll(() => {
-  console.warn = originalConsoleWarn;
-});
 
 // ─── scanGamesDirectory ───────────────────────────────────────────────────────
 
@@ -99,7 +106,7 @@ describe('scanGamesDirectory', () => {
     const result = await scanGamesDirectory(GAMES_PATH);
 
     expect(result).toHaveLength(0);
-    expect(mockConsoleWarn).toHaveBeenCalledWith(expect.stringContaining('bad-game'));
+    expect(mockLogWarn).toHaveBeenCalledWith(expect.stringContaining('bad-game'));
   });
 
   test('skips (with a warning) entries whose manifest.json cannot be read', async () => {
@@ -109,7 +116,7 @@ describe('scanGamesDirectory', () => {
     const result = await scanGamesDirectory(GAMES_PATH);
 
     expect(result).toHaveLength(0);
-    expect(mockConsoleWarn).toHaveBeenCalledWith(expect.stringContaining('broken-game'));
+    expect(mockLogWarn).toHaveBeenCalledWith(expect.stringContaining('broken-game'));
   });
 
   test('skips (with a warning) entries with malformed JSON in manifest', async () => {
@@ -119,7 +126,7 @@ describe('scanGamesDirectory', () => {
     const result = await scanGamesDirectory(GAMES_PATH);
 
     expect(result).toHaveLength(0);
-    expect(mockConsoleWarn).toHaveBeenCalled();
+    expect(mockLogWarn).toHaveBeenCalled();
   });
 
   test('rejects when the games directory does not exist', async () => {
