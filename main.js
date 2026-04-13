@@ -22,11 +22,12 @@ debug();
 // Developer mode flag.
 const isDev = !app.isPackaged;
 
-// Configure electron-log.
-// In development, show all levels in the console; in production, only warnings+.
+// Initialize electron-log, then configure transport levels.
+// initialize() must be called first so that default transports are created
+// before we override their levels.
+log.initialize();
 log.transports.file.level = 'info';
 log.transports.console.level = isDev ? 'debug' : 'warn';
-log.initialize();
 
 // Get rid of the deprecated default.
 app.allowRendererProcessReuse = true;

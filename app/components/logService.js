@@ -40,7 +40,8 @@ export function log(level, ...args) {
   const message = args
     .map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
     .join(' ');
-  // Fire-and-forget: swallow any IPC failure so logging never disrupts the caller.
+  // Fire-and-forget: if the IPC channel is unavailable (e.g., main process restarting)
+  // the logging call fails silently so it never disrupts the caller.
   window.api.invoke('log:send', { level, message }).catch(() => {});
 }
 
