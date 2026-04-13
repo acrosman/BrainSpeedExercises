@@ -18,7 +18,7 @@ export default [
       'no-console': 'warn',
     },
   },
-  // Main process (Node.js) — scripts still allowed; main.js uses electron-log
+  // Scripts (Node.js) — console allowed for build tooling
   {
     files: ['forge.config.cjs', 'scripts/**/*.js'],
     languageOptions: {
@@ -30,9 +30,9 @@ export default [
       'no-console': 'off',
     },
   },
-  // main.js — Node.js globals; console is disallowed (use electron-log)
+  // Main process and Node.js backend — use electron-log, not console
   {
-    files: ['main.js'],
+    files: ['main.js', 'app/games/registry.js', 'app/progress/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -55,15 +55,6 @@ export default [
       globals: {
         ...globals.node,
         ...globals.commonjs,
-      },
-    },
-  },
-  // Game registry and progress (Node.js backend) — console is disallowed (use electron-log)
-  {
-    files: ['app/games/registry.js', 'app/progress/**/*.js'],
-    languageOptions: {
-      globals: {
-        ...globals.node,
       },
     },
   },

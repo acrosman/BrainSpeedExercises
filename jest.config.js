@@ -9,6 +9,9 @@ export default {
   testEnvironment: 'jsdom',
   transform: {},
   testMatch: ['**/*.test.js'],
+  moduleNameMapper: {
+    '^electron-log$': '<rootDir>/__mocks__/electron-log.js',
+  },
   coverageThreshold: {
     global: {
       functions: 100,

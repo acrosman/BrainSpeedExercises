@@ -239,8 +239,8 @@ logger.warn('Unexpected state', { gameId });
 logger.info('Game started', gameId);
 ```
 
-The `logger` object exposes one method per level: `error`, `warn`, `info`, `verbose`, `debug`,
-`silly`. Each call fires a `log:send` IPC message to the main process, where it is written through
+The `logger` object exposes one method per level: `error`, `warn`, `info`, `verbose`, `debug`.
+Each call fires a `log:send` IPC message to the main process, where it is written through
 `electron-log`. The call is fire-and-forget — logging failures never interrupt gameplay.
 
 **Never** call `window.api.invoke('log:send', ...)` directly. Always use `logger.*`.

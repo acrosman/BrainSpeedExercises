@@ -34,7 +34,6 @@ jest.unstable_mockModule('electron-log', () => ({
     info: jest.fn(),
     verbose: jest.fn(),
     debug: jest.fn(),
-    silly: jest.fn(),
     initialize: jest.fn(),
     transports: {
       file: { level: 'info', resolvePathFn: jest.fn() },

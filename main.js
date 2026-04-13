@@ -180,7 +180,7 @@ ipcMain.handle('games:listImages', async (event, { gameId, subfolder }) => {
  * @param {{ level: string, message: string }} params
  */
 ipcMain.handle('log:send', (event, { level, message }) => {
-  const validLevels = ['error', 'warn', 'info', 'verbose', 'debug', 'silly'];
+  const validLevels = ['error', 'warn', 'info', 'verbose', 'debug'];
   const fn = validLevels.includes(level) ? level : 'info';
   log[fn](`[renderer] ${message}`);
 });

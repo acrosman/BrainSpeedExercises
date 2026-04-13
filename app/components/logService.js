@@ -22,7 +22,7 @@
  * @enum {string}
  */
 export const LOG_LEVELS = /** @type {const} */ (
-  ['error', 'warn', 'info', 'verbose', 'debug', 'silly']
+  ['error', 'warn', 'info', 'verbose', 'debug']
 );
 
 /**
@@ -63,6 +63,4 @@ export const logger = {
   verbose: (...args) => log('verbose', ...args),
   /** Log a debug-level message. @param {...*} args */
   debug: (...args) => log('debug', ...args),
-  /** Log a silly-level message. @param {...*} args */
-  silly: (...args) => log('silly', ...args),
 };

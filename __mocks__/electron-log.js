@@ -15,7 +15,6 @@ const electronLog = {
   info: jest.fn(),
   verbose: jest.fn(),
   debug: jest.fn(),
-  silly: jest.fn(),
   initialize: jest.fn(),
   transports: {
     file: {

@@ -30,8 +30,9 @@ function buildApiMock() {
 describe('LOG_LEVELS', () => {
   it('exports an array of valid log level strings', () => {
     expect(LOG_LEVELS).toEqual(
-      expect.arrayContaining(['error', 'warn', 'info', 'verbose', 'debug', 'silly']),
+      expect.arrayContaining(['error', 'warn', 'info', 'verbose', 'debug']),
     );
+    expect(LOG_LEVELS).not.toContain('silly');
   });
 });
 
@@ -111,7 +112,7 @@ describe('logger', () => {
     delete global.window;
   });
 
-  it.each(['error', 'warn', 'info', 'verbose', 'debug', 'silly'])(
+  it.each(['error', 'warn', 'info', 'verbose', 'debug'])(
     'logger.%s() sends level="%s" to the IPC channel',
     (level) => {
       logger[level]('test');
