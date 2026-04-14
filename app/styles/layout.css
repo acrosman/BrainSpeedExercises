@@ -1,0 +1,50 @@
+/* ── App Shell Layout ────────────────────────────────────────────────────────
+ *
+ * Page-level structure: header, navigation bar, main content area, footer,
+ * and the game-selection grid.
+ * Depends on: variables.css
+ */
+
+/* ── App header ──────────────────────────────────────────────────────────── */
+
+header {
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-dark);
+  color: var(--text-inverted);
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* ── Navigation bar ──────────────────────────────────────────────────────── */
+
+nav[aria-label='Game selection'] {
+  padding: 0.5rem 1.5rem;
+  background-color: var(--bg-nav);
+}
+
+/* ── Main content area ───────────────────────────────────────────────────── */
+
+main {
+  padding: 1.5rem;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+footer {
+  padding: 1rem 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+}
+
+/* ── Game-selector grid ──────────────────────────────────────────────────── */
+
+#game-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+}

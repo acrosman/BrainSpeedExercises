@@ -1,13 +1,23 @@
+/* ── Sound Sweep ──────────────────────────────────────────────────────────── */
+/*
+ * All selectors are prefixed with .sound-sweep or .ss- to avoid collisions.
+ * Shared panel and button styles (.game-welcome, .game-end-panel, .game-results,
+ * .game-btn) come from app/style.css — they are NOT duplicated here.
+ * CSS custom properties are defined in app/styles/variables.css.
+ */
+
 .sound-sweep {
-  color: #1f2933;
+  color: var(--text-base);
 }
 
-/* ── Panels ──────────────────────────────────────────────────────────────────── */
+/* ── Panel wrapper ────────────────────────────────────────────────────────── */
+/* .ss-panel is used alongside .game-welcome / .game-end-panel; it             */
+/* does not override the shared layout rules.                                   */
 
 .ss-panel {
-  background: #f2f4f7;
-  border: 1px solid #c9d1d9;
-  border-radius: 10px;
+  background: var(--bg-body);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-top: 1rem;
 }
@@ -67,21 +77,21 @@
   justify-content: center;
   gap: 0.15rem;
   padding: 0.6rem 0.5rem;
-  border: 2px solid #5f6974;
-  border-radius: 8px;
-  background: #e5e7eb;
-  color: #1f2933;
+  border: 2px solid var(--text-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-muted);
+  color: var(--text-base);
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.1s, transform 0.1s;
+  transition: background var(--transition-quick), transform var(--transition-quick);
 }
 
 .ss-seq-btn:hover {
-  background: #d1d5db;
+  background: var(--border-color);
 }
 
 .ss-seq-btn:focus-visible {
-  outline: 3px solid #1d4ed8;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -108,9 +118,9 @@
 
 .ss-seq-btn__key {
   font-size: 0.7rem;
-  color: #6b7280;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  color: var(--text-subtle);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
   border-radius: 3px;
   padding: 0 0.25rem;
   font-family: monospace;
@@ -135,12 +145,14 @@
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────────── */
+/* Shared button styles come from .game-btn in app/style.css.                    */
+/* .ss-btn is used for controls inside the active play area.                     */
 
 .ss-btn {
-  background: #dbe2ea;
-  color: #111827;
-  border: 1px solid #5f6974;
-  border-radius: 6px;
+  background: var(--bg-muted);
+  color: var(--text-base);
+  border: 1px solid var(--text-subtle);
+  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -148,24 +160,24 @@
 }
 
 .ss-btn--primary {
-  background: #0f4aa3;
-  color: #ffffff;
-  border-color: #0b3b83;
+  background: var(--btn-primary-bg);
+  color: var(--bg-card);
+  border-color: var(--btn-primary-border);
 }
 
 .ss-btn--secondary {
-  background: #e5e7eb;
+  background: var(--bg-muted);
 }
 
 .ss-btn--icon {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  background: var(--bg-subtle);
+  border-color: var(--border-color);
   font-size: 0.875rem;
   padding: 0.35rem 0.6rem;
 }
 
 .ss-btn:focus-visible {
-  outline: 3px solid #1d4ed8;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 

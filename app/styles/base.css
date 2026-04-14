@@ -1,0 +1,68 @@
+/* ── Reset / Base ────────────────────────────────────────────────────────────
+ *
+ * Global reset, body defaults, and utility classes.
+ * Depends on: variables.css (must be imported first)
+ */
+
+/* Ensure the HTML hidden attribute is always respected, even when a class
+   rule sets an explicit display value. */
+[hidden] {
+  display: none !important;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  background-color: var(--bg-body);
+  color: var(--text-base);
+}
+
+/* ── Skip Navigation ─────────────────────────────────────────────────────── */
+
+.skip-link {
+  position: absolute;
+  top: -3rem;
+  left: 0;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--bg-dark);
+  color: var(--text-inverted);
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 0 0 var(--radius-sm) 0;
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ── Screen-reader-only utility ──────────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Global focus style ──────────────────────────────────────────────────── */
+
+*:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}

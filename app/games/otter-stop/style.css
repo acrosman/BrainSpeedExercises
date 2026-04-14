@@ -1,10 +1,10 @@
 /* ── Otter Stop! ──────────────────────────────────────────────────────────── */
-/* All selectors are prefixed with .otter-stop to avoid collisions.           */
-
-/* Respect the hidden attribute — never override it with display rules */
-[hidden] {
-  display: none !important; /* stylelint-disable-line declaration-no-important */
-}
+/*
+ * All selectors are prefixed with .otter-stop or .os- to avoid collisions.
+ * Shared panel and button styles (.game-welcome, .game-end-panel, .game-results,
+ * .game-btn) come from app/style.css — they are NOT duplicated here.
+ * CSS custom properties are defined in app/styles/variables.css.
+ */
 
 .otter-stop {
   display: flex;
@@ -20,38 +20,12 @@
 }
 
 /* ── Instructions ────────────────────────────────────────────────────────── */
+/* Layout is provided by .game-welcome in app/style.css.                       */
 
 .os-instructions {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-width: 560px;
-  width: 100%;
-}
-
-.os-instructions__heading {
-  margin: 0;
-  font-size: 2rem;
-  color: #1a1a1a;
-}
-
-.os-instructions__subheading {
-  margin: 0;
-  font-size: 1.25rem;
-  color: #222;
-}
-
-.os-instructions__intro {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #333;
-}
-
-.os-instructions__list {
-  margin: 0;
-  padding-left: 1.5rem;
-  color: #333;
-  line-height: 1.7;
 }
 
 /* ── Stats bar ───────────────────────────────────────────────────────────── */
@@ -61,7 +35,7 @@
   flex-wrap: wrap;
   gap: 1rem;
   font-size: 1rem;
-  color: #222;
+  color: var(--text-base);
 }
 
 .os-stat {
@@ -87,8 +61,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f4f8;
-  border: 3px solid #c0c8d4;
+  background: var(--bg-subtle);
+  border: 3px solid var(--border-strong);
   border-radius: 12px;
   cursor: pointer;
   user-select: none;
@@ -109,7 +83,7 @@
 
 /* Keyboard-focus ring on the stimulus area */
 .os-stimulus:focus-visible {
-  outline: 3px solid #005fcc;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -139,7 +113,7 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-heading);
 }
 
 .os-feedback__text--correct {
@@ -155,72 +129,19 @@
 .os-reminder {
   margin: 0;
   font-size: 0.95rem;
-  color: #555;
+  color: var(--text-muted);
   text-align: center;
 }
 
 .os-reminder kbd {
   display: inline-block;
   padding: 0.1em 0.4em;
-  background: #e8e8e8;
-  border: 1px solid #bbb;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-color);
   border-radius: 3px;
   font-family: monospace;
   font-size: 0.9em;
   line-height: 1.4;
-}
-
-/* ── End panel ───────────────────────────────────────────────────────────── */
-
-.os-end-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  width: 100%;
-  max-width: 420px;
-}
-
-.os-end-panel__heading {
-  margin: 0;
-  font-size: 1.75rem;
-  color: #1a1a1a;
-}
-
-.os-results {
-  width: 100%;
-  margin: 0;
-  border: 1px solid #c0c8d4;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.os-results__row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.os-results__row:last-child {
-  border-bottom: none;
-}
-
-.os-results__label {
-  font-weight: 600;
-  color: #333;
-}
-
-.os-results__value {
-  color: #111;
-  font-variant-numeric: tabular-nums;
-}
-
-.os-end-panel__actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
 /* ── Controls ────────────────────────────────────────────────────────────── */
@@ -232,39 +153,13 @@
   justify-content: center;
 }
 
-/* ── Buttons — WCAG 2.2 AA contrast ─────────────────────────────────────── */
+/* ── End panel ───────────────────────────────────────────────────────────── */
+/* Layout and results are provided by .game-end-panel and .game-results        */
+/* in app/style.css — only game-specific overrides belong here.                */
 
-.os-btn {
-  padding: 0.55rem 1.4rem;
-  font-size: 1rem;
-  font-weight: 600;
-  border: 2px solid transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.os-btn:focus-visible {
-  outline: 3px solid #005fcc;
-  outline-offset: 3px;
-}
-
-.os-btn--primary {
-  background: #005fcc;
-  color: #fff;
-  border-color: #004fa3;
-}
-
-.os-btn--primary:hover {
-  background: #004fa3;
-}
-
-.os-btn--secondary {
-  background: #c0392b;
-  color: #fff;
-  border-color: #922b21;
-}
-
-.os-btn--secondary:hover {
-  background: #922b21;
+.os-end-panel__heading {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-heading);
 }

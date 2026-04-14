@@ -1,13 +1,23 @@
+/* ── Directional Processing ──────────────────────────────────────────────── */
+/*
+ * All selectors are prefixed with .directional-processing or .dp- to avoid
+ * collisions.  Shared panel and button styles (.game-welcome, .game-end-panel,
+ * .game-results, .game-btn) come from app/style.css — they are NOT duplicated
+ * here.  CSS custom properties are defined in app/styles/variables.css.
+ */
+
 .directional-processing {
-  color: #1f2933;
+  color: var(--text-base);
 }
 
 /* ── Panels ──────────────────────────────────────────────────────────────────── */
+/* .dp-panel is used for both the instructions and end panels alongside the     */
+/* shared .game-welcome / .game-end-panel classes.                              */
 
 .dp-panel {
-  background: #f2f4f7;
-  border: 1px solid #c9d1d9;
-  border-radius: 10px;
+  background: var(--bg-body);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
   padding: 1rem;
   margin-top: 1rem;
 }
@@ -34,8 +44,8 @@
   width: 100%;
   height: auto;
   aspect-ratio: 1 / 1;
-  border: 2px solid #616b75;
-  border-radius: 8px;
+  border: 2px solid var(--text-subtle);
+  border-radius: var(--radius-lg);
   background: rgb(128, 128, 128);
 }
 
@@ -45,7 +55,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   opacity: 0;
   z-index: 3;
 }
@@ -91,20 +101,20 @@
   height: 56px;
   font-size: 1rem;
   font-weight: 700;
-  border: 2px solid #5f6974;
-  border-radius: 8px;
-  background: #e5e7eb;
-  color: #1f2933;
+  border: 2px solid var(--text-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-muted);
+  color: var(--text-base);
   cursor: pointer;
-  transition: background 0.1s, transform 0.1s;
+  transition: background var(--transition-quick), transform var(--transition-quick);
 }
 
 .dp-dir-btn:hover {
-  background: #d1d5db;
+  background: var(--border-color);
 }
 
 .dp-dir-btn:focus-visible {
-  outline: 3px solid #1d4ed8;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -128,7 +138,7 @@
 
 .dp-dir-btn--selected {
   background: #cfe8ff;
-  border-color: #0f4aa3;
+  border-color: var(--btn-primary-bg);
 }
 
 /* ── Feedback region ─────────────────────────────────────────────────────────── */
@@ -150,29 +160,32 @@
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────────── */
+/* Shared button styles come from .game-btn in app/style.css.                    */
+/* .dp-btn is used for controls inside the active play area and may differ from  */
+/* the primary/secondary shared variants.                                        */
 
 .dp-btn {
-  background: #dbe2ea;
-  color: #111827;
-  border: 1px solid #5f6974;
-  border-radius: 6px;
+  background: var(--bg-muted);
+  color: var(--text-base);
+  border: 1px solid var(--text-subtle);
+  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-weight: 600;
   cursor: pointer;
 }
 
 .dp-btn--primary {
-  background: #0f4aa3;
-  color: #ffffff;
-  border-color: #0b3b83;
+  background: var(--btn-primary-bg);
+  color: var(--bg-card);
+  border-color: var(--btn-primary-border);
 }
 
 .dp-btn--secondary {
-  background: #e5e7eb;
+  background: var(--bg-muted);
 }
 
 .dp-btn:focus-visible {
-  outline: 3px solid #1d4ed8;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
