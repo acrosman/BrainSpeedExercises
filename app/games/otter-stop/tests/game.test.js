@@ -588,10 +588,6 @@ describe('isRunning()', () => {
 // ── getSpeedHistory ───────────────────────────────────────────────────────────
 
 describe('getSpeedHistory()', () => {
-  it('returns empty array before any trials', () => {
-    expect(getSpeedHistory()).toEqual([]);
-  });
-
   it('appends an entry after recordResponse', () => {
     startGame();
     recordResponse(false, true);

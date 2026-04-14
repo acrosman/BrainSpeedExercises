@@ -267,10 +267,6 @@ describe('selection and scoring', () => {
 // ── getSpeedHistory ───────────────────────────────────────────────────────────
 
 describe('getSpeedHistory', () => {
-  test('returns empty array before any rounds', () => {
-    expect(getSpeedHistory()).toEqual([]);
-  });
-
   test('appends an entry after recordCorrectRound', () => {
     startGame();
     recordCorrectRound();

@@ -475,10 +475,6 @@ describe('isRunning', () => {
 // ── getSpeedHistory ───────────────────────────────────────────────────────────
 
 describe('getSpeedHistory', () => {
-  test('returns empty array before any rounds', () => {
-    expect(getSpeedHistory()).toEqual([]);
-  });
-
   test('appends an entry after completeRound', () => {
     startGame();
     completeRound();

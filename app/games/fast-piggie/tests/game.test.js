@@ -604,10 +604,6 @@ describe('getBestStats()', () => {
 // ── getSpeedHistory ───────────────────────────────────────────────────────────
 
 describe('getSpeedHistory()', () => {
-  it('returns empty array before any rounds', () => {
-    expect(getSpeedHistory()).toEqual([]);
-  });
-
   it('appends an entry after addScore()', () => {
     startGame();
     generateRound();

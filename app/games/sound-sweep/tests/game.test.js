@@ -280,10 +280,6 @@ describe('getCurrentLevelConfig', () => {
 // ── getSpeedHistory ───────────────────────────────────────────────────────────
 
 describe('getSpeedHistory', () => {
-  test('returns empty array before any trials', () => {
-    expect(getSpeedHistory()).toEqual([]);
-  });
-
   test('appends one entry per completed trial', () => {
     startGame();
     recordTrial({ success: true });

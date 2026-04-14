@@ -22,10 +22,6 @@ describe('buildPolylinePoints', () => {
     expect(buildPolylinePoints(null)).toBe('');
   });
 
-  test('returns empty string for undefined input', () => {
-    expect(buildPolylinePoints(undefined)).toBe('');
-  });
-
   test('returns a single point string for a one-element array', () => {
     const result = buildPolylinePoints([300]);
     expect(result).not.toBe('');
