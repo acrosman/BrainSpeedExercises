@@ -49,7 +49,9 @@ let consecutiveWrong = 0;
 let maxScore = 0;
 let mostRounds = 0;
 let mostGuineaPigs = 0;
-let topSpeedMs = null; // Lower is better
+let topSpeedMs = null; // Lower is better — minimum answer response time (ms)
+/** Lower is better — minimum display duration actually used in any round. */
+let lowestRoundDisplayMs = null;
 
 /**
  * Session history of display durations in ms, one entry per round.
@@ -72,6 +74,7 @@ export function initGame() {
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
   speedHistory = [];
+  lowestRoundDisplayMs = null;
 }
 
 /**
@@ -110,6 +113,7 @@ export function stopGame() {
     mostRounds,
     mostGuineaPigs,
     topSpeedMs,
+    lowestRoundDisplayMs,
   };
 }
 
@@ -207,8 +211,9 @@ export function calculateWedgeIndex(clickX, clickY, centerX, centerY, radius, we
  * Also resets the consecutive-wrong counter.
  * @param {number} [guineaPigsThisRound] - Number of guinea pigs displayed this round.
  * @param {number} [answerSpeedMs] - Time in ms to answer this round (if tracked).
+ * @param {number} [displayDurationMs] - Display duration (ms) of this round.
  */
-export function addScore(guineaPigsThisRound, answerSpeedMs) {
+export function addScore(guineaPigsThisRound, answerSpeedMs, displayDurationMs) {
   score += 1;
   roundsPlayed += 1;
   consecutiveCorrect += 1;
@@ -237,6 +242,11 @@ export function addScore(guineaPigsThisRound, answerSpeedMs) {
   if (typeof answerSpeedMs === 'number' && (topSpeedMs === null || answerSpeedMs < topSpeedMs)) {
     topSpeedMs = answerSpeedMs;
   }
+  // Track the minimum display duration actually used in any round
+  if (typeof displayDurationMs === 'number'
+    && (lowestRoundDisplayMs === null || displayDurationMs < lowestRoundDisplayMs)) {
+    lowestRoundDisplayMs = displayDurationMs;
+  }
   speedHistory.push(calculateDisplayDuration(speedLevel));
 }
 
@@ -245,8 +255,9 @@ export function addScore(guineaPigsThisRound, answerSpeedMs) {
  * Resets consecutive correct count. After 3 consecutive misses the level
  * decreases by 2 (minimum 0), making the next round easier.
  * @param {number} [guineaPigsThisRound] - Number of guinea pigs displayed this round.
+ * @param {number} [displayDurationMs] - Display duration (ms) of this round.
  */
-export function addMiss(guineaPigsThisRound) {
+export function addMiss(guineaPigsThisRound, displayDurationMs) {
   roundsPlayed += 1;
   consecutiveCorrect = 0;
   consecutiveWrong += 1;
@@ -260,15 +271,23 @@ export function addMiss(guineaPigsThisRound) {
   if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {
     mostGuineaPigs = guineaPigsThisRound;
   }
+  // Track the minimum display duration actually used in any round
+  if (typeof displayDurationMs === 'number'
+    && (lowestRoundDisplayMs === null || displayDurationMs < lowestRoundDisplayMs)) {
+    lowestRoundDisplayMs = displayDurationMs;
+  }
   speedHistory.push(calculateDisplayDuration(speedLevel));
 }
 
 /**
  * Get the best stats for this session.
- * @returns {object} Best stats: { maxScore, mostRounds, mostGuineaPigs, topSpeedMs }
+ * @returns {object} Best stats: { maxScore, mostRounds, mostGuineaPigs, topSpeedMs,
+ *   lowestRoundDisplayMs }
  */
 export function getBestStats() {
-  return { maxScore, mostRounds, mostGuineaPigs, topSpeedMs };
+  return {
+    maxScore, mostRounds, mostGuineaPigs, topSpeedMs, lowestRoundDisplayMs,
+  };
 }
 
 /**

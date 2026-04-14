@@ -49,6 +49,7 @@ jest.unstable_mockModule('../game.js', () => ({
     mostRounds: 5,
     mostGuineaPigs: 3,
     topSpeedMs: 1000,
+    lowestRoundDisplayMs: 50,
   })),
 }));
 
@@ -478,6 +479,13 @@ describe('_handleClick — correct answer (calculateWedgeIndex returns 2)', () =
     expect(game.addScore).toHaveBeenCalled();
   });
 
+  it('calls game.addScore() with displayDurationMs as third argument', () => {
+    fireClick();
+    const callArgs = game.addScore.mock.calls[0];
+    // Third argument is displayDurationMs from the current round (2000ms from mock)
+    expect(callArgs[2]).toBe(2000);
+  });
+
   it('calls playSuccessSound (createOscillator called on audio context)', () => {
     mockAudioCtx.createOscillator.mockClear();
     fireClick();
@@ -525,6 +533,13 @@ describe('_handleClick — wrong answer (checkAnswer returns false)', () => {
   it('calls game.addMiss()', () => {
     fireClick();
     expect(game.addMiss).toHaveBeenCalled();
+  });
+
+  it('calls game.addMiss() with displayDurationMs as second argument', () => {
+    fireClick();
+    const callArgs = game.addMiss.mock.calls[0];
+    // Second argument is displayDurationMs from the current round (2000ms from mock)
+    expect(callArgs[1]).toBe(2000);
   });
 
   it('calls playFailureSound (createOscillator called on audio context)', () => {
@@ -698,6 +713,42 @@ describe('drawBoard()', () => {
     // (We can't check exact slots due to random, but can check call count
     // and that it's not always 0,1,2)
     mathRandomSpy.mockRestore();
+  });
+
+  it('draws the outlier image last so it appears on top of distractors', () => {
+    const normalImgEl = { id: 'normal', naturalWidth: 768, naturalHeight: 512 };
+    const outlierImgEl = { id: 'outlier', naturalWidth: 768, naturalHeight: 512 };
+    const fakeWrappers = [
+      { image: normalImgEl, sx: 0, sw: 384, sh: 512 },
+      { image: outlierImgEl, sx: 0, sw: 384, sh: 512 },
+    ];
+    ctx2d.drawImage.mockClear();
+    // outlierIndex=0, wedgeCount=4, imageCount=4: outlier is wedge 0
+    drawBoard(ctx2d, 500, 500, 4, 4, fakeWrappers, 0, true);
+    const calls = ctx2d.drawImage.mock.calls;
+    // The last drawImage call should use the outlier image element
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall[0]).toBe(outlierImgEl);
+  });
+
+  it('draws all non-outlier images before the outlier image', () => {
+    const normalImgEl = { id: 'normal', naturalWidth: 768, naturalHeight: 512 };
+    const outlierImgEl = { id: 'outlier', naturalWidth: 768, naturalHeight: 512 };
+    const fakeWrappers = [
+      { image: normalImgEl, sx: 0, sw: 384, sh: 512 },
+      { image: outlierImgEl, sx: 0, sw: 384, sh: 512 },
+    ];
+    ctx2d.drawImage.mockClear();
+    // outlierIndex=2, wedgeCount=4, imageCount=4: 3 normals + 1 outlier
+    drawBoard(ctx2d, 500, 500, 4, 4, fakeWrappers, 2, true);
+    const calls = ctx2d.drawImage.mock.calls;
+    expect(calls).toHaveLength(4);
+    // The last call must be the outlier
+    expect(calls[calls.length - 1][0]).toBe(outlierImgEl);
+    // All calls before last must be normal images
+    calls.slice(0, -1).forEach((call) => {
+      expect(call[0]).toBe(normalImgEl);
+    });
   });
 });
 

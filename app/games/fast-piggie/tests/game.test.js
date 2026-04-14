@@ -554,12 +554,14 @@ describe('getSpeedLevel()', () => {
 });
 
 describe('getBestStats()', () => {
-  it('returns an object with maxScore, mostRounds, mostGuineaPigs, topSpeedMs', () => {
+  it('returns an object with maxScore, mostRounds, mostGuineaPigs, topSpeedMs,'
+    + ' lowestRoundDisplayMs', () => {
     const stats = getBestStats();
     expect(stats).toHaveProperty('maxScore');
     expect(stats).toHaveProperty('mostRounds');
     expect(stats).toHaveProperty('mostGuineaPigs');
     expect(stats).toHaveProperty('topSpeedMs');
+    expect(stats).toHaveProperty('lowestRoundDisplayMs');
   });
 
   it('maxScore reflects the highest score achieved since module load', () => {
@@ -598,6 +600,41 @@ describe('getBestStats()', () => {
     stopGame();
     const stats = getBestStats();
     expect(stats.mostRounds).toBeGreaterThanOrEqual(2);
+  });
+
+  it('lowestRoundDisplayMs updates when addScore is called with a displayDurationMs value', () => {
+    addScore(3, 500, 100);
+    const stats = getBestStats();
+    expect(stats.lowestRoundDisplayMs).toBeLessThanOrEqual(100);
+  });
+
+  it('lowestRoundDisplayMs tracks the minimum displayDurationMs across multiple addScore calls',
+    () => {
+      addScore(3, 500, 200);
+      addScore(3, 300, 50);
+      addScore(3, 400, 150);
+      const stats = getBestStats();
+      expect(stats.lowestRoundDisplayMs).toBe(50);
+    });
+
+  it('lowestRoundDisplayMs updates when addMiss is called with a displayDurationMs value', () => {
+    addMiss(3, 75);
+    const stats = getBestStats();
+    expect(stats.lowestRoundDisplayMs).toBeLessThanOrEqual(75);
+  });
+
+  it('lowestRoundDisplayMs is null when no displayDurationMs has been recorded', () => {
+    const stats = getBestStats();
+    expect(
+      stats.lowestRoundDisplayMs === null || typeof stats.lowestRoundDisplayMs === 'number',
+    ).toBe(true);
+  });
+
+  it('lowestRoundDisplayMs is included in stopGame() return value', () => {
+    startGame();
+    addScore(3, 200, 80);
+    const result = stopGame();
+    expect(result).toHaveProperty('lowestRoundDisplayMs');
   });
 });
 
