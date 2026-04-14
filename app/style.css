@@ -622,3 +622,41 @@ footer {
   background: #922b21;
 }
 
+/* ── Shared Game Trend Chart ────────────────────────────────────────────── */
+/*
+ * .game-trend — shared speed/difficulty trend chart used across all games.
+ * Wrap the SVG polyline chart and meta text in an element with this class.
+ * Used inside the active game area to display real-time metric history.
+ */
+.game-trend {
+  margin-top: 0.75rem;
+  border: 1px solid #c1c9d2;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  background: #eef2f6;
+  color: #19324a;
+}
+
+.game-trend h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.game-trend__chart {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  min-height: 72px;
+  margin-top: 0.35rem;
+  border: 1px solid #9eabb8;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #f8fafc 0%, #e5edf5 100%);
+}
+
+.game-trend__empty,
+.game-trend__meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+}
+

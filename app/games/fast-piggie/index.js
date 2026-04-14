@@ -12,6 +12,7 @@ import { playSuccessSound, playFailureSound } from '../../components/audioServic
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import { renderTrendChart } from '../../components/trendChartService.js';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
 const SPRITE_INSET = 2;
@@ -204,6 +205,13 @@ let _finalHighScoreEl = null;
 /** @type {HTMLElement|null} */
 let _sessionTimerEl = null;
 
+/** @type {SVGPolylineElement|null} */
+let _trendLineEl = null;
+/** @type {HTMLElement|null} */
+let _trendEmptyEl = null;
+/** @type {HTMLElement|null} */
+let _trendLatestEl = null;
+
 // Game state
 let _images = null; // [commonImage, outlierImage]
 let _currentRound = null; // { wedgeCount, displayDurationMs, outlierWedgeIndex, slotAssignment }
@@ -219,6 +227,17 @@ function _updateStats() {
   if (_scoreEl) _scoreEl.textContent = game.getScore();
   if (_roundEl) _roundEl.textContent = game.getRoundsPlayed();
   if (_displayTimeEl) _displayTimeEl.textContent = game.getCurrentDifficulty().displayDurationMs;
+}
+
+/**
+ * Renders the speed trend chart with the latest history.
+ */
+function _updateTrendChart() {
+  renderTrendChart(
+    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
+    game.getSpeedHistory(),
+    game.getCurrentDifficulty().displayDurationMs,
+  );
 }
 
 /**
@@ -480,6 +499,7 @@ function _resolveRound(wedge) {
   }
 
   _updateStats();
+  _updateTrendChart();
   // Auto-advance to next round after a short delay.
   if (game.isRunning()) {
     setTimeout(() => {
@@ -517,6 +537,9 @@ export default {
     _finalScoreEl = container.querySelector('#fp-final-score');
     _finalHighScoreEl = container.querySelector('#fp-final-high-score');
     _sessionTimerEl = container.querySelector('#fp-session-timer');
+    _trendLineEl = container.querySelector('#fp-trend-line');
+    _trendEmptyEl = container.querySelector('#fp-trend-empty');
+    _trendLatestEl = container.querySelector('#fp-trend-latest');
 
     // Pre-load images
     const base = new URL('../fast-piggie/images/', import.meta.url).href;
@@ -622,6 +645,7 @@ export default {
       _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
     }
     _updateStats();
+    _updateTrendChart();
     _feedbackEl.textContent = '';
     _stopBtn.hidden = false;
     if (_instructionsEl) _instructionsEl.hidden = false;

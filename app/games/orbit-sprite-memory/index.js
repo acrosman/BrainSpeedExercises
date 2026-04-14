@@ -11,6 +11,7 @@ import { playSuccessSound, playFailureSound } from '../../components/audioServic
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import { renderTrendChart } from '../../components/trendChartService.js';
 
 /** Delay before automatically starting the next round after answer submit. */
 const NEXT_ROUND_DELAY_MS = 900;
@@ -86,6 +87,12 @@ let _finalBestScoreEl = null;
 
 /** @type {HTMLElement|null} */
 let _sessionTimerEl = null;
+/** @type {SVGPolylineElement|null} */
+let _trendLineEl = null;
+/** @type {HTMLElement|null} */
+let _trendEmptyEl = null;
+/** @type {HTMLElement|null} */
+let _trendLatestEl = null;
 
 /** @type {ReturnType<typeof setTimeout>[]} */
 let _timers = [];
@@ -177,6 +184,17 @@ export function updateStats() {
   if (_displayTimeEl) {
     _displayTimeEl.textContent = String(game.getDisplayDurationMs(game.getLevel()));
   }
+}
+
+/**
+ * Renders the speed trend chart with the latest display-duration history.
+ */
+export function updateTrendChart() {
+  renderTrendChart(
+    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
+    game.getSpeedHistory(),
+    game.getDisplayDurationMs(game.getLevel()),
+  );
 }
 
 /**
@@ -400,12 +418,14 @@ export function submitSelection() {
   if (isCorrect) {
     game.recordCorrectRound();
     updateStats();
+    updateTrendChart();
     flashBoard('success');
     playSuccessSound();
     announce('Correct. Reviewing positions before the next round.');
   } else {
     game.recordIncorrectRound();
     updateStats();
+    updateTrendChart();
     flashBoard('failure');
     playFailureSound();
     announce('Incorrect. Reviewing positions before the next round.');
@@ -473,6 +493,9 @@ function init(gameContainer) {
   _finalBestLevelEl = _container.querySelector('#osm-final-best-level');
   _finalBestScoreEl = _container.querySelector('#osm-final-best-score');
   _sessionTimerEl = _container.querySelector('#osm-session-timer');
+  _trendLineEl = _container.querySelector('#osm-trend-line');
+  _trendEmptyEl = _container.querySelector('#osm-trend-empty');
+  _trendLatestEl = _container.querySelector('#osm-trend-latest');
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
@@ -558,6 +581,7 @@ function reset() {
   clearRevealSprites();
   loadBestStatsFromProgress();
   updateStats();
+  updateTrendChart();
 }
 
 export default {

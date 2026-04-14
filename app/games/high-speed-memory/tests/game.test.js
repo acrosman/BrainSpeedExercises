@@ -27,6 +27,7 @@ import {
   getConsecutiveCorrectRounds,
   getConsecutiveWrongRounds,
   isRunning,
+  getSpeedHistory,
 } from '../game.js';
 
 beforeEach(() => {
@@ -468,5 +469,42 @@ describe('isRunning', () => {
     startGame();
     stopGame();
     expect(isRunning()).toBe(false);
+  });
+});
+
+// ── getSpeedHistory ───────────────────────────────────────────────────────────
+
+describe('getSpeedHistory', () => {
+  test('returns empty array before any rounds', () => {
+    expect(getSpeedHistory()).toEqual([]);
+  });
+
+  test('appends an entry after completeRound', () => {
+    startGame();
+    completeRound();
+    const history = getSpeedHistory();
+    expect(history).toHaveLength(1);
+    expect(typeof history[0]).toBe('number');
+  });
+
+  test('appends an entry after resetConsecutiveRounds', () => {
+    startGame();
+    resetConsecutiveRounds();
+    expect(getSpeedHistory()).toHaveLength(1);
+  });
+
+  test('returns a copy so external mutations do not affect state', () => {
+    startGame();
+    completeRound();
+    const h = getSpeedHistory();
+    h.pop();
+    expect(getSpeedHistory()).toHaveLength(1);
+  });
+
+  test('resets to empty after initGame', () => {
+    startGame();
+    completeRound();
+    initGame();
+    expect(getSpeedHistory()).toEqual([]);
   });
 });

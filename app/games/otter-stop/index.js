@@ -13,6 +13,7 @@ import { playSuccessSound, playFailureSound } from '../../components/audioServic
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import { renderTrendChart } from '../../components/trendChartService.js';
 
 /** Human-readable name returned as part of the plugin contract. */
 const name = 'Otter Stop!';
@@ -81,6 +82,12 @@ let _intervalEl = null;
 
 /** @type {HTMLElement|null} */
 let _sessionTimerEl = null;
+/** @type {SVGPolylineElement|null} */
+let _trendLineEl = null;
+/** @type {HTMLElement|null} */
+let _trendEmptyEl = null;
+/** @type {HTMLElement|null} */
+let _trendLatestEl = null;
 
 /** @type {HTMLElement|null} */
 let _finalScoreEl = null;
@@ -153,6 +160,17 @@ export function updateStats() {
   if (_scoreEl) _scoreEl.textContent = game.getScore();
   if (_nogoHitsEl) _nogoHitsEl.textContent = game.getNoGoHits();
   if (_intervalEl) _intervalEl.textContent = game.getCurrentIntervalMs();
+}
+
+/**
+ * Render the speed trend chart with the latest interval history.
+ */
+export function updateTrendChart() {
+  renderTrendChart(
+    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
+    game.getSpeedHistory(),
+    game.getCurrentIntervalMs(),
+  );
 }
 
 /**
@@ -260,6 +278,7 @@ export function endTrial() {
 
   const outcome = game.recordResponse(_currentIsNoGo, _spacePressedThisTrial);
   updateStats();
+  updateTrendChart();
 
   const wasNoGo = _currentIsNoGo;
   _currentImageKey = null;
@@ -398,6 +417,9 @@ function init(container) {
   _nogoHitsEl = container.querySelector('#os-nogo-hits');
   _intervalEl = container.querySelector('#os-interval');
   _sessionTimerEl = container.querySelector('#os-session-timer');
+  _trendLineEl = container.querySelector('#os-trend-line');
+  _trendEmptyEl = container.querySelector('#os-trend-empty');
+  _trendLatestEl = container.querySelector('#os-trend-latest');
   _finalScoreEl = container.querySelector('#os-final-score');
   _finalBestEl = container.querySelector('#os-final-best');
   _finalNogoEl = container.querySelector('#os-final-nogo');
@@ -508,6 +530,7 @@ function reset() {
   if (_instructionsEl) _instructionsEl.hidden = false;
 
   updateStats();
+  updateTrendChart();
 }
 
 export default {

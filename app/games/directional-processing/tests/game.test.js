@@ -28,6 +28,7 @@ import {
   getConsecutiveCorrect,
   getConsecutiveWrong,
   isRunning,
+  getSpeedHistory,
 } from '../game.js';
 
 beforeEach(() => {
@@ -275,5 +276,37 @@ describe('getCurrentLevelConfig', () => {
     recordTrial({ success: true });
     recordTrial({ success: true });
     expect(getCurrentLevelConfig()).toEqual(LEVELS[1]);
+  });
+});
+
+// ── getSpeedHistory ───────────────────────────────────────────────────────────
+
+describe('getSpeedHistory', () => {
+  test('returns empty array before any trials', () => {
+    expect(getSpeedHistory()).toEqual([]);
+  });
+
+  test('appends one entry per completed trial', () => {
+    startGame();
+    recordTrial({ success: true });
+    recordTrial({ success: false });
+    const history = getSpeedHistory();
+    expect(history).toHaveLength(2);
+    history.forEach((v) => expect(typeof v).toBe('number'));
+  });
+
+  test('returns a copy so external mutations do not affect state', () => {
+    startGame();
+    recordTrial({ success: true });
+    const h = getSpeedHistory();
+    h.pop();
+    expect(getSpeedHistory()).toHaveLength(1);
+  });
+
+  test('resets to empty after initGame', () => {
+    startGame();
+    recordTrial({ success: true });
+    initGame();
+    expect(getSpeedHistory()).toEqual([]);
   });
 });

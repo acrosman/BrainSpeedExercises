@@ -47,6 +47,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getRoundsCompleted: jest.fn(() => 6),
   getConsecutiveCorrectRounds: jest.fn(() => 1),
   isRunning: jest.fn(() => false),
+  getSpeedHistory: jest.fn(() => []),
 }));
 
 const pluginModule = await import('../index.js');

@@ -62,6 +62,13 @@ let roundsPlayed = 0;
 /** @type {Array<object>} Current circle state array. */
 let circles = [];
 
+/**
+ * Session history of speed values (px/sec) at the end of each round.
+ * Used to render the in-game speed trend chart.
+ * @type {number[]}
+ */
+let speedHistory = [];
+
 // ── Level configuration ───────────────────────────────────────────────────────
 
 /**
@@ -295,6 +302,7 @@ export function recordRoundResult(correct) {
     levelDelta = -LEVELS_TO_DROP;
   }
   roundsPlayed++;
+  speedHistory.push(getLevelConfig(level).speedPxPerSec);
   return { levelDelta, newLevel: level };
 }
 
@@ -363,6 +371,7 @@ export function initGame() {
   startTimeMs = 0;
   roundsPlayed = 0;
   circles = [];
+  speedHistory = [];
 }
 
 /**
@@ -408,3 +417,10 @@ export function getConsecutiveWrong() { return consecutiveWrong; }
 
 /** @returns {number} Total rounds played this session. */
 export function getRoundsPlayed() { return roundsPlayed; }
+
+/**
+ * Get the session speed history as an array of circle speed values (px/sec).
+ * One entry is appended per completed round after any staircase adjustment.
+ * @returns {number[]}
+ */
+export function getSpeedHistory() { return [...speedHistory]; }

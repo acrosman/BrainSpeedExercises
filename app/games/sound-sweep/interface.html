@@ -85,6 +85,19 @@
     <!-- Live feedback region (correct / incorrect messages). -->
     <div id="ss-feedback" class="ss-feedback" role="status" aria-live="polite"></div>
 
+    <!-- Speed trend chart -->
+    <section class="game-trend" aria-labelledby="ss-trend-title">
+      <h4 id="ss-trend-title">Speed Trend (ms)</h4>
+      <svg id="ss-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Sweep duration trend over recent trials">
+        <polyline id="ss-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="ss-trend-empty" class="game-trend__empty">Complete a trial to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="ss-trend-latest">--</strong> ms
+      </p>
+    </section>
+
     <div class="ss-controls">
       <button id="ss-stop-btn" type="button" class="game-btn game-btn--secondary">
         End Game

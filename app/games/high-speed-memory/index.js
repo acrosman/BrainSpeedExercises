@@ -12,6 +12,7 @@ import { playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import { renderTrendChart } from '../../components/trendChartService.js';
 
 /**
  * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
@@ -80,6 +81,13 @@ let _displayTimeEl = null;
 /** @type {HTMLElement|null} */
 let _sessionTimerEl = null;
 
+/** @type {SVGPolylineElement|null} */
+let _trendLineEl = null;
+/** @type {HTMLElement|null} */
+let _trendEmptyEl = null;
+/** @type {HTMLElement|null} */
+let _trendLatestEl = null;
+
 // ── Round state (reset each round) ────────────────────────────────────────────
 
 /**
@@ -134,6 +142,17 @@ export function updateStats() {
   if (_displayTimeEl) {
     _displayTimeEl.textContent = String(game.getDisplayDurationMs(game.getLevel()));
   }
+}
+
+/**
+ * Render the speed trend chart with the latest history.
+ */
+export function updateTrendChart() {
+  renderTrendChart(
+    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
+    game.getSpeedHistory(),
+    game.getDisplayDurationMs(game.getLevel()),
+  );
 }
 
 /**
@@ -312,6 +331,7 @@ export function handleCardClick(cardId) {
     markCardWrong(cardId);
     playFailureSound();
     updateStats();
+    updateTrendChart();
     announce('Wrong guess! The round will restart.');
 
     _flipLock = true;
@@ -330,6 +350,7 @@ export function handleCardClick(cardId) {
 function onRoundComplete() {
   game.completeRound();
   updateStats();
+  updateTrendChart();
 
   // After completeRound: consecutiveCorrectRounds resets to 0 on level advance
   const leveledUp = game.getConsecutiveCorrectRounds() === 0;
@@ -408,6 +429,9 @@ function init(gameContainer) {
   _streakEl = _container.querySelector('#hsm-streak');
   _displayTimeEl = _container.querySelector('#hsm-display-time');
   _sessionTimerEl = _container.querySelector('#hsm-session-timer');
+  _trendLineEl = _container.querySelector('#hsm-trend-line');
+  _trendEmptyEl = _container.querySelector('#hsm-trend-empty');
+  _trendLatestEl = _container.querySelector('#hsm-trend-latest');
 
   if (_startBtn) {
     _startBtn.addEventListener('click', () => start());
@@ -492,6 +516,7 @@ function reset() {
 
   updateStats();
   updateFoundDisplay();
+  updateTrendChart();
 }
 
 export default {

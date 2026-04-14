@@ -73,6 +73,13 @@ let consecutiveCorrect = 0;
 /** @type {number} */
 let consecutiveWrong = 0;
 
+/**
+ * Session history of sweep durations in ms, one entry per completed trial.
+ * Used to render the in-game speed trend chart.
+ * @type {number[]}
+ */
+let speedHistory = [];
+
 // ── Exported functions ────────────────────────────────────────────────────────
 
 /**
@@ -87,6 +94,7 @@ export function initGame() {
   trialsCompleted = 0;
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
+  speedHistory = [];
 }
 
 /**
@@ -162,6 +170,8 @@ export function recordTrial({ success }) {
     }
   }
 
+  speedHistory.push(LEVELS[currentLevel].sweepDurationMs);
+
   return { level: currentLevel, consecutiveCorrect, consecutiveWrong };
 }
 
@@ -226,4 +236,14 @@ export function getConsecutiveWrong() {
  */
 export function isRunning() {
   return running;
+}
+
+/**
+ * Get the session speed history as an array of sweep durations in ms.
+ * One entry is appended per completed trial after any staircase adjustment.
+ *
+ * @returns {number[]}
+ */
+export function getSpeedHistory() {
+  return [...speedHistory];
 }

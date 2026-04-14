@@ -37,6 +37,19 @@
     <div id="mot-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true">
     </div>
 
+    <!-- Speed trend chart -->
+    <section class="game-trend" aria-labelledby="mot-trend-title">
+      <h4 id="mot-trend-title">Speed Trend (px/s)</h4>
+      <svg id="mot-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Circle speed trend over recent rounds">
+        <polyline id="mot-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="mot-trend-empty" class="game-trend__empty">Complete a round to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="mot-trend-latest">--</strong> px/s
+      </p>
+    </section>
+
     <div class="mot-game__controls" role="group" aria-label="Game controls">
       <button type="button" id="mot-stop" class="game-btn game-btn--secondary">
         End Game

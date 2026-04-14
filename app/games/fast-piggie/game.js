@@ -52,6 +52,13 @@ let mostGuineaPigs = 0;
 let topSpeedMs = null; // Lower is better
 
 /**
+ * Session history of display durations in ms, one entry per round.
+ * Used to render the in-game speed trend chart.
+ * @type {number[]}
+ */
+let speedHistory = [];
+
+/**
  * Initialize (or reset) all game state.
  */
 export function initGame() {
@@ -64,6 +71,7 @@ export function initGame() {
   speedIncreaseNext = false;
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
+  speedHistory = [];
 }
 
 /**
@@ -229,6 +237,7 @@ export function addScore(guineaPigsThisRound, answerSpeedMs) {
   if (typeof answerSpeedMs === 'number' && (topSpeedMs === null || answerSpeedMs < topSpeedMs)) {
     topSpeedMs = answerSpeedMs;
   }
+  speedHistory.push(calculateDisplayDuration(speedLevel));
 }
 
 /**
@@ -251,6 +260,7 @@ export function addMiss(guineaPigsThisRound) {
   if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {
     mostGuineaPigs = guineaPigsThisRound;
   }
+  speedHistory.push(calculateDisplayDuration(speedLevel));
 }
 
 /**
@@ -330,4 +340,13 @@ export function getConsecutiveWrong() {
  */
 export function isRunning() {
   return running;
+}
+
+/**
+ * Get the session speed history as an array of display durations in ms.
+ * One entry is appended per round (correct or missed) after any staircase adjustment.
+ * @returns {number[]}
+ */
+export function getSpeedHistory() {
+  return [...speedHistory];
 }

@@ -9,6 +9,8 @@
  * @file Field of View rendering helpers.
  */
 
+import { buildPolylinePoints, renderTrendChart } from '../../components/trendChartService.js';
+
 /** Path to Field of View image assets from renderer root. */
 export const IMAGES_BASE_PATH = 'games/field-of-view/images/';
 
@@ -65,6 +67,9 @@ export function createStimulusImage(icon) {
 /**
  * Build SVG point string for threshold history polyline.
  *
+ * Delegates to the centralized trendChartService so all games share
+ * the same chart geometry logic.
+ *
  * @param {Array<{ thresholdMs: number }>} history
  * @returns {string}
  */
@@ -72,24 +77,7 @@ export function buildTrendPolylinePoints(history) {
   if (!history || history.length === 0) {
     return '';
   }
-
-  const width = 300;
-  const height = 120;
-  const pad = 10;
-
-  const values = history.map((entry) => entry.thresholdMs);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(max - min, 1);
-
-  const denominator = Math.max(history.length - 1, 1);
-
-  return history.map((entry, index) => {
-    const x = pad + ((width - pad * 2) * index) / denominator;
-    const normalized = (entry.thresholdMs - min) / span;
-    const y = height - pad - normalized * (height - pad * 2);
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  }).join(' ');
+  return buildPolylinePoints(history.map((entry) => entry.thresholdMs));
 }
 
 /**
@@ -166,28 +154,19 @@ export function updateStats(els, stats) {
  * @param {number} currentSoaMs - Current SOA used when history is empty.
  */
 export function renderThresholdTrend(els, history, currentSoaMs) {
-  const latest = history.length > 0
-    ? history[history.length - 1].thresholdMs
-    : currentSoaMs;
+  const values = history.map((entry) => entry.thresholdMs);
 
-  if (els.trendLatestEl) {
-    els.trendLatestEl.textContent = formatMs(latest);
-  }
+  renderTrendChart(
+    { lineEl: els.trendLineEl, emptyEl: els.trendEmptyEl, latestEl: els.trendLatestEl },
+    values,
+    formatMs(currentSoaMs),
+  );
 
   if (els.finalBestThresholdEl) {
     const best = history.length > 0
       ? Math.min(...history.map((entry) => entry.thresholdMs))
       : currentSoaMs;
     els.finalBestThresholdEl.textContent = formatMs(best);
-  }
-
-  if (!els.trendLineEl) return;
-
-  const points = buildTrendPolylinePoints(history);
-  els.trendLineEl.setAttribute('points', points);
-
-  if (els.trendEmptyEl) {
-    els.trendEmptyEl.hidden = points.length > 0;
   }
 }
 

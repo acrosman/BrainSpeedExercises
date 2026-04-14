@@ -43,6 +43,7 @@ jest.unstable_mockModule('../game.js', () => ({
     displayDurationMs: 2000,
   })),
   isRunning: jest.fn(() => true),
+  getSpeedHistory: jest.fn(() => []),
   getBestStats: jest.fn(() => ({
     maxScore: 3,
     mostRounds: 5,
