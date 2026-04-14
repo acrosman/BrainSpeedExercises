@@ -39,6 +39,7 @@ import {
   getConsecutiveCorrect,
   getConsecutiveWrong,
   getRoundsPlayed,
+  getSpeedHistory,
 } from '../game.js';
 
 beforeEach(() => {
@@ -557,5 +558,32 @@ describe('getters', () => {
     recordRoundResult(false);
     recordRoundResult(false);
     expect(getConsecutiveWrong()).toBe(2);
+  });
+});
+
+// ── getSpeedHistory ───────────────────────────────────────────────────────────
+
+describe('getSpeedHistory', () => {
+  test('appends an entry after recordRoundResult', () => {
+    startGame();
+    recordRoundResult(true);
+    const history = getSpeedHistory();
+    expect(history).toHaveLength(1);
+    expect(typeof history[0]).toBe('number');
+  });
+
+  test('returns a copy so external mutations do not affect state', () => {
+    startGame();
+    recordRoundResult(false);
+    const h = getSpeedHistory();
+    h.pop();
+    expect(getSpeedHistory()).toHaveLength(1);
+  });
+
+  test('resets to empty after initGame', () => {
+    startGame();
+    recordRoundResult(true);
+    initGame();
+    expect(getSpeedHistory()).toEqual([]);
   });
 });

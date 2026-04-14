@@ -23,6 +23,7 @@ import {
   NO_GO_KEY,
   GO_KEYS,
   setGoKeys,
+  getSpeedHistory,
 } from '../game.js';
 
 /** Default go keys used by the test suite (matches built-in defaults). */
@@ -581,5 +582,32 @@ describe('isRunning()', () => {
     startGame();
     stopGame();
     expect(isRunning()).toBe(false);
+  });
+});
+
+// ── getSpeedHistory ───────────────────────────────────────────────────────────
+
+describe('getSpeedHistory()', () => {
+  it('appends an entry after recordResponse', () => {
+    startGame();
+    recordResponse(false, true);
+    const history = getSpeedHistory();
+    expect(history).toHaveLength(1);
+    expect(typeof history[0]).toBe('number');
+  });
+
+  it('returns a copy so external mutations do not affect state', () => {
+    startGame();
+    recordResponse(false, true);
+    const h = getSpeedHistory();
+    h.pop();
+    expect(getSpeedHistory()).toHaveLength(1);
+  });
+
+  it('resets to empty after initGame', () => {
+    startGame();
+    recordResponse(false, true);
+    initGame();
+    expect(getSpeedHistory()).toEqual([]);
   });
 });

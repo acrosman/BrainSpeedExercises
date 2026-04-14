@@ -99,6 +99,13 @@ let consecutiveCorrect = 0;
 let consecutiveWrong = 0;
 
 /**
+ * Session history of interval values in ms, one entry per completed trial.
+ * Used to render the in-game speed trend chart.
+ * @type {number[]}
+ */
+let speedHistory = [];
+
+/**
  * Whether the next trial must be a go image (forced after any wrong outcome).
  * Ensures the player gets a fair chance to respond correctly before facing
  * another no-go stimulus.
@@ -122,6 +129,7 @@ export function initGame() {
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
   forceGoNext = false;
+  speedHistory = [];
 }
 
 /**
@@ -246,6 +254,8 @@ export function recordResponse(isNoGo, spacePressed) {
     consecutiveWrong = 0;
   }
 
+  speedHistory.push(getCurrentIntervalMs());
+
   return correct ? 'correct' : 'wrong';
 }
 
@@ -341,4 +351,13 @@ export function getForceGoNext() {
  */
 export function isRunning() {
   return running;
+}
+
+/**
+ * Get the session speed history as an array of interval values in ms.
+ * One entry is appended per completed trial after any staircase adjustment.
+ * @returns {number[]}
+ */
+export function getSpeedHistory() {
+  return [...speedHistory];
 }

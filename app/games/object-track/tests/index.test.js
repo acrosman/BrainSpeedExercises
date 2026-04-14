@@ -90,6 +90,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getConsecutiveCorrect: jest.fn(() => 0),
   getConsecutiveWrong: jest.fn(() => 0),
   getRoundsPlayed: jest.fn(() => 10),
+  getSpeedHistory: jest.fn(() => []),
 }));
 
 // ── 3. Dynamic imports ────────────────────────────────────────────────────────

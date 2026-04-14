@@ -16,6 +16,7 @@ import { playFeedbackSound } from '../../components/audioService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
+import { renderTrendChart } from '../../components/trendChartService.js';
 
 /** Game identifier used for progress persistence (must match manifest.json id). */
 const GAME_ID = 'directional-processing';
@@ -57,6 +58,12 @@ let _trialsEl = null;
 let _streakEl = null;
 /** @type {HTMLElement|null} */
 let _sessionTimerEl = null;
+/** @type {SVGPolylineElement|null} */
+let _trendLineEl = null;
+/** @type {HTMLElement|null} */
+let _trendEmptyEl = null;
+/** @type {HTMLElement|null} */
+let _trendLatestEl = null;
 /** @type {HTMLElement|null} */
 let _finalLevelEl = null;
 /** @type {HTMLElement|null} */
@@ -176,6 +183,17 @@ export function updateStats() {
   if (_scoreEl) _scoreEl.textContent = String(game.getScore());
   if (_trialsEl) _trialsEl.textContent = String(game.getTrialsCompleted());
   if (_streakEl) _streakEl.textContent = String(streak);
+}
+
+/**
+ * Render the speed trend chart with the latest display-duration history.
+ */
+export function updateTrendChart() {
+  renderTrendChart(
+    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
+    game.getSpeedHistory(),
+    game.getCurrentLevelConfig().displayDurationMs,
+  );
 }
 
 /**
@@ -328,6 +346,7 @@ export function handleDirectionResponse(direction) {
   game.recordTrial({ success });
 
   updateStats();
+  updateTrendChart();
   playFeedbackSound(success);
   flashStageFeedback(success);
 
@@ -419,6 +438,9 @@ function init(gameContainer) {
   _trialsEl       = _container.querySelector('#dp-trials');
   _streakEl       = _container.querySelector('#dp-streak');
   _sessionTimerEl = _container.querySelector('#dp-session-timer');
+  _trendLineEl    = _container.querySelector('#dp-trend-line');
+  _trendEmptyEl   = _container.querySelector('#dp-trend-empty');
+  _trendLatestEl  = _container.querySelector('#dp-trend-latest');
   _finalLevelEl   = _container.querySelector('#dp-final-level');
   _finalScoreEl   = _container.querySelector('#dp-final-score');
   _finalTrialsEl  = _container.querySelector('#dp-final-trials');
@@ -530,6 +552,7 @@ function reset() {
   clearDirectionHighlights();
   setDirectionButtonsEnabled(false);
   updateStats();
+  updateTrendChart();
 }
 
 export default {

@@ -74,6 +74,13 @@ let running = false;
 let startTime = null;
 
 /**
+ * Session history of display durations in ms, one entry per completed round.
+ * Used to render the in-game speed trend chart.
+ * @type {number[]}
+ */
+let speedHistory = [];
+
+/**
  * Initialize (or reset) all game state.
  */
 export function initGame() {
@@ -84,6 +91,7 @@ export function initGame() {
   consecutiveWrongRounds = 0;
   running = false;
   startTime = null;
+  speedHistory = [];
 }
 
 /**
@@ -204,6 +212,7 @@ export function completeRound() {
     level += 1;
     consecutiveCorrectRounds = 0;
   }
+  speedHistory.push(getDisplayDurationMs(level));
 }
 
 /**
@@ -218,6 +227,7 @@ export function resetConsecutiveRounds() {
     level = Math.max(0, level - 2);
     consecutiveWrongRounds = 0;
   }
+  speedHistory.push(getDisplayDurationMs(level));
 }
 
 /**
@@ -268,4 +278,13 @@ export function getConsecutiveWrongRounds() {
  */
 export function isRunning() {
   return running;
+}
+
+/**
+ * Get the session speed history as an array of display durations in ms.
+ * One entry is appended per completed or failed round after any staircase adjustment.
+ * @returns {number[]}
+ */
+export function getSpeedHistory() {
+  return [...speedHistory];
 }

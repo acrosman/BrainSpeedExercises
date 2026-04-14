@@ -42,6 +42,19 @@
     <div class="osm-controls">
       <button id="osm-stop-btn" type="button" class="game-btn game-btn--secondary">End Game</button>
     </div>
+
+    <!-- Speed trend chart -->
+    <section class="game-trend" aria-labelledby="osm-trend-title">
+      <h4 id="osm-trend-title">Speed Trend (ms)</h4>
+      <svg id="osm-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Display time trend over recent rounds">
+        <polyline id="osm-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="osm-trend-empty" class="game-trend__empty">Complete a round to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="osm-trend-latest">--</strong> ms
+      </p>
+    </section>
   </div>
 
   <div id="osm-end-panel" class="osm-panel game-end-panel" hidden>

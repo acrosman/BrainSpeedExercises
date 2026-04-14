@@ -47,6 +47,19 @@
     <!-- Screen-reader-only feedback region: assertive = interrupts immediately -->
     <div id="fp-feedback" role="status" aria-live="assertive" aria-atomic="true" class="fp-feedback sr-only"></div>
 
+    <!-- Speed trend chart -->
+    <section class="game-trend" aria-labelledby="fp-trend-title">
+      <h4 id="fp-trend-title">Speed Trend (ms)</h4>
+      <svg id="fp-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Display time trend over recent rounds">
+        <polyline id="fp-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="fp-trend-empty" class="game-trend__empty">Complete a round to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="fp-trend-latest">--</strong> ms
+      </p>
+    </section>
+
     <!-- Controls -->
     <div class="fp-controls">
       <button id="fp-stop-btn" class="game-btn game-btn--secondary">

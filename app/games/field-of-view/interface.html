@@ -61,14 +61,14 @@
 
     <div id="fov-feedback" class="fov-feedback" role="status" aria-live="polite"></div>
 
-    <section class="fov-trend" aria-labelledby="fov-trend-title">
+    <section class="game-trend" aria-labelledby="fov-trend-title">
       <h4 id="fov-trend-title">Threshold Trend (ms)</h4>
-      <svg id="fov-trend-chart" class="fov-trend__chart" viewBox="0 0 300 120" role="img"
+      <svg id="fov-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
         aria-label="Threshold trend over recent trials">
         <polyline id="fov-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
       </svg>
-      <p id="fov-trend-empty" class="fov-trend__empty">Complete a trial to populate chart.</p>
-      <p class="fov-trend__meta">
+      <p id="fov-trend-empty" class="game-trend__empty">Complete a trial to populate chart.</p>
+      <p class="game-trend__meta">
         Latest: <strong id="fov-trend-latest">500</strong> ms
       </p>
     </section>

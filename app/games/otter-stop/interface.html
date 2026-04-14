@@ -67,6 +67,19 @@
       </button>
     </div>
 
+    <!-- Speed trend chart -->
+    <section class="game-trend" aria-labelledby="os-trend-title">
+      <h4 id="os-trend-title">Speed Trend (ms)</h4>
+      <svg id="os-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Display interval trend over recent trials">
+        <polyline id="os-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="os-trend-empty" class="game-trend__empty">Complete a trial to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="os-trend-latest">--</strong> ms
+      </p>
+    </section>
+
   </div>
 
   <!-- ── End panel (shown after game ends) ── -->

@@ -69,6 +69,19 @@
     <!-- Live feedback region (correct / incorrect). -->
     <div id="dp-feedback" class="dp-feedback" role="status" aria-live="polite"></div>
 
+    <!-- Speed trend chart -->
+    <section class="game-trend" aria-labelledby="dp-trend-title">
+      <h4 id="dp-trend-title">Speed Trend (ms)</h4>
+      <svg id="dp-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Display time trend over recent trials">
+        <polyline id="dp-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="dp-trend-empty" class="game-trend__empty">Complete a trial to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="dp-trend-latest">--</strong> ms
+      </p>
+    </section>
+
     <div class="dp-controls">
       <button id="dp-stop-btn" type="button" class="game-btn game-btn--secondary">
         End Game

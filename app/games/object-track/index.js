@@ -12,6 +12,7 @@ import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import { renderTrendChart } from '../../components/trendChartService.js';
 
 // ── Exported constants ────────────────────────────────────────────────────────
 
@@ -83,6 +84,12 @@ let _finalLevelEl = null;
 let _finalRoundsEl = null;
 /** @type {HTMLElement|null} */
 let _sessionTimerEl = null;
+/** @type {SVGPolylineElement|null} */
+let _trendLineEl = null;
+/** @type {HTMLElement|null} */
+let _trendEmptyEl = null;
+/** @type {HTMLElement|null} */
+let _trendLatestEl = null;
 
 // ── Private state ─────────────────────────────────────────────────────────────
 
@@ -151,6 +158,19 @@ export function updateStats() {
   if (_scoreEl) _scoreEl.textContent = String(game.getScore());
   if (_levelEl) _levelEl.textContent = String(game.getLevel() + 1);
   if (_roundEl) _roundEl.textContent = String(game.getRoundsPlayed() + 1);
+}
+
+/**
+ * Render the speed trend chart with the latest speed history.
+ *
+ * @returns {void}
+ */
+export function updateTrendChart() {
+  renderTrendChart(
+    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
+    game.getSpeedHistory(),
+    game.getLevelConfig(game.getLevel()).speedPxPerSec,
+  );
 }
 
 // ── Arena background ──────────────────────────────────────────────────────────
@@ -370,6 +390,7 @@ export async function submitResponse() {
   const evalResult = game.evaluateResponse(currentCircles, _selectedIds);
   game.recordRoundResult(evalResult.correct);
   updateStats();
+  updateTrendChart();
 
   currentCircles.forEach((c) => {
     if (!_arenaEl) return;
@@ -483,6 +504,9 @@ function init(gameContainer) {
   _finalLevelEl = q('#mot-final-level');
   _finalRoundsEl = q('#mot-final-rounds');
   _sessionTimerEl = q('#mot-session-timer');
+  _trendLineEl = q('#mot-trend-line');
+  _trendEmptyEl = q('#mot-trend-empty');
+  _trendLatestEl = q('#mot-trend-latest');
 
   if (_startBtn) _startBtn.addEventListener('click', () => start());
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
@@ -562,6 +586,7 @@ function reset() {
   if (_instructionsEl) _instructionsEl.hidden = false;
   if (_playAreaEl) _playAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
+  updateTrendChart();
 }
 
 export default {

@@ -15,6 +15,7 @@ import { playSweepPair, playFeedbackSound } from '../../components/audioService.
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import * as timerService from '../../components/timerService.js';
+import { renderTrendChart } from '../../components/trendChartService.js';
 
 /** Game identifier used for progress persistence (must match manifest.json id). */
 const GAME_ID = 'sound-sweep';
@@ -54,6 +55,12 @@ let _trialsEl = null;
 let _streakEl = null;
 /** @type {HTMLElement|null} */
 let _sessionTimerEl = null;
+/** @type {SVGPolylineElement|null} */
+let _trendLineEl = null;
+/** @type {HTMLElement|null} */
+let _trendEmptyEl = null;
+/** @type {HTMLElement|null} */
+let _trendLatestEl = null;
 /** @type {HTMLElement|null} */
 let _finalLevelEl = null;
 /** @type {HTMLElement|null} */
@@ -146,6 +153,17 @@ export function updateStats() {
 }
 
 /**
+ * Render the speed trend chart with the latest sweep-duration history.
+ */
+export function updateTrendChart() {
+  renderTrendChart(
+    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
+    game.getSpeedHistory(),
+    game.getCurrentLevelConfig().sweepDurationMs,
+  );
+}
+
+/**
  * Cancel and clear all outstanding timer handles.
  */
 function clearAsyncHandles() {
@@ -216,6 +234,7 @@ export function handleSequenceResponse(response) {
   game.recordTrial({ success });
 
   updateStats();
+  updateTrendChart();
   playFeedbackSound(success);
 
   // Write result feedback directly to the polite live region (#ss-feedback)
@@ -321,6 +340,9 @@ function init(gameContainer) {
   _trialsEl        = _container.querySelector('#ss-trials');
   _streakEl        = _container.querySelector('#ss-streak');
   _sessionTimerEl  = _container.querySelector('#ss-session-timer');
+  _trendLineEl     = _container.querySelector('#ss-trend-line');
+  _trendEmptyEl    = _container.querySelector('#ss-trend-empty');
+  _trendLatestEl   = _container.querySelector('#ss-trend-latest');
   _finalLevelEl    = _container.querySelector('#ss-final-level');
   _finalScoreEl    = _container.querySelector('#ss-final-score');
   _finalTrialsEl   = _container.querySelector('#ss-final-trials');
@@ -437,6 +459,7 @@ function reset() {
 
   setResponseButtonsEnabled(false);
   updateStats();
+  updateTrendChart();
 }
 
 export default {

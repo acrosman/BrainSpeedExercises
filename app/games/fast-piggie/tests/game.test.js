@@ -19,6 +19,7 @@ import {
   getConsecutiveWrong,
   getCurrentDifficulty,
   isRunning,
+  getSpeedHistory,
 } from '../game.js';
 
 beforeEach(() => {
@@ -597,5 +598,43 @@ describe('getBestStats()', () => {
     stopGame();
     const stats = getBestStats();
     expect(stats.mostRounds).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ── getSpeedHistory ───────────────────────────────────────────────────────────
+
+describe('getSpeedHistory()', () => {
+  it('appends an entry after addScore()', () => {
+    startGame();
+    generateRound();
+    addScore(3, 0);
+    const history = getSpeedHistory();
+    expect(history).toHaveLength(1);
+    expect(typeof history[0]).toBe('number');
+  });
+
+  it('appends an entry after addMiss()', () => {
+    startGame();
+    generateRound();
+    addMiss(0);
+    const history = getSpeedHistory();
+    expect(history).toHaveLength(1);
+  });
+
+  it('returns a copy so mutations do not affect internal state', () => {
+    startGame();
+    generateRound();
+    addScore(3, 0);
+    const h = getSpeedHistory();
+    h.pop();
+    expect(getSpeedHistory()).toHaveLength(1);
+  });
+
+  it('resets to empty after initGame()', () => {
+    startGame();
+    generateRound();
+    addScore(3, 0);
+    initGame();
+    expect(getSpeedHistory()).toEqual([]);
   });
 });
