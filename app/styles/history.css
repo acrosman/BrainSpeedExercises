@@ -1,0 +1,279 @@
+/* ── History Panel ───────────────────────────────────────────────────────────
+ *
+ * Modal overlay that displays session play history, including a bar chart and
+ * summary table. Also includes the play-time bar confirmation sub-panel.
+ * Depends on: variables.css
+ */
+
+/* ── Modal overlay ───────────────────────────────────────────────────────── */
+
+.history-panel {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+/* Show when the hidden attribute is absent (set by JS). */
+.history-panel:not([hidden]) {
+  display: flex;
+}
+
+.history-panel__inner {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Panel header ────────────────────────────────────────────────────────── */
+
+.history-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+}
+
+.history-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.history-panel__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-base);
+}
+
+/* ── Clear-history button ────────────────────────────────────────────────── */
+
+.history-panel__clear-btn {
+  background: none;
+  border: 1px solid var(--color-danger-muted);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.5;
+  color: var(--color-danger-muted);
+  transition: background-color var(--transition-quick), color var(--transition-quick);
+}
+
+.history-panel__clear-btn:hover {
+  background-color: var(--color-danger-muted);
+  color: var(--bg-card);
+}
+
+/* ── Close button ────────────────────────────────────────────────────────── */
+
+.history-panel__close {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 1.125rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  color: var(--text-muted);
+  transition: background-color var(--transition-quick);
+}
+
+.history-panel__close:hover {
+  background-color: var(--bg-subtle);
+}
+
+/* ── Confirm-clear sub-panel ─────────────────────────────────────────────── */
+
+.history-panel__confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-warning-bg);
+  border-bottom: 1px solid var(--color-warning-border);
+}
+
+.history-panel__confirm-text {
+  font-size: 0.9rem;
+  color: var(--color-warning-text);
+}
+
+.history-panel__confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.history-panel__confirm-cancel {
+  background: none;
+  border: 1px solid var(--text-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  color: var(--text-muted);
+  transition: background-color var(--transition-quick);
+}
+
+.history-panel__confirm-cancel:hover {
+  background-color: var(--bg-muted);
+}
+
+.history-panel__confirm-ok {
+  background: var(--color-danger-muted);
+  border: 1px solid var(--color-danger-muted);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  color: var(--bg-card);
+  transition: background-color var(--transition-quick);
+}
+
+.history-panel__confirm-ok:hover {
+  background-color: var(--color-danger-muted-hover);
+  border-color: var(--color-danger-muted-hover);
+}
+
+/* ── Panel body ──────────────────────────────────────────────────────────── */
+
+.history-panel__body {
+  padding: 1.5rem;
+  flex: 1;
+}
+
+.history-panel__empty {
+  color: var(--text-subtle);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+/* ── History bar chart ───────────────────────────────────────────────────── */
+
+.history-chart {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.history-chart__bars {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  height: 160px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0;
+  min-width: fit-content;
+}
+
+.history-chart__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 60px;
+}
+
+.history-chart__bar {
+  width: 16px;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.2s ease;
+}
+
+.history-chart__bar--total {
+  background-color: var(--chart-color-total);
+  width: 10px;
+}
+
+/* Per-slot bar colours (indices cycle for > 6 games). */
+.history-chart__bar--color-0 { background-color: var(--chart-color-0); }
+.history-chart__bar--color-1 { background-color: var(--chart-color-1); }
+.history-chart__bar--color-2 { background-color: var(--chart-color-2); }
+.history-chart__bar--color-3 { background-color: var(--chart-color-3); }
+.history-chart__bar--color-4 { background-color: var(--chart-color-4); }
+.history-chart__bar--color-5 { background-color: var(--chart-color-5); }
+
+/* Legend swatch colours matching the bars above. */
+.history-chart__legend-swatch--color-0 { background-color: var(--chart-color-0); }
+.history-chart__legend-swatch--color-1 { background-color: var(--chart-color-1); }
+.history-chart__legend-swatch--color-2 { background-color: var(--chart-color-2); }
+.history-chart__legend-swatch--color-3 { background-color: var(--chart-color-3); }
+.history-chart__legend-swatch--color-4 { background-color: var(--chart-color-4); }
+.history-chart__legend-swatch--color-5 { background-color: var(--chart-color-5); }
+
+.history-chart__label {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+.history-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.history-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+}
+
+.history-chart__legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.history-chart__legend-swatch--total {
+  background-color: var(--chart-color-total);
+}
+
+/* ── History summary table ───────────────────────────────────────────────── */
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.history-table th,
+.history-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.history-table th {
+  background-color: var(--bg-body);
+  font-weight: 600;
+  color: var(--text-base);
+}
+
+.history-table tbody tr:hover {
+  background-color: var(--bg-body);
+}

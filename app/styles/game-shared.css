@@ -1,0 +1,209 @@
+/* ── Shared Game UI Components ───────────────────────────────────────────────
+ *
+ * Reusable UI elements shared across all game plugins:
+ *   • .game-welcome    — instructions / welcome panel
+ *   • .game-end-panel  — end-of-session results layout
+ *   • .game-results    — results definition list
+ *   • .game-btn        — shared action button (primary / secondary variants)
+ *   • .game-trend      — in-game speed/difficulty trend chart
+ *
+ * Every game's interface.html should apply these classes alongside any
+ * game-specific classes. Do NOT duplicate these styles in game stylesheets.
+ * Depends on: variables.css
+ */
+
+/* ── Welcome / instructions panel ───────────────────────────────────────── */
+/*
+ * Apply .game-welcome to the instructions <div> shown before the game starts.
+ * The panel always starts with <h3>How to Play</h3>.
+ */
+
+.game-welcome {
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 2rem;
+  box-sizing: border-box;
+}
+
+.game-welcome h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.game-welcome p {
+  margin: 0 0 0.75rem;
+}
+
+.game-welcome ul,
+.game-welcome ol {
+  margin: 0 0 1.25rem 1.25rem;
+  padding: 0;
+}
+
+.game-welcome li {
+  line-height: 1.7;
+  margin-bottom: 0.25rem;
+}
+
+.game-welcome kbd {
+  display: inline-block;
+  padding: 0 0.35em;
+  font-family: monospace;
+  font-size: 0.875em;
+  border: 1px solid var(--text-subtle);
+  border-radius: 3px;
+  background-color: var(--bg-subtle);
+}
+
+/* ── End-of-session panel ────────────────────────────────────────────────── */
+/*
+ * Apply .game-end-panel to the container shown after the session ends.
+ * Use <h2>Session Ended</h2> as the heading.
+ */
+
+.game-end-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.game-end-panel h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+/* ── Results definition list ─────────────────────────────────────────────── */
+/*
+ * Use a <dl> with .game-results inside .game-end-panel.
+ * Each row is a <div class="game-results__row"> containing one <dt> and one <dd>.
+ */
+
+.game-results {
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--game-results-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.game-results__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--game-results-row-border);
+}
+
+.game-results__row:last-child {
+  border-bottom: none;
+}
+
+.game-results__label {
+  font-weight: 600;
+  color: var(--game-results-label);
+}
+
+.game-results__value {
+  color: var(--game-results-value);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── End-panel action buttons ────────────────────────────────────────────── */
+
+.game-end-panel__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Shared game buttons ─────────────────────────────────────────────────── */
+/*
+ * .game-btn           — base style; always pair with a variant modifier.
+ * .game-btn--primary  — "Start Game" / "Play Again" (blue).
+ * .game-btn--secondary — "Return to Menu" / "End Game" (red).
+ */
+
+.game-btn {
+  padding: 0.55rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.game-btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.game-btn--primary {
+  background: var(--btn-primary-bg);
+  color: var(--bg-card);
+  border-color: var(--btn-primary-border);
+}
+
+.game-btn--primary:hover {
+  background: var(--btn-primary-hover);
+}
+
+.game-btn--secondary {
+  background: var(--btn-danger-bg);
+  color: var(--bg-card);
+  border-color: var(--btn-danger-border);
+}
+
+.game-btn--secondary:hover {
+  background: var(--btn-danger-hover);
+}
+
+/* ── In-game speed/difficulty trend chart ────────────────────────────────── */
+/*
+ * Apply .game-trend to the <section> that wraps the SVG polyline chart.
+ * The inner SVG uses .game-trend__chart; status messages use .game-trend__meta /
+ * .game-trend__empty.
+ */
+
+.game-trend {
+  margin-top: 0.75rem;
+  border: 1px solid var(--trend-border);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem 0.6rem;
+  background: var(--trend-bg);
+  color: var(--trend-text);
+}
+
+.game-trend h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.game-trend__chart {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  min-height: 72px;
+  margin-top: 0.35rem;
+  border: 1px solid var(--trend-chart-border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #f8fafc 0%, #e5edf5 100%);
+}
+
+.game-trend__empty,
+.game-trend__meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+}

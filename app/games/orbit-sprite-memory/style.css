@@ -1,19 +1,35 @@
+/* ── Orbit Sprite Memory ─────────────────────────────────────────────────── */
+/*
+ * All selectors are prefixed with .orbit-memory or .osm- to avoid collisions.
+ * Shared panel and button styles (.game-welcome, .game-end-panel, .game-results,
+ * .game-btn) come from app/style.css — they are NOT duplicated here.
+ * CSS custom properties are defined in app/styles/variables.css.
+ *
+ * Local game-specific palette:
+ *   --osm-accent      primary interactive colour
+ *   --osm-accent-dark hover / active shade of --osm-accent
+ *   --osm-border      board / choice-button border
+ */
+
 .orbit-memory {
-  --osm-text: #1e2a33;
-  --osm-accent: #2b6cb0;
+  --osm-accent:      #2b6cb0;
   --osm-accent-dark: #1a4f8a;
-  --osm-border: #ccd8df;
-  --osm-board: #ffffff;
-  --osm-focus: #005fcc;
-  color: var(--osm-text);
-  background: #f8f9fa;
+  --osm-border:      #ccd8df;
+  color: var(--text-base);
+  background: var(--bg-body);
   border-radius: 18px;
   padding: 1rem;
 }
 
+/* ── Panel wrapper ────────────────────────────────────────────────────────── */
+/* .osm-panel is used alongside .game-welcome / .game-end-panel; it            */
+/* does not override the shared layout rules.                                   */
+
 .osm-panel {
   /* Styling delegated to shared .game-welcome / .game-end-panel classes */
 }
+
+/* ── Stats bar ────────────────────────────────────────────────────────────── */
 
 .osm-stats {
   display: flex;
@@ -22,12 +38,16 @@
   margin: 0.75rem 0;
 }
 
+/* ── Target sprite display ───────────────────────────────────────────────── */
+
 .osm-target-wrap {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
+
+/* ── Game board ──────────────────────────────────────────────────────────── */
 
 .osm-board {
   position: relative;
@@ -36,8 +56,10 @@
   margin: 0 auto;
   border: 2px solid var(--osm-border);
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--bg-card);
 }
+
+/* ── Sprites ─────────────────────────────────────────────────────────────── */
 
 .osm-sprite {
   width: 96px;
@@ -57,14 +79,16 @@
   transform: translate(-50%, -50%);
 }
 
+/* ── Choice buttons ──────────────────────────────────────────────────────── */
+
 .osm-choice-btn {
   position: absolute;
   transform: translate(-50%, -50%);
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 2px solid #4d6b7a;
-  background: #ffffff;
+  border: 2px solid var(--osm-border);
+  background: var(--bg-card);
   cursor: pointer;
 }
 
@@ -74,7 +98,7 @@
 
 .osm-choice-btn:focus-visible,
 .osm-btn:focus-visible {
-  outline: 3px solid var(--osm-focus);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -82,6 +106,10 @@
   background: var(--osm-accent);
   border-color: var(--osm-accent-dark);
 }
+
+/* ── Controls ────────────────────────────────────────────────────────────── */
+/* Shared .game-btn classes handle start/stop/play-again buttons;              */
+/* .osm-controls is only a flex layout wrapper.                                 */
 
 .osm-controls,
 .osm-end-actions {
@@ -91,28 +119,7 @@
   margin-top: 1rem;
 }
 
-.osm-btn {
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 0.55rem 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.osm-btn--primary {
-  background: var(--osm-accent);
-  color: #fff;
-}
-
-.osm-btn--primary:hover {
-  background: var(--osm-accent-dark);
-}
-
-.osm-btn--secondary {
-  background: #eff4f7;
-  border-color: var(--osm-border);
-  color: var(--osm-text);
-}
+/* ── Board state feedback ────────────────────────────────────────────────── */
 
 .osm-board--success {
   box-shadow: 0 0 0 6px rgba(43, 166, 91, 0.55);
@@ -121,6 +128,8 @@
 .osm-board--failure {
   box-shadow: 0 0 0 6px rgba(198, 58, 58, 0.55);
 }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 520px) {
   .osm-sprite {

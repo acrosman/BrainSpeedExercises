@@ -4,6 +4,7 @@
  * All selectors are prefixed with .mot- to prevent collisions with global styles.
  * Shared panel classes (.game-welcome, .game-end-panel, etc.) are defined in
  * app/style.css and are not duplicated here.
+ * CSS custom properties are defined in app/styles/variables.css.
  */
 
 /* ── Layout ──────────────────────────────────────────────────────────────────── */
@@ -17,14 +18,14 @@
   margin: 0 auto;
   padding: 1rem;
   box-sizing: border-box;
-  background-color: #f8f9fa;
-  color: #212529; /* ~14.5:1 contrast on #f8f9fa */
+  background-color: var(--bg-body);
+  color: var(--text-base);
 }
 
 .mot-game__title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #212529;
+  color: var(--text-base);
   margin-bottom: 1rem;
   text-align: center;
 }
@@ -48,7 +49,7 @@
   gap: 1.25rem;
   font-size: 1rem;
   font-weight: 500;
-  color: #212529;
+  color: var(--text-base);
   width: 100%;
 }
 
@@ -57,7 +58,7 @@
 .mot-game__phase-label {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #004ea8; /* 7.1:1 contrast on #f8f9fa — WCAG AA large + normal */
+  color: var(--btn-primary-bg); /* 7.1:1 contrast on var(--bg-body) — WCAG AA */
   text-align: center;
   min-height: 1.5em;
   margin: 0.25rem 0;
@@ -73,8 +74,8 @@
   background-size: cover;
   background-position: center;
   overflow: hidden;
-  border-radius: 8px;
-  border: 2px solid #adb5bd;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-color);
 }
 
 /* ── Controls ────────────────────────────────────────────────────────────────── */

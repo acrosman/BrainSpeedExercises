@@ -1,0 +1,82 @@
+/* ── CSS Custom Properties (Design Tokens) ───────────────────────────────────
+ *
+ * All theme variables are defined here. Game-specific stylesheets should
+ * reference these variables rather than hard-coding colour values, so the
+ * entire application can be re-themed by editing a single file.
+ *
+ * Naming convention: --<category>-<role>[-<modifier>]
+ */
+
+:root {
+  /* ── Background palette ─────────────────────────────────────────────────── */
+  --bg-body:    #f8f9fa;   /* App body and default panel background             */
+  --bg-card:    #ffffff;   /* Card / modal inner background                     */
+  --bg-dark:    #212529;   /* App header bar                                    */
+  --bg-nav:     #343a40;   /* Navigation bar                                    */
+  --bg-muted:   #e9ecef;   /* Subtle section background (play-time bar, etc.)   */
+  --bg-subtle:  #f1f3f5;   /* Very subtle background (kbd, hover rows, etc.)    */
+
+  /* ── Text palette ───────────────────────────────────────────────────────── */
+  --text-base:     #212529;  /* Primary body text  (~14.5:1 on --bg-body)       */
+  --text-muted:    #495057;  /* Secondary text     (~7.3:1 on --bg-body)        */
+  --text-subtle:   #6c757d;  /* Tertiary / hint text                            */
+  --text-inverted: #f8f9fa;  /* Text on dark backgrounds (header, nav)          */
+  --text-heading:  #1a1a1a;  /* Game panel headings                             */
+
+  /* ── Border palette ─────────────────────────────────────────────────────── */
+  --border-color:  #dee2e6;  /* Standard component border                       */
+  --border-strong: #c0c8d4;  /* Slightly darker border (results table)          */
+  --border-subtle: #e0e0e0;  /* Light divider lines inside tables               */
+
+  /* ── Focus / interactive ────────────────────────────────────────────────── */
+  --focus-ring: #005fcc;   /* Keyboard focus outline colour (WCAG AA)           */
+
+  /* ── Primary action — blue ──────────────────────────────────────────────── */
+  --btn-primary-bg:     #005fcc;
+  --btn-primary-border: #004fa3;
+  --btn-primary-hover:  #004fa3;
+  --btn-primary-active: #003d8a;
+
+  /* ── Danger / secondary game action — red ───────────────────────────────── */
+  --btn-danger-bg:     #c0392b;
+  --btn-danger-border: #922b21;
+  --btn-danger-hover:  #922b21;
+
+  /* ── Status / alert colours ─────────────────────────────────────────────── */
+  --color-danger-muted:       #dc3545;  /* Outline-style danger (clear buttons)  */
+  --color-danger-muted-hover: #bb2d3b;
+  --color-success:            #28a745;  /* Correct / matched state               */
+  --color-warning-bg:         #fff3cd;  /* Warning confirmation background       */
+  --color-warning-border:     #ffc107;  /* Warning confirmation border           */
+  --color-warning-text:       #664d03;  /* Text on warning background            */
+
+  /* ── Shared game-component palette ─────────────────────────────────────── */
+  --game-results-border:     #c0c8d4;  /* Border around results <dl>             */
+  --game-results-row-border: #e0e0e0;  /* Row divider inside results table       */
+  --game-results-label:      #333;     /* <dt> label text                        */
+  --game-results-value:      #111;     /* <dd> value text                        */
+
+  /* ── Speed-trend chart ──────────────────────────────────────────────────── */
+  --trend-border:       #c1c9d2;
+  --trend-bg:           #eef2f6;
+  --trend-text:         #19324a;
+  --trend-chart-border: #9eabb8;
+
+  /* ── Border radii ───────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* ── Transitions ────────────────────────────────────────────────────────── */
+  --transition-fast:  0.15s ease;
+  --transition-quick: 0.1s ease;
+
+  /* ── Chart bar colour palette (6 accessible colours + total-bar grey) ───── */
+  --chart-color-0:     #005fcc;
+  --chart-color-1:     #c9510c;
+  --chart-color-2:     #238636;
+  --chart-color-3:     #8250df;
+  --chart-color-4:     #d1242f;
+  --chart-color-5:     #0969da;
+  --chart-color-total: #adb5bd;
+}

@@ -1,3 +1,11 @@
+/* ── High Speed Memory ────────────────────────────────────────────────────── */
+/*
+ * All selectors are prefixed with .high-speed-memory or .hsm- to avoid
+ * collisions.  Shared panel and button styles (.game-welcome, .game-end-panel,
+ * .game-results, .game-btn) come from app/style.css — they are NOT duplicated
+ * here.  CSS custom properties are defined in app/styles/variables.css.
+ */
+
 /* ── Section wrapper ─────────────────────────────────────────── */
 .high-speed-memory {
   display: flex;
@@ -5,8 +13,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background-color: #f8f9fa;
-  color: #212529; /* ~14.5:1 contrast on #f8f9fa */
+  background-color: var(--bg-body);
+  color: var(--text-base);
   /* Fill the full height of the game container */
   min-height: calc(100vh - 160px);
   box-sizing: border-box;
@@ -19,43 +27,7 @@
 }
 
 /* ── Instructions panel ──────────────────────────────────────── */
-.hsm-instructions {
-  max-width: 540px;
-  background-color: #ffffff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 1.5rem 2rem;
-  text-align: left;
-}
-
-.hsm-instructions h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin: 0 0 0.75rem;
-}
-
-.hsm-instructions p {
-  margin: 0 0 0.75rem;
-}
-
-.hsm-instructions ul {
-  margin: 0 0 1.25rem 1.25rem;
-  padding: 0;
-}
-
-.hsm-instructions li {
-  margin-bottom: 0.4rem;
-}
-
-.hsm-instructions kbd {
-  display: inline-block;
-  padding: 0 0.35em;
-  font-family: monospace;
-  font-size: 0.875em;
-  border: 1px solid #adb5bd;
-  border-radius: 3px;
-  background-color: #f1f3f5;
-}
+/* Layout is provided by .game-welcome in app/style.css.          */
 
 .hsm-instructions__primary-label {
   margin: 0.75rem 0 0.25rem;
@@ -67,16 +39,9 @@
   width: 120px;
   height: 120px;
   object-fit: cover;
-  border-radius: 6px;
-  border: 3px solid #28a745;
+  border-radius: var(--radius-md);
+  border: 3px solid var(--color-success);
   margin: 0 auto 1rem;
-}
-
-.hsm-instructions .hsm-btn {
-  display: block;
-  width: 100%;
-  padding: 0.65rem 1.5rem;
-  font-size: 1.1rem;
 }
 
 /* ── Game area ───────────────────────────────────────────────── */
@@ -123,11 +88,11 @@
 .hsm-card {
   position: relative;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   overflow: hidden;
   background-color: #1a1a2e;
-  transition: transform 0.1s ease, background-color 0.15s ease;
+  transition: transform 0.1s ease, background-color var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -146,14 +111,14 @@
 
 /* Face-up revealed state */
 .hsm-card--revealed {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
 }
 
 /* Matched pair: green background */
 .hsm-card--matched {
   background-color: #d4edda;
   cursor: default;
-  outline: 2px solid #28a745;
+  outline: 2px solid var(--color-success);
 }
 
 .hsm-card--matched .hsm-card__img {
@@ -163,13 +128,13 @@
 /* Wrong guess: red tint (no animation per game spec) */
 .hsm-card--wrong {
   background-color: #f8d7da;
-  outline: 2px solid #dc3545;
+  outline: 2px solid var(--color-danger-muted);
 }
 
 /* Empty placeholder cell (fills unused grid slot) */
 .hsm-card--empty {
   background-color: transparent;
-  border: 1px dashed #dee2e6;
+  border: 1px dashed var(--border-color);
   cursor: default;
   pointer-events: none;
 }
@@ -179,7 +144,7 @@
 }
 
 .hsm-card:focus-visible {
-  outline: 3px solid #005fcc;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -191,84 +156,6 @@
   justify-content: center;
 }
 
-/* ── Buttons ─────────────────────────────────────────────────── */
-.hsm-btn {
-  padding: 0.5rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #005fcc;
-  color: #ffffff; /* 7.3:1 contrast on #005fcc */
-  transition: background-color 0.15s ease;
-}
-
-.hsm-btn:hover {
-  background-color: #004aa3;
-}
-
-.hsm-btn:active {
-  background-color: #003d88;
-}
-
-.hsm-btn:focus-visible {
-  outline: 3px solid #005fcc;
-  outline-offset: 3px;
-  background-color: #004aa3;
-}
-
-.hsm-btn--secondary {
-  background-color: #6c757d; /* 4.6:1 on #ffffff */
-  color: #ffffff;
-}
-
-.hsm-btn--secondary:hover {
-  background-color: #545b62;
-}
-
-.hsm-btn--secondary:active {
-  background-color: #3d4349;
-}
-
-.hsm-btn--secondary:focus-visible {
-  outline-color: #6c757d;
-}
-
 /* ── End-game panel ──────────────────────────────────────────── */
-.hsm-end-panel {
-  max-width: 360px;
-  background-color: #ffffff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 1.5rem 2rem;
-  text-align: center;
-}
-
-.hsm-end-panel h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 1rem;
-}
-
-.hsm-end-panel p {
-  font-size: 1.1rem;
-  margin: 0 0 0.5rem;
-}
-
-.hsm-end-panel__actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.hsm-end-panel .hsm-btn {
-  padding: 0.65rem 1.5rem;
-}
-
-/* ── Respect hidden attribute ────────────────────────────────── */
-[hidden] {
-  display: none !important;
-}
+/* Layout and results are provided by .game-end-panel and .game-results */
+/* in app/style.css — only game-specific overrides belong here.         */

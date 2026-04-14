@@ -1,7 +1,12 @@
 /* ── Template Game ────────────────────────────────────────────────────────── */
-/* All selectors are prefixed with .game-template to avoid collisions.        */
-/* Shared welcome panel and end panel styles come from app/style.css          */
-/* (.game-welcome, .game-end-panel, .game-results, .game-btn).                */
+/*
+ * All selectors are prefixed with .game-template to avoid collisions.
+ * Shared welcome panel, end panel, results table, and button styles all come
+ * from app/style.css (.game-welcome, .game-end-panel, .game-results, .game-btn).
+ * This file only contains layout and presentation rules that are unique to this
+ * game.  Use the CSS custom properties defined in app/styles/variables.css
+ * instead of hard-coding colour values.
+ */
 
 .game-template {
   display: flex;
@@ -18,7 +23,7 @@
   margin: 0 0 0.5rem;
   font-size: 1.75rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-heading);
 }
 
 /* ── Instructions panel ───────────────────────────────────────────────────── */
@@ -39,14 +44,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  border: 2px solid #ccc;
-  border-radius: 4px;
+  background: var(--bg-subtle);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
   width: 100%;
 }
 
 .game-template__placeholder {
-  color: #666;
+  color: var(--text-subtle);
   font-style: italic;
 }
 
@@ -63,21 +68,6 @@
 /* in app/style.css. Add any game-specific overrides here.                     */
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
-/* Base button styles come from .game-btn in app/style.css.                    */
-/* Add any game-specific button overrides here.                                */
-
-.game-template__btn {
-  /* inherits from .game-btn */
-  border: 2px solid transparent;
-  cursor: pointer;
-}
-
-.game-template__btn--stop {
-  background: #c0392b;
-  color: #fff;
-  border-color: #922b21;
-}
-
-.game-template__btn--stop:hover {
-  background: #922b21;
-}
+/* All shared button styles come from .game-btn in app/style.css.              */
+/* Use .game-btn--primary and .game-btn--secondary in HTML; avoid adding       */
+/* game-specific button classes unless a genuine visual override is needed.    */
