@@ -159,7 +159,7 @@ export function renderThresholdTrend(els, history, currentSoaMs) {
   renderTrendChart(
     { lineEl: els.trendLineEl, emptyEl: els.trendEmptyEl, latestEl: els.trendLatestEl },
     values,
-    formatMs(currentSoaMs),
+    currentSoaMs,
   );
 
   if (els.finalBestThresholdEl) {
