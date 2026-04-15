@@ -55,7 +55,7 @@ export function createGameCard(manifest, progress) {
     // Show time played today if available.
     const today = getTodayDateString();
     if (progress.dailyTime && typeof progress.dailyTime[today] === 'number'
-        && progress.dailyTime[today] > 0) {
+      && progress.dailyTime[today] > 0) {
       details.push(`Today: ${formatDuration(progress.dailyTime[today])}`);
     }
     if (details.length > 0) {
@@ -71,12 +71,8 @@ export function createGameCard(manifest, progress) {
   button.textContent = `Play ${manifest.name}`;
   button.setAttribute('aria-label', `Play ${manifest.name}`);
 
-  /**
-   * Dispatches a game:select custom event when any part of the card is clicked.
-   * @fires CustomEvent#game:select
-   */
-  // Button clicks bubble up to the article, so keyboard Enter/Space activations
-  // on the Play button are also handled here without additional wiring.
+
+  // Dispatches a game:select custom event when any part of the card is clicked.
   article.addEventListener('click', () => {
     const event = new CustomEvent('game:select', {
       bubbles: true,
