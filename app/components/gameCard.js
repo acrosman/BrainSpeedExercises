@@ -73,10 +73,10 @@ export function createGameCard(manifest, progress) {
 
   /**
    * Dispatches a game:select custom event when any part of the card is clicked.
-   * The button inside the card bubbles its click up to the article, so both
-   * direct card clicks and button activations (keyboard Enter/Space) are handled here.
    * @fires CustomEvent#game:select
    */
+  // Button clicks bubble up to the article, so keyboard Enter/Space activations
+  // on the Play button are also handled here without additional wiring.
   article.addEventListener('click', () => {
     const event = new CustomEvent('game:select', {
       bubbles: true,
