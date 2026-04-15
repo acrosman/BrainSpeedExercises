@@ -107,6 +107,9 @@ export function drawBoard(
     return base * 0.24; // increased for more staggering
   });
 
+  // Capture the outlier's draw parameters to render it last (on top of distractors).
+  let outlierDraw = null;
+
   for (let i = 0; i < wedgeCount; i += 1) {
     const startAngle = -Math.PI / 2 + i * angleStep;
     const endAngle = startAngle + angleStep;
@@ -137,13 +140,31 @@ export function drawBoard(
           const imgCy = cy + Math.sin(midAngle) * imgRadius;
           const drawH = radius * 0.35;
           const drawW = drawH * (entry.sw / entry.sh);
-          ctx.drawImage(
-            entry.image, entry.sx, 0, entry.sw, entry.sh,
-            imgCx - drawW / 2, imgCy - drawH / 2, drawW, drawH,
-          );
+          if (imageIdx === outlierIndex) {
+            // Save outlier draw params — it will be rendered last to appear on top.
+            outlierDraw = {
+              entry, imgCx, imgCy, drawH, drawW,
+            };
+          } else {
+            ctx.drawImage(
+              entry.image, entry.sx, 0, entry.sw, entry.sh,
+              imgCx - drawW / 2, imgCy - drawH / 2, drawW, drawH,
+            );
+          }
         }
       }
     }
+  }
+
+  // Draw the outlier (target) image last so it always appears on top of all distractors.
+  if (outlierDraw) {
+    const {
+      entry, imgCx, imgCy, drawH, drawW,
+    } = outlierDraw;
+    ctx.drawImage(
+      entry.image, entry.sx, 0, entry.sw, entry.sh,
+      imgCx - drawW / 2, imgCy - drawH / 2, drawW, drawH,
+    );
   }
 }
 
@@ -442,6 +463,7 @@ function _resolveRound(wedge) {
     outlierWedgeIndex,
     slotAssignment,
     imageCount,
+    displayDurationMs,
   } = _currentRound;
   const { width, height } = _canvas;
   const correctWedgeIndex = _getCorrectWedgeIndex(_currentRound);
@@ -460,7 +482,7 @@ function _resolveRound(wedge) {
   }
 
   if (correct) {
-    game.addScore(imageCount, answerSpeedMs);
+    game.addScore(imageCount, answerSpeedMs, displayDurationMs);
     highlightWedge(
       _ctx,
       width,
@@ -492,7 +514,7 @@ function _resolveRound(wedge) {
         'rgba(255, 193, 7, 0.65)',
       );
     }
-    game.addMiss(imageCount);
+    game.addMiss(imageCount, displayDurationMs);
     playFailureSound();
     _triggerFlash('wrong');
     _feedbackEl.textContent = 'Not quite — the different piggie is highlighted.';
@@ -608,8 +630,8 @@ export default {
       score: result.score,
       sessionDurationMs,
       level: typeof bestStats.maxScore === 'number' ? bestStats.maxScore : undefined,
-      lowestDisplayTime: typeof bestStats.topSpeedMs === 'number'
-        ? bestStats.topSpeedMs
+      lowestDisplayTime: typeof bestStats.lowestRoundDisplayMs === 'number'
+        ? bestStats.lowestRoundDisplayMs
         : undefined,
     }, (prev) => ({
       maxPiggies: Math.max(
