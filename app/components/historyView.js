@@ -160,13 +160,13 @@ export function createDataTable(summaryData, gameIds, manifests) {
 }
 
 /**
- * Create a total play-time bar chart showing daily totals across all games.
+ * Create a total play-time line chart showing daily totals across all games.
  *
- * Renders one bar per day proportional to the maximum daily total, giving
- * a quick at-a-glance overview of overall activity. Labeled with MM-DD dates.
+ * Renders an SVG line chart with one data point per day connected by a line,
+ * giving a quick at-a-glance trend of overall activity. Labeled with MM-DD dates.
  *
  * @param {Array<{date: string, total: number}>} summaryData - Per-day totals.
- * @returns {HTMLElement} A <div> element containing the total play-time chart.
+ * @returns {HTMLElement} A <div> element containing the total play-time line chart.
  */
 export function createTotalPlayTimeChart(summaryData) {
   const wrapper = document.createElement('div');
@@ -184,31 +184,60 @@ export function createTotalPlayTimeChart(summaryData) {
     return wrapper;
   }
 
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const svgW = 600;
+  const svgH = 120;
+  const pad = {
+    top: 10, right: 20, bottom: 28, left: 10,
+  };
+  const plotW = svgW - pad.left - pad.right;
+  const plotH = svgH - pad.top - pad.bottom;
   const maxMs = Math.max(...summaryData.map((d) => d.total), 1);
+  const n = summaryData.length;
 
-  const barsEl = document.createElement('div');
-  barsEl.className = 'history-total-chart__bars';
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+  svg.setAttribute('class', 'history-total-chart__svg');
+  svg.setAttribute('role', 'img');
 
-  summaryData.forEach((dayData) => {
-    const group = document.createElement('div');
-    group.className = 'history-total-chart__group';
-
-    const bar = document.createElement('div');
-    bar.className = 'history-total-chart__bar';
-    const heightPct = Math.round((dayData.total / maxMs) * 100);
-    bar.style.height = `${heightPct}%`;
-    bar.title = `${dayData.date}: ${formatDuration(dayData.total)}`;
-
-    const label = document.createElement('span');
-    label.className = 'history-total-chart__label';
-    label.textContent = dayData.date.slice(5); // Display as MM-DD for compactness.
-
-    group.appendChild(bar);
-    group.appendChild(label);
-    barsEl.appendChild(group);
+  // Calculate pixel coordinates for each data point.
+  const points = summaryData.map((d, i) => {
+    const x = pad.left + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+    const y = pad.top + plotH - Math.round((d.total / maxMs) * plotH);
+    return {
+      x, y, date: d.date, total: d.total,
+    };
   });
 
-  wrapper.appendChild(barsEl);
+  // Polyline connecting all data points.
+  const polyline = document.createElementNS(SVG_NS, 'polyline');
+  polyline.setAttribute('points', points.map((p) => `${p.x},${p.y}`).join(' '));
+  polyline.setAttribute('class', 'history-total-chart__line');
+  svg.appendChild(polyline);
+
+  // Dot and date label for each point.
+  points.forEach((p) => {
+    const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('cx', p.x);
+    circle.setAttribute('cy', p.y);
+    circle.setAttribute('r', '4');
+    circle.setAttribute('class', 'history-total-chart__dot');
+
+    const tooltipTitle = document.createElementNS(SVG_NS, 'title');
+    tooltipTitle.textContent = `${p.date}: ${formatDuration(p.total)}`;
+    circle.appendChild(tooltipTitle);
+    svg.appendChild(circle);
+
+    const label = document.createElementNS(SVG_NS, 'text');
+    label.setAttribute('x', p.x);
+    label.setAttribute('y', svgH - 4);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('class', 'history-total-chart__x-label');
+    label.textContent = p.date.slice(5); // Display as MM-DD.
+    svg.appendChild(label);
+  });
+
+  wrapper.appendChild(svg);
   return wrapper;
 }
 

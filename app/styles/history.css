@@ -167,7 +167,7 @@
   padding: 2rem 0;
 }
 
-/* ── Total play-time summary chart ───────────────────────────────────────── */
+/* ── Total play-time summary chart (SVG line chart) ──────────────────────── */
 
 .history-total-chart {
   margin-bottom: 1.5rem;
@@ -177,39 +177,32 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-muted);
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.25rem;
 }
 
-.history-total-chart__bars {
-  display: flex;
-  gap: 0.35rem;
-  align-items: flex-end;
-  height: 100px;
-  border-bottom: 2px solid var(--border-color);
-  overflow-x: auto;
-}
-
-.history-total-chart__group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  flex: 1;
-  min-width: 32px;
-}
-
-.history-total-chart__bar {
+.history-total-chart__svg {
   width: 100%;
-  min-height: 2px;
-  border-radius: 2px 2px 0 0;
-  background-color: var(--chart-color-total);
-  transition: height 0.2s ease;
+  height: 120px;
+  display: block;
 }
 
-.history-total-chart__label {
-  font-size: 0.7rem;
-  color: var(--text-subtle);
-  white-space: nowrap;
+.history-total-chart__line {
+  fill: none;
+  stroke: var(--chart-color-0);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.history-total-chart__dot {
+  fill: var(--chart-color-0);
+  stroke: var(--bg-card);
+  stroke-width: 1.5;
+}
+
+.history-total-chart__x-label {
+  font-size: 10px;
+  fill: var(--text-subtle);
 }
 
 /* ── History bar chart ───────────────────────────────────────────────────── */

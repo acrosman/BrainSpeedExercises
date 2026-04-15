@@ -370,17 +370,39 @@ describe('createTotalPlayTimeChart()', () => {
     expect(chart.classList.contains('history-total-chart')).toBe(true);
   });
 
-  it('creates one group per date', () => {
+  it('contains an SVG element', () => {
     const chart = createTotalPlayTimeChart(summaryData);
-    const groups = chart.querySelectorAll('.history-total-chart__group');
-    expect(groups.length).toBe(dates.length);
+    const svg = chart.querySelector('svg');
+    expect(svg).not.toBeNull();
   });
 
-  it('each bar has a non-zero height for days with play time', () => {
+  it('SVG contains a polyline connecting all data points', () => {
     const chart = createTotalPlayTimeChart(summaryData);
-    const bars = chart.querySelectorAll('.history-total-chart__bar');
-    const hasNonZero = [...bars].some((b) => b.style.height !== '0%');
-    expect(hasNonZero).toBe(true);
+    const polyline = chart.querySelector('polyline');
+    expect(polyline).not.toBeNull();
+    // One x,y pair per date entry.
+    const pairs = polyline.getAttribute('points').trim().split(' ');
+    expect(pairs.length).toBe(dates.length);
+  });
+
+  it('SVG contains one dot (circle) per date', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const circles = chart.querySelectorAll('circle');
+    expect(circles.length).toBe(dates.length);
+  });
+
+  it('SVG dots carry a tooltip with date and duration', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const firstDot = chart.querySelector('circle');
+    const tooltip = firstDot.querySelector('title');
+    expect(tooltip).not.toBeNull();
+    expect(tooltip.textContent).toContain('2024-01-01');
+  });
+
+  it('x-axis labels use MM-DD format', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const labels = [...chart.querySelectorAll('.history-total-chart__x-label')];
+    expect(labels[0].textContent).toBe('01-01');
   });
 
   it('includes a title paragraph', () => {
@@ -390,16 +412,16 @@ describe('createTotalPlayTimeChart()', () => {
     expect(title.textContent).toBeTruthy();
   });
 
-  it('labels use MM-DD format', () => {
-    const chart = createTotalPlayTimeChart(summaryData);
-    const labels = [...chart.querySelectorAll('.history-total-chart__label')];
-    expect(labels[0].textContent).toBe('01-01');
-  });
-
-  it('returns a wrapper with title but no bars for empty summaryData', () => {
+  it('returns a wrapper with title but no SVG for empty summaryData', () => {
     const chart = createTotalPlayTimeChart([]);
     expect(chart.querySelector('.history-total-chart__title')).not.toBeNull();
-    expect(chart.querySelectorAll('.history-total-chart__group').length).toBe(0);
+    expect(chart.querySelector('svg')).toBeNull();
+  });
+
+  it('handles a single data point without error', () => {
+    const single = [{ date: '2024-01-01', total: 60000 }];
+    const chart = createTotalPlayTimeChart(single);
+    expect(chart.querySelectorAll('circle').length).toBe(1);
   });
 });
 
