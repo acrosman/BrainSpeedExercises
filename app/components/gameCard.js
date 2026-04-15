@@ -72,16 +72,18 @@ export function createGameCard(manifest, progress) {
   button.setAttribute('aria-label', `Play ${manifest.name}`);
 
   /**
-   * Dispatches a custom event when the game card button is clicked.
+   * Dispatches a game:select custom event when any part of the card is clicked.
+   * The button inside the card bubbles its click up to the article, so both
+   * direct card clicks and button activations (keyboard Enter/Space) are handled here.
    * @fires CustomEvent#game:select
    */
-  button.addEventListener('click', () => {
+  article.addEventListener('click', () => {
     const event = new CustomEvent('game:select', {
       bubbles: true,
       composed: true,
       detail: { gameId: manifest.id },
     });
-    button.dispatchEvent(event);
+    article.dispatchEvent(event);
   });
 
   article.appendChild(img);

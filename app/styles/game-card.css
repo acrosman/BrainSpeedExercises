@@ -16,10 +16,17 @@
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: box-shadow var(--transition-fast);
+  cursor: pointer;
 }
 
 .game-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Show a card-level focus ring when the Play button inside receives keyboard focus. */
+.game-card:focus-within {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .game-card img {
