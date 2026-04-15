@@ -395,6 +395,12 @@ describe('createTotalPlayTimeChart()', () => {
     const labels = [...chart.querySelectorAll('.history-total-chart__label')];
     expect(labels[0].textContent).toBe('01-01');
   });
+
+  it('returns a wrapper with title but no bars for empty summaryData', () => {
+    const chart = createTotalPlayTimeChart([]);
+    expect(chart.querySelector('.history-total-chart__title')).not.toBeNull();
+    expect(chart.querySelectorAll('.history-total-chart__group').length).toBe(0);
+  });
 });
 
 // ── buildHistoryPanel ─────────────────────────────────────────────────────────

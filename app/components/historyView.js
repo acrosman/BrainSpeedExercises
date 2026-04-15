@@ -169,16 +169,22 @@ export function createDataTable(summaryData, gameIds, manifests) {
  * @returns {HTMLElement} A <div> element containing the total play-time chart.
  */
 export function createTotalPlayTimeChart(summaryData) {
-  const maxMs = Math.max(...summaryData.map((d) => d.total), 1);
-
   const wrapper = document.createElement('div');
   wrapper.className = 'history-total-chart';
-  wrapper.setAttribute('aria-hidden', 'true'); // Accessible data is in the table below.
+  // Daily totals are also present in the accessible data table below,
+  // so this visual-only chart is safely hidden from assistive technology.
+  wrapper.setAttribute('aria-hidden', 'true');
 
   const title = document.createElement('p');
   title.className = 'history-total-chart__title';
   title.textContent = 'Total Play Time';
   wrapper.appendChild(title);
+
+  if (summaryData.length === 0) {
+    return wrapper;
+  }
+
+  const maxMs = Math.max(...summaryData.map((d) => d.total), 1);
 
   const barsEl = document.createElement('div');
   barsEl.className = 'history-total-chart__bars';
