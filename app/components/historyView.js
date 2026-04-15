@@ -210,14 +210,12 @@ export function createTotalPlayTimeChart(summaryData) {
  * Build the DOM for a single day-column in the per-game bar chart.
  *
  * @param {object} dayData - Summary entry for one day.
- * @param {number} dayIndex - Index within summaryData (used for label).
  * @param {string[]} gameIds - Game IDs to render bars for.
  * @param {number} maxMs - Maximum total ms across all days (for scaling).
- * @param {Array<{date: string, total: number}>} summaryData - Full summary array.
  * @param {Array<{id: string, name: string}>} [manifests] - Manifest list for names.
  * @returns {HTMLElement} A `.history-chart__group` element.
  */
-function createDayGroup(dayData, dayIndex, gameIds, maxMs, summaryData, manifests) {
+function createDayGroup(dayData, gameIds, maxMs, manifests) {
   const group = document.createElement('div');
   group.className = 'history-chart__group';
 
@@ -246,7 +244,7 @@ function createDayGroup(dayData, dayIndex, gameIds, maxMs, summaryData, manifest
 
   const dateLabel = document.createElement('span');
   dateLabel.className = 'history-chart__label';
-  dateLabel.textContent = summaryData[dayIndex].date.slice(5); // Display as MM-DD.
+  dateLabel.textContent = dayData.date.slice(5); // Display as MM-DD.
 
   group.appendChild(barsWrap);
   group.appendChild(dateLabel);
@@ -281,8 +279,8 @@ export function createBarChart(summaryData, gameIds, manifests) {
     const olderGrid = document.createElement('div');
     olderGrid.className = 'history-chart__grid';
     olderGrid.hidden = true;
-    olderData.forEach((dayData, idx) => {
-      olderGrid.appendChild(createDayGroup(dayData, idx, gameIds, maxMs, olderData, manifests));
+    olderData.forEach((dayData) => {
+      olderGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
     });
     chartEl.appendChild(olderGrid);
 
@@ -303,8 +301,8 @@ export function createBarChart(summaryData, gameIds, manifests) {
   // Grid for the most-recent days (always visible).
   const recentGrid = document.createElement('div');
   recentGrid.className = 'history-chart__grid';
-  recentData.forEach((dayData, idx) => {
-    recentGrid.appendChild(createDayGroup(dayData, idx, gameIds, maxMs, recentData, manifests));
+  recentData.forEach((dayData) => {
+    recentGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
   });
   chartEl.appendChild(recentGrid);
 
