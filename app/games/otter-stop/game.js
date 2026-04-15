@@ -49,8 +49,12 @@ export function setGoKeys(keys) {
 /** Display interval at level 0 (milliseconds). */
 const BASE_INTERVAL_MS = 1500;
 
-/** How much the interval shrinks per level (milliseconds). */
-const INTERVAL_STEP_MS = 50;
+/**
+ * Geometric decay factor applied to the display interval per level.
+ * Each level multiplies the current interval by this rate, producing large
+ * speed jumps at low levels that taper off as the game becomes faster.
+ */
+const INTERVAL_DECAY_RATE = 0.88;
 
 /** Minimum allowed display interval (milliseconds). */
 const MIN_INTERVAL_MS = 150;
@@ -263,12 +267,14 @@ export function recordResponse(isNoGo, spacePressed) {
 
 /**
  * Return the display interval in milliseconds for the current level.
- * Starts at 700 ms and decreases by 50 ms per level, with a floor of 150 ms.
+ * Uses geometric decay: each level multiplies the base interval by
+ * INTERVAL_DECAY_RATE, producing large speed jumps early and increasingly
+ * smaller increments as the game gets faster. Floored at MIN_INTERVAL_MS.
  *
  * @returns {number} Display interval in milliseconds.
  */
 export function getCurrentIntervalMs() {
-  return Math.max(BASE_INTERVAL_MS - level * INTERVAL_STEP_MS, MIN_INTERVAL_MS);
+  return Math.max(Math.round(BASE_INTERVAL_MS * (INTERVAL_DECAY_RATE ** level)), MIN_INTERVAL_MS);
 }
 
 // ── Getters ───────────────────────────────────────────────────────────────────

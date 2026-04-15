@@ -510,16 +510,16 @@ describe('getCurrentIntervalMs()', () => {
     expect(getCurrentIntervalMs()).toBe(1500);
   });
 
-  it('returns 1450 at level 1 (after 3 correct no-go inhibitions)', () => {
+  it('returns 1320 at level 1 (after 3 correct no-go inhibitions)', () => {
     recordResponse(true, false);
     recordResponse(true, false);
     recordResponse(true, false);
-    expect(getCurrentIntervalMs()).toBe(1450);
+    expect(getCurrentIntervalMs()).toBe(1320); // Math.round(1500 * 0.88)
   });
 
   it('returns 150 at a high level (floor clamped)', () => {
-    // 3 no-go correct per level, need level 27 → (1500 - 27*50 = 150)
-    for (let i = 0; i < 81; i += 1) recordResponse(true, false);
+    // 3 no-go correct per level; floor is reached at level 19 (Math.round(1500 * 0.88^19) < 150)
+    for (let i = 0; i < 57; i += 1) recordResponse(true, false);
     expect(getCurrentIntervalMs()).toBe(150);
   });
 
