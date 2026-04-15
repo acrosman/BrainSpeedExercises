@@ -71,12 +71,16 @@
   --transition-fast:  0.15s ease;
   --transition-quick: 0.1s ease;
 
-  /* ── Chart bar colour palette (6 accessible colours + total-bar grey) ───── */
+  /* ── Chart bar colour palette (10 accessible colours + total-bar grey) ──── */
   --chart-color-0:     #005fcc;
   --chart-color-1:     #c9510c;
   --chart-color-2:     #238636;
   --chart-color-3:     #8250df;
   --chart-color-4:     #d1242f;
   --chart-color-5:     #0969da;
+  --chart-color-6:     #bf8700;
+  --chart-color-7:     #1a7f74;
+  --chart-color-8:     #e85aad;
+  --chart-color-9:     #4d6b1e;
   --chart-color-total: #adb5bd;
 }
