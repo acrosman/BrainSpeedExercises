@@ -16,7 +16,9 @@ import {
   getGameName,
   createDataTable,
   createBarChart,
+  createTotalPlayTimeChart,
   buildHistoryPanel,
+  INITIAL_VISIBLE_DAYS,
 } from '../historyView.js';
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
@@ -41,6 +43,29 @@ const PROGRESS_WITH_DATA = {
       dailyTime: {
         '2024-01-01': 30000,
         '2024-01-03': 90000,
+      },
+    },
+  },
+};
+
+/**
+ * Progress fixture with more than INITIAL_VISIBLE_DAYS of data (8 days) to
+ * verify the "show more" toggle in createBarChart.
+ */
+const PROGRESS_MANY_DAYS = {
+  playerId: 'default',
+  games: {
+    'game-a': {
+      highScore: 10,
+      dailyTime: {
+        '2024-01-01': 10000,
+        '2024-01-02': 20000,
+        '2024-01-03': 30000,
+        '2024-01-04': 40000,
+        '2024-01-05': 50000,
+        '2024-01-06': 60000,
+        '2024-01-07': 70000,
+        '2024-01-08': 80000,
       },
     },
   },
@@ -276,6 +301,128 @@ describe('createBarChart()', () => {
     expect(swatches[0].classList.contains('history-chart__legend-swatch--color-0')).toBe(true);
     expect(swatches[1].classList.contains('history-chart__legend-swatch--color-1')).toBe(true);
   });
+
+  it('does not show a show-more button when days <= INITIAL_VISIBLE_DAYS', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const btn = chart.querySelector('.history-chart__show-more-btn');
+    expect(btn).toBeNull();
+  });
+});
+
+// ── createBarChart show-more ──────────────────────────────────────────────────
+
+describe('createBarChart() show-more behaviour', () => {
+  const dates = getAllDates(PROGRESS_MANY_DAYS);
+  const gameIds = getGamesWithData(PROGRESS_MANY_DAYS);
+  const summaryData = buildSummaryData(PROGRESS_MANY_DAYS, dates, gameIds);
+
+  it('shows a show-more button when days exceed INITIAL_VISIBLE_DAYS', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const btn = chart.querySelector('.history-chart__show-more-btn');
+    expect(btn).not.toBeNull();
+  });
+
+  it('older days grid is hidden by default', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const grids = chart.querySelectorAll('.history-chart__grid');
+    // First grid (older days) must be hidden; second grid (recent days) must not.
+    expect(grids[0].hidden).toBe(true);
+    expect(grids[1].hidden).toBe(false);
+  });
+
+  it('show-more button reveals the older days grid when clicked', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const btn = chart.querySelector('.history-chart__show-more-btn');
+    const olderGrid = chart.querySelector('.history-chart__grid');
+    btn.click();
+    expect(olderGrid.hidden).toBe(false);
+  });
+
+  it('show-more button label changes after click and reverts on second click', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const btn = chart.querySelector('.history-chart__show-more-btn');
+    const originalLabel = btn.textContent;
+    btn.click();
+    expect(btn.textContent).toBe('Show fewer days');
+    btn.click();
+    expect(btn.textContent).toBe(originalLabel);
+  });
+
+  it('recent grid always contains at most INITIAL_VISIBLE_DAYS groups', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const grids = chart.querySelectorAll('.history-chart__grid');
+    const recentGrid = grids[grids.length - 1];
+    const groups = recentGrid.querySelectorAll('.history-chart__group');
+    expect(groups.length).toBeLessThanOrEqual(INITIAL_VISIBLE_DAYS);
+  });
+});
+
+// ── createTotalPlayTimeChart ──────────────────────────────────────────────────
+
+describe('createTotalPlayTimeChart()', () => {
+  const dates = ['2024-01-01', '2024-01-02', '2024-01-03'];
+  const gameIds = ['game-a', 'game-b'];
+  const summaryData = buildSummaryData(PROGRESS_WITH_DATA, dates, gameIds);
+
+  it('returns a div with class history-total-chart', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    expect(chart.tagName).toBe('DIV');
+    expect(chart.classList.contains('history-total-chart')).toBe(true);
+  });
+
+  it('contains an SVG element', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const svg = chart.querySelector('svg');
+    expect(svg).not.toBeNull();
+  });
+
+  it('SVG contains a polyline connecting all data points', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const polyline = chart.querySelector('polyline');
+    expect(polyline).not.toBeNull();
+    // One x,y pair per date entry.
+    const pairs = polyline.getAttribute('points').trim().split(' ');
+    expect(pairs.length).toBe(dates.length);
+  });
+
+  it('SVG contains one dot (circle) per date', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const circles = chart.querySelectorAll('circle');
+    expect(circles.length).toBe(dates.length);
+  });
+
+  it('SVG dots carry a tooltip with date and duration', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const firstDot = chart.querySelector('circle');
+    const tooltip = firstDot.querySelector('title');
+    expect(tooltip).not.toBeNull();
+    expect(tooltip.textContent).toContain('2024-01-01');
+  });
+
+  it('x-axis labels use MM-DD format', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const labels = [...chart.querySelectorAll('.history-total-chart__x-label')];
+    expect(labels[0].textContent).toBe('01-01');
+  });
+
+  it('includes a title paragraph', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const title = chart.querySelector('.history-total-chart__title');
+    expect(title).not.toBeNull();
+    expect(title.textContent).toBeTruthy();
+  });
+
+  it('returns a wrapper with title but no SVG for empty summaryData', () => {
+    const chart = createTotalPlayTimeChart([]);
+    expect(chart.querySelector('.history-total-chart__title')).not.toBeNull();
+    expect(chart.querySelector('svg')).toBeNull();
+  });
+
+  it('handles a single data point without error', () => {
+    const single = [{ date: '2024-01-01', total: 60000 }];
+    const chart = createTotalPlayTimeChart(single);
+    expect(chart.querySelectorAll('circle').length).toBe(1);
+  });
 });
 
 // ── buildHistoryPanel ─────────────────────────────────────────────────────────
@@ -303,6 +450,12 @@ describe('buildHistoryPanel()', () => {
     const panel = buildHistoryPanel(PROGRESS_NO_DAILY, MANIFESTS);
     const msg = panel.querySelector('.history-panel__empty');
     expect(msg).not.toBeNull();
+  });
+
+  it('includes a total play-time chart when history exists', () => {
+    const panel = buildHistoryPanel(PROGRESS_WITH_DATA, MANIFESTS);
+    const totalChart = panel.querySelector('.history-total-chart');
+    expect(totalChart).not.toBeNull();
   });
 
   it('includes a bar chart when history exists', () => {

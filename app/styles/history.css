@@ -167,11 +167,75 @@
   padding: 2rem 0;
 }
 
+/* ── Total play-time summary chart (SVG line chart) ──────────────────────── */
+
+.history-total-chart {
+  margin-bottom: 1.5rem;
+}
+
+.history-total-chart__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 0.25rem;
+}
+
+.history-total-chart__svg {
+  width: 100%;
+  height: 120px;
+  display: block;
+}
+
+.history-total-chart__line {
+  fill: none;
+  stroke: var(--chart-color-0);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.history-total-chart__dot {
+  fill: var(--chart-color-0);
+  stroke: var(--bg-card);
+  stroke-width: 1.5;
+}
+
+.history-total-chart__x-label {
+  font-size: 10px;
+  fill: var(--text-subtle);
+}
+
 /* ── History bar chart ───────────────────────────────────────────────────── */
 
 .history-chart {
-  overflow-x: auto;
   margin-bottom: 1.5rem;
+}
+
+/* Grid container for day groups — 2 columns. */
+.history-chart__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Show-more / show-fewer toggle button. */
+.history-chart__show-more-btn {
+  display: block;
+  margin: 0 auto 0.75rem;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-quick), color var(--transition-quick);
+}
+
+.history-chart__show-more-btn:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text-base);
 }
 
 .history-chart__bars {
@@ -204,13 +268,17 @@
   width: 10px;
 }
 
-/* Per-slot bar colours (indices cycle for > 6 games). */
+/* Per-slot bar colours (indices cycle for > 10 games). */
 .history-chart__bar--color-0 { background-color: var(--chart-color-0); }
 .history-chart__bar--color-1 { background-color: var(--chart-color-1); }
 .history-chart__bar--color-2 { background-color: var(--chart-color-2); }
 .history-chart__bar--color-3 { background-color: var(--chart-color-3); }
 .history-chart__bar--color-4 { background-color: var(--chart-color-4); }
 .history-chart__bar--color-5 { background-color: var(--chart-color-5); }
+.history-chart__bar--color-6 { background-color: var(--chart-color-6); }
+.history-chart__bar--color-7 { background-color: var(--chart-color-7); }
+.history-chart__bar--color-8 { background-color: var(--chart-color-8); }
+.history-chart__bar--color-9 { background-color: var(--chart-color-9); }
 
 /* Legend swatch colours matching the bars above. */
 .history-chart__legend-swatch--color-0 { background-color: var(--chart-color-0); }
@@ -219,6 +287,10 @@
 .history-chart__legend-swatch--color-3 { background-color: var(--chart-color-3); }
 .history-chart__legend-swatch--color-4 { background-color: var(--chart-color-4); }
 .history-chart__legend-swatch--color-5 { background-color: var(--chart-color-5); }
+.history-chart__legend-swatch--color-6 { background-color: var(--chart-color-6); }
+.history-chart__legend-swatch--color-7 { background-color: var(--chart-color-7); }
+.history-chart__legend-swatch--color-8 { background-color: var(--chart-color-8); }
+.history-chart__legend-swatch--color-9 { background-color: var(--chart-color-9); }
 
 .history-chart__label {
   font-size: 0.75rem;
