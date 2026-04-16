@@ -64,6 +64,22 @@ describe('createGameCard', () => {
     expect(firedEvent.detail.gameId).toBe(validManifest.id);
   });
 
+  it('clicking the card body (outside the button) fires game:select', () => {
+    const card = createGameCard(validManifest);
+    document.body.appendChild(card);
+
+    let firedEvent = null;
+    card.addEventListener('game:select', (e) => {
+      firedEvent = e;
+    });
+
+    // Simulate a click directly on the article element (not via the button).
+    card.click();
+
+    expect(firedEvent).not.toBeNull();
+    expect(firedEvent.detail.gameId).toBe(validManifest.id);
+  });
+
   it('<img> has a non-empty alt attribute', () => {
     const card = createGameCard(validManifest);
     const img = card.querySelector('img');
