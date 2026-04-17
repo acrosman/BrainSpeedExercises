@@ -7,6 +7,8 @@
  * @file Field of View game logic module.
  */
 
+import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+
 /** Start value for stimulus onset asynchrony in ms. */
 export const START_SOA_MS = 500;
 
@@ -17,13 +19,13 @@ export const MIN_SOA_MS = 16.67;
 export const MAX_SOA_MS = 1000;
 
 /**
- * Step increase on failure for 1-up staircase behavior.
+ * Step increase on failure for easier-mode adjustments.
  * Uses one 60 Hz frame equivalent.
  */
 export const DEFAULT_STEP_UP_MS = 16.67;
 
 /**
- * Step decrease once success streak target is met.
+ * Step decrease once the correct streak target is met.
  * Uses one 60 Hz frame equivalent.
  */
 export const DEFAULT_STEP_DOWN_MS = 16.67;
@@ -31,8 +33,8 @@ export const DEFAULT_STEP_DOWN_MS = 16.67;
 /** Number of recent trials retained for local accuracy view. */
 export const DEFAULT_ACCURACY_BUFFER_SIZE = 5;
 
-/** Successes required before stepping down SOA in 1-up/N-down. */
-export const DEFAULT_DOWN_AFTER_SUCCESSES = 2;
+/** Correct responses required before increasing difficulty. */
+export const DEFAULT_DOWN_AFTER_SUCCESSES = 3;
 
 /** Grid sizes used by the game. */
 export const GRID_SIZES = [3, 5];
@@ -74,10 +76,10 @@ let stepUpMs = DEFAULT_STEP_UP_MS;
 let stepDownMs = DEFAULT_STEP_DOWN_MS;
 
 /** @type {number} */
-let downAfterSuccesses = DEFAULT_DOWN_AFTER_SUCCESSES;
+let successCounter = 0;
 
 /** @type {number} */
-let successCounter = 0;
+let consecutiveWrong = 0;
 
 /** @type {Array<boolean>} */
 let accuracyBuffer = [];
@@ -116,7 +118,6 @@ function clamp(value, min, max) {
  * Initialize or reset game state.
  *
  * @param {{
- *   downAfterSuccesses?: number,
  *   stepUpMs?: number,
  *   stepDownMs?: number,
  *   accuracyBufferSize?: number,
@@ -126,17 +127,11 @@ export function initGame(options = {}) {
   running = false;
   currentSoaMs = START_SOA_MS;
   successCounter = 0;
+  consecutiveWrong = 0;
   trialsCompleted = 0;
   successes = 0;
   startTimeMs = null;
   thresholdHistory = [];
-
-  // Configure staircase success threshold: use a validated integer, defaulting when invalid.
-  if (Number.isFinite(options.downAfterSuccesses)) {
-    downAfterSuccesses = Math.max(1, Math.round(options.downAfterSuccesses));
-  } else {
-    downAfterSuccesses = DEFAULT_DOWN_AFTER_SUCCESSES;
-  }
 
   // Configure step sizes with numeric validation and clamping to keep pacing reasonable.
   const rawStepUp = Number.isFinite(options.stepUpMs) ? options.stepUpMs : DEFAULT_STEP_UP_MS;
@@ -265,6 +260,10 @@ export function createTrialLayout() {
 /**
  * Record the outcome of one trial and apply adaptive staircase updates.
  *
+ * Rule set:
+ * - 3 consecutive correct responses decrease SOA by one step (harder).
+ * - 3 consecutive wrong responses increase SOA by two steps (easier).
+ *
  * @param {{ success: boolean }} outcome
  * @returns {{ thresholdMs: number, recentAccuracy: number, successCounter: number }}
  */
@@ -274,16 +273,24 @@ export function recordTrial(outcome) {
   trialsCompleted += 1;
   if (wasSuccess) {
     successes += 1;
-    successCounter += 1;
-
-    if (successCounter >= downAfterSuccesses) {
-      currentSoaMs = clamp(currentSoaMs - stepDownMs, MIN_SOA_MS, MAX_SOA_MS);
-      successCounter = 0;
-    }
-  } else {
-    currentSoaMs = clamp(currentSoaMs + stepUpMs, MIN_SOA_MS, MAX_SOA_MS);
-    successCounter = 0;
   }
+
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: currentSoaMs,
+    wasCorrect: wasSuccess,
+    consecutiveCorrect: successCounter,
+    consecutiveWrong,
+    increaseAfter: DEFAULT_DOWN_AFTER_SUCCESSES,
+    decreaseAfter: 3,
+    harderStep: -stepDownMs,
+    easierStep: stepUpMs * 2,
+    minValue: MIN_SOA_MS,
+    maxValue: MAX_SOA_MS,
+  });
+
+  currentSoaMs = staircaseState.value;
+  successCounter = staircaseState.consecutiveCorrect;
+  consecutiveWrong = staircaseState.consecutiveWrong;
 
   accuracyBuffer.push(wasSuccess);
   if (accuracyBuffer.length > accuracyBufferSize) {
@@ -344,12 +351,12 @@ export function getThresholdHistory() {
 }
 
 /**
- * Get the current staircase setting (1-up/N-down where N is this return value).
+ * Get the current correct-streak target used for SOA decrease.
  *
  * @returns {number}
  */
 export function getDownAfterSuccesses() {
-  return downAfterSuccesses;
+  return DEFAULT_DOWN_AFTER_SUCCESSES;
 }
 
 /**

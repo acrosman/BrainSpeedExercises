@@ -15,6 +15,8 @@
  * @file Otter Stop! game logic module.
  */
 
+import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+
 /** The key that identifies the no-go stimulus. */
 export const NO_GO_KEY = 'no-go';
 
@@ -96,7 +98,7 @@ let startTime = null;
 /** Current difficulty level. */
 let level = 0;
 
-/** Consecutive correct-response streak (counts correct no-go inhibitions only). */
+/** Consecutive correct-response streak. */
 let consecutiveCorrect = 0;
 
 /** Consecutive wrong-response streak. */
@@ -207,16 +209,15 @@ export function pickNextImage() {
  *
  * Correct responses:
  *   - Go image + Space pressed  → score +1, wrong streak reset
- *   - No-go image + no press   → score +1, streak +1 (only no-go inhibitions
- *                                 count toward level advancement)
+ *   - No-go image + no press   → score +1, streak +1
  *
  * Wrong responses:
  *   - Go image + no press      → miss +1, streak broken, forceGoNext set
  *   - No-go image + Space pressed → noGoHit +1, streak broken, forceGoNext set
  *
  * Staircase rules:
- *   - 3 consecutive correct no-go inhibitions → level +1, streak reset
- *   - 3 consecutive wrong   → level −2 (min 0), streak reset
+ *   - 3 consecutive correct responses → level +1, streak reset
+ *   - 3 consecutive wrong responses   → level −2 (min 0), streak reset
  *
  * After any wrong outcome, `forceGoNext` is set so that `pickNextImage()` will
  * guarantee a go stimulus on the very next trial.
@@ -232,31 +233,31 @@ export function recordResponse(isNoGo, spacePressed) {
 
   if (correct) {
     score += 1;
-    consecutiveWrong = 0;
-    // Only correct no-go inhibitions advance the level-up streak.
-    if (isNoGo) {
-      consecutiveCorrect += 1;
-    }
   } else {
     if (isNoGo) {
       noGoHits += 1;
     } else {
       misses += 1;
     }
-    consecutiveCorrect = 0;
-    consecutiveWrong += 1;
     forceGoNext = true;
   }
 
-  // Apply staircase adjustments.
-  if (consecutiveCorrect >= CORRECT_STREAK_TO_ADVANCE) {
-    level += 1;
-    consecutiveCorrect = 0;
-  }
-  if (consecutiveWrong >= WRONG_STREAK_TO_DROP) {
-    level = Math.max(0, level - LEVEL_DROP);
-    consecutiveWrong = 0;
-  }
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: level,
+    wasCorrect: correct,
+    consecutiveCorrect,
+    consecutiveWrong,
+    increaseAfter: CORRECT_STREAK_TO_ADVANCE,
+    decreaseAfter: WRONG_STREAK_TO_DROP,
+    harderStep: 1,
+    easierStep: -LEVEL_DROP,
+    minValue: 0,
+    maxValue: Number.POSITIVE_INFINITY,
+  });
+
+  level = staircaseState.value;
+  consecutiveCorrect = staircaseState.consecutiveCorrect;
+  consecutiveWrong = staircaseState.consecutiveWrong;
 
   speedHistory.push(getCurrentIntervalMs());
 
