@@ -351,7 +351,8 @@ export function getThresholdHistory() {
 }
 
 /**
- * Get the current correct-streak target used for SOA decrease.
+ * Get the fixed correct-streak target used for SOA decrease.
+ * This is the shared cross-game constant rule target (3).
  *
  * @returns {number}
  */
