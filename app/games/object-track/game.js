@@ -7,6 +7,8 @@
  * @file Object Track core game logic.
  */
 
+import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 /** Minimum level index (zero-based). */
@@ -282,25 +284,28 @@ export function evaluateResponse(inputCircles, selectedIds) {
  * @returns {{ levelDelta: number, newLevel: number }} Change in level and new level.
  */
 export function recordRoundResult(correct) {
-  let levelDelta = 0;
   if (correct) {
     score++;
-    consecutiveCorrect++;
-    consecutiveWrong = 0;
-  } else {
-    consecutiveCorrect = 0;
-    consecutiveWrong++;
   }
-  if (consecutiveCorrect >= CORRECT_TO_ADVANCE) {
-    level++;
-    consecutiveCorrect = 0;
-    levelDelta = 1;
-  } else if (consecutiveWrong >= WRONG_TO_DROP) {
-    level = Math.max(0, level - LEVELS_TO_DROP);
-    consecutiveCorrect = 0;
-    consecutiveWrong = 0;
-    levelDelta = -LEVELS_TO_DROP;
-  }
+
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: level,
+    wasCorrect: Boolean(correct),
+    consecutiveCorrect,
+    consecutiveWrong,
+    increaseAfter: CORRECT_TO_ADVANCE,
+    decreaseAfter: WRONG_TO_DROP,
+    harderStep: 1,
+    easierStep: -LEVELS_TO_DROP,
+    minValue: MIN_LEVEL,
+    maxValue: Number.POSITIVE_INFINITY,
+  });
+
+  level = staircaseState.value;
+  consecutiveCorrect = staircaseState.consecutiveCorrect;
+  consecutiveWrong = staircaseState.consecutiveWrong;
+  const levelDelta = staircaseState.valueDelta;
+
   roundsPlayed++;
   speedHistory.push(getLevelConfig(level).speedPxPerSec);
   return { levelDelta, newLevel: level };

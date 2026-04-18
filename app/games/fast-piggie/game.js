@@ -8,6 +8,8 @@
  * @file Fast Piggie game logic module.
  */
 
+import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+
 // ── Difficulty constants ───────────────────────────────────────────────────
 /** Display duration (ms) at level 0. */
 const INITIAL_DISPLAY_MS = 800;
@@ -216,11 +218,25 @@ export function calculateWedgeIndex(clickX, clickY, centerX, centerY, radius, we
 export function addScore(guineaPigsThisRound, answerSpeedMs, displayDurationMs) {
   score += 1;
   roundsPlayed += 1;
-  consecutiveCorrect += 1;
-  consecutiveWrong = 0;
-  if (consecutiveCorrect >= 3) {
-    imageLevel += 1;
-    consecutiveCorrect = 0;
+
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: imageLevel,
+    wasCorrect: true,
+    consecutiveCorrect,
+    consecutiveWrong,
+    increaseAfter: 3,
+    decreaseAfter: 3,
+    harderStep: 1,
+    easierStep: -2,
+    minValue: 0,
+    maxValue: Number.POSITIVE_INFINITY,
+  });
+
+  imageLevel = staircaseState.value;
+  consecutiveCorrect = staircaseState.consecutiveCorrect;
+  consecutiveWrong = staircaseState.consecutiveWrong;
+
+  if (staircaseState.valueDelta > 0) {
     if (calculateDisplayDuration(speedLevel) < DISPLAY_STEP_THRESHOLD_MS) {
       // Sub-threshold phase: alternate between image-only and both.
       if (speedIncreaseNext) {
@@ -259,13 +275,25 @@ export function addScore(guineaPigsThisRound, answerSpeedMs, displayDurationMs) 
  */
 export function addMiss(guineaPigsThisRound, displayDurationMs) {
   roundsPlayed += 1;
-  consecutiveCorrect = 0;
-  consecutiveWrong += 1;
-  if (consecutiveWrong >= 3) {
-    speedLevel = Math.max(0, speedLevel - 2);
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: speedLevel,
+    wasCorrect: false,
+    consecutiveCorrect,
+    consecutiveWrong,
+    increaseAfter: 3,
+    decreaseAfter: 3,
+    harderStep: 1,
+    easierStep: -2,
+    minValue: 0,
+    maxValue: Number.POSITIVE_INFINITY,
+  });
+
+  speedLevel = staircaseState.value;
+  consecutiveCorrect = staircaseState.consecutiveCorrect;
+  consecutiveWrong = staircaseState.consecutiveWrong;
+  if (staircaseState.valueDelta < 0) {
     imageLevel = canonicalImageLevel(speedLevel);
     speedIncreaseNext = false;
-    consecutiveWrong = 0;
   }
   // Track most guinea pigs displayed in a round (even if missed)
   if (typeof guineaPigsThisRound === 'number' && guineaPigsThisRound > mostGuineaPigs) {

@@ -10,6 +10,8 @@
  * @file Directional Processing game logic module.
  */
 
+import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+
 /** All valid motion directions for trial generation. */
 export const DIRECTIONS = ['up', 'down', 'left', 'right'];
 
@@ -148,22 +150,24 @@ export function recordTrial({ success }) {
 
   if (success) {
     score += 1;
-    consecutiveCorrect += 1;
-    consecutiveWrong = 0;
-
-    if (consecutiveCorrect >= CORRECT_STREAK_TO_ADVANCE) {
-      currentLevel = Math.min(currentLevel + 1, LEVELS.length - 1);
-      consecutiveCorrect = 0;
-    }
-  } else {
-    consecutiveWrong += 1;
-    consecutiveCorrect = 0;
-
-    if (consecutiveWrong >= WRONG_STREAK_TO_DROP) {
-      currentLevel = Math.max(currentLevel - LEVEL_DROP, 0);
-      consecutiveWrong = 0;
-    }
   }
+
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: currentLevel,
+    wasCorrect: Boolean(success),
+    consecutiveCorrect,
+    consecutiveWrong,
+    increaseAfter: CORRECT_STREAK_TO_ADVANCE,
+    decreaseAfter: WRONG_STREAK_TO_DROP,
+    harderStep: 1,
+    easierStep: -LEVEL_DROP,
+    minValue: 0,
+    maxValue: LEVELS.length - 1,
+  });
+
+  currentLevel = staircaseState.value;
+  consecutiveCorrect = staircaseState.consecutiveCorrect;
+  consecutiveWrong = staircaseState.consecutiveWrong;
 
   speedHistory.push(LEVELS[currentLevel].displayDurationMs);
 

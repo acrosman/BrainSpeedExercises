@@ -7,6 +7,8 @@
  * @file Orbit Sprite Memory game logic module.
  */
 
+import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+
 /** Number of sprites in the provided 4x2 sheet. */
 export const TOTAL_SPRITES = 8;
 
@@ -280,13 +282,23 @@ export function evaluateSelection(round, selectedPositions) {
 export function recordCorrectRound() {
   roundsPlayed += 1;
   score += 1;
-  consecutiveCorrect += 1;
-  consecutiveWrong = 0;
 
-  if (consecutiveCorrect >= STREAK_TO_LEVEL_UP) {
-    level += 1;
-    consecutiveCorrect = 0;
-  }
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: level,
+    wasCorrect: true,
+    consecutiveCorrect,
+    consecutiveWrong,
+    increaseAfter: STREAK_TO_LEVEL_UP,
+    decreaseAfter: 3,
+    harderStep: 1,
+    easierStep: -2,
+    minValue: 0,
+    maxValue: Number.POSITIVE_INFINITY,
+  });
+
+  level = staircaseState.value;
+  consecutiveCorrect = staircaseState.consecutiveCorrect;
+  consecutiveWrong = staircaseState.consecutiveWrong;
   speedHistory.push(getDisplayDurationMs(level));
 }
 
@@ -296,12 +308,22 @@ export function recordCorrectRound() {
  */
 export function recordIncorrectRound() {
   roundsPlayed += 1;
-  consecutiveCorrect = 0;
-  consecutiveWrong += 1;
-  if (consecutiveWrong >= 3) {
-    level = Math.max(0, level - 2);
-    consecutiveWrong = 0;
-  }
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: level,
+    wasCorrect: false,
+    consecutiveCorrect,
+    consecutiveWrong,
+    increaseAfter: STREAK_TO_LEVEL_UP,
+    decreaseAfter: 3,
+    harderStep: 1,
+    easierStep: -2,
+    minValue: 0,
+    maxValue: Number.POSITIVE_INFINITY,
+  });
+
+  level = staircaseState.value;
+  consecutiveCorrect = staircaseState.consecutiveCorrect;
+  consecutiveWrong = staircaseState.consecutiveWrong;
   speedHistory.push(getDisplayDurationMs(level));
 }
 
