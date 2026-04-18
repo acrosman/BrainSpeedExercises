@@ -236,7 +236,7 @@ export function addScore(guineaPigsThisRound, answerSpeedMs, displayDurationMs) 
   consecutiveCorrect = staircaseState.consecutiveCorrect;
   consecutiveWrong = staircaseState.consecutiveWrong;
 
-  if (staircaseState.valueDelta > 0) {
+  if (staircaseState.valueDelta === 1) {
     if (calculateDisplayDuration(speedLevel) < DISPLAY_STEP_THRESHOLD_MS) {
       // Sub-threshold phase: alternate between image-only and both.
       if (speedIncreaseNext) {
@@ -292,8 +292,6 @@ export function addMiss(guineaPigsThisRound, displayDurationMs) {
   consecutiveCorrect = staircaseState.consecutiveCorrect;
   consecutiveWrong = staircaseState.consecutiveWrong;
   if (staircaseState.valueDelta < 0) {
-    // Keep the reset explicit for readability when the 3-wrong threshold triggers.
-    consecutiveWrong = 0;
     imageLevel = canonicalImageLevel(speedLevel);
     speedIncreaseNext = false;
   }
