@@ -292,6 +292,8 @@ export function addMiss(guineaPigsThisRound, displayDurationMs) {
   consecutiveCorrect = staircaseState.consecutiveCorrect;
   consecutiveWrong = staircaseState.consecutiveWrong;
   if (staircaseState.valueDelta < 0) {
+    // Keep the reset explicit for readability when the 3-wrong threshold triggers.
+    consecutiveWrong = 0;
     imageLevel = canonicalImageLevel(speedLevel);
     speedIncreaseNext = false;
   }
