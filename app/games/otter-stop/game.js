@@ -98,7 +98,7 @@ let startTime = null;
 /** Current difficulty level. */
 let level = 0;
 
-/** Consecutive correct-response streak. */
+/** Consecutive correct-response streak (counts correct no-go inhibitions only). */
 let consecutiveCorrect = 0;
 
 /** Consecutive wrong-response streak. */
@@ -209,14 +209,15 @@ export function pickNextImage() {
  *
  * Correct responses:
  *   - Go image + Space pressed  → score +1, wrong streak reset
- *   - No-go image + no press   → score +1, streak +1
+ *   - No-go image + no press   → score +1, streak +1 (only no-go inhibitions
+ *                                 count toward level advancement)
  *
  * Wrong responses:
  *   - Go image + no press      → miss +1, streak broken, forceGoNext set
  *   - No-go image + Space pressed → noGoHit +1, streak broken, forceGoNext set
  *
  * Staircase rules:
- *   - 3 consecutive correct responses → level +1, streak reset
+ *   - 3 consecutive correct no-go inhibitions → level +1, streak reset
  *   - 3 consecutive wrong responses   → level −2 (min 0), streak reset
  *
  * After any wrong outcome, `forceGoNext` is set so that `pickNextImage()` will
@@ -231,8 +232,30 @@ export function recordResponse(isNoGo, spacePressed) {
 
   const correct = isNoGo ? !spacePressed : spacePressed;
 
+  let staircaseState = {
+    value: level,
+    consecutiveCorrect,
+    consecutiveWrong,
+  };
+
   if (correct) {
     score += 1;
+    if (isNoGo) {
+      staircaseState = updateAdaptiveDifficultyState({
+        value: level,
+        wasCorrect: true,
+        consecutiveCorrect,
+        consecutiveWrong,
+        increaseAfter: CORRECT_STREAK_TO_ADVANCE,
+        decreaseAfter: WRONG_STREAK_TO_DROP,
+        harderStep: 1,
+        easierStep: -LEVEL_DROP,
+        minValue: 0,
+        maxValue: Number.POSITIVE_INFINITY,
+      });
+    } else {
+      staircaseState.consecutiveWrong = 0;
+    }
   } else {
     if (isNoGo) {
       noGoHits += 1;
@@ -240,20 +263,19 @@ export function recordResponse(isNoGo, spacePressed) {
       misses += 1;
     }
     forceGoNext = true;
+    staircaseState = updateAdaptiveDifficultyState({
+      value: level,
+      wasCorrect: false,
+      consecutiveCorrect,
+      consecutiveWrong,
+      increaseAfter: CORRECT_STREAK_TO_ADVANCE,
+      decreaseAfter: WRONG_STREAK_TO_DROP,
+      harderStep: 1,
+      easierStep: -LEVEL_DROP,
+      minValue: 0,
+      maxValue: Number.POSITIVE_INFINITY,
+    });
   }
-
-  const staircaseState = updateAdaptiveDifficultyState({
-    value: level,
-    wasCorrect: correct,
-    consecutiveCorrect,
-    consecutiveWrong,
-    increaseAfter: CORRECT_STREAK_TO_ADVANCE,
-    decreaseAfter: WRONG_STREAK_TO_DROP,
-    harderStep: 1,
-    easierStep: -LEVEL_DROP,
-    minValue: 0,
-    maxValue: Number.POSITIVE_INFINITY,
-  });
 
   level = staircaseState.value;
   consecutiveCorrect = staircaseState.consecutiveCorrect;

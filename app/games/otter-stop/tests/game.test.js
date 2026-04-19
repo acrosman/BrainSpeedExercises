@@ -312,9 +312,9 @@ describe('recordResponse()', () => {
       expect(getMisses()).toBe(0);
     });
 
-    it('increments consecutiveCorrect', () => {
+    it('does not increment consecutiveCorrect (only no-go inhibitions advance the streak)', () => {
       recordResponse(false, true);
-      expect(getConsecutiveCorrect()).toBe(1);
+      expect(getConsecutiveCorrect()).toBe(0);
     });
 
     it('resets consecutiveWrong to 0', () => {
@@ -381,7 +381,7 @@ describe('recordResponse()', () => {
       expect(getMisses()).toBe(0);
     });
 
-    it('increments consecutiveCorrect', () => {
+    it('increments consecutiveCorrect (no-go inhibitions advance the streak)', () => {
       recordResponse(true, false);
       expect(getConsecutiveCorrect()).toBe(1);
     });
@@ -414,24 +414,24 @@ describe('recordResponse()', () => {
   });
 
   describe('adaptive staircase — level advancement', () => {
-    it('level does not advance on two consecutive correct responses', () => {
+    it('level does not advance on two consecutive correct no-go inhibitions', () => {
       recordResponse(true, false); // correct no-go
-      recordResponse(false, true); // correct go
+      recordResponse(true, false); // correct no-go
       expect(getLevel()).toBe(0);
     });
 
-    it('level advances to 1 after 3 consecutive correct responses', () => {
-      recordResponse(false, true);
+    it('level advances to 1 after 3 consecutive correct no-go inhibitions', () => {
       recordResponse(true, false);
-      recordResponse(false, true);
+      recordResponse(true, false);
+      recordResponse(true, false);
       expect(getLevel()).toBe(1);
     });
 
-    it('mixed correct response types can advance the level', () => {
+    it('correct go responses do not advance the level (only no-go inhibitions count)', () => {
       recordResponse(false, true); // correct go
-      recordResponse(true, false); // correct no-go
-      recordResponse(false, true); // correct go
-      expect(getLevel()).toBe(1);
+      recordResponse(false, true);
+      recordResponse(false, true);
+      expect(getLevel()).toBe(0);
     });
 
     it('consecutiveCorrect resets to 0 after level advances', () => {
@@ -443,23 +443,23 @@ describe('recordResponse()', () => {
 
     it('a wrong response breaks the correct streak', () => {
       recordResponse(true, false); // correct no-go
-      recordResponse(false, true); // correct go
+      recordResponse(true, false); // correct no-go
       recordResponse(false, false); // wrong go — breaks streak
       recordResponse(true, false); // correct no-go
-      recordResponse(false, true); // correct go
+      recordResponse(true, false); // correct no-go
       expect(getLevel()).toBe(0);
     });
 
-    it('level advances to 2 after 6 consecutive correct responses', () => {
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true);
+    it('level advances to 2 after 6 consecutive correct no-go inhibitions', () => {
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false);
       expect(getLevel()).toBe(2);
     });
   });
 
   describe('adaptive staircase — level drop', () => {
     it('level does not drop on first or second consecutive wrong', () => {
-      // First reach level 2 with correct responses
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true);
+      // First reach level 2 with no-go correct responses
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false);
       recordResponse(false, false);
       expect(getLevel()).toBe(2);
       recordResponse(false, false);
@@ -467,7 +467,7 @@ describe('recordResponse()', () => {
     });
 
     it('level drops by 2 after 3 consecutive wrong responses', () => {
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true); // level → 2
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
       recordResponse(false, false);
       recordResponse(false, false);
       recordResponse(false, false); // 3 consecutive wrong → level 0
@@ -482,7 +482,7 @@ describe('recordResponse()', () => {
     });
 
     it('consecutiveWrong resets after a level drop', () => {
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true); // level → 2
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
       recordResponse(false, false);
       recordResponse(false, false);
       recordResponse(false, false); // drop; wrong counter resets
@@ -492,7 +492,7 @@ describe('recordResponse()', () => {
     });
 
     it('a correct response resets the wrong streak', () => {
-      for (let i = 0; i < 6; i += 1) recordResponse(false, true); // level → 2
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
       recordResponse(false, false);
       recordResponse(false, false);
       recordResponse(false, true); // correct go — resets wrong streak
@@ -510,22 +510,22 @@ describe('getCurrentIntervalMs()', () => {
     expect(getCurrentIntervalMs()).toBe(1500);
   });
 
-  it('returns 1320 at level 1 (after 3 correct responses)', () => {
-    recordResponse(false, true);
-    recordResponse(false, true);
-    recordResponse(false, true);
+  it('returns 1320 at level 1 (after 3 correct no-go inhibitions)', () => {
+    recordResponse(true, false);
+    recordResponse(true, false);
+    recordResponse(true, false);
     expect(getCurrentIntervalMs()).toBe(1320); // Math.round(1500 * 0.88)
   });
 
   it('returns 150 at a high level (floor clamped)', () => {
-    // 3 correct per level; floor is reached at level 19 (Math.round(1500 * 0.88^19) < 150)
-    for (let i = 0; i < 57; i += 1) recordResponse(false, true);
+    // 3 no-go correct per level; floor is reached at level 19 (Math.round(1500 * 0.88^19) < 150)
+    for (let i = 0; i < 57; i += 1) recordResponse(true, false);
     expect(getCurrentIntervalMs()).toBe(150);
   });
 
   it('never returns less than 150 ms regardless of level', () => {
-    // Simulate many correct responses.
-    for (let i = 0; i < 300; i += 1) recordResponse(false, true);
+    // Simulate many correct no-go inhibitions.
+    for (let i = 0; i < 300; i += 1) recordResponse(true, false);
     expect(getCurrentIntervalMs()).toBeGreaterThanOrEqual(150);
   });
 });
