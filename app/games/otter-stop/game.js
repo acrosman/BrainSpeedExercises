@@ -232,11 +232,7 @@ export function recordResponse(isNoGo, spacePressed) {
 
   const correct = isNoGo ? !spacePressed : spacePressed;
 
-  let staircaseState = {
-    value: level,
-    consecutiveCorrect,
-    consecutiveWrong,
-  };
+  let staircaseState;
 
   if (correct) {
     score += 1;
@@ -254,7 +250,11 @@ export function recordResponse(isNoGo, spacePressed) {
         maxValue: Number.POSITIVE_INFINITY,
       });
     } else {
-      staircaseState.consecutiveWrong = 0;
+      staircaseState = {
+        value: level,
+        consecutiveCorrect,
+        consecutiveWrong: 0,
+      };
     }
   } else {
     if (isNoGo) {
