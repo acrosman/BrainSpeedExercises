@@ -28,6 +28,23 @@
   gap: 0.75rem;
 }
 
+.os-instructions__column {
+  float: left;
+  width: 50%;
+  padding: 5px;
+}
+
+.os-instructions__row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.os-instructions__img {
+  width: 200px;
+  height: auto;
+}
+
 /* ── Stats bar ───────────────────────────────────────────────────────────── */
 
 .os-stats {
@@ -117,11 +134,13 @@
 }
 
 .os-feedback__text--correct {
-  color: #1a6f1a; /* WCAG AA on white: ≥ 4.5:1 */
+  color: #1a6f1a;
+  /* WCAG AA on white: ≥ 4.5:1 */
 }
 
 .os-feedback__text--wrong {
-  color: #9b1c1c; /* WCAG AA on white: ≥ 4.5:1 */
+  color: #9b1c1c;
+  /* WCAG AA on white: ≥ 4.5:1 */
 }
 
 /* ── Reminder text ───────────────────────────────────────────────────────── */
