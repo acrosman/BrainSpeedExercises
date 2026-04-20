@@ -1,7 +1,7 @@
 {
   "id": "otter-stop",
   "name": "Otter Stop",
-  "description": "React fast to each otter — but freeze when the no-go otter appears. Train your inhibitory control at ever-increasing speeds.",
+  "description": "React fast to each otter — but freeze when the no-go fish appears. Train your inhibitory control at ever-increasing speeds.",
   "version": "0.1.0",
   "entryPoint": "index.js",
   "thumbnail": "images/thumbnail.png",
