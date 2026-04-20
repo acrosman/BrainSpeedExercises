@@ -10,7 +10,7 @@
     </p>
     <ol>
       <li>Watch the pattern carefully — it will only appear for a short time.</li>
-      <li>After a brief mask, use the on-screen buttons or arrow keys to respond.</li>
+      <li>After it stops, use the on-screen buttons or arrow keys to indicate which direction it moved.</li>
       <li>Get 3 correct in a row to advance to a harder level.</li>
       <li>Get 3 wrong in a row to drop back 2 levels.</li>
     </ol>
@@ -35,14 +35,8 @@
 
     <div class="dp-stage" id="dp-stage">
       <!-- The Gabor patch is drawn here; mask is applied by filling with gray. -->
-      <canvas
-        id="dp-canvas"
-        class="dp-canvas"
-        width="400"
-        height="400"
-        aria-label="Directional motion stimulus"
-        role="img"
-      ></canvas>
+      <canvas id="dp-canvas" class="dp-canvas" width="400" height="400" aria-label="Directional motion stimulus"
+        role="img"></canvas>
     </div>
 
     <!-- Direction response buttons: always visible; buttons are disabled
@@ -53,16 +47,15 @@
         Which direction did the pattern move?
       </p>
       <div class="dp-direction-pad" role="group" aria-labelledby="dp-response-prompt">
-        <button id="dp-btn-up" type="button" class="dp-dir-btn dp-dir-btn--up"
-          aria-label="Up">&#8679; Up</button>
+        <button id="dp-btn-up" type="button" class="dp-dir-btn dp-dir-btn--up" aria-label="Up">&#8679; Up</button>
         <div class="dp-direction-pad__row">
-          <button id="dp-btn-left" type="button" class="dp-dir-btn dp-dir-btn--left"
-            aria-label="Left">&#8678; Left</button>
-          <button id="dp-btn-right" type="button" class="dp-dir-btn dp-dir-btn--right"
-            aria-label="Right">Right &#8680;</button>
+          <button id="dp-btn-left" type="button" class="dp-dir-btn dp-dir-btn--left" aria-label="Left">&#8678;
+            Left</button>
+          <button id="dp-btn-right" type="button" class="dp-dir-btn dp-dir-btn--right" aria-label="Right">Right
+            &#8680;</button>
         </div>
-        <button id="dp-btn-down" type="button" class="dp-dir-btn dp-dir-btn--down"
-          aria-label="Down">&#8681; Down</button>
+        <button id="dp-btn-down" type="button" class="dp-dir-btn dp-dir-btn--down" aria-label="Down">&#8681;
+          Down</button>
       </div>
     </div>
 
@@ -76,7 +69,7 @@
         aria-label="Display time trend over recent trials">
         <polyline id="dp-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
       </svg>
-      <p id="dp-trend-empty" class="game-trend__empty">Complete a trial to populate chart.</p>
+      <p id="dp-trend-empty" class="game-trend__empty">Chart will appear after the first round.</p>
       <p class="game-trend__meta">
         Latest: <strong id="dp-trend-latest">--</strong> ms
       </p>

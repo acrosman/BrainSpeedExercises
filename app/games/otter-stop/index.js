@@ -187,7 +187,7 @@ export function showImage(imageKey) {
   _stimulusImg.src = isNoGo
     ? `${IMAGE_BASE}no-go.png`
     : `${IMAGE_BASE_GO}${imageKey}`;
-  _stimulusImg.alt = isNoGo ? 'No-go otter' : 'Go otter';
+  _stimulusImg.alt = isNoGo ? 'No-go fish' : 'Go otter';
   _stimulusImg.classList.remove('os-hidden');
 }
 
