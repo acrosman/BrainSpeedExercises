@@ -8,10 +8,10 @@
       After a brief flash, the field image masks the board.
     </p>
     <ol>
-      <li>Memorize which kitten appeared in the center.</li>
-      <li>Memorize where the toy appeared in the periphery (outer edge).</li>
-      <li>After the field mask, select the kitten and click the toy location.</li>
-      <li>The game adapts your display time with a 1-up / 2-down staircase.</li>
+      <li>Track which kitten appeared in the center.</li>
+      <li>Note where the toy appeared in the outer edge.</li>
+      <li>When the field mask appears, select the kitten and click the toy location from the controls on the left.</li>
+      <li>As the game progresses the display time will drop, and the size of the grid will increase.</li>
     </ol>
     <button id="fov-start-btn" type="button" class="game-btn game-btn--primary">
       Start Game
@@ -36,21 +36,18 @@
         <div class="fov-response__center" role="group" aria-label="Center kitten response">
           <button id="fov-center-primary" type="button" class="fov-choice-btn" aria-pressed="false"
             aria-label="Primary kitten appeared">
-            <img src="games/field-of-view/images/primaryKitten.png" alt="Primary kitten option" loading="lazy" decoding="async">
+            <img src="games/field-of-view/images/primaryKitten.png" alt="Primary kitten option" loading="lazy"
+              decoding="async">
           </button>
           <button id="fov-center-secondary" type="button" class="fov-choice-btn" aria-pressed="false"
             aria-label="Secondary kitten appeared">
-            <img src="games/field-of-view/images/secondaryKitten.png" alt="Secondary kitten option" loading="lazy" decoding="async">
+            <img src="games/field-of-view/images/secondaryKitten.png" alt="Secondary kitten option" loading="lazy"
+              decoding="async">
           </button>
         </div>
         <h4 class="fov-location-header">Which Square Was the Toy In</h4>
-        <div
-          id="fov-location-selector"
-          class="fov-location-selector"
-          role="group"
-          aria-label="Toy location selector"
-          hidden
-        ></div>
+        <div id="fov-location-selector" class="fov-location-selector" role="group" aria-label="Toy location selector"
+          hidden></div>
       </div>
 
       <div class="fov-stage" id="fov-stage">
