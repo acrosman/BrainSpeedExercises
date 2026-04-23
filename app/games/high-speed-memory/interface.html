@@ -10,24 +10,21 @@
     <h3>How to Play</h3>
     <p>
       A grid of cards will flash open briefly — remember where the
-      <strong>Primary</strong> image appears!
-      After they flip back, click all three cards that showed the Primary image.
+      greyhound image below appears!
+      After they flip back, click all three cards that showed the image.
     </p>
     <p class="hsm-instructions__primary-label">
-      <strong>Find this card — it appears three times each round:</strong>
+      <strong>Find this greyhound — it appears three times each round (and he likes the attention):</strong>
     </p>
-    <img
-      src="games/high-speed-memory/images/Primary.jpg"
-      alt="The Primary card you need to find"
-      class="hsm-instructions__primary-img"
-    >
+    <img src="games/high-speed-memory/images/Primary.jpg" alt="The Primary card you need to find"
+      class="hsm-instructions__primary-img">
     <ul>
       <li>Watch closely while the cards are revealed.</li>
-      <li>After they flip face-down, click the three cards that showed the Primary image.</li>
-      <li>A wrong guess restarts the round after a brief delay — no partial credit.</li>
-      <li>Find all three to complete a round — complete <strong>3 rounds in a row</strong>
-        to advance to the next level with a larger grid and shorter reveal time!</li>
-      <li>Use <kbd>Tab</kbd> to move between cards and <kbd>Enter</kbd> or <kbd>Space</kbd>
+      <li>After they flip face-down, click the three cards that showed the image above.</li>
+      <li>A wrong guess ends the round — there is no partial credit.</li>
+      <li>Find all three to complete a round successfully — successfully complete <strong>3 rounds in a row</strong>
+        to advance to the next level with a larger grid and shorter reveal time.</li>
+      <li>Keyboard users can use <kbd>Tab</kbd> to move between cards and <kbd>Enter</kbd> or <kbd>Space</kbd>
         to select.</li>
     </ul>
     <button id="hsm-start-btn" type="button" class="game-btn game-btn--primary">
@@ -49,21 +46,10 @@
     </div>
 
     <!-- Card grid: populated dynamically by index.js -->
-    <div
-      id="hsm-grid"
-      class="hsm-grid"
-      role="group"
-      aria-label="Memory card grid"
-    ></div>
+    <div id="hsm-grid" class="hsm-grid" role="group" aria-label="Memory card grid"></div>
 
     <!-- Screen-reader feedback region -->
-    <div
-      id="hsm-feedback"
-      class="sr-only"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-    ></div>
+    <div id="hsm-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Speed trend chart -->
     <section class="game-trend" aria-labelledby="hsm-trend-title">

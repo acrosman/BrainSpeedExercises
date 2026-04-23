@@ -372,12 +372,12 @@ describe('showImage()', () => {
     expect(img.src).not.toContain('go/no-go');
   });
 
-  it('sets alt text to "No-go otter" for the no-go image', () => {
+  it('sets alt text to "No-go fish" for the no-go image', () => {
     const container = buildContainer();
     plugin.init(container);
     showImage('no-go');
     const img = container.querySelector('#os-stimulus-img');
-    expect(img.alt).toBe('No-go otter');
+    expect(img.alt).toBe('No-go fish');
   });
 
   it('sets alt text to "Go otter" for a go image', () => {
