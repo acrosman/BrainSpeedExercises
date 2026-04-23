@@ -124,7 +124,7 @@ describe('initGame()', () => {
 
   it('resets level to 0', () => {
     startGame();
-    recordResponse(true, false); // correct no-go inhibition ×3 → level → 1
+    recordResponse(true, false); // correct response ×3 → level → 1
     recordResponse(true, false);
     recordResponse(true, false);
     stopGame();
@@ -428,7 +428,7 @@ describe('recordResponse()', () => {
     });
 
     it('correct go responses do not advance the level (only no-go inhibitions count)', () => {
-      recordResponse(false, true); // correct go — should NOT advance streak
+      recordResponse(false, true); // correct go
       recordResponse(false, true);
       recordResponse(false, true);
       expect(getLevel()).toBe(0);
@@ -524,7 +524,7 @@ describe('getCurrentIntervalMs()', () => {
   });
 
   it('never returns less than 150 ms regardless of level', () => {
-    // Simulate many correct no-go inhibitions
+    // Simulate many correct no-go inhibitions.
     for (let i = 0; i < 300; i += 1) recordResponse(true, false);
     expect(getCurrentIntervalMs()).toBeGreaterThanOrEqual(150);
   });

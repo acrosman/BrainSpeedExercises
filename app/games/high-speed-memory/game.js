@@ -7,6 +7,8 @@
  * @file High Speed Memory game logic module.
  */
 
+import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+
 /**
  * Filename of the target card that the player must find.
  * Appears exactly PRIMARY_COUNT times in every grid.
@@ -206,12 +208,23 @@ export function addCorrectGroup() {
  */
 export function completeRound() {
   roundsCompleted += 1;
-  consecutiveCorrectRounds += 1;
-  consecutiveWrongRounds = 0;
-  if (consecutiveCorrectRounds >= ROUNDS_TO_LEVEL_UP) {
-    level += 1;
-    consecutiveCorrectRounds = 0;
-  }
+
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: level,
+    wasCorrect: true,
+    consecutiveCorrect: consecutiveCorrectRounds,
+    consecutiveWrong: consecutiveWrongRounds,
+    increaseAfter: ROUNDS_TO_LEVEL_UP,
+    decreaseAfter: 3,
+    harderStep: 1,
+    easierStep: -2,
+    minValue: 0,
+    maxValue: Number.POSITIVE_INFINITY,
+  });
+
+  level = staircaseState.value;
+  consecutiveCorrectRounds = staircaseState.consecutiveCorrect;
+  consecutiveWrongRounds = staircaseState.consecutiveWrong;
   speedHistory.push(getDisplayDurationMs(level));
 }
 
@@ -221,12 +234,22 @@ export function completeRound() {
  * After 3 consecutive wrong rounds the level drops by 2 (minimum 0).
  */
 export function resetConsecutiveRounds() {
-  consecutiveCorrectRounds = 0;
-  consecutiveWrongRounds += 1;
-  if (consecutiveWrongRounds >= 3) {
-    level = Math.max(0, level - 2);
-    consecutiveWrongRounds = 0;
-  }
+  const staircaseState = updateAdaptiveDifficultyState({
+    value: level,
+    wasCorrect: false,
+    consecutiveCorrect: consecutiveCorrectRounds,
+    consecutiveWrong: consecutiveWrongRounds,
+    increaseAfter: ROUNDS_TO_LEVEL_UP,
+    decreaseAfter: 3,
+    harderStep: 1,
+    easierStep: -2,
+    minValue: 0,
+    maxValue: Number.POSITIVE_INFINITY,
+  });
+
+  level = staircaseState.value;
+  consecutiveCorrectRounds = staircaseState.consecutiveCorrect;
+  consecutiveWrongRounds = staircaseState.consecutiveWrong;
   speedHistory.push(getDisplayDurationMs(level));
 }
 

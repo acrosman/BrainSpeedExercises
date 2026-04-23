@@ -424,7 +424,7 @@ function submitResponse() {
   if (success) {
     announce('Correct. SOA may decrease after the success streak target is met.');
   } else {
-    announce('Incorrect. SOA increased by one step to keep challenge near threshold.');
+    announce('Incorrect. Three mistakes in a row will make the timing easier.');
   }
 
   if (_feedbackEl) {

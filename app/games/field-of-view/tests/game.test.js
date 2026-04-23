@@ -49,7 +49,7 @@ describe('asset specs', () => {
 });
 
 describe('initGame', () => {
-  test('defaults to 1-up / 2-down when not configured', () => {
+  test('defaults to a 3-correct streak target', () => {
     expect(getDownAfterSuccesses()).toBe(DEFAULT_DOWN_AFTER_SUCCESSES);
   });
 
@@ -65,9 +65,9 @@ describe('initGame', () => {
     expect(getAccuracyBuffer()).toEqual([]);
   });
 
-  test('supports 1-up / 3-down mode when configured', () => {
-    initGame({ downAfterSuccesses: 3 });
-    expect(getDownAfterSuccesses()).toBe(3);
+  test('keeps the fixed streak target at 3 even when options are passed', () => {
+    initGame({ downAfterSuccesses: 99 });
+    expect(getDownAfterSuccesses()).toBe(DEFAULT_DOWN_AFTER_SUCCESSES);
   });
 
   test('clamps accuracy buffer size to 3..5', () => {
@@ -127,9 +127,10 @@ describe('getGridSizeForCurrentSoa', () => {
   });
 
   test('returns 5 when SOA drops to 300ms or lower', () => {
-    // Two-success chunks reduce SOA by one step each.
+    // Three-success chunks reduce SOA by one step each.
     const chunksNeeded = Math.ceil((START_SOA_MS - 300) / DEFAULT_STEP_DOWN_MS);
     for (let i = 0; i < chunksNeeded; i += 1) {
+      recordTrial({ success: true });
       recordTrial({ success: true });
       recordTrial({ success: true });
     }
@@ -189,7 +190,10 @@ describe('createTrialLayout', () => {
 });
 
 describe('recordTrial staircase behavior', () => {
-  test('in 1-up / 2-down mode, two successes step down once', () => {
+  test('three successes step down once', () => {
+    recordTrial({ success: true });
+    expect(getCurrentSoaMs()).toBe(START_SOA_MS);
+
     recordTrial({ success: true });
     expect(getCurrentSoaMs()).toBe(START_SOA_MS);
 
@@ -197,25 +201,38 @@ describe('recordTrial staircase behavior', () => {
     expect(getCurrentSoaMs()).toBe(Number((START_SOA_MS - DEFAULT_STEP_DOWN_MS).toFixed(2)));
   });
 
-  test('failure immediately steps SOA up and resets success streak', () => {
+  test('three consecutive failures step SOA up by two steps', () => {
+    recordTrial({ success: false });
+    recordTrial({ success: false });
+    expect(getCurrentSoaMs()).toBe(START_SOA_MS);
+
+    recordTrial({ success: false });
+    expect(getCurrentSoaMs()).toBe(Number((START_SOA_MS + (DEFAULT_STEP_UP_MS * 2)).toFixed(2)));
+  });
+
+  test('failure resets the success streak', () => {
+    recordTrial({ success: true });
     recordTrial({ success: true });
     recordTrial({ success: false });
+    expect(getCurrentSoaMs()).toBe(START_SOA_MS);
 
-    expect(getCurrentSoaMs()).toBe(Number((START_SOA_MS + DEFAULT_STEP_UP_MS).toFixed(2)));
-
-    // A single success should not step down because streak was reset.
+    // Two more successes should still not step down because streak was reset.
     recordTrial({ success: true });
-    expect(getCurrentSoaMs()).toBe(Number((START_SOA_MS + DEFAULT_STEP_UP_MS).toFixed(2)));
+    recordTrial({ success: true });
+    expect(getCurrentSoaMs()).toBe(START_SOA_MS);
   });
 
   test('respects SOA floor and ceiling clamps', () => {
     for (let i = 0; i < 200; i += 1) {
       recordTrial({ success: true });
       recordTrial({ success: true });
+      recordTrial({ success: true });
     }
     expect(getCurrentSoaMs()).toBe(MIN_SOA_MS);
 
     for (let i = 0; i < 200; i += 1) {
+      recordTrial({ success: false });
+      recordTrial({ success: false });
       recordTrial({ success: false });
     }
     expect(getCurrentSoaMs()).toBe(MAX_SOA_MS);
