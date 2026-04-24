@@ -317,10 +317,10 @@ describe('recordResponse()', () => {
       expect(getConsecutiveCorrect()).toBe(0);
     });
 
-    it('resets consecutiveWrong to 0', () => {
-      recordResponse(false, false); // wrong first
-      recordResponse(false, true); // now correct
-      expect(getConsecutiveWrong()).toBe(0);
+    it('does not reset consecutiveWrong (only a correct no-go inhibition resets it)', () => {
+      recordResponse(false, false); // wrong first (consecutiveWrong = 1)
+      recordResponse(false, true); // correct go — does NOT reset wrong streak
+      expect(getConsecutiveWrong()).toBe(1);
     });
   });
 
@@ -491,14 +491,33 @@ describe('recordResponse()', () => {
       expect(getConsecutiveWrong()).toBe(2);
     });
 
-    it('a correct response resets the wrong streak', () => {
+    it('a correct no-go inhibition resets the wrong streak', () => {
       for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
-      recordResponse(false, false);
-      recordResponse(false, false);
-      recordResponse(false, true); // correct go — resets wrong streak
-      recordResponse(false, false);
-      recordResponse(false, false);
-      expect(getLevel()).toBe(2); // no drop
+      recordResponse(false, false); // miss, consecutiveWrong = 1
+      recordResponse(false, false); // miss, consecutiveWrong = 2
+      recordResponse(true, false); // correct no-go inhibition — resets wrong streak
+      recordResponse(false, false); // miss, consecutiveWrong = 1
+      recordResponse(false, false); // miss, consecutiveWrong = 2
+      expect(getLevel()).toBe(2); // no drop (only 2 wrong since last correct no-go)
+    });
+
+    it('a correct go response does not reset the wrong streak', () => {
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
+      recordResponse(false, false); // miss, consecutiveWrong = 1
+      recordResponse(false, false); // miss, consecutiveWrong = 2
+      recordResponse(false, true); // correct go — does NOT reset wrong streak
+      recordResponse(false, false); // miss, consecutiveWrong = 3 → level drops to 0
+      expect(getLevel()).toBe(0);
+    });
+
+    it('3 false alarms with correct forced-go responses between them cause a level drop', () => {
+      for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level → 2
+      recordResponse(true, true); // false alarm, consecutiveWrong = 1
+      recordResponse(false, true); // correct forced go — does NOT reset wrong streak
+      recordResponse(true, true); // false alarm, consecutiveWrong = 2
+      recordResponse(false, true); // correct forced go — does NOT reset wrong streak
+      recordResponse(true, true); // false alarm, consecutiveWrong = 3 → level drops
+      expect(getLevel()).toBe(0);
     });
   });
 });
