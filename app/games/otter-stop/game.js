@@ -253,7 +253,7 @@ export function recordResponse(isNoGo, spacePressed) {
       staircaseState = {
         value: level,
         consecutiveCorrect,
-        consecutiveWrong: 0,
+        consecutiveWrong,
       };
     }
   } else {
