@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import { jest } from '@jest/globals';
+import path from 'path';
 
 const mockReadFile = jest.fn();
 const mockWriteFile = jest.fn();
@@ -92,13 +93,13 @@ describe('saveProgress', () => {
     await saveProgress('player1', { playerId: 'player1', games: {} });
 
     expect(mockWriteFile).toHaveBeenCalledWith(
-      '/mock/userData/player1.json.tmp',
+      path.join('/mock/userData', 'player1.json.tmp'),
       expect.any(String),
       'utf8',
     );
     expect(mockRename).toHaveBeenCalledWith(
-      '/mock/userData/player1.json.tmp',
-      '/mock/userData/player1.json',
+      path.join('/mock/userData', 'player1.json.tmp'),
+      path.join('/mock/userData', 'player1.json'),
     );
   });
 
@@ -116,7 +117,7 @@ describe('saveProgress', () => {
     await saveProgress('player1', { playerId: 'player1', games: {} });
 
     expect(mockLogInfo).toHaveBeenCalledWith(
-      expect.stringContaining('/mock/userData/player1.json'),
+      expect.stringContaining(path.join('/mock/userData', 'player1.json')),
     );
   });
 });
@@ -127,7 +128,7 @@ describe('resetProgress', () => {
 
     await resetProgress('player1');
 
-    expect(mockUnlink).toHaveBeenCalledWith('/mock/userData/player1.json');
+    expect(mockUnlink).toHaveBeenCalledWith(path.join('/mock/userData', 'player1.json'));
   });
 
   test('resolves silently when file is missing (ENOENT)', async () => {
