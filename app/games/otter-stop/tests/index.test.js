@@ -43,6 +43,8 @@ jest.unstable_mockModule('../game.js', () => ({
   isRunning: jest.fn(() => true),
   setGoKeys: jest.fn(),
   getSpeedHistory: jest.fn(() => []),
+  getAverageResponseMs: jest.fn(() => null),
+  recordGoResponseTime: jest.fn(),
   IMAGE_KEYS: ['go-1.png', 'go-2.png', 'go-3.png', 'no-go'],
   NO_GO_KEY: 'no-go',
 }));
@@ -122,6 +124,7 @@ function buildContainer() {
     <strong id="os-score">0</strong>
     <strong id="os-nogo-hits">0</strong>
     <strong id="os-interval">1500</strong>
+    <strong id="os-avg-response">--</strong>
     <strong id="os-final-score">0</strong>
     <strong id="os-final-best">0</strong>
     <strong id="os-final-nogo">0</strong>
@@ -348,6 +351,22 @@ describe('updateStats()', () => {
     gameMock.getCurrentIntervalMs.mockReturnValue(500);
     updateStats();
     expect(container.querySelector('#os-interval').textContent).toBe('500');
+  });
+
+  it('shows "--" for avg response when getAverageResponseMs returns null', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.getAverageResponseMs.mockReturnValue(null);
+    updateStats();
+    expect(container.querySelector('#os-avg-response').textContent).toBe('--');
+  });
+
+  it('shows the numeric value when getAverageResponseMs returns a number', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.getAverageResponseMs.mockReturnValue(320);
+    updateStats();
+    expect(container.querySelector('#os-avg-response').textContent).toBe('320');
   });
 });
 
@@ -818,6 +837,64 @@ describe('endTrial() — feedback timer fires after go miss', () => {
     jest.advanceTimersByTime(900);
 
     expect(container.querySelector('#os-feedback').hidden).toBe(true);
+  });
+});
+
+// ── response time recording ───────────────────────────────────────────────────
+
+describe('response time recording', () => {
+  it('calls recordGoResponseTime when Space is pressed on a go trial', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1.png', isNoGo: false });
+    beginTrial();
+    clearAllTimers();
+
+    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
+    handleKeyDown(event);
+
+    expect(gameMock.recordGoResponseTime).toHaveBeenCalledWith(expect.any(Number));
+  });
+
+  it('does not call recordGoResponseTime for a no-go trial', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true });
+    beginTrial();
+    clearAllTimers();
+    gameMock.recordGoResponseTime.mockClear();
+    endTrial();
+
+    expect(gameMock.recordGoResponseTime).not.toHaveBeenCalled();
+  });
+
+  it('does not call recordGoResponseTime when player misses a go image (no Space press)', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1.png', isNoGo: false });
+    beginTrial();
+    clearAllTimers();
+    gameMock.recordGoResponseTime.mockClear();
+    // endTrial without pressing Space — simulates a miss
+    endTrial();
+
+    expect(gameMock.recordGoResponseTime).not.toHaveBeenCalled();
+  });
+
+  it('calls recordGoResponseTime when stimulus area is clicked on a go trial', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1.png', isNoGo: false });
+    beginTrial();
+    clearAllTimers();
+
+    handleClick();
+
+    expect(gameMock.recordGoResponseTime).toHaveBeenCalledWith(expect.any(Number));
   });
 });
 
