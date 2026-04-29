@@ -105,3 +105,4 @@ dist
 
 # Ignore the build out folder content
 out/
+nohup.out
