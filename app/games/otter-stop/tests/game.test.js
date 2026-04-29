@@ -654,7 +654,7 @@ describe('getAverageResponseMs()', () => {
   it('rounds to the nearest millisecond', () => {
     recordGoResponseTime(300);
     recordGoResponseTime(301);
-    expect(getAverageResponseMs()).toBe(301); // Math.round(601 / 2) = 301 (rounds down 300.5)
+    expect(getAverageResponseMs()).toBe(301); // Math.round(601 / 2) = 301
   });
 
   it('resets to null after initGame()', () => {
