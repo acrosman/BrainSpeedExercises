@@ -8,7 +8,7 @@
  */
 
 import * as game from './game.js';
-import { playFailureSound } from '../../components/audioService.js';
+import { playFailureSound, playSuccessSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
@@ -17,7 +17,14 @@ import { renderTrendChart } from '../../components/trendChartService.js';
 /**
  * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
  */
-const WRONG_FLIP_DELAY_MS = 900;
+export const WRONG_FLIP_DELAY_MS = 900;
+
+/**
+ * Duration in ms to show the correct (Primary) card positions after a wrong guess.
+ * Matches the inter-round pause used after a correct round so the player has the
+ * same amount of time to study the layout.
+ */
+const REVEAL_ANSWER_MS = 1200;
 
 /**
  * Base path for card images relative to the renderer's root (app/index.html).
@@ -113,6 +120,12 @@ let _primaryFound = 0;
  * @type {ReturnType<typeof setTimeout>|null}
  */
 let _roundRestartTimer = null;
+
+/**
+ * Pending setTimeout handle for the brief answer-reveal phase after a wrong guess.
+ * @type {ReturnType<typeof setTimeout>|null}
+ */
+let _answerRevealTimer = null;
 
 /**
  * Pending setTimeout handle for hiding all cards after reveal phase.
@@ -274,6 +287,18 @@ export function hideAllCards() {
 }
 
 /**
+ * Reveal all unmatched Primary cards so the player can see the correct positions.
+ * Called briefly after a wrong guess before restarting the round.
+ */
+export function revealPrimaryCards() {
+  _roundGrid.forEach((card) => {
+    if (!card.matched && game.isPrimary(card.image)) {
+      revealCardEl(card.id, card.image);
+    }
+  });
+}
+
+/**
  * Start a new round: generate a fresh grid, render it revealed, then hide after delay.
  */
 export function startRound() {
@@ -326,7 +351,7 @@ export function handleCardClick(cardId) {
       onRoundComplete();
     }
   } else {
-    // Wrong — reset streak, play sound, then restart the round after a brief delay
+    // Wrong — reset streak, play sound, briefly reveal the target positions, then restart
     game.resetConsecutiveRounds();
     markCardWrong(cardId);
     playFailureSound();
@@ -337,7 +362,11 @@ export function handleCardClick(cardId) {
     _flipLock = true;
     clearTimers();
     _roundRestartTimer = setTimeout(() => {
-      startRound();
+      revealPrimaryCards();
+      announce('Here are the target card positions.');
+      _answerRevealTimer = setTimeout(() => {
+        startRound();
+      }, REVEAL_ANSWER_MS);
     }, WRONG_FLIP_DELAY_MS);
   }
 }
@@ -349,6 +378,7 @@ export function handleCardClick(cardId) {
  */
 function onRoundComplete() {
   game.completeRound();
+  playSuccessSound();
   updateStats();
   updateTrendChart();
 
@@ -376,6 +406,10 @@ function clearTimers() {
   if (_roundRestartTimer !== null) {
     clearTimeout(_roundRestartTimer);
     _roundRestartTimer = null;
+  }
+  if (_answerRevealTimer !== null) {
+    clearTimeout(_answerRevealTimer);
+    _answerRevealTimer = null;
   }
   if (_hideTimer !== null) {
     clearTimeout(_hideTimer);
