@@ -18,6 +18,8 @@ import {
   getConsecutiveWrong,
   getForceGoNext,
   getSessionBestScore,
+  getMaxSequenceLength,
+  getCurrentSequenceLength,
   isRunning,
   IMAGE_KEYS,
   NO_GO_KEY,
@@ -162,6 +164,26 @@ describe('initGame()', () => {
     initGame();
     expect(getForceGoNext()).toBe(false);
   });
+
+  it('resets sequence position so pickNextImage() starts a new sequence', () => {
+    // Force a non-zero sequence length to guarantee the first pick is a go image
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    // Math.floor(0.5 * (5 - 0 + 1)) + 0 = 3 → currentSequenceLength = 3
+    initGame();
+    const seqLen = getCurrentSequenceLength(); // 3
+    for (let i = 0; i < seqLen; i += 1) pickNextImage();
+    pickNextImage(); // fish — advances past sequence
+    initGame(); // reset: sequencePosition = 0, currentSequenceLength = 3
+    const { isNoGo } = pickNextImage(); // position 0 < 3 → go image
+    expect(isNoGo).toBe(false);
+    spy.mockRestore();
+  });
+
+  it('generates a currentSequenceLength in [0, 5] at level 0 after reset', () => {
+    const seqLen = getCurrentSequenceLength();
+    expect(seqLen).toBeGreaterThanOrEqual(0);
+    expect(seqLen).toBeLessThanOrEqual(5);
+  });
 });
 
 // ── startGame / stopGame ──────────────────────────────────────────────────────
@@ -199,6 +221,7 @@ describe('startGame() / stopGame()', () => {
     expect(result).toHaveProperty('misses');
     expect(result).toHaveProperty('trialsCompleted');
     expect(result).toHaveProperty('level');
+    expect(result).toHaveProperty('maxSequenceLength');
     expect(result).toHaveProperty('duration');
     expect(result).toHaveProperty('bestScore');
   });
@@ -208,6 +231,16 @@ describe('startGame() / stopGame()', () => {
     const { duration } = stopGame();
     expect(typeof duration).toBe('number');
     expect(duration).toBeGreaterThanOrEqual(0);
+  });
+
+  it('stopGame() returns maxSequenceLength equal to 5 + level', () => {
+    startGame();
+    // Advance to level 1 (3 correct no-go inhibitions)
+    recordResponse(true, false);
+    recordResponse(true, false);
+    recordResponse(true, false);
+    const result = stopGame();
+    expect(result.maxSequenceLength).toBe(6); // 5 + 1
   });
 
   it('stopGame() returns the current score in the result', () => {
@@ -228,12 +261,14 @@ describe('pickNextImage()', () => {
   });
 
   it.each([
-    [0, 'go-1.png', false],
-    [0.25, 'go-2.png', false],
-    [0.5, 'go-3.png', false],
-    [0.75, 'no-go', true],
-  ])('Math.random()=%f → imageKey="%s", isNoGo=%s', (rand, expectedKey, expectedIsNoGo) => {
+    [0.2, 'go-1.png', false],  // seq=1 (non-zero), Math.floor(0.2*3)=0 → go-1.png
+    [0.25, 'go-1.png', false], // seq=1 (non-zero), Math.floor(0.25*3)=0 → go-1.png
+    [0.5, 'go-2.png', false],  // seq=3, Math.floor(0.5*3)=1 → go-2.png
+    [0.75, 'go-3.png', false], // seq=4, Math.floor(0.75*3)=2 → go-3.png
+  ])('Math.random()=%f → imageKey="%s", isNoGo=%s (within sequence)',
+    (rand, expectedKey, expectedIsNoGo) => {
     randomSpy = jest.spyOn(Math, 'random').mockReturnValue(rand);
+    initGame(); // re-init with spy to guarantee a deterministic, non-zero sequence length
     const result = pickNextImage();
     expect(result.imageKey).toBe(expectedKey);
     expect(result.isNoGo).toBe(expectedIsNoGo);
@@ -249,6 +284,33 @@ describe('pickNextImage()', () => {
     randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
     const { imageKey, isNoGo } = pickNextImage();
     expect(isNoGo).toBe(imageKey === NO_GO_KEY);
+  });
+
+  it('returns go images for the full sequence length before the fish', () => {
+    const seqLen = getCurrentSequenceLength();
+    for (let i = 0; i < seqLen; i += 1) {
+      const { isNoGo } = pickNextImage();
+      expect(isNoGo).toBe(false);
+    }
+  });
+
+  it('returns no-go (fish) after exhausting the current sequence', () => {
+    const seqLen = getCurrentSequenceLength();
+    for (let i = 0; i < seqLen; i += 1) pickNextImage();
+    const { imageKey, isNoGo } = pickNextImage();
+    expect(imageKey).toBe(NO_GO_KEY);
+    expect(isNoGo).toBe(true);
+  });
+
+  it('starts a new go sequence immediately after the fish', () => {
+    // Use spy to guarantee a non-zero sequence length before and after the fish
+    randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    initGame(); // Math.floor(0.5 * 6) + 0 = 3 → currentSequenceLength = 3
+    const seqLen = getCurrentSequenceLength(); // 3
+    for (let i = 0; i < seqLen; i += 1) pickNextImage();
+    pickNextImage(); // fish — resets sequence, regenerates: Math.floor(0.5 * 6) = 3
+    const { isNoGo } = pickNextImage(); // position 0 < 3 → go image
+    expect(isNoGo).toBe(false);
   });
 
   describe('when forceGoNext is true (after a wrong outcome)', () => {
@@ -273,13 +335,15 @@ describe('pickNextImage()', () => {
       expect(getForceGoNext()).toBe(false);
     });
 
-    it('subsequent pickNextImage() can return no-go again', () => {
+    it('subsequent pickNextImage() can return no-go again after the sequence ends', () => {
       recordResponse(false, false); // wrong → forceGoNext = true
       randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
-      pickNextImage(); // consumes forceGoNext
-      randomSpy.mockReturnValue(0.75); // next random → no-go index
-      const second = pickNextImage();
-      expect(second.isNoGo).toBe(true);
+      pickNextImage(); // consumes forceGoNext (sequencePosition advances to 1)
+      // Advance through the rest of the current sequence then expect fish
+      const seqLen = getCurrentSequenceLength();
+      for (let i = 1; i < seqLen; i += 1) pickNextImage();
+      const next = pickNextImage();
+      expect(next.isNoGo).toBe(true);
     });
   });
 });
@@ -628,5 +692,73 @@ describe('getSpeedHistory()', () => {
     recordResponse(false, true);
     initGame();
     expect(getSpeedHistory()).toEqual([]);
+  });
+});
+
+// ── getMaxSequenceLength ──────────────────────────────────────────────────────
+
+describe('getMaxSequenceLength()', () => {
+  it('returns 5 at level 0', () => {
+    expect(getMaxSequenceLength()).toBe(5);
+  });
+
+  it('returns 6 after advancing to level 1', () => {
+    for (let i = 0; i < 3; i += 1) recordResponse(true, false); // 3 correct no-go → level 1
+    expect(getMaxSequenceLength()).toBe(6);
+  });
+
+  it('returns 7 after advancing to level 2', () => {
+    for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level 2
+    expect(getMaxSequenceLength()).toBe(7);
+  });
+
+  it('increases by 1 for each additional level', () => {
+    // Advance to level 10 (30 consecutive correct no-go inhibitions)
+    for (let i = 0; i < 30; i += 1) recordResponse(true, false);
+    expect(getMaxSequenceLength()).toBe(15); // 5 + 10
+  });
+});
+
+// ── getCurrentSequenceLength ──────────────────────────────────────────────────
+
+describe('getCurrentSequenceLength()', () => {
+  it('is at least 0 after initGame', () => {
+    expect(getCurrentSequenceLength()).toBeGreaterThanOrEqual(0);
+  });
+
+  it('is at most getMaxSequenceLength() after initGame', () => {
+    expect(getCurrentSequenceLength()).toBeLessThanOrEqual(getMaxSequenceLength());
+  });
+
+  it('is capped to the new max when the level drops after a losing streak', () => {
+    // Advance to level 2 (max = 7) and force currentSequenceLength = 7 via spy
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.99);
+    for (let i = 0; i < 6; i += 1) recordResponse(true, false); // → level 2
+    // Pick fish to regenerate: Math.floor(0.99 * (7 - 0 + 1)) + 0 = Math.floor(7.92) = 7
+    const seqLen = getCurrentSequenceLength();
+    for (let i = 0; i < seqLen; i += 1) pickNextImage();
+    pickNextImage(); // fish → currentSequenceLength regenerated to 7
+    expect(getCurrentSequenceLength()).toBe(7);
+    spy.mockRestore();
+
+    // Three consecutive wrong responses → level drops 2 → level 0, max = 5
+    recordResponse(false, false);
+    recordResponse(false, false);
+    recordResponse(false, false);
+    // currentSequenceLength (7) must be clamped to new max (5)
+    expect(getCurrentSequenceLength()).toBe(5);
+    expect(getCurrentSequenceLength()).toBeLessThanOrEqual(getMaxSequenceLength());
+  });
+
+  it('is regenerated when the fish is picked (sequence ends)', () => {
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.99);
+    initGame(); // Math.floor(0.99 * (5 - 0 + 1)) + 0 = Math.floor(5.94) = 5
+    spy.mockReturnValue(0); // next generateSequenceLength calls produce 0
+    // Consume the full sequence
+    const seqLen = getCurrentSequenceLength(); // 5
+    for (let i = 0; i < seqLen; i += 1) pickNextImage();
+    pickNextImage(); // fish — triggers generateSequenceLength: Math.floor(0 * 6) = 0
+    expect(getCurrentSequenceLength()).toBe(0);
+    spy.mockRestore();
   });
 });
