@@ -26,6 +26,8 @@ import {
   GO_KEYS,
   setGoKeys,
   getSpeedHistory,
+  recordGoResponseTime,
+  getAverageResponseMs,
 } from '../game.js';
 
 /** Default go keys used by the test suite (matches built-in defaults). */
@@ -77,7 +79,11 @@ describe('setGoKeys()', () => {
 
   it('pickNextImage() picks from the new keys after setGoKeys()', () => {
     setGoKeys(['custom.png']);
-    const spy = jest.spyOn(Math, 'random').mockReturnValue(0);
+    // Use a non-zero Math.random value during initGame() to guarantee a
+    // non-zero currentSequenceLength, then switch to 0 for the idx pick.
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    initGame(); // currentSequenceLength = Math.floor(0.5 * 6) = 3
+    spy.mockReturnValue(0); // idx = Math.floor(0 * 1) = 0 → GO_KEYS[0] = 'custom.png'
     const { imageKey } = pickNextImage();
     spy.mockRestore();
     expect(imageKey).toBe('custom.png');
@@ -692,6 +698,51 @@ describe('getSpeedHistory()', () => {
     recordResponse(false, true);
     initGame();
     expect(getSpeedHistory()).toEqual([]);
+  });
+});
+
+// ── recordGoResponseTime / getAverageResponseMs ───────────────────────────────
+
+describe('getAverageResponseMs()', () => {
+  it('returns null when no go response times have been recorded', () => {
+    expect(getAverageResponseMs()).toBeNull();
+  });
+
+  it('returns the single recorded value when only one response has been recorded', () => {
+    recordGoResponseTime(400);
+    expect(getAverageResponseMs()).toBe(400);
+  });
+
+  it('returns the rounded average of multiple recorded times', () => {
+    recordGoResponseTime(300);
+    recordGoResponseTime(500);
+    expect(getAverageResponseMs()).toBe(400);
+  });
+
+  it('rounds to the nearest millisecond', () => {
+    recordGoResponseTime(300);
+    recordGoResponseTime(301);
+    expect(getAverageResponseMs()).toBe(301); // Math.round(601 / 2) = 301
+  });
+
+  it('resets to null after initGame()', () => {
+    recordGoResponseTime(350);
+    initGame();
+    expect(getAverageResponseMs()).toBeNull();
+  });
+});
+
+describe('recordGoResponseTime()', () => {
+  it('accumulates response times so each additional entry changes the average', () => {
+    recordGoResponseTime(200);
+    expect(getAverageResponseMs()).toBe(200);
+    recordGoResponseTime(400);
+    expect(getAverageResponseMs()).toBe(300);
+  });
+
+  it('accepts any non-negative value including 0', () => {
+    recordGoResponseTime(0);
+    expect(getAverageResponseMs()).toBe(0);
   });
 });
 

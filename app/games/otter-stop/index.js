@@ -90,6 +90,9 @@ let _trendEmptyEl = null;
 let _trendLatestEl = null;
 
 /** @type {HTMLElement|null} */
+let _avgResponseEl = null;
+
+/** @type {HTMLElement|null} */
 let _finalScoreEl = null;
 
 /** @type {HTMLElement|null} */
@@ -114,6 +117,12 @@ let _currentIsNoGo = false;
 
 /** Whether Space was pressed during the current trial window. */
 let _spacePressedThisTrial = false;
+
+/**
+ * Timestamp (ms) when the current go stimulus was shown.
+ * Null when no trial is active or the current stimulus is a no-go image.
+ */
+let _goTrialStartMs = null;
 
 /** setTimeout handle for the trial display window. */
 let _trialTimer = null;
@@ -276,6 +285,12 @@ export function showEndPanel(result) {
 export function endTrial() {
   if (!game.isRunning()) return;
 
+  // Record response time for go trials where the player actually responded.
+  if (!_currentIsNoGo && _spacePressedThisTrial && _goTrialStartMs !== null) {
+    game.recordGoResponseTime(Date.now() - _goTrialStartMs);
+  }
+  _goTrialStartMs = null;
+
   const outcome = game.recordResponse(_currentIsNoGo, _spacePressedThisTrial);
   updateStats();
   updateTrendChart();
@@ -283,6 +298,13 @@ export function endTrial() {
   const wasNoGo = _currentIsNoGo;
   _currentImageKey = null;
   _currentIsNoGo = false;
+
+  // Update the average response stat only at the end of a complete sequence
+  // (i.e., after the no-go stimulus), so it reflects the whole go-run.
+  if (wasNoGo && _avgResponseEl) {
+    const avgMs = game.getAverageResponseMs();
+    _avgResponseEl.textContent = avgMs !== null ? avgMs : '--';
+  }
 
   hideImage();
 
@@ -318,6 +340,9 @@ export function beginTrial() {
   const { imageKey, isNoGo } = game.pickNextImage();
   _currentImageKey = imageKey;
   _currentIsNoGo = isNoGo;
+
+  // Record when the go stimulus appears so we can measure reaction time.
+  _goTrialStartMs = isNoGo ? null : Date.now();
 
   showImage(imageKey);
 
@@ -420,6 +445,7 @@ function init(container) {
   _trendLineEl = container.querySelector('#os-trend-line');
   _trendEmptyEl = container.querySelector('#os-trend-empty');
   _trendLatestEl = container.querySelector('#os-trend-latest');
+  _avgResponseEl = container.querySelector('#os-avg-response');
   _finalScoreEl = container.querySelector('#os-final-score');
   _finalBestEl = container.querySelector('#os-final-best');
   _finalNogoEl = container.querySelector('#os-final-nogo');
