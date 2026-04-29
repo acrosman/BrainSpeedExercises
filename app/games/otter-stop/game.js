@@ -144,7 +144,7 @@ let currentSequenceLength = BASE_MAX_SEQUENCE_LENGTH;
  */
 function generateSequenceLength() {
   const max = BASE_MAX_SEQUENCE_LENGTH + level;
-  return Math.floor(Math.random() * max) + MIN_SEQUENCE_LENGTH;
+  return Math.floor(Math.random() * (max - MIN_SEQUENCE_LENGTH + 1)) + MIN_SEQUENCE_LENGTH;
 }
 
 /**

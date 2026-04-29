@@ -254,7 +254,7 @@ describe('pickNextImage()', () => {
   let randomSpy;
 
   afterEach(() => {
-    if (randomSpy) randomSpy.mockRestore();
+    randomSpy.mockRestore();
   });
 
   it.each([
@@ -726,7 +726,7 @@ describe('getCurrentSequenceLength()', () => {
 
   it('is regenerated when the fish is picked (sequence ends)', () => {
     const spy = jest.spyOn(Math, 'random').mockReturnValue(0.99);
-    initGame(); // generateSequenceLength: Math.floor(0.99 * 5) + 1 = 5
+    initGame(); // generateSequenceLength: Math.floor(0.99 * (5 + 0 - 1 + 1)) + 1 = 5
     spy.mockReturnValue(0); // next calls → generateSequenceLength will produce 1
     // Consume the full sequence
     const seqLen = getCurrentSequenceLength();
