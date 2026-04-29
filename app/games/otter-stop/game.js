@@ -70,8 +70,14 @@ const WRONG_STREAK_TO_DROP = 3;
 /** How many levels to drop after a losing streak. */
 const LEVEL_DROP = 2;
 
-/** Number of go images (otters) in a sequence before the no-go (fish) at level 0. */
+/** Maximum number of go images (otters) in a sequence at level 0. */
 const BASE_MAX_SEQUENCE_LENGTH = 5;
+
+/**
+ * Minimum number of go images (otters) in a sequence at any level.
+ * A value of 0 means the fish may appear immediately with no preceding otters.
+ */
+const MIN_SEQUENCE_LENGTH = 0;
 
 // ── Module-level session-best trackers (persist across initGame calls) ────────
 
@@ -124,7 +130,26 @@ let forceGoNext = false;
 /** Current position within the go-image sequence (go images shown since last fish). */
 let sequencePosition = 0;
 
+/**
+ * Total go images in the current sequence before the next no-go (fish).
+ * Regenerated at the start of each new sequence; clamped down when the level drops.
+ */
+let currentSequenceLength = BASE_MAX_SEQUENCE_LENGTH;
+
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
+
+/**
+ * Generate a random sequence length between MIN_SEQUENCE_LENGTH and
+ * (BASE_MAX_SEQUENCE_LENGTH + level) inclusive.
+ * A result of 0 means the fish appears as the very next stimulus.
+ *
+ * @returns {number} A random integer in the range
+ *   [MIN_SEQUENCE_LENGTH, BASE_MAX_SEQUENCE_LENGTH + level].
+ */
+function generateSequenceLength() {
+  const max = BASE_MAX_SEQUENCE_LENGTH + level;
+  return Math.floor(Math.random() * (max - MIN_SEQUENCE_LENGTH + 1)) + MIN_SEQUENCE_LENGTH;
+}
 
 /**
  * Initialize (or reset) all per-game state.
@@ -143,6 +168,7 @@ export function initGame() {
   forceGoNext = false;
   speedHistory = [];
   sequencePosition = 0;
+  currentSequenceLength = generateSequenceLength();
 }
 
 /**
@@ -193,9 +219,12 @@ export function stopGame() {
  * Pick the next image to display.
  *
  * Images are presented as sequences: a run of go (otter) images followed by
- * exactly one no-go (fish) image. The sequence length equals
- * BASE_MAX_SEQUENCE_LENGTH + level, so it grows by 1 with each level gained
- * and shrinks immediately when a level is lost.
+ * exactly one no-go (fish) image. The length of each sequence is sampled
+ * randomly from [MIN_SEQUENCE_LENGTH, BASE_MAX_SEQUENCE_LENGTH + level]; a
+ * length of 0 means the fish appears immediately with no preceding otters.
+ * When the level drops, `currentSequenceLength` is clamped to the new maximum
+ * so the player is not exposed to sequences that are too long for the reduced
+ * difficulty.
  *
  * If the previous trial ended with a wrong outcome (`forceGoNext` is true),
  * the next trial is guaranteed to be a go image so the player always gets a
@@ -211,8 +240,9 @@ export function pickNextImage() {
     const idx = Math.floor(Math.random() * GO_KEYS.length);
     return { imageKey: GO_KEYS[idx], isNoGo: false };
   }
-  if (sequencePosition >= BASE_MAX_SEQUENCE_LENGTH + level) {
+  if (sequencePosition >= currentSequenceLength) {
     sequencePosition = 0;
+    currentSequenceLength = generateSequenceLength();
     return { imageKey: NO_GO_KEY, isNoGo: true };
   }
   sequencePosition += 1;
@@ -296,6 +326,13 @@ export function recordResponse(isNoGo, spacePressed) {
   level = staircaseState.value;
   consecutiveCorrect = staircaseState.consecutiveCorrect;
   consecutiveWrong = staircaseState.consecutiveWrong;
+
+  // If the level dropped, cap the in-flight sequence length to the new maximum
+  // so the player is not exposed to sequences that are too long for their level.
+  const newMax = BASE_MAX_SEQUENCE_LENGTH + level;
+  if (currentSequenceLength > newMax) {
+    currentSequenceLength = newMax;
+  }
 
   speedHistory.push(getCurrentIntervalMs());
 
@@ -402,13 +439,14 @@ export function getMaxSequenceLength() {
 
 /**
  * Return the number of go images in the current sequence before the next fish appears.
- * This is always equal to getMaxSequenceLength() — the sequence length is fixed for
- * each level and adjusts immediately when the level changes.
+ * This value is sampled randomly at the start of each sequence (in the range
+ * [MIN_SEQUENCE_LENGTH, BASE_MAX_SEQUENCE_LENGTH + level]) and is clamped down
+ * immediately whenever the level drops.
  *
  * @returns {number}
  */
 export function getCurrentSequenceLength() {
-  return BASE_MAX_SEQUENCE_LENGTH + level;
+  return currentSequenceLength;
 }
 
 /**

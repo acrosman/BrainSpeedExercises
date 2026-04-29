@@ -165,19 +165,24 @@ describe('initGame()', () => {
     expect(getForceGoNext()).toBe(false);
   });
 
-  it('resets sequence position so the first pickNextImage() returns a go image', () => {
-    // Exhaust the initial sequence to advance sequencePosition
-    const seqLen = getCurrentSequenceLength();
-    for (let i = 0; i < seqLen; i += 1) pickNextImage();
-    pickNextImage(); // pick the fish
+  it('resets sequence position so pickNextImage() starts a new sequence', () => {
+    // Force a non-zero sequence length to guarantee the first pick is a go image
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    // Math.floor(0.5 * (5 - 0 + 1)) + 0 = 3 → currentSequenceLength = 3
     initGame();
-    // After reset, the first pick should always be a go image (not fish)
-    const { isNoGo } = pickNextImage();
+    const seqLen = getCurrentSequenceLength(); // 3
+    for (let i = 0; i < seqLen; i += 1) pickNextImage();
+    pickNextImage(); // fish — advances past sequence
+    initGame(); // reset: sequencePosition = 0, currentSequenceLength = 3
+    const { isNoGo } = pickNextImage(); // position 0 < 3 → go image
     expect(isNoGo).toBe(false);
+    spy.mockRestore();
   });
 
-  it('sets sequence length to 5 (BASE_MAX_SEQUENCE_LENGTH) at level 0 after reset', () => {
-    expect(getCurrentSequenceLength()).toBe(5);
+  it('generates a currentSequenceLength in [0, 5] at level 0 after reset', () => {
+    const seqLen = getCurrentSequenceLength();
+    expect(seqLen).toBeGreaterThanOrEqual(0);
+    expect(seqLen).toBeLessThanOrEqual(5);
   });
 });
 
@@ -256,13 +261,14 @@ describe('pickNextImage()', () => {
   });
 
   it.each([
-    [0, 'go-1.png', false],    // Math.floor(0 * 3) = 0
-    [0.25, 'go-1.png', false], // Math.floor(0.25 * 3) = 0 (3-key pool)
-    [0.5, 'go-2.png', false],  // Math.floor(0.5 * 3) = 1
-    [0.75, 'go-3.png', false], // Math.floor(0.75 * 3) = 2
+    [0.2, 'go-1.png', false],  // seq=1 (non-zero), Math.floor(0.2*3)=0 → go-1.png
+    [0.25, 'go-1.png', false], // seq=1 (non-zero), Math.floor(0.25*3)=0 → go-1.png
+    [0.5, 'go-2.png', false],  // seq=3, Math.floor(0.5*3)=1 → go-2.png
+    [0.75, 'go-3.png', false], // seq=4, Math.floor(0.75*3)=2 → go-3.png
   ])('Math.random()=%f → imageKey="%s", isNoGo=%s (within sequence)',
     (rand, expectedKey, expectedIsNoGo) => {
     randomSpy = jest.spyOn(Math, 'random').mockReturnValue(rand);
+    initGame(); // re-init with spy to guarantee a deterministic, non-zero sequence length
     const result = pickNextImage();
     expect(result.imageKey).toBe(expectedKey);
     expect(result.isNoGo).toBe(expectedIsNoGo);
@@ -297,10 +303,13 @@ describe('pickNextImage()', () => {
   });
 
   it('starts a new go sequence immediately after the fish', () => {
-    const seqLen = getCurrentSequenceLength();
+    // Use spy to guarantee a non-zero sequence length before and after the fish
+    randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    initGame(); // Math.floor(0.5 * 6) + 0 = 3 → currentSequenceLength = 3
+    const seqLen = getCurrentSequenceLength(); // 3
     for (let i = 0; i < seqLen; i += 1) pickNextImage();
-    pickNextImage(); // fish — resets sequence
-    const { isNoGo } = pickNextImage();
+    pickNextImage(); // fish — resets sequence, regenerates: Math.floor(0.5 * 6) = 3
+    const { isNoGo } = pickNextImage(); // position 0 < 3 → go image
     expect(isNoGo).toBe(false);
   });
 
@@ -713,25 +722,43 @@ describe('getMaxSequenceLength()', () => {
 // ── getCurrentSequenceLength ──────────────────────────────────────────────────
 
 describe('getCurrentSequenceLength()', () => {
-  it('returns 5 at level 0 (BASE_MAX_SEQUENCE_LENGTH)', () => {
-    expect(getCurrentSequenceLength()).toBe(5);
+  it('is at least 0 after initGame', () => {
+    expect(getCurrentSequenceLength()).toBeGreaterThanOrEqual(0);
   });
 
-  it('equals getMaxSequenceLength() at every level', () => {
-    expect(getCurrentSequenceLength()).toBe(getMaxSequenceLength()); // level 0
-    for (let i = 0; i < 3; i += 1) recordResponse(true, false); // level 1
-    expect(getCurrentSequenceLength()).toBe(getMaxSequenceLength());
-    for (let i = 0; i < 3; i += 1) recordResponse(true, false); // level 2
-    expect(getCurrentSequenceLength()).toBe(getMaxSequenceLength());
+  it('is at most getMaxSequenceLength() after initGame', () => {
+    expect(getCurrentSequenceLength()).toBeLessThanOrEqual(getMaxSequenceLength());
   });
 
-  it('decreases immediately when the level drops', () => {
-    for (let i = 0; i < 6; i += 1) recordResponse(true, false); // level 2 → length 7
+  it('is capped to the new max when the level drops after a losing streak', () => {
+    // Advance to level 2 (max = 7) and force currentSequenceLength = 7 via spy
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.99);
+    for (let i = 0; i < 6; i += 1) recordResponse(true, false); // → level 2
+    // Pick fish to regenerate: Math.floor(0.99 * (7 - 0 + 1)) + 0 = Math.floor(7.92) = 7
+    const seqLen = getCurrentSequenceLength();
+    for (let i = 0; i < seqLen; i += 1) pickNextImage();
+    pickNextImage(); // fish → currentSequenceLength regenerated to 7
     expect(getCurrentSequenceLength()).toBe(7);
-    // Three consecutive wrong responses → level drops by 2
+    spy.mockRestore();
+
+    // Three consecutive wrong responses → level drops 2 → level 0, max = 5
     recordResponse(false, false);
     recordResponse(false, false);
     recordResponse(false, false);
-    expect(getCurrentSequenceLength()).toBe(5); // back to level 0 → length 5
+    // currentSequenceLength (7) must be clamped to new max (5)
+    expect(getCurrentSequenceLength()).toBe(5);
+    expect(getCurrentSequenceLength()).toBeLessThanOrEqual(getMaxSequenceLength());
+  });
+
+  it('is regenerated when the fish is picked (sequence ends)', () => {
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.99);
+    initGame(); // Math.floor(0.99 * (5 - 0 + 1)) + 0 = Math.floor(5.94) = 5
+    spy.mockReturnValue(0); // next generateSequenceLength calls produce 0
+    // Consume the full sequence
+    const seqLen = getCurrentSequenceLength(); // 5
+    for (let i = 0; i < seqLen; i += 1) pickNextImage();
+    pickNextImage(); // fish — triggers generateSequenceLength: Math.floor(0 * 6) = 0
+    expect(getCurrentSequenceLength()).toBe(0);
+    spy.mockRestore();
   });
 });
