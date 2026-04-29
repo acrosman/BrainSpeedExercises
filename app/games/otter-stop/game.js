@@ -121,6 +121,13 @@ let consecutiveWrong = 0;
 let speedHistory = [];
 
 /**
+ * Response times (ms) for go trials where the player actually responded.
+ * Used to compute the average response time displayed in the stats bar.
+ * @type {number[]}
+ */
+let goResponseTimes = [];
+
+/**
  * Whether the next trial must be a go image (forced after any wrong outcome).
  * Ensures the player gets a fair chance to respond correctly before facing
  * another no-go stimulus.
@@ -167,6 +174,7 @@ export function initGame() {
   consecutiveWrong = 0;
   forceGoNext = false;
   speedHistory = [];
+  goResponseTimes = [];
   sequencePosition = 0;
   currentSequenceLength = generateSequenceLength();
 }
@@ -464,4 +472,28 @@ export function isRunning() {
  */
 export function getSpeedHistory() {
   return [...speedHistory];
+}
+
+/**
+ * Record a response time (ms) for a go trial where the player responded.
+ * Only go trials where the player actually presses Space should be counted.
+ *
+ * @param {number} ms - Time (ms) between when the go stimulus appeared and
+ *   when the player responded.
+ */
+export function recordGoResponseTime(ms) {
+  goResponseTimes.push(ms);
+}
+
+/**
+ * Return the running average of all recorded go-trial response times, rounded
+ * to the nearest millisecond.  Returns null when no go responses have been
+ * recorded yet (i.e. at the start of a game).
+ *
+ * @returns {number|null}
+ */
+export function getAverageResponseMs() {
+  if (goResponseTimes.length === 0) return null;
+  const total = goResponseTimes.reduce((sum, t) => sum + t, 0);
+  return Math.round(total / goResponseTimes.length);
 }
