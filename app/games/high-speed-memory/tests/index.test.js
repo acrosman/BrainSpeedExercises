@@ -70,6 +70,32 @@ const {
 
 const gameMock = await import('../game.js');
 
+// ── Audio context mock (enables testing sound calls) ──────────────────────────
+
+const mockOsc = {
+  type: '',
+  frequency: { setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() },
+  connect: jest.fn(),
+  start: jest.fn(),
+  stop: jest.fn(),
+};
+const mockGain = {
+  gain: {
+    setValueAtTime: jest.fn(),
+    exponentialRampToValueAtTime: jest.fn(),
+    linearRampToValueAtTime: jest.fn(),
+  },
+  connect: jest.fn(),
+};
+const mockAudioCtx = {
+  currentTime: 0,
+  state: 'running',
+  destination: {},
+  createGain: jest.fn(() => mockGain),
+  createOscillator: jest.fn(() => mockOsc),
+};
+globalThis.AudioContext = jest.fn(() => mockAudioCtx);
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Build a minimal DOM matching interface.html. */
@@ -794,6 +820,21 @@ describe('handleCardClick', () => {
 
     expect(gameMock.completeRound).toHaveBeenCalled();
     jest.runAllTimers(); // inter-round delay
+  });
+
+  test('plays success sound when all PRIMARY_COUNT Primary cards are found', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    jest.runAllTimers(); // release flip lock
+
+    mockAudioCtx.createOscillator.mockClear();
+    // Cards 0, 4, 8 are Primary in the mock grid
+    handleCardClick(0);
+    handleCardClick(4);
+    handleCardClick(8); // 3rd Primary → triggers onRoundComplete → playSuccessSound
+
+    expect(mockAudioCtx.createOscillator).toHaveBeenCalled();
   });
 });
 

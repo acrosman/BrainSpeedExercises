@@ -8,7 +8,7 @@
  */
 
 import * as game from './game.js';
-import { playFailureSound } from '../../components/audioService.js';
+import { playFailureSound, playSuccessSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
@@ -21,9 +21,10 @@ export const WRONG_FLIP_DELAY_MS = 900;
 
 /**
  * Duration in ms to show the correct (Primary) card positions after a wrong guess.
- * The player sees where the target cards were before the round restarts.
+ * Matches the inter-round pause used after a correct round so the player has the
+ * same amount of time to study the layout.
  */
-const REVEAL_ANSWER_MS = 250;
+const REVEAL_ANSWER_MS = 1200;
 
 /**
  * Base path for card images relative to the renderer's root (app/index.html).
@@ -356,7 +357,7 @@ export function handleCardClick(cardId) {
     playFailureSound();
     updateStats();
     updateTrendChart();
-    announce('Wrong guess! Watch where the target cards are.');
+    announce('Wrong guess! The round will restart.');
 
     _flipLock = true;
     clearTimers();
@@ -377,6 +378,7 @@ export function handleCardClick(cardId) {
  */
 function onRoundComplete() {
   game.completeRound();
+  playSuccessSound();
   updateStats();
   updateTrendChart();
 
