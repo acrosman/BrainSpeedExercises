@@ -17,7 +17,7 @@ import { renderTrendChart } from '../../components/trendChartService.js';
 /**
  * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
  */
-const WRONG_FLIP_DELAY_MS = 900;
+export const WRONG_FLIP_DELAY_MS = 900;
 
 /**
  * Duration in ms to show the correct (Primary) card positions after a wrong guess.
@@ -119,6 +119,12 @@ let _primaryFound = 0;
  * @type {ReturnType<typeof setTimeout>|null}
  */
 let _roundRestartTimer = null;
+
+/**
+ * Pending setTimeout handle for the brief answer-reveal phase after a wrong guess.
+ * @type {ReturnType<typeof setTimeout>|null}
+ */
+let _answerRevealTimer = null;
 
 /**
  * Pending setTimeout handle for hiding all cards after reveal phase.
@@ -357,7 +363,7 @@ export function handleCardClick(cardId) {
     _roundRestartTimer = setTimeout(() => {
       revealPrimaryCards();
       announce('Here are the target card positions.');
-      _roundRestartTimer = setTimeout(() => {
+      _answerRevealTimer = setTimeout(() => {
         startRound();
       }, REVEAL_ANSWER_MS);
     }, WRONG_FLIP_DELAY_MS);
@@ -398,6 +404,10 @@ function clearTimers() {
   if (_roundRestartTimer !== null) {
     clearTimeout(_roundRestartTimer);
     _roundRestartTimer = null;
+  }
+  if (_answerRevealTimer !== null) {
+    clearTimeout(_answerRevealTimer);
+    _answerRevealTimer = null;
   }
   if (_hideTimer !== null) {
     clearTimeout(_hideTimer);

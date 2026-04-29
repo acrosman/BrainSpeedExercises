@@ -65,6 +65,7 @@ const {
   revealPrimaryCards,
   startRound,
   handleCardClick,
+  WRONG_FLIP_DELAY_MS,
 } = pluginModule;
 
 const gameMock = await import('../game.js');
@@ -771,7 +772,7 @@ describe('handleCardClick', () => {
     jest.runAllTimers(); // release flip lock and hide all cards
     handleCardClick(1); // Distractor — wrong guess
     // Advance past WRONG_FLIP_DELAY_MS but not REVEAL_ANSWER_MS yet
-    jest.advanceTimersByTime(900);
+    jest.advanceTimersByTime(WRONG_FLIP_DELAY_MS);
     // Primary cards (0, 4, 8) should now be revealed briefly
     [0, 4, 8].forEach((id) => {
       const btn = container.querySelector(`[data-id="${id}"]`);
