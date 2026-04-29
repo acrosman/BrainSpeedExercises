@@ -79,7 +79,11 @@ describe('setGoKeys()', () => {
 
   it('pickNextImage() picks from the new keys after setGoKeys()', () => {
     setGoKeys(['custom.png']);
-    const spy = jest.spyOn(Math, 'random').mockReturnValue(0);
+    // Use a non-zero Math.random value during initGame() to guarantee a
+    // non-zero currentSequenceLength, then switch to 0 for the idx pick.
+    const spy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    initGame(); // currentSequenceLength = Math.floor(0.5 * 6) = 3
+    spy.mockReturnValue(0); // idx = Math.floor(0 * 1) = 0 → GO_KEYS[0] = 'custom.png'
     const { imageKey } = pickNextImage();
     spy.mockRestore();
     expect(imageKey).toBe('custom.png');

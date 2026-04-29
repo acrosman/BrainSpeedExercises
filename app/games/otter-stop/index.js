@@ -169,10 +169,6 @@ export function updateStats() {
   if (_scoreEl) _scoreEl.textContent = game.getScore();
   if (_nogoHitsEl) _nogoHitsEl.textContent = game.getNoGoHits();
   if (_intervalEl) _intervalEl.textContent = game.getCurrentIntervalMs();
-  if (_avgResponseEl) {
-    const avgMs = game.getAverageResponseMs();
-    _avgResponseEl.textContent = avgMs !== null ? avgMs : '--';
-  }
 }
 
 /**
@@ -302,6 +298,13 @@ export function endTrial() {
   const wasNoGo = _currentIsNoGo;
   _currentImageKey = null;
   _currentIsNoGo = false;
+
+  // Update the average response stat only at the end of a complete sequence
+  // (i.e., after the no-go stimulus), so it reflects the whole go-run.
+  if (wasNoGo && _avgResponseEl) {
+    const avgMs = game.getAverageResponseMs();
+    _avgResponseEl.textContent = avgMs !== null ? avgMs : '--';
+  }
 
   hideImage();
 

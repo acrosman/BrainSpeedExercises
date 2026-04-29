@@ -352,22 +352,6 @@ describe('updateStats()', () => {
     updateStats();
     expect(container.querySelector('#os-interval').textContent).toBe('500');
   });
-
-  it('shows "--" for avg response when getAverageResponseMs returns null', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    gameMock.getAverageResponseMs.mockReturnValue(null);
-    updateStats();
-    expect(container.querySelector('#os-avg-response').textContent).toBe('--');
-  });
-
-  it('shows the numeric value when getAverageResponseMs returns a number', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    gameMock.getAverageResponseMs.mockReturnValue(320);
-    updateStats();
-    expect(container.querySelector('#os-avg-response').textContent).toBe('320');
-  });
 });
 
 // ── showImage / hideImage ─────────────────────────────────────────────────────
@@ -670,6 +654,46 @@ describe('endTrial()', () => {
     endTrial();
     const fb = container.querySelector('#os-feedback');
     expect(fb.hidden).toBe(true);
+  });
+
+  it('does not update avg response stat after a go trial', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    gameMock.getAverageResponseMs.mockReturnValue(250);
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1', isNoGo: false });
+    gameMock.recordResponse.mockReturnValueOnce('correct');
+    beginTrial();
+    clearAllTimers();
+    endTrial();
+    // Stat should remain at its initial value — not updated on a go trial.
+    expect(container.querySelector('#os-avg-response').textContent).toBe('--');
+  });
+
+  it('updates avg response stat to a number after a no-go trial', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    gameMock.getAverageResponseMs.mockReturnValue(320);
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true });
+    gameMock.recordResponse.mockReturnValueOnce('correct');
+    beginTrial();
+    clearAllTimers();
+    endTrial();
+    expect(container.querySelector('#os-avg-response').textContent).toBe('320');
+  });
+
+  it('updates avg response stat to "--" after a no-go trial when no go response recorded', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    gameMock.getAverageResponseMs.mockReturnValue(null);
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true });
+    gameMock.recordResponse.mockReturnValueOnce('correct');
+    beginTrial();
+    clearAllTimers();
+    endTrial();
+    expect(container.querySelector('#os-avg-response').textContent).toBe('--');
   });
 });
 
