@@ -507,7 +507,12 @@ function stop() {
     sessionDurationMs,
     level: result.level,
     lowestDisplayTime: game.getCurrentIntervalMs(),
-  });
+  }, (prev) => ({
+    maxSequenceLength: Math.max(
+      (prev && prev.maxSequenceLength) || 0,
+      result.maxSequenceLength || 0,
+    ),
+  }));
 
   return result;
 }

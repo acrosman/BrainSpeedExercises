@@ -70,6 +70,12 @@ const WRONG_STREAK_TO_DROP = 3;
 /** How many levels to drop after a losing streak. */
 const LEVEL_DROP = 2;
 
+/** Maximum number of go images (otters) in a sequence at level 0. */
+const BASE_MAX_SEQUENCE_LENGTH = 5;
+
+/** Minimum number of go images (otters) in a sequence at any level. */
+const MIN_SEQUENCE_LENGTH = 1;
+
 // ── Module-level session-best trackers (persist across initGame calls) ────────
 
 /** Highest score achieved this session. */
@@ -118,7 +124,28 @@ let speedHistory = [];
  */
 let forceGoNext = false;
 
+/** Current position within the go-image sequence (go images shown since last fish). */
+let sequencePosition = 0;
+
+/**
+ * Total go images in the current sequence before the next no-go (fish).
+ * Regenerated at the start of each new sequence.
+ */
+let currentSequenceLength = BASE_MAX_SEQUENCE_LENGTH;
+
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
+
+/**
+ * Generate a random sequence length between MIN_SEQUENCE_LENGTH and
+ * (BASE_MAX_SEQUENCE_LENGTH + level) inclusive.
+ *
+ * @returns {number} A random integer in the range
+ *   [MIN_SEQUENCE_LENGTH, BASE_MAX_SEQUENCE_LENGTH + level].
+ */
+function generateSequenceLength() {
+  const max = BASE_MAX_SEQUENCE_LENGTH + level;
+  return Math.floor(Math.random() * max) + MIN_SEQUENCE_LENGTH;
+}
 
 /**
  * Initialize (or reset) all per-game state.
@@ -136,6 +163,8 @@ export function initGame() {
   consecutiveWrong = 0;
   forceGoNext = false;
   speedHistory = [];
+  sequencePosition = 0;
+  currentSequenceLength = generateSequenceLength();
 }
 
 /**
@@ -153,8 +182,8 @@ export function startGame() {
 /**
  * Stop the game and return the final results.
  * @returns {{ score: number, noGoHits: number, misses: number,
- *             trialsCompleted: number, level: number, duration: number,
- *             bestScore: number }}
+ *             trialsCompleted: number, level: number, maxSequenceLength: number,
+ *             duration: number, bestScore: number }}
  * @throws {Error} If the game is not running.
  */
 export function stopGame() {
@@ -174,6 +203,7 @@ export function stopGame() {
     misses,
     trialsCompleted,
     level,
+    maxSequenceLength: BASE_MAX_SEQUENCE_LENGTH + level,
     duration,
     bestScore: sessionBestScore,
   };
@@ -184,24 +214,32 @@ export function stopGame() {
 /**
  * Pick the next image to display.
  *
+ * Images are presented as sequences: a run of go (otter) images followed by
+ * exactly one no-go (fish) image. The length of each sequence is randomised
+ * between MIN_SEQUENCE_LENGTH and (BASE_MAX_SEQUENCE_LENGTH + level).
+ *
  * If the previous trial ended with a wrong outcome (`forceGoNext` is true),
  * the next trial is guaranteed to be a go image so the player always gets a
- * fair chance to recover before facing another no-go stimulus.
- *
- * Otherwise an image is chosen at random from all four stimuli, giving a 25%
- * no-go rate.
+ * fair chance to recover before facing another no-go stimulus. The forced go
+ * advances the sequence position normally.
  *
  * @returns {{ imageKey: string, isNoGo: boolean }}
  */
 export function pickNextImage() {
   if (forceGoNext) {
     forceGoNext = false;
+    sequencePosition += 1;
     const idx = Math.floor(Math.random() * GO_KEYS.length);
     return { imageKey: GO_KEYS[idx], isNoGo: false };
   }
-  const idx = Math.floor(Math.random() * IMAGE_KEYS.length);
-  const imageKey = IMAGE_KEYS[idx];
-  return { imageKey, isNoGo: imageKey === NO_GO_KEY };
+  if (sequencePosition >= currentSequenceLength) {
+    sequencePosition = 0;
+    currentSequenceLength = generateSequenceLength();
+    return { imageKey: NO_GO_KEY, isNoGo: true };
+  }
+  sequencePosition += 1;
+  const idx = Math.floor(Math.random() * GO_KEYS.length);
+  return { imageKey: GO_KEYS[idx], isNoGo: false };
 }
 
 /**
@@ -372,6 +410,26 @@ export function getSessionBestScore() {
  */
 export function getForceGoNext() {
   return forceGoNext;
+}
+
+/**
+ * Return the maximum sequence length (go images before fish) for the current level.
+ * At level 0 this equals BASE_MAX_SEQUENCE_LENGTH (5); it increases by 1 per level.
+ *
+ * @returns {number}
+ */
+export function getMaxSequenceLength() {
+  return BASE_MAX_SEQUENCE_LENGTH + level;
+}
+
+/**
+ * Return the number of go images in the current sequence before the next fish appears.
+ * This value is regenerated at the start of each new sequence.
+ *
+ * @returns {number}
+ */
+export function getCurrentSequenceLength() {
+  return currentSequenceLength;
 }
 
 /**
