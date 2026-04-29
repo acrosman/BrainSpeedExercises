@@ -62,6 +62,7 @@ const {
   markCardMatched,
   markCardWrong,
   hideAllCards,
+  revealPrimaryCards,
   startRound,
   handleCardClick,
 } = pluginModule;
@@ -589,6 +590,61 @@ describe('hideAllCards', () => {
   });
 });
 
+// ── revealPrimaryCards ────────────────────────────────────────────────────────
+
+describe('revealPrimaryCards', () => {
+  test('reveals all unmatched Primary cards', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    // Hide all cards first so they start face-down
+    hideAllCards();
+    revealPrimaryCards();
+    // Cards 0, 4, 8 are Primary in the mock grid — they should now be revealed
+    [0, 4, 8].forEach((id) => {
+      const btn = container.querySelector(`[data-id="${id}"]`);
+      expect(btn.classList.contains('hsm-card--revealed')).toBe(true);
+    });
+    jest.useRealTimers();
+  });
+
+  test('does not reveal Distractor cards', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    hideAllCards();
+    revealPrimaryCards();
+    // Cards 1, 2, 3, 5, 6, 7 are Distractors — they should remain face-down
+    [1, 2, 3, 5, 6, 7].forEach((id) => {
+      const btn = container.querySelector(`[data-id="${id}"]`);
+      expect(btn.classList.contains('hsm-card--revealed')).toBe(false);
+    });
+    jest.useRealTimers();
+  });
+
+  test('does not reveal already-matched Primary cards', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    jest.runAllTimers(); // release flip lock
+    handleCardClick(0); // match card 0 (Primary)
+    hideAllCards();
+    revealPrimaryCards();
+    // Card 0 is matched and should not gain the revealed class again via revealPrimaryCards
+    const btn = container.querySelector('[data-id="0"]');
+    expect(btn.classList.contains('hsm-card--matched')).toBe(true);
+    jest.useRealTimers();
+  });
+
+  test('does not throw when container is absent', () => {
+    plugin.init(document.createElement('div'));
+    expect(() => revealPrimaryCards()).not.toThrow();
+  });
+});
+
 // ── startRound ────────────────────────────────────────────────────────────────
 
 describe('startRound', () => {
@@ -704,8 +760,24 @@ describe('handleCardClick', () => {
     jest.runAllTimers(); // release flip lock
     gameMock.generateGrid.mockClear();
     handleCardClick(1); // Distractor — triggers round-restart timer
-    jest.runAllTimers(); // fires restart: calls startRound() → generateGrid()
+    jest.runAllTimers(); // fires answer-reveal timer, then restart timer → generateGrid()
     expect(gameMock.generateGrid).toHaveBeenCalledTimes(1);
+  });
+
+  test('reveals Primary card positions after wrong guess before restarting', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    startRound();
+    jest.runAllTimers(); // release flip lock and hide all cards
+    handleCardClick(1); // Distractor — wrong guess
+    // Advance past WRONG_FLIP_DELAY_MS but not REVEAL_ANSWER_MS yet
+    jest.advanceTimersByTime(900);
+    // Primary cards (0, 4, 8) should now be revealed briefly
+    [0, 4, 8].forEach((id) => {
+      const btn = container.querySelector(`[data-id="${id}"]`);
+      expect(btn.classList.contains('hsm-card--revealed')).toBe(true);
+    });
+    jest.runAllTimers(); // complete the restart
   });
 
   test('advances to next round when all PRIMARY_COUNT Primary cards found', () => {

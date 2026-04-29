@@ -20,6 +20,12 @@ import { renderTrendChart } from '../../components/trendChartService.js';
 const WRONG_FLIP_DELAY_MS = 900;
 
 /**
+ * Duration in ms to show the correct (Primary) card positions after a wrong guess.
+ * The player sees where the target cards were before the round restarts.
+ */
+const REVEAL_ANSWER_MS = 250;
+
+/**
  * Base path for card images relative to the renderer's root (app/index.html).
  * Images are stored alongside this game's own files.
  */
@@ -274,6 +280,18 @@ export function hideAllCards() {
 }
 
 /**
+ * Reveal all unmatched Primary cards so the player can see the correct positions.
+ * Called briefly after a wrong guess before restarting the round.
+ */
+export function revealPrimaryCards() {
+  _roundGrid.forEach((card) => {
+    if (!card.matched && game.isPrimary(card.image)) {
+      revealCardEl(card.id, card.image);
+    }
+  });
+}
+
+/**
  * Start a new round: generate a fresh grid, render it revealed, then hide after delay.
  */
 export function startRound() {
@@ -326,18 +344,22 @@ export function handleCardClick(cardId) {
       onRoundComplete();
     }
   } else {
-    // Wrong — reset streak, play sound, then restart the round after a brief delay
+    // Wrong — reset streak, play sound, briefly reveal the target positions, then restart
     game.resetConsecutiveRounds();
     markCardWrong(cardId);
     playFailureSound();
     updateStats();
     updateTrendChart();
-    announce('Wrong guess! The round will restart.');
+    announce('Wrong guess! Watch where the target cards are.');
 
     _flipLock = true;
     clearTimers();
     _roundRestartTimer = setTimeout(() => {
-      startRound();
+      revealPrimaryCards();
+      announce('Here are the target card positions.');
+      _roundRestartTimer = setTimeout(() => {
+        startRound();
+      }, REVEAL_ANSWER_MS);
     }, WRONG_FLIP_DELAY_MS);
   }
 }
