@@ -305,11 +305,22 @@ export function createBarChart(summaryData, gameIds, manifests) {
   chartEl.setAttribute('aria-hidden', 'true'); // Table is the accessible version.
 
   // Split: the most-recent INITIAL_VISIBLE_DAYS are visible; older days are hidden.
+  // Both slices are reversed so newest entries appear first (left-to-right).
   const hasMore = summaryData.length > INITIAL_VISIBLE_DAYS;
-  const olderData = hasMore ? summaryData.slice(0, -INITIAL_VISIBLE_DAYS) : [];
-  const recentData = hasMore ? summaryData.slice(-INITIAL_VISIBLE_DAYS) : summaryData;
+  const olderData = hasMore ? summaryData.slice(0, -INITIAL_VISIBLE_DAYS).reverse() : [];
+  const recentData = hasMore
+    ? summaryData.slice(-INITIAL_VISIBLE_DAYS).reverse()
+    : [...summaryData].reverse();
 
-  // Grid for older (initially hidden) days.
+  // Grid for the most-recent days (always visible, newest first).
+  const recentGrid = document.createElement('div');
+  recentGrid.className = 'history-chart__grid';
+  recentData.forEach((dayData) => {
+    recentGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
+  });
+  chartEl.appendChild(recentGrid);
+
+  // Grid for older (initially hidden) days, followed by the toggle button.
   if (hasMore) {
     const olderGrid = document.createElement('div');
     olderGrid.className = 'history-chart__grid';
@@ -332,14 +343,6 @@ export function createBarChart(summaryData, gameIds, manifests) {
     });
     chartEl.appendChild(showMoreBtn);
   }
-
-  // Grid for the most-recent days (always visible).
-  const recentGrid = document.createElement('div');
-  recentGrid.className = 'history-chart__grid';
-  recentData.forEach((dayData) => {
-    recentGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
-  });
-  chartEl.appendChild(recentGrid);
 
   // Legend.
   const legend = document.createElement('div');
