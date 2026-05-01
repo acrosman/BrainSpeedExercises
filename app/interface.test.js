@@ -4,6 +4,7 @@ import { jest } from '@jest/globals';
 // Mock the game module dynamically imported by loadAndInitGame.
 // Must be registered before interface.js is imported.
 const mockGameInit = jest.fn();
+const mockGameStop = jest.fn().mockResolvedValue({ score: 0 });
 
 // Capture the DOMContentLoaded callback before importing interface.js.
 let domReadyCallback;
@@ -11,7 +12,7 @@ let domReadyCallback;
 // jest.unstable_mockModule MUST be called at module top level (with top-level await) so that
 // the mock is registered before Jest's coverage instrumentation pre-loads interface.js.
 await jest.unstable_mockModule('./games/fast-piggie/index.js', () => ({
-  default: { init: mockGameInit },
+  default: { init: mockGameInit, stop: mockGameStop },
 }));
 
 // Mock timerService to control date and formatting in tests.
@@ -67,7 +68,8 @@ function setupApi({ progressData = {}, manifests = MANIFESTS, gameLoad = GAME_LO
     if (channel === 'games:load') return Promise.resolve(gameLoad);
     return Promise.resolve(null);
   });
-  global.window.api = { invoke, on: jest.fn() };
+  const receive = jest.fn();
+  global.window.api = { invoke, on: jest.fn(), receive };
   return invoke;
 }
 
@@ -103,6 +105,7 @@ describe('interface.js', () => {
       + '</div>';
     document.head.innerHTML = '';
     mockGameInit.mockClear();
+    mockGameStop.mockClear();
     mockClearHistory.mockClear();
   });
 
@@ -681,6 +684,88 @@ describe('interface.js', () => {
       document.getElementById('view-history-btn').click();
       const panel = document.getElementById('history-panel');
       expect(panel.hidden).toBe(false);
+    });
+  });
+
+  // ── app:before-quit handler ──────────────────────────────────────────────
+
+  describe('app:before-quit handler', () => {
+    /**
+     * Helper to get the callback registered for 'app:before-quit' via window.api.receive.
+     * @returns {Function|undefined}
+     */
+    function getQuitCallback() {
+      const call = global.window.api.receive.mock.calls.find(
+        ([channel]) => channel === 'app:before-quit',
+      );
+      return call ? call[1] : undefined;
+    }
+
+    it('registers a receive handler for app:before-quit during DOMContentLoaded', async () => {
+      setupApi();
+      await domReadyCallback();
+      expect(global.window.api.receive).toHaveBeenCalledWith(
+        'app:before-quit',
+        expect.any(Function),
+      );
+    });
+
+    it('calls stop() on the active plugin and then invokes app:quit-ready', async () => {
+      const invoke = setupApi();
+      await domReadyCallback();
+
+      dispatchGameSelect();
+      await flush();
+
+      const quitCallback = getQuitCallback();
+      expect(quitCallback).toBeDefined();
+      await quitCallback();
+
+      expect(mockGameStop).toHaveBeenCalled();
+      expect(invoke).toHaveBeenCalledWith('app:quit-ready');
+    });
+
+    it('invokes app:quit-ready even when no game is active', async () => {
+      const invoke = setupApi();
+      await domReadyCallback();
+
+      const quitCallback = getQuitCallback();
+      await quitCallback();
+
+      expect(mockGameStop).not.toHaveBeenCalled();
+      expect(invoke).toHaveBeenCalledWith('app:quit-ready');
+    });
+
+    it('still invokes app:quit-ready when stop() throws', async () => {
+      const invoke = setupApi();
+      await domReadyCallback();
+      dispatchGameSelect();
+      await flush();
+
+      mockGameStop.mockRejectedValueOnce(new Error('stop failed'));
+
+      const quitCallback = getQuitCallback();
+      await quitCallback();
+
+      expect(invoke).toHaveBeenCalledWith('app:quit-ready');
+    });
+
+    it('clears activePlugin when returning to main menu', async () => {
+      const invoke = setupApi();
+      await domReadyCallback();
+      dispatchGameSelect();
+      await flush();
+
+      // Return to menu — activePlugin should be cleared.
+      window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+      await flush();
+
+      const quitCallback = getQuitCallback();
+      await quitCallback();
+
+      // stop() must NOT be called because activePlugin was cleared.
+      expect(mockGameStop).not.toHaveBeenCalled();
+      expect(invoke).toHaveBeenCalledWith('app:quit-ready');
     });
   });
 });

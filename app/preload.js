@@ -30,10 +30,25 @@ contextBridge.exposeInMainWorld('api', {
       'progress:load',
       'progress:reset',
       'log:send',
+      'app:quit-ready',
     ];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
     }
     return Promise.reject(new Error(`Blocked IPC channel: ${channel}`));
+  },
+
+  /**
+   * Register a one-time listener for a message pushed from the main process.
+   * The listener is automatically removed after it fires once.
+   * Silently ignores requests for channels not on the allowlist.
+   * @param {string} channel - The IPC channel to listen on.
+   * @param {Function} callback - Callback invoked when the message arrives.
+   */
+  receive: (channel, callback) => {
+    const validChannels = ['app:before-quit'];
+    if (validChannels.includes(channel)) {
+      ipcRenderer.once(channel, (_event, ...args) => callback(...args));
+    }
   },
 });
