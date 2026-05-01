@@ -325,15 +325,16 @@ describe('createBarChart() show-more behaviour', () => {
   it('older days grid is hidden by default', () => {
     const chart = createBarChart(summaryData, gameIds, MANIFESTS);
     const grids = chart.querySelectorAll('.history-chart__grid');
-    // First grid (older days) must be hidden; second grid (recent days) must not.
-    expect(grids[0].hidden).toBe(true);
-    expect(grids[1].hidden).toBe(false);
+    // First grid (recent days) must be visible; second grid (older days) must be hidden.
+    expect(grids[0].hidden).toBe(false);
+    expect(grids[1].hidden).toBe(true);
   });
 
   it('show-more button reveals the older days grid when clicked', () => {
     const chart = createBarChart(summaryData, gameIds, MANIFESTS);
     const btn = chart.querySelector('.history-chart__show-more-btn');
-    const olderGrid = chart.querySelector('.history-chart__grid');
+    const grids = chart.querySelectorAll('.history-chart__grid');
+    const olderGrid = grids[1]; // older grid is the second grid after the fix
     btn.click();
     expect(olderGrid.hidden).toBe(false);
   });
@@ -351,9 +352,32 @@ describe('createBarChart() show-more behaviour', () => {
   it('recent grid always contains at most INITIAL_VISIBLE_DAYS groups', () => {
     const chart = createBarChart(summaryData, gameIds, MANIFESTS);
     const grids = chart.querySelectorAll('.history-chart__grid');
-    const recentGrid = grids[grids.length - 1];
+    const recentGrid = grids[0]; // recent grid is now the first grid
     const groups = recentGrid.querySelectorAll('.history-chart__group');
     expect(groups.length).toBeLessThanOrEqual(INITIAL_VISIBLE_DAYS);
+  });
+
+  it('recent grid shows days in newest-to-oldest order', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const grids = chart.querySelectorAll('.history-chart__grid');
+    const recentGrid = grids[0];
+    const labels = [...recentGrid.querySelectorAll('.history-chart__label')];
+    // PROGRESS_MANY_DAYS has 8 days (2024-01-01 to 2024-01-08); the 6 most
+    // recent span 2024-01-03 to 2024-01-08. After reversal the first label
+    // must be '01-08' (most recent) and the last must be '01-03'.
+    expect(labels[0].textContent).toBe('01-08');
+    expect(labels[labels.length - 1].textContent).toBe('01-03');
+  });
+
+  it('show-more button appears after both grids in the DOM', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const btn = chart.querySelector('.history-chart__show-more-btn');
+    const grids = chart.querySelectorAll('.history-chart__grid');
+    const recentGrid = grids[0];
+    const olderGrid = grids[1];
+    // The button must appear after both grids in DOM order.
+    expect(btn.compareDocumentPosition(recentGrid) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(btn.compareDocumentPosition(olderGrid) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
   });
 });
 
