@@ -20,6 +20,7 @@ module.exports = {
     {
       name: '@electron-forge/maker-dmg',
       platforms: ['darwin'],
+      arch: ['universal'],
       config: {
         format: 'ULMO',
       },
