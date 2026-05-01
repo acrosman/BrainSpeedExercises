@@ -51,6 +51,9 @@ export const LEVELS = [
   { sweepDurationMs: 80, isiMs: 80 },
   { sweepDurationMs: 60, isiMs: 40 },
   { sweepDurationMs: 40, isiMs: 20 },
+  { sweepDurationMs: 30, isiMs: 15 },
+  { sweepDurationMs: 20, isiMs: 10 },
+  { sweepDurationMs: 15, isiMs: 10 },
 ];
 
 // ── Module-level state (reset by initGame) ────────────────────────────────────
