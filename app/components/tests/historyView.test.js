@@ -19,6 +19,7 @@ import {
   createTotalPlayTimeChart,
   buildHistoryPanel,
   INITIAL_VISIBLE_DAYS,
+  MAX_X_LABELS,
 } from '../historyView.js';
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
@@ -314,10 +315,11 @@ describe('createBarChart()', () => {
     expect(yAxis).not.toBeNull();
   });
 
-  it('y-axis contains three tick labels', () => {
+  it('y-axis contains three tick labels per day group', () => {
     const chart = createBarChart(summaryData, gameIds, MANIFESTS);
     const ticks = chart.querySelectorAll('.history-chart__y-tick');
-    expect(ticks.length).toBe(3);
+    // 3 ticks per group × number of days in summaryData
+    expect(ticks.length).toBe(summaryData.length * 3);
   });
 
   it('y-axis bottom tick label shows 00:00', () => {
@@ -445,6 +447,25 @@ describe('createTotalPlayTimeChart()', () => {
     const chart = createTotalPlayTimeChart(summaryData);
     const labels = [...chart.querySelectorAll('.history-total-chart__x-label')];
     expect(labels[0].textContent).toBe('01-01');
+  });
+
+  it('shows all x-axis labels when data points are within MAX_X_LABELS', () => {
+    // summaryData has 3 points, well under MAX_X_LABELS (10)
+    const chart = createTotalPlayTimeChart(summaryData);
+    const labels = chart.querySelectorAll('.history-total-chart__x-label');
+    expect(labels.length).toBe(dates.length);
+  });
+
+  it('thins x-axis labels to at most MAX_X_LABELS when there are many data points', () => {
+    // Build summaryData with MAX_X_LABELS + 5 data points to trigger thinning.
+    const manyDates = Array.from({ length: MAX_X_LABELS + 5 }, (_, i) => {
+      const d = new Date(2024, 0, i + 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+    const manyData = manyDates.map((date) => ({ date, total: 60000 }));
+    const chart = createTotalPlayTimeChart(manyData);
+    const labels = chart.querySelectorAll('.history-total-chart__x-label');
+    expect(labels.length).toBeLessThanOrEqual(MAX_X_LABELS);
   });
 
   it('SVG contains three y-axis labels at 0%, 50%, and 100% of scale', () => {

@@ -223,39 +223,6 @@
   margin-bottom: 1.5rem;
 }
 
-/* Flex row wrapping the y-axis and the grids container. */
-.history-chart__chart-area {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.25rem;
-}
-
-/* Y-axis scale indicator aligned with the bar heights. */
-.history-chart__y-axis {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-end;
-  height: 160px; /* Must match .history-chart__bars height. */
-  padding-right: 0.375rem;
-  border-right: 1px solid var(--border-color);
-  flex-shrink: 0;
-  min-width: 2.5rem;
-}
-
-.history-chart__y-tick {
-  font-size: 0.65rem;
-  color: var(--text-subtle);
-  white-space: nowrap;
-  line-height: 1;
-}
-
-/* Scroll container for the day-group grids. */
-.history-chart__grids {
-  flex: 1;
-  min-width: 0;
-}
-
 /* Grid container for day groups — 2 columns. */
 .history-chart__grid {
   display: grid;
@@ -298,7 +265,33 @@
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  min-width: 60px;
+}
+
+/* Flex row: per-group y-axis scale on the left, bars on the right. */
+.history-chart__group-body {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* Per-group y-axis scale indicator (one per day cell). */
+.history-chart__y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 160px; /* Must match .history-chart__bars height. */
+  padding-right: 0.25rem;
+  border-right: 1px solid var(--border-color);
+  flex-shrink: 0;
+  min-width: 1.75rem;
+}
+
+.history-chart__y-tick {
+  font-size: 0.6rem;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .history-chart__bar {
