@@ -19,6 +19,7 @@ import {
   createTotalPlayTimeChart,
   buildHistoryPanel,
   INITIAL_VISIBLE_DAYS,
+  MAX_X_LABELS,
 } from '../historyView.js';
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
@@ -307,9 +308,38 @@ describe('createBarChart()', () => {
     const btn = chart.querySelector('.history-chart__show-more-btn');
     expect(btn).toBeNull();
   });
-});
 
-// ── createBarChart show-more ──────────────────────────────────────────────────
+  it('includes a y-axis element', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const yAxis = chart.querySelector('.history-chart__y-axis');
+    expect(yAxis).not.toBeNull();
+  });
+
+  it('y-axis contains three tick labels per day group', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const ticks = chart.querySelectorAll('.history-chart__y-tick');
+    // 3 ticks per group × number of days in summaryData
+    expect(ticks.length).toBe(summaryData.length * 3);
+  });
+
+  it('y-axis bottom tick label shows 00:00', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const ticks = [...chart.querySelectorAll('.history-chart__y-tick')];
+    expect(ticks[ticks.length - 1].textContent).toBe('00:00');
+  });
+
+  it('each day group y-axis top tick reflects that day\'s own total time', () => {
+    // summaryData uses dates ['2024-01-01', '2024-01-02'].
+    // 2024-01-01: game-a=60000 + game-b=30000 = total 90000 ms → '01:30'
+    // 2024-01-02: game-a=120000 + game-b=0   = total 120000 ms → '02:00'
+    // Groups are rendered newest-first: [2024-01-02, 2024-01-01].
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const groups = [...chart.querySelectorAll('.history-chart__group')];
+    const topTickOf = (group) => group.querySelector('.history-chart__y-tick').textContent;
+    expect(topTickOf(groups[0])).toBe('02:00'); // 2024-01-02 total = 120000 ms
+    expect(topTickOf(groups[1])).toBe('01:30'); // 2024-01-01 total = 90000 ms
+  });
+});
 
 describe('createBarChart() show-more behaviour', () => {
   const dates = getAllDates(PROGRESS_MANY_DAYS);
@@ -427,6 +457,50 @@ describe('createTotalPlayTimeChart()', () => {
     const chart = createTotalPlayTimeChart(summaryData);
     const labels = [...chart.querySelectorAll('.history-total-chart__x-label')];
     expect(labels[0].textContent).toBe('01-01');
+  });
+
+  it('shows all x-axis labels when data points are within MAX_X_LABELS', () => {
+    // summaryData has 3 points, well under MAX_X_LABELS (10)
+    const chart = createTotalPlayTimeChart(summaryData);
+    const labels = chart.querySelectorAll('.history-total-chart__x-label');
+    expect(labels.length).toBe(dates.length);
+  });
+
+  it('thins x-axis labels to at most MAX_X_LABELS when there are many data points', () => {
+    // Build summaryData with MAX_X_LABELS + 5 data points to trigger thinning.
+    const manyDates = Array.from({ length: MAX_X_LABELS + 5 }, (_, i) => {
+      const d = new Date(2024, 0, i + 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+    const manyData = manyDates.map((date) => ({ date, total: 60000 }));
+    const chart = createTotalPlayTimeChart(manyData);
+    const labels = chart.querySelectorAll('.history-total-chart__x-label');
+    expect(labels.length).toBeLessThanOrEqual(MAX_X_LABELS);
+  });
+
+  it('SVG contains three y-axis labels at 0%, 50%, and 100% of scale', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = chart.querySelectorAll('.history-total-chart__y-label');
+    expect(yLabels.length).toBe(3);
+  });
+
+  it('y-axis top label shows the maximum total time', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = [...chart.querySelectorAll('.history-total-chart__y-label')];
+    // summaryData max total: 2024-01-02 has 120000 ms for game-a alone → "02:00"
+    expect(yLabels[0].textContent).toBe('02:00');
+  });
+
+  it('y-axis bottom label shows 00:00', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = [...chart.querySelectorAll('.history-total-chart__y-label')];
+    expect(yLabels[yLabels.length - 1].textContent).toBe('00:00');
+  });
+
+  it('SVG contains three horizontal grid lines', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const gridLines = chart.querySelectorAll('.history-total-chart__grid-line');
+    expect(gridLines.length).toBe(3);
   });
 
   it('includes a title paragraph', () => {

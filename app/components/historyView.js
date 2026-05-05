@@ -31,6 +31,14 @@ const COLOR_SLOT_COUNT = 10;
 export const INITIAL_VISIBLE_DAYS = 6;
 
 /**
+ * Maximum number of x-axis date labels shown on the total play-time line chart.
+ * When there are more data points than this, labels are thinned so they remain readable.
+ *
+ * @type {number}
+ */
+export const MAX_X_LABELS = 10;
+
+/**
  * Extract all unique YYYY-MM-DD date keys present across all games' dailyTime maps.
  *
  * @param {object} progress - Player progress object.
@@ -163,7 +171,8 @@ export function createDataTable(summaryData, gameIds, manifests) {
  * Create a total play-time line chart showing daily totals across all games.
  *
  * Renders an SVG line chart with one data point per day connected by a line,
- * giving a quick at-a-glance trend of overall activity. Labeled with MM-DD dates.
+ * giving a quick at-a-glance trend of overall activity. X-axis is labeled with
+ * MM-DD dates, thinned to at most {@link MAX_X_LABELS} labels to avoid crowding.
  *
  * @param {Array<{date: string, total: number}>} summaryData - Per-day totals.
  * @returns {HTMLElement} A <div> element containing the total play-time line chart.
@@ -188,7 +197,7 @@ export function createTotalPlayTimeChart(summaryData) {
   const svgW = 600;
   const svgH = 120;
   const pad = {
-    top: 10, right: 20, bottom: 28, left: 10,
+    top: 10, right: 20, bottom: 28, left: 52,
   };
   const plotW = svgW - pad.left - pad.right;
   const plotH = svgH - pad.top - pad.bottom;
@@ -199,6 +208,28 @@ export function createTotalPlayTimeChart(summaryData) {
   svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
   svg.setAttribute('class', 'history-total-chart__svg');
   svg.setAttribute('role', 'img');
+
+  // Y-axis gridlines and tick labels at 0%, 50%, and 100% of scale.
+  [1, 0.5, 0].forEach((fraction) => {
+    const yPos = pad.top + plotH - Math.round(fraction * plotH);
+    const timeMs = Math.round(fraction * maxMs);
+
+    const gridLine = document.createElementNS(SVG_NS, 'line');
+    gridLine.setAttribute('x1', String(pad.left));
+    gridLine.setAttribute('y1', String(yPos));
+    gridLine.setAttribute('x2', String(svgW - pad.right));
+    gridLine.setAttribute('y2', String(yPos));
+    gridLine.setAttribute('class', 'history-total-chart__grid-line');
+    svg.appendChild(gridLine);
+
+    const yLabel = document.createElementNS(SVG_NS, 'text');
+    yLabel.setAttribute('x', String(pad.left - 4));
+    yLabel.setAttribute('y', String(yPos));
+    yLabel.setAttribute('dominant-baseline', 'middle');
+    yLabel.setAttribute('class', 'history-total-chart__y-label');
+    yLabel.textContent = formatDuration(timeMs);
+    svg.appendChild(yLabel);
+  });
 
   // Calculate pixel coordinates for each data point.
   const points = summaryData.map((d, i) => {
@@ -216,7 +247,9 @@ export function createTotalPlayTimeChart(summaryData) {
   svg.appendChild(polyline);
 
   // Dot and date label for each point.
-  points.forEach((p) => {
+  // Thin x-axis labels so they remain readable when there are many data points.
+  const labelStep = Math.max(1, Math.ceil(n / MAX_X_LABELS));
+  points.forEach((p, i) => {
     const circle = document.createElementNS(SVG_NS, 'circle');
     circle.setAttribute('cx', p.x);
     circle.setAttribute('cy', p.y);
@@ -228,13 +261,15 @@ export function createTotalPlayTimeChart(summaryData) {
     circle.appendChild(tooltipTitle);
     svg.appendChild(circle);
 
-    const label = document.createElementNS(SVG_NS, 'text');
-    label.setAttribute('x', p.x);
-    label.setAttribute('y', svgH - 4);
-    label.setAttribute('text-anchor', 'middle');
-    label.setAttribute('class', 'history-total-chart__x-label');
-    label.textContent = p.date.slice(5); // Display as MM-DD.
-    svg.appendChild(label);
+    if (i % labelStep === 0) {
+      const label = document.createElementNS(SVG_NS, 'text');
+      label.setAttribute('x', p.x);
+      label.setAttribute('y', svgH - 4);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('class', 'history-total-chart__x-label');
+      label.textContent = p.date.slice(5); // Display as MM-DD.
+      svg.appendChild(label);
+    }
   });
 
   wrapper.appendChild(svg);
@@ -242,24 +277,59 @@ export function createTotalPlayTimeChart(summaryData) {
 }
 
 /**
+ * Create a y-axis element for the bar chart showing time-scale labels.
+ *
+ * Renders tick labels at the top (maximum value), middle (half of maximum),
+ * and bottom (zero) of the bar area so readers can interpret bar heights.
+ *
+ * @private
+ * @param {number} maxMs - Maximum milliseconds shown at the top of the scale.
+ * @returns {HTMLElement} A div element serving as the y-axis scale indicator.
+ */
+function createBarChartYAxis(maxMs) {
+  const yAxis = document.createElement('div');
+  yAxis.className = 'history-chart__y-axis';
+
+  [maxMs, Math.round(maxMs / 2), 0].forEach((ms) => {
+    const tick = document.createElement('span');
+    tick.className = 'history-chart__y-tick';
+    tick.textContent = formatDuration(ms);
+    yAxis.appendChild(tick);
+  });
+
+  return yAxis;
+}
+
+/**
  * Build the DOM for a single day-column in the per-game bar chart.
+ *
+ * Each day group scales its bars and y-axis to its own total play time, so
+ * the y-axis labels are meaningful for the specific day being displayed.
  *
  * @param {object} dayData - Summary entry for one day.
  * @param {string[]} gameIds - Game IDs to render bars for.
- * @param {number} maxMs - Maximum total ms across all days (for scaling).
  * @param {Array<{id: string, name: string}>} [manifests] - Manifest list for names.
  * @returns {HTMLElement} A `.history-chart__group` element.
  */
-function createDayGroup(dayData, gameIds, maxMs, manifests) {
+function createDayGroup(dayData, gameIds, manifests) {
+  // Scale this group to its own total so bars fill the available height and
+  // the y-axis tick labels reflect this day's actual values.
+  const dayMaxMs = Math.max(dayData.total, 1);
+
   const group = document.createElement('div');
   group.className = 'history-chart__group';
+
+  // Body: y-axis on the left, bars on the right.
+  const groupBody = document.createElement('div');
+  groupBody.className = 'history-chart__group-body';
+  groupBody.appendChild(createBarChartYAxis(dayMaxMs));
 
   const barsWrap = document.createElement('div');
   barsWrap.className = 'history-chart__bars';
 
   gameIds.forEach((gameId, colIndex) => {
     const ms = dayData[gameId] || 0;
-    const heightPct = Math.round((ms / maxMs) * 100);
+    const heightPct = Math.round((ms / dayMaxMs) * 100);
     const bar = document.createElement('div');
     const colorIndex = colIndex % COLOR_SLOT_COUNT;
     bar.className = `history-chart__bar history-chart__bar--color-${colorIndex}`;
@@ -268,20 +338,20 @@ function createDayGroup(dayData, gameIds, maxMs, manifests) {
     barsWrap.appendChild(bar);
   });
 
-  // Total bar (grey).
-  const totalMs = dayData.total;
-  const totalPct = Math.round((totalMs / maxMs) * 100);
+  // Total bar (grey) — always 100% height since dayMaxMs === dayData.total.
   const totalBar = document.createElement('div');
   totalBar.className = 'history-chart__bar history-chart__bar--total';
-  totalBar.style.height = `${totalPct}%`;
-  totalBar.title = `Total: ${formatDuration(totalMs)}`;
+  totalBar.style.height = '100%';
+  totalBar.title = `Total: ${formatDuration(dayData.total)}`;
   barsWrap.appendChild(totalBar);
+
+  groupBody.appendChild(barsWrap);
 
   const dateLabel = document.createElement('span');
   dateLabel.className = 'history-chart__label';
   dateLabel.textContent = dayData.date.slice(5); // Display as MM-DD.
 
-  group.appendChild(barsWrap);
+  group.appendChild(groupBody);
   group.appendChild(dateLabel);
   return group;
 }
@@ -298,8 +368,6 @@ function createDayGroup(dayData, gameIds, maxMs, manifests) {
  * @returns {HTMLElement}
  */
 export function createBarChart(summaryData, gameIds, manifests) {
-  const maxMs = Math.max(...summaryData.map((d) => d.total), 1);
-
   const chartEl = document.createElement('div');
   chartEl.className = 'history-chart';
   chartEl.setAttribute('aria-hidden', 'true'); // Table is the accessible version.
@@ -316,7 +384,7 @@ export function createBarChart(summaryData, gameIds, manifests) {
   const recentGrid = document.createElement('div');
   recentGrid.className = 'history-chart__grid';
   recentData.forEach((dayData) => {
-    recentGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
+    recentGrid.appendChild(createDayGroup(dayData, gameIds, manifests));
   });
   chartEl.appendChild(recentGrid);
 
@@ -326,7 +394,7 @@ export function createBarChart(summaryData, gameIds, manifests) {
     olderGrid.className = 'history-chart__grid';
     olderGrid.hidden = true;
     olderData.forEach((dayData) => {
-      olderGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
+      olderGrid.appendChild(createDayGroup(dayData, gameIds, manifests));
     });
     chartEl.appendChild(olderGrid);
 
