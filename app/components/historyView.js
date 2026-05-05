@@ -188,7 +188,7 @@ export function createTotalPlayTimeChart(summaryData) {
   const svgW = 600;
   const svgH = 120;
   const pad = {
-    top: 10, right: 20, bottom: 28, left: 10,
+    top: 10, right: 20, bottom: 28, left: 52,
   };
   const plotW = svgW - pad.left - pad.right;
   const plotH = svgH - pad.top - pad.bottom;
@@ -199,6 +199,28 @@ export function createTotalPlayTimeChart(summaryData) {
   svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
   svg.setAttribute('class', 'history-total-chart__svg');
   svg.setAttribute('role', 'img');
+
+  // Y-axis gridlines and tick labels at 0%, 50%, and 100% of scale.
+  [1, 0.5, 0].forEach((fraction) => {
+    const yPos = pad.top + plotH - Math.round(fraction * plotH);
+    const timeMs = Math.round(fraction * maxMs);
+
+    const gridLine = document.createElementNS(SVG_NS, 'line');
+    gridLine.setAttribute('x1', String(pad.left));
+    gridLine.setAttribute('y1', String(yPos));
+    gridLine.setAttribute('x2', String(svgW - pad.right));
+    gridLine.setAttribute('y2', String(yPos));
+    gridLine.setAttribute('class', 'history-total-chart__grid-line');
+    svg.appendChild(gridLine);
+
+    const yLabel = document.createElementNS(SVG_NS, 'text');
+    yLabel.setAttribute('x', String(pad.left - 4));
+    yLabel.setAttribute('y', String(yPos));
+    yLabel.setAttribute('dominant-baseline', 'middle');
+    yLabel.setAttribute('class', 'history-total-chart__y-label');
+    yLabel.textContent = formatDuration(timeMs);
+    svg.appendChild(yLabel);
+  });
 
   // Calculate pixel coordinates for each data point.
   const points = summaryData.map((d, i) => {
@@ -239,6 +261,30 @@ export function createTotalPlayTimeChart(summaryData) {
 
   wrapper.appendChild(svg);
   return wrapper;
+}
+
+/**
+ * Create a y-axis element for the bar chart showing time-scale labels.
+ *
+ * Renders tick labels at the top (maximum value), middle (half of maximum),
+ * and bottom (zero) of the bar area so readers can interpret bar heights.
+ *
+ * @private
+ * @param {number} maxMs - Maximum milliseconds shown at the top of the scale.
+ * @returns {HTMLElement} A div element serving as the y-axis scale indicator.
+ */
+function createBarChartYAxis(maxMs) {
+  const yAxis = document.createElement('div');
+  yAxis.className = 'history-chart__y-axis';
+
+  [maxMs, Math.round(maxMs / 2), 0].forEach((ms) => {
+    const tick = document.createElement('span');
+    tick.className = 'history-chart__y-tick';
+    tick.textContent = formatDuration(ms);
+    yAxis.appendChild(tick);
+  });
+
+  return yAxis;
 }
 
 /**
@@ -318,7 +364,17 @@ export function createBarChart(summaryData, gameIds, manifests) {
   recentData.forEach((dayData) => {
     recentGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
   });
-  chartEl.appendChild(recentGrid);
+
+  // Chart area: y-axis on the left, grids on the right.
+  const chartArea = document.createElement('div');
+  chartArea.className = 'history-chart__chart-area';
+  chartArea.appendChild(createBarChartYAxis(maxMs));
+
+  const gridsContainer = document.createElement('div');
+  gridsContainer.className = 'history-chart__grids';
+  gridsContainer.appendChild(recentGrid);
+  chartArea.appendChild(gridsContainer);
+  chartEl.appendChild(chartArea);
 
   // Grid for older (initially hidden) days, followed by the toggle button.
   if (hasMore) {
@@ -328,7 +384,7 @@ export function createBarChart(summaryData, gameIds, manifests) {
     olderData.forEach((dayData) => {
       olderGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
     });
-    chartEl.appendChild(olderGrid);
+    gridsContainer.appendChild(olderGrid);
 
     const olderCount = olderData.length;
     const showMoreBtn = document.createElement('button');

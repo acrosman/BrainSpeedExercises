@@ -307,6 +307,24 @@ describe('createBarChart()', () => {
     const btn = chart.querySelector('.history-chart__show-more-btn');
     expect(btn).toBeNull();
   });
+
+  it('includes a y-axis element', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const yAxis = chart.querySelector('.history-chart__y-axis');
+    expect(yAxis).not.toBeNull();
+  });
+
+  it('y-axis contains three tick labels', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const ticks = chart.querySelectorAll('.history-chart__y-tick');
+    expect(ticks.length).toBe(3);
+  });
+
+  it('y-axis bottom tick label shows 00:00', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const ticks = [...chart.querySelectorAll('.history-chart__y-tick')];
+    expect(ticks[ticks.length - 1].textContent).toBe('00:00');
+  });
 });
 
 // ── createBarChart show-more ──────────────────────────────────────────────────
@@ -427,6 +445,31 @@ describe('createTotalPlayTimeChart()', () => {
     const chart = createTotalPlayTimeChart(summaryData);
     const labels = [...chart.querySelectorAll('.history-total-chart__x-label')];
     expect(labels[0].textContent).toBe('01-01');
+  });
+
+  it('SVG contains three y-axis labels at 0%, 50%, and 100% of scale', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = chart.querySelectorAll('.history-total-chart__y-label');
+    expect(yLabels.length).toBe(3);
+  });
+
+  it('y-axis top label shows the maximum total time', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = [...chart.querySelectorAll('.history-total-chart__y-label')];
+    // summaryData max total: 2024-01-02 has 120000 ms for game-a alone → "02:00"
+    expect(yLabels[0].textContent).toBe('02:00');
+  });
+
+  it('y-axis bottom label shows 00:00', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = [...chart.querySelectorAll('.history-total-chart__y-label')];
+    expect(yLabels[yLabels.length - 1].textContent).toBe('00:00');
+  });
+
+  it('SVG contains three horizontal grid lines', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const gridLines = chart.querySelectorAll('.history-total-chart__grid-line');
+    expect(gridLines.length).toBe(3);
   });
 
   it('includes a title paragraph', () => {
