@@ -303,30 +303,33 @@ function createBarChartYAxis(maxMs) {
 /**
  * Build the DOM for a single day-column in the per-game bar chart.
  *
- * Each day group includes its own y-axis scale indicator on the left so that
- * every cell in the grid is self-contained and readable without a shared axis.
+ * Each day group scales its bars and y-axis to its own total play time, so
+ * the y-axis labels are meaningful for the specific day being displayed.
  *
  * @param {object} dayData - Summary entry for one day.
  * @param {string[]} gameIds - Game IDs to render bars for.
- * @param {number} maxMs - Maximum total ms across all days (for scaling).
  * @param {Array<{id: string, name: string}>} [manifests] - Manifest list for names.
  * @returns {HTMLElement} A `.history-chart__group` element.
  */
-function createDayGroup(dayData, gameIds, maxMs, manifests) {
+function createDayGroup(dayData, gameIds, manifests) {
+  // Scale this group to its own total so bars fill the available height and
+  // the y-axis tick labels reflect this day's actual values.
+  const dayMaxMs = Math.max(dayData.total, 1);
+
   const group = document.createElement('div');
   group.className = 'history-chart__group';
 
   // Body: y-axis on the left, bars on the right.
   const groupBody = document.createElement('div');
   groupBody.className = 'history-chart__group-body';
-  groupBody.appendChild(createBarChartYAxis(maxMs));
+  groupBody.appendChild(createBarChartYAxis(dayMaxMs));
 
   const barsWrap = document.createElement('div');
   barsWrap.className = 'history-chart__bars';
 
   gameIds.forEach((gameId, colIndex) => {
     const ms = dayData[gameId] || 0;
-    const heightPct = Math.round((ms / maxMs) * 100);
+    const heightPct = Math.round((ms / dayMaxMs) * 100);
     const bar = document.createElement('div');
     const colorIndex = colIndex % COLOR_SLOT_COUNT;
     bar.className = `history-chart__bar history-chart__bar--color-${colorIndex}`;
@@ -335,13 +338,11 @@ function createDayGroup(dayData, gameIds, maxMs, manifests) {
     barsWrap.appendChild(bar);
   });
 
-  // Total bar (grey).
-  const totalMs = dayData.total;
-  const totalPct = Math.round((totalMs / maxMs) * 100);
+  // Total bar (grey) — always 100% height since dayMaxMs === dayData.total.
   const totalBar = document.createElement('div');
   totalBar.className = 'history-chart__bar history-chart__bar--total';
-  totalBar.style.height = `${totalPct}%`;
-  totalBar.title = `Total: ${formatDuration(totalMs)}`;
+  totalBar.style.height = '100%';
+  totalBar.title = `Total: ${formatDuration(dayData.total)}`;
   barsWrap.appendChild(totalBar);
 
   groupBody.appendChild(barsWrap);
@@ -367,8 +368,6 @@ function createDayGroup(dayData, gameIds, maxMs, manifests) {
  * @returns {HTMLElement}
  */
 export function createBarChart(summaryData, gameIds, manifests) {
-  const maxMs = Math.max(...summaryData.map((d) => d.total), 1);
-
   const chartEl = document.createElement('div');
   chartEl.className = 'history-chart';
   chartEl.setAttribute('aria-hidden', 'true'); // Table is the accessible version.
@@ -385,7 +384,7 @@ export function createBarChart(summaryData, gameIds, manifests) {
   const recentGrid = document.createElement('div');
   recentGrid.className = 'history-chart__grid';
   recentData.forEach((dayData) => {
-    recentGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
+    recentGrid.appendChild(createDayGroup(dayData, gameIds, manifests));
   });
   chartEl.appendChild(recentGrid);
 
@@ -395,7 +394,7 @@ export function createBarChart(summaryData, gameIds, manifests) {
     olderGrid.className = 'history-chart__grid';
     olderGrid.hidden = true;
     olderData.forEach((dayData) => {
-      olderGrid.appendChild(createDayGroup(dayData, gameIds, maxMs, manifests));
+      olderGrid.appendChild(createDayGroup(dayData, gameIds, manifests));
     });
     chartEl.appendChild(olderGrid);
 

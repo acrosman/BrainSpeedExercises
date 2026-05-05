@@ -327,9 +327,19 @@ describe('createBarChart()', () => {
     const ticks = [...chart.querySelectorAll('.history-chart__y-tick')];
     expect(ticks[ticks.length - 1].textContent).toBe('00:00');
   });
-});
 
-// ── createBarChart show-more ──────────────────────────────────────────────────
+  it('each day group y-axis top tick reflects that day\'s own total time', () => {
+    // summaryData uses dates ['2024-01-01', '2024-01-02'].
+    // 2024-01-01: game-a=60000 + game-b=30000 = total 90000 ms → '01:30'
+    // 2024-01-02: game-a=120000 + game-b=0   = total 120000 ms → '02:00'
+    // Groups are rendered newest-first: [2024-01-02, 2024-01-01].
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const groups = [...chart.querySelectorAll('.history-chart__group')];
+    const topTickOf = (group) => group.querySelector('.history-chart__y-tick').textContent;
+    expect(topTickOf(groups[0])).toBe('02:00'); // 2024-01-02 total = 120000 ms
+    expect(topTickOf(groups[1])).toBe('01:30'); // 2024-01-01 total = 90000 ms
+  });
+});
 
 describe('createBarChart() show-more behaviour', () => {
   const dates = getAllDates(PROGRESS_MANY_DAYS);
