@@ -1,0 +1,81 @@
+/* ── Card Rat ─────────────────────────────────────────────────────────────── */
+
+.card-rat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  color: var(--text-base);
+}
+
+.card-rat h2 {
+  margin: 0;
+}
+
+.card-rat__game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.card-rat__stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.card-rat__reaction-zone {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 1rem;
+  padding: 0.5rem;
+}
+
+.card-rat__reaction-zone:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.card-rat__card {
+  width: min(42vw, 260px);
+  aspect-ratio: 5 / 7;
+  border-radius: 12px;
+  border: 3px solid #483018;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 20%);
+  background-color: #f8f4e8;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0.75rem;
+  box-sizing: border-box;
+}
+
+.card-rat__card-label {
+  background: rgb(255 255 255 / 86%);
+  color: #1f2937;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-weight: 700;
+}
+
+.card-rat__card--red .card-rat__card-label {
+  color: #9b1c1c;
+}
+
+.card-rat__feedback {
+  margin: 0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.card-rat__controls {
+  display: flex;
+  justify-content: center;
+}

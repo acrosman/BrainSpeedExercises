@@ -1,0 +1,93 @@
+<section class="card-rat" aria-labelledby="cr-title">
+  <h2 id="cr-title">Card Rat</h2>
+
+  <div id="cr-instructions" class="card-rat__instructions game-welcome">
+    <h3>How to Play</h3>
+    <p>
+      Cards are dealt rapidly. React only when two cards in a row share the same value,
+      or when a joker appears.
+    </p>
+    <ul>
+      <li>Press <kbd>Space</kbd> or click the card area when you see a valid slap target.</li>
+      <li>Do not react on non-matching cards.</li>
+      <li>You must react before the next card is dealt.</li>
+      <li>Each correct reaction speeds up future deals.</li>
+    </ul>
+    <button id="cr-start-btn" type="button" class="game-btn game-btn--primary">
+      Start Game
+    </button>
+  </div>
+
+  <div id="cr-game-area" class="card-rat__game-area" hidden>
+    <div class="card-rat__stats" aria-live="polite" aria-atomic="true">
+      <span>Score: <strong id="cr-score">0</strong></span>
+      <span>Hits: <strong id="cr-hits">0</strong></span>
+      <span>Misses: <strong id="cr-misses">0</strong></span>
+      <span>False Alarms: <strong id="cr-false-alarms">0</strong></span>
+      <span>Display Time: <strong id="cr-display-time">1400</strong> ms</span>
+      <span>Deck: <strong id="cr-deck-progress">0 / 52</strong></span>
+      <span>Session: <strong id="cr-session-timer" aria-live="polite">00:00</strong></span>
+    </div>
+
+    <button
+      id="cr-reaction-zone"
+      class="card-rat__reaction-zone"
+      type="button"
+      aria-label="Card reaction zone. Press Space or click to slap"
+    >
+      <div id="cr-card" class="card-rat__card" role="img" aria-label="Current card">
+        <span id="cr-card-label" class="card-rat__card-label">Ready</span>
+      </div>
+    </button>
+
+    <p id="cr-feedback" class="card-rat__feedback" role="status" aria-live="polite" aria-atomic="true">
+      React to rank matches and jokers.
+    </p>
+
+    <div class="card-rat__controls" role="group" aria-label="Game controls">
+      <button id="cr-stop-btn" type="button" class="game-btn game-btn--secondary">
+        End Game
+      </button>
+    </div>
+  </div>
+
+  <div id="cr-end-panel" class="card-rat__end-panel game-end-panel" hidden>
+    <h2>Session Ended</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Score</dt>
+        <dd class="game-results__value" id="cr-final-score">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Hits</dt>
+        <dd class="game-results__value" id="cr-final-hits">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Misses</dt>
+        <dd class="game-results__value" id="cr-final-misses">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">False Alarms</dt>
+        <dd class="game-results__value" id="cr-final-false-alarms">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Fastest Display Time</dt>
+        <dd class="game-results__value" id="cr-final-speed">0 ms</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Deck Passes</dt>
+        <dd class="game-results__value" id="cr-final-deck-passes">0</dd>
+      </div>
+    </dl>
+
+    <div class="card-rat__end-actions game-end-panel__actions" role="group" aria-label="Post-game options">
+      <button id="cr-play-again-btn" type="button" class="game-btn game-btn--primary">
+        Play Again
+      </button>
+      <button id="cr-return-btn" type="button" class="game-btn game-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+</section>
