@@ -21,12 +21,17 @@ const GAME_ID = 'card-rat';
 /** Sprite path for card art. */
 const CARD_SPRITE_PATH = 'games/card-rat/images/cards-sprite.png';
 
-/** Number of columns in the card sprite sheet. */
+/** Number of columns in the Card Rat sprite sheet (13 × 5 layout). */
 const SPRITE_COLS = 13;
 
-/** Number of rows in the card sprite sheet. */
+/** Number of rows in the Card Rat sprite sheet (13 × 5 layout). */
 const SPRITE_ROWS = 5;
 
+/**
+ * Sprite layout reference:
+ * - Row 0: deck back at column 0 and jokers at columns 1-2.
+ * - Rows 1-4: standard suit cards (13 ranks per row).
+ */
 /** Sprite row where standard suit cards begin. */
 const STANDARD_CARD_START_ROW = 1;
 

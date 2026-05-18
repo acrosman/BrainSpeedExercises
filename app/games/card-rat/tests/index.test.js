@@ -146,8 +146,15 @@ describe('utility exports before init', () => {
     expect(() => renderCard({ rank: 'A', suit: 'hearts', isJoker: false })).not.toThrow();
   });
 
-  test('renderDeckBack does not throw', () => {
+  test('renderDeckBack sets deck sprite image and accessibility label', () => {
+    const container = buildContainer();
+    plugin.init(container);
+
     expect(() => renderDeckBack()).not.toThrow();
+    const deckEl = container.querySelector('#cr-deck-card');
+    expect(deckEl.style.backgroundImage).toContain('cards-sprite.png');
+    expect(deckEl.style.backgroundPosition).toBe('0% 0%');
+    expect(deckEl.getAttribute('aria-label')).toBe('Deck back');
   });
 
   test('showEndPanel does not throw', () => {
@@ -338,15 +345,6 @@ describe('renderCard', () => {
     expect(cardEl.classList.contains('card-rat__card--red')).toBe(false);
   });
 
-  test('renders the deck back image from the sprite', () => {
-    const container = buildContainer();
-    plugin.init(container);
-
-    renderDeckBack();
-    const deckEl = container.querySelector('#cr-deck-card');
-    expect(deckEl.style.backgroundImage).toContain('cards-sprite.png');
-    expect(deckEl.getAttribute('aria-label')).toBe('Deck back');
-  });
 });
 
 describe('stop and reset', () => {

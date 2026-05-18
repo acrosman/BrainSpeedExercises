@@ -1,6 +1,8 @@
 /* ── Card Rat ─────────────────────────────────────────────────────────────── */
 
 .card-rat {
+  --card-rat-card-gap: 0.65rem;
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -45,7 +47,7 @@
 .card-rat__card-row {
   display: flex;
   align-items: flex-end;
-  gap: 0.65rem;
+  gap: var(--card-rat-card-gap);
 }
 
 .card-rat__card {
