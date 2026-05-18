@@ -11,35 +11,13 @@ import * as timerService from '../../components/timerService.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import { getCardImageDataUrl, getDeckBackImageDataUrl } from './cardSvg.js';
 
 /** Human-readable plugin name. */
 const name = 'Card Rat';
 
 /** Game ID used for progress persistence. */
 const GAME_ID = 'card-rat';
-
-/** Sprite path for card art. */
-const CARD_SPRITE_PATH = 'games/card-rat/images/cards-sprite.png';
-
-/** Number of columns in the Card Rat sprite sheet (13 × 5 layout). */
-const SPRITE_COLS = 13;
-
-/** Number of rows in the Card Rat sprite sheet (13 × 5 layout). */
-const SPRITE_ROWS = 5;
-
-/**
- * Sprite layout reference:
- * - Row 0: deck back at column 0 and jokers at columns 1-2.
- * - Rows 1-4: standard suit cards (13 ranks per row).
- */
-/** Sprite row where standard suit cards begin. */
-const STANDARD_CARD_START_ROW = 1;
-
-/** Sprite columns used for jokers in the top row. */
-const JOKER_COLUMNS = [1, 2];
-
-/** Sprite coordinate for the deck-back card image. */
-const DECK_BACK_POSITION = { row: 0, column: 0 };
 
 /** @type {HTMLElement|null} */
 let _container = null;
@@ -126,64 +104,16 @@ let _dealTimer = null;
 let _isGlobalKeyListenerAttached = false;
 
 /**
- * Return the rank column index in the card sprite.
- *
- * @param {string} rank
- * @returns {number}
- */
-function getRankColumn(rank) {
-  return game.RANKS.indexOf(rank);
-}
-
-/**
- * Return the suit row index in the card sprite.
- *
- * @param {string} suit
- * @returns {number}
- */
-function getSuitRow(suit) {
-  return game.SUITS.indexOf(suit);
-}
-
-/**
- * Resolve a card's slot index in the sprite sheet.
- *
- * Standard cards occupy slots 0-51 in row-major order.
- * Joker cards use the two slots immediately after that and alternate by deck pass.
- *
- * @param {{ rank: string, suit: string, isJoker: boolean }} card
- * @returns {number}
- */
-function getSpriteCoordinates(card) {
-  if (card.isJoker) {
-    return {
-      row: 0,
-      column: JOKER_COLUMNS[game.getDeckPasses() % JOKER_COLUMNS.length],
-    };
-  }
-
-  const suitRow = getSuitRow(card.suit);
-  const rankColumn = getRankColumn(card.rank);
-  if (suitRow < 0 || rankColumn < 0) return DECK_BACK_POSITION;
-
-  return {
-    row: suitRow + STANDARD_CARD_START_ROW,
-    column: rankColumn,
-  };
-}
-
-/**
- * Apply sprite image and position to a card element.
+ * Apply a card image URL to a card element.
  *
  * @param {HTMLElement} element
- * @param {{ row: number, column: number }} coordinates
+ * @param {string} imageDataUrl
  */
-function applySpriteCoordinates(element, coordinates) {
-  const xPercent = (coordinates.column / (SPRITE_COLS - 1)) * 100;
-  const yPercent = (coordinates.row / (SPRITE_ROWS - 1)) * 100;
-  element.style.backgroundImage = `url('${CARD_SPRITE_PATH}')`;
-  element.style.backgroundSize = `${SPRITE_COLS * 100}% ${SPRITE_ROWS * 100}%`;
-  element.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
+function applyCardImage(element, imageDataUrl) {
+  element.style.backgroundImage = `url("${imageDataUrl}")`;
+  element.style.backgroundSize = 'cover';
+  element.style.backgroundPosition = 'center';
+  element.style.backgroundRepeat = 'no-repeat';
 }
 
 /**
@@ -237,12 +167,7 @@ export function renderCard(card) {
 
   const label = getCardLabel(card);
   _cardEl.setAttribute('aria-label', `Current card: ${label}`);
-
-  const coordinates = getSpriteCoordinates(card);
-  applySpriteCoordinates(_cardEl, coordinates);
-
-  const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
-  _cardEl.classList.toggle('card-rat__card--red', !card.isJoker && isRed);
+  applyCardImage(_cardEl, getCardImageDataUrl(card));
 }
 
 /**
@@ -251,7 +176,7 @@ export function renderCard(card) {
 export function renderDeckBack() {
   if (!_deckCardEl) return;
   _deckCardEl.setAttribute('aria-label', 'Deck back');
-  applySpriteCoordinates(_deckCardEl, DECK_BACK_POSITION);
+  applyCardImage(_deckCardEl, getDeckBackImageDataUrl());
 }
 
 /**

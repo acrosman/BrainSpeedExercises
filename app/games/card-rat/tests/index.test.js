@@ -152,8 +152,8 @@ describe('utility exports before init', () => {
 
     expect(() => renderDeckBack()).not.toThrow();
     const deckEl = container.querySelector('#cr-deck-card');
-    expect(deckEl.style.backgroundImage).toContain('cards-sprite.png');
-    expect(deckEl.style.backgroundPosition).toBe('0% 0%');
+    expect(deckEl.style.backgroundImage).toContain('data:image/svg+xml');
+    expect(deckEl.style.backgroundPosition).toBe('center');
     expect(deckEl.getAttribute('aria-label')).toBe('Deck back');
   });
 
@@ -324,25 +324,25 @@ describe('renderCard', () => {
     expect(cardLabel).toBe('Current card: Joker');
   });
 
-  test('uses the PNG sprite for normal cards', () => {
+  test('uses generated SVG for normal cards', () => {
     const container = buildContainer();
     plugin.init(container);
 
     renderCard({ rank: 'A', suit: 'hearts', isJoker: false });
     const cardEl = container.querySelector('#cr-card');
-    expect(cardEl.style.backgroundImage).toContain('cards-sprite.png');
-    expect(cardEl.style.backgroundPosition).toBe('0% 25%');
+    expect(cardEl.style.backgroundImage).toContain('data:image/svg+xml');
+    expect(cardEl.style.backgroundImage).not.toContain('cards-sprite.png');
+    expect(cardEl.style.backgroundPosition).toBe('center');
   });
 
-  test('renders joker from sprite and removes red-card class', () => {
+  test('uses generated SVG for joker cards', () => {
     const container = buildContainer();
     plugin.init(container);
 
     const cardEl = container.querySelector('#cr-card');
-    cardEl.classList.add('card-rat__card--red');
     renderCard({ rank: 'JOKER', suit: 'joker', isJoker: true });
-    expect(cardEl.style.backgroundImage).toContain('cards-sprite.png');
-    expect(cardEl.classList.contains('card-rat__card--red')).toBe(false);
+    expect(cardEl.style.backgroundImage).toContain('data:image/svg+xml');
+    expect(cardEl.style.backgroundImage).toContain('JOKER');
   });
 
 });
