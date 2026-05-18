@@ -275,6 +275,16 @@ describe('reaction handlers', () => {
     expect(event.preventDefault).toHaveBeenCalled();
   });
 
+  test('handleKeyDown accepts legacy "Spacebar" key value', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    const event = { key: 'Spacebar', preventDefault: jest.fn() };
+    handleKeyDown(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+  });
+
   test('handleKeyDown does nothing when game is not running', () => {
     gameMock.isRunning.mockReturnValueOnce(false);
     const event = { key: ' ', preventDefault: jest.fn() };
@@ -337,6 +347,7 @@ describe('stop and reset', () => {
     expect(timerServiceMock.stopTimer).toHaveBeenCalled();
 
     const extraFieldsCallback = saveScoreMock.saveScore.mock.calls[0][2];
+    // The mock stop result has triggerHits=2, so max(1, 2) should produce 2.
     const merged = extraFieldsCallback({ bestTriggerHits: 1 });
     expect(merged.bestTriggerHits).toBe(2);
   });
@@ -385,5 +396,26 @@ describe('global key listener helpers', () => {
     detachGlobalKeyListener();
     detachGlobalKeyListener();
     expect(removeSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test('detachGlobalKeyListener remains idempotent after an attach/detach cycle', () => {
+    const removeSpy = jest.spyOn(document, 'removeEventListener');
+    attachGlobalKeyListener();
+    detachGlobalKeyListener();
+    detachGlobalKeyListener();
+    expect(removeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test('multiple attach/detach calls keep listener transitions stable', () => {
+    const addSpy = jest.spyOn(document, 'addEventListener');
+    const removeSpy = jest.spyOn(document, 'removeEventListener');
+
+    attachGlobalKeyListener();
+    attachGlobalKeyListener();
+    detachGlobalKeyListener();
+    detachGlobalKeyListener();
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(removeSpy).toHaveBeenCalledTimes(1);
   });
 });

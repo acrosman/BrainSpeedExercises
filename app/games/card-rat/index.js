@@ -39,6 +39,9 @@ const STANDARD_CARD_COUNT = 52;
  */
 const FIRST_JOKER_SLOT = STANDARD_CARD_COUNT;
 
+/** Number of joker slots available in the sprite sheet. */
+const JOKER_SLOT_COUNT = 2;
+
 /** @type {HTMLElement|null} */
 let _container = null;
 
@@ -154,7 +157,7 @@ function getSuitRow(suit) {
  */
 function getSpriteSlotIndex(card) {
   if (card.isJoker) {
-    return FIRST_JOKER_SLOT + (game.getDeckPasses() % 2);
+    return FIRST_JOKER_SLOT + (game.getDeckPasses() % JOKER_SLOT_COUNT);
   }
 
   const suitRow = getSuitRow(card.suit);
@@ -293,8 +296,8 @@ export function handleReaction() {
  * @param {KeyboardEvent} event
  */
 export function handleKeyDown(event) {
-  if (!game.isRunning()) return;
   if (event.key !== ' ' && event.key !== 'Spacebar' && event.key !== 'Space') return;
+  if (!game.isRunning()) return;
   event.preventDefault();
   handleReaction();
 }
