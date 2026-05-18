@@ -22,25 +22,19 @@ const GAME_ID = 'card-rat';
 const CARD_SPRITE_PATH = 'games/card-rat/images/cards-sprite.png';
 
 /** Number of columns in the card sprite sheet. */
-const SPRITE_COLS = 11;
+const SPRITE_COLS = 13;
 
 /** Number of rows in the card sprite sheet. */
-const SPRITE_ROWS = 6;
+const SPRITE_ROWS = 5;
 
-/**
- * Number of standard cards (without jokers) expected in the sprite sheet.
- * The standard cards are read in row-major order from the first slot.
- */
-const STANDARD_CARD_COUNT = 52;
+/** Sprite row where standard suit cards begin. */
+const STANDARD_CARD_START_ROW = 1;
 
-/**
- * Index of the first joker slot in the sprite sheet.
- * Joker slots are expected after the 52 standard cards.
- */
-const FIRST_JOKER_SLOT = STANDARD_CARD_COUNT;
+/** Sprite columns used for jokers in the top row. */
+const JOKER_COLUMNS = [1, 2];
 
-/** Number of joker slots available in the sprite sheet. */
-const JOKER_SLOT_COUNT = 2;
+/** Sprite coordinate for the deck-back card image. */
+const DECK_BACK_POSITION = { row: 0, column: 0 };
 
 /** @type {HTMLElement|null} */
 let _container = null;
@@ -73,7 +67,7 @@ let _reactionZoneBtn = null;
 let _cardEl = null;
 
 /** @type {HTMLElement|null} */
-let _cardLabelEl = null;
+let _deckCardEl = null;
 
 /** @type {HTMLElement|null} */
 let _feedbackEl = null;
@@ -155,29 +149,36 @@ function getSuitRow(suit) {
  * @param {{ rank: string, suit: string, isJoker: boolean }} card
  * @returns {number}
  */
-function getSpriteSlotIndex(card) {
+function getSpriteCoordinates(card) {
   if (card.isJoker) {
-    return FIRST_JOKER_SLOT + (game.getDeckPasses() % JOKER_SLOT_COUNT);
+    return {
+      row: 0,
+      column: JOKER_COLUMNS[game.getDeckPasses() % JOKER_COLUMNS.length],
+    };
   }
 
   const suitRow = getSuitRow(card.suit);
   const rankColumn = getRankColumn(card.rank);
-  if (suitRow < 0 || rankColumn < 0) return 0;
+  if (suitRow < 0 || rankColumn < 0) return DECK_BACK_POSITION;
 
-  return suitRow * game.RANKS.length + rankColumn;
+  return {
+    row: suitRow + STANDARD_CARD_START_ROW,
+    column: rankColumn,
+  };
 }
 
 /**
- * Convert a sprite slot index to row/column coordinates.
+ * Apply sprite image and position to a card element.
  *
- * @param {number} slotIndex
- * @returns {{ row: number, column: number }}
+ * @param {HTMLElement} element
+ * @param {{ row: number, column: number }} coordinates
  */
-function slotIndexToCoordinates(slotIndex) {
-  return {
-    row: Math.floor(slotIndex / SPRITE_COLS),
-    column: slotIndex % SPRITE_COLS,
-  };
+function applySpriteCoordinates(element, coordinates) {
+  const xPercent = (coordinates.column / (SPRITE_COLS - 1)) * 100;
+  const yPercent = (coordinates.row / (SPRITE_ROWS - 1)) * 100;
+  element.style.backgroundImage = `url('${CARD_SPRITE_PATH}')`;
+  element.style.backgroundSize = `${SPRITE_COLS * 100}% ${SPRITE_ROWS * 100}%`;
+  element.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
 }
 
 /**
@@ -227,22 +228,25 @@ export function updateStats() {
  * @param {{ rank: string, suit: string, isJoker: boolean }} card
  */
 export function renderCard(card) {
-  if (!_cardEl || !_cardLabelEl) return;
+  if (!_cardEl) return;
 
   const label = getCardLabel(card);
-  _cardLabelEl.textContent = label;
   _cardEl.setAttribute('aria-label', `Current card: ${label}`);
 
-  const slotIndex = getSpriteSlotIndex(card);
-  const { row, column } = slotIndexToCoordinates(slotIndex);
-  const xPercent = (column / (SPRITE_COLS - 1)) * 100;
-  const yPercent = (row / (SPRITE_ROWS - 1)) * 100;
-  _cardEl.style.backgroundImage = `url('${CARD_SPRITE_PATH}')`;
-  _cardEl.style.backgroundSize = `${SPRITE_COLS * 100}% ${SPRITE_ROWS * 100}%`;
-  _cardEl.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
+  const coordinates = getSpriteCoordinates(card);
+  applySpriteCoordinates(_cardEl, coordinates);
 
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
   _cardEl.classList.toggle('card-rat__card--red', !card.isJoker && isRed);
+}
+
+/**
+ * Render the deck back image.
+ */
+export function renderDeckBack() {
+  if (!_deckCardEl) return;
+  _deckCardEl.setAttribute('aria-label', 'Deck back');
+  applySpriteCoordinates(_deckCardEl, DECK_BACK_POSITION);
 }
 
 /**
@@ -364,7 +368,7 @@ function init(gameContainer) {
   _reactionZoneBtn = _container.querySelector('#cr-reaction-zone');
 
   _cardEl = _container.querySelector('#cr-card');
-  _cardLabelEl = _container.querySelector('#cr-card-label');
+  _deckCardEl = _container.querySelector('#cr-deck-card');
   _feedbackEl = _container.querySelector('#cr-feedback');
 
   _scoreEl = _container.querySelector('#cr-score');
@@ -383,6 +387,7 @@ function init(gameContainer) {
   _finalDeckPassesEl = _container.querySelector('#cr-final-deck-passes');
 
   game.initGame();
+  renderDeckBack();
   updateStats();
 
   if (_startBtn) _startBtn.addEventListener('click', start);
@@ -424,6 +429,7 @@ function start() {
     _feedbackEl.textContent = 'Game started. React to pairs and jokers.';
   }
 
+  renderDeckBack();
   beginDealLoop();
 }
 
@@ -495,6 +501,7 @@ function reset() {
     _feedbackEl.textContent = 'React to rank matches and jokers.';
   }
 
+  renderDeckBack();
   updateStats();
 }
 

@@ -76,6 +76,7 @@ const {
   clearDealTimer,
   updateStats,
   renderCard,
+  renderDeckBack,
   beginDealLoop,
   handleReaction,
   handleKeyDown,
@@ -100,8 +101,8 @@ function buildContainer() {
     <button id="cr-play-again-btn"></button>
     <button id="cr-return-btn"></button>
     <button id="cr-reaction-zone"></button>
+    <div id="cr-deck-card"></div>
     <div id="cr-card"></div>
-    <span id="cr-card-label"></span>
     <p id="cr-feedback"></p>
     <strong id="cr-score">0</strong>
     <strong id="cr-hits">0</strong>
@@ -143,6 +144,10 @@ describe('utility exports before init', () => {
 
   test('renderCard does not throw', () => {
     expect(() => renderCard({ rank: 'A', suit: 'hearts', isJoker: false })).not.toThrow();
+  });
+
+  test('renderDeckBack does not throw', () => {
+    expect(() => renderDeckBack()).not.toThrow();
   });
 
   test('showEndPanel does not throw', () => {
@@ -294,20 +299,22 @@ describe('reaction handlers', () => {
 });
 
 describe('renderCard', () => {
-  test('renders normal card label', () => {
+  test('sets accessibility label for a normal card', () => {
     const container = buildContainer();
     plugin.init(container);
 
     renderCard({ rank: 'A', suit: 'hearts', isJoker: false });
-    expect(container.querySelector('#cr-card-label').textContent).toContain('A');
+    const cardLabel = container.querySelector('#cr-card').getAttribute('aria-label');
+    expect(cardLabel).toBe('Current card: A♥');
   });
 
-  test('renders joker label', () => {
+  test('sets accessibility label for a joker card', () => {
     const container = buildContainer();
     plugin.init(container);
 
     renderCard({ rank: 'JOKER', suit: 'joker', isJoker: true });
-    expect(container.querySelector('#cr-card-label').textContent).toBe('Joker');
+    const cardLabel = container.querySelector('#cr-card').getAttribute('aria-label');
+    expect(cardLabel).toBe('Current card: Joker');
   });
 
   test('uses the PNG sprite for normal cards', () => {
@@ -317,7 +324,7 @@ describe('renderCard', () => {
     renderCard({ rank: 'A', suit: 'hearts', isJoker: false });
     const cardEl = container.querySelector('#cr-card');
     expect(cardEl.style.backgroundImage).toContain('cards-sprite.png');
-    expect(cardEl.style.backgroundPosition).toBe('0% 0%');
+    expect(cardEl.style.backgroundPosition).toBe('0% 25%');
   });
 
   test('renders joker from sprite and removes red-card class', () => {
@@ -329,6 +336,16 @@ describe('renderCard', () => {
     renderCard({ rank: 'JOKER', suit: 'joker', isJoker: true });
     expect(cardEl.style.backgroundImage).toContain('cards-sprite.png');
     expect(cardEl.classList.contains('card-rat__card--red')).toBe(false);
+  });
+
+  test('renders the deck back image from the sprite', () => {
+    const container = buildContainer();
+    plugin.init(container);
+
+    renderDeckBack();
+    const deckEl = container.querySelector('#cr-deck-card');
+    expect(deckEl.style.backgroundImage).toContain('cards-sprite.png');
+    expect(deckEl.getAttribute('aria-label')).toBe('Deck back');
   });
 });
 

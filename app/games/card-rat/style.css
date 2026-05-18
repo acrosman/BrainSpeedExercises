@@ -42,31 +42,37 @@
   outline-offset: 4px;
 }
 
+.card-rat__card-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
 .card-rat__card {
-  width: min(42vw, 260px);
-  aspect-ratio: 1 / 1;
+  width: min(29vw, 190px);
+  aspect-ratio: 5 / 7;
   border-radius: 12px;
   border: 3px solid #483018;
   box-shadow: 0 6px 18px rgb(0 0 0 / 20%);
   background-color: #f8f4e8;
   background-repeat: no-repeat;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 0.75rem;
+  background-position: center;
   box-sizing: border-box;
 }
 
-.card-rat__card-label {
-  background: rgb(255 255 255 / 86%);
-  color: #1f2937;
-  border-radius: 999px;
-  padding: 0.2rem 0.55rem;
-  font-weight: 700;
+.card-rat__card--deck {
+  width: min(18vw, 116px);
+  transform: rotate(-8deg);
 }
 
-.card-rat__card--red .card-rat__card-label {
-  color: #9b1c1c;
+@media (width <= 720px) {
+  .card-rat__card {
+    width: min(48vw, 170px);
+  }
+
+  .card-rat__card--deck {
+    width: min(24vw, 100px);
+  }
 }
 
 .card-rat__feedback {
