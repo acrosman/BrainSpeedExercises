@@ -19,13 +19,25 @@ const name = 'Card Rat';
 const GAME_ID = 'card-rat';
 
 /** Sprite path for card art. */
-const CARD_SPRITE_PATH = 'games/card-rat/images/cards-sprite.svg';
+const CARD_SPRITE_PATH = 'games/card-rat/images/cards-sprite.png';
 
 /** Number of columns in the card sprite sheet. */
-const SPRITE_COLS = 14;
+const SPRITE_COLS = 11;
 
 /** Number of rows in the card sprite sheet. */
-const SPRITE_ROWS = 4;
+const SPRITE_ROWS = 6;
+
+/**
+ * Number of standard cards (without jokers) expected in the sprite sheet.
+ * The standard cards are read in row-major order from the first slot.
+ */
+const STANDARD_CARD_COUNT = 52;
+
+/**
+ * Index of the first joker slot in the sprite sheet.
+ * Joker slots are expected after the 52 standard cards.
+ */
+const FIRST_JOKER_SLOT = STANDARD_CARD_COUNT;
 
 /** @type {HTMLElement|null} */
 let _container = null;
@@ -106,6 +118,12 @@ let _finalDeckPassesEl = null;
 let _dealTimer = null;
 
 /**
+ * Whether the document-level Space key handler is currently attached.
+ * @type {boolean}
+ */
+let _isGlobalKeyListenerAttached = false;
+
+/**
  * Return the rank column index in the card sprite.
  *
  * @param {string} rank
@@ -123,6 +141,40 @@ function getRankColumn(rank) {
  */
 function getSuitRow(suit) {
   return game.SUITS.indexOf(suit);
+}
+
+/**
+ * Resolve a card's slot index in the sprite sheet.
+ *
+ * Standard cards occupy slots 0-51 in row-major order.
+ * Joker cards use the two slots immediately after that and alternate by deck pass.
+ *
+ * @param {{ rank: string, suit: string, isJoker: boolean }} card
+ * @returns {number}
+ */
+function getSpriteSlotIndex(card) {
+  if (card.isJoker) {
+    return FIRST_JOKER_SLOT + (game.getDeckPasses() % 2);
+  }
+
+  const suitRow = getSuitRow(card.suit);
+  const rankColumn = getRankColumn(card.rank);
+  if (suitRow < 0 || rankColumn < 0) return 0;
+
+  return suitRow * game.RANKS.length + rankColumn;
+}
+
+/**
+ * Convert a sprite slot index to row/column coordinates.
+ *
+ * @param {number} slotIndex
+ * @returns {{ row: number, column: number }}
+ */
+function slotIndexToCoordinates(slotIndex) {
+  return {
+    row: Math.floor(slotIndex / SPRITE_COLS),
+    column: slotIndex % SPRITE_COLS,
+  };
 }
 
 /**
@@ -178,30 +230,16 @@ export function renderCard(card) {
   _cardLabelEl.textContent = label;
   _cardEl.setAttribute('aria-label', `Current card: ${label}`);
 
-  if (card.isJoker) {
-    const row = game.getDeckPasses() % 2;
-    const xPercent = (13 / (SPRITE_COLS - 1)) * 100;
-    const yPercent = (row / (SPRITE_ROWS - 1)) * 100;
-    _cardEl.style.backgroundImage = `url('${CARD_SPRITE_PATH}')`;
-    _cardEl.style.backgroundSize = `${SPRITE_COLS * 100}% ${SPRITE_ROWS * 100}%`;
-    _cardEl.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
-    _cardEl.classList.remove('card-rat__card--red');
-    return;
-  }
-
-  const column = getRankColumn(card.rank);
-  const row = getSuitRow(card.suit);
-
-  if (column >= 0 && row >= 0) {
-    const xPercent = (column / (SPRITE_COLS - 1)) * 100;
-    const yPercent = (row / (SPRITE_ROWS - 1)) * 100;
-    _cardEl.style.backgroundImage = `url('${CARD_SPRITE_PATH}')`;
-    _cardEl.style.backgroundSize = `${SPRITE_COLS * 100}% ${SPRITE_ROWS * 100}%`;
-    _cardEl.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
-  }
+  const slotIndex = getSpriteSlotIndex(card);
+  const { row, column } = slotIndexToCoordinates(slotIndex);
+  const xPercent = (column / (SPRITE_COLS - 1)) * 100;
+  const yPercent = (row / (SPRITE_ROWS - 1)) * 100;
+  _cardEl.style.backgroundImage = `url('${CARD_SPRITE_PATH}')`;
+  _cardEl.style.backgroundSize = `${SPRITE_COLS * 100}% ${SPRITE_ROWS * 100}%`;
+  _cardEl.style.backgroundPosition = `${xPercent}% ${yPercent}%`;
 
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
-  _cardEl.classList.toggle('card-rat__card--red', isRed);
+  _cardEl.classList.toggle('card-rat__card--red', !card.isJoker && isRed);
 }
 
 /**
@@ -255,9 +293,28 @@ export function handleReaction() {
  * @param {KeyboardEvent} event
  */
 export function handleKeyDown(event) {
-  if (event.key !== ' ' && event.key !== 'Spacebar') return;
+  if (!game.isRunning()) return;
+  if (event.key !== ' ' && event.key !== 'Spacebar' && event.key !== 'Space') return;
   event.preventDefault();
   handleReaction();
+}
+
+/**
+ * Attach the document-level Space key handler for reliable keyboard reactions.
+ */
+export function attachGlobalKeyListener() {
+  if (_isGlobalKeyListenerAttached || typeof document === 'undefined') return;
+  document.addEventListener('keydown', handleKeyDown);
+  _isGlobalKeyListenerAttached = true;
+}
+
+/**
+ * Detach the document-level Space key handler.
+ */
+export function detachGlobalKeyListener() {
+  if (!_isGlobalKeyListenerAttached || typeof document === 'undefined') return;
+  document.removeEventListener('keydown', handleKeyDown);
+  _isGlobalKeyListenerAttached = false;
 }
 
 /**
@@ -340,9 +397,11 @@ function init(gameContainer) {
  */
 function start() {
   clearDealTimer();
+  detachGlobalKeyListener();
 
   game.initGame();
   game.startGame();
+  attachGlobalKeyListener();
 
   if (_instructionsEl) _instructionsEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
@@ -381,6 +440,7 @@ function start() {
  */
 function stop() {
   clearDealTimer();
+  detachGlobalKeyListener();
   timerService.stopTimer();
 
   if (!game.isRunning()) {
@@ -419,6 +479,7 @@ function stop() {
  */
 function reset() {
   clearDealTimer();
+  detachGlobalKeyListener();
   timerService.resetTimer();
   game.initGame();
 

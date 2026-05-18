@@ -79,6 +79,8 @@ const {
   beginDealLoop,
   handleReaction,
   handleKeyDown,
+  attachGlobalKeyListener,
+  detachGlobalKeyListener,
   showEndPanel,
 } = indexModule;
 
@@ -121,9 +123,11 @@ function buildContainer() {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
+  detachGlobalKeyListener();
 });
 
 afterEach(() => {
+  detachGlobalKeyListener();
   jest.useRealTimers();
   document.body.innerHTML = '';
 });
@@ -150,6 +154,11 @@ describe('utility exports before init', () => {
       deckPasses: 0,
       lowestDisplayTime: 900,
     })).not.toThrow();
+  });
+
+  test('attachGlobalKeyListener and detachGlobalKeyListener do not throw', () => {
+    expect(() => attachGlobalKeyListener()).not.toThrow();
+    expect(() => detachGlobalKeyListener()).not.toThrow();
   });
 });
 
@@ -193,6 +202,28 @@ describe('start', () => {
     plugin.start();
     expect(gameMock.dealNextCard).toHaveBeenCalled();
   });
+
+  test('Space key on document reacts without card focus', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true });
+    document.dispatchEvent(event);
+
+    expect(gameMock.respondToCurrentCard).toHaveBeenCalled();
+  });
+
+  test('deal loop timer callback continues the loop', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    gameMock.dealNextCard.mockClear();
+    jest.advanceTimersByTime(1200);
+
+    expect(gameMock.dealNextCard).toHaveBeenCalled();
+  });
 });
 
 describe('reaction handlers', () => {
@@ -233,6 +264,23 @@ describe('reaction handlers', () => {
     handleKeyDown(event);
     expect(event.preventDefault).toHaveBeenCalled();
   });
+
+  test('handleKeyDown accepts legacy "Space" key value', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+
+    const event = { key: 'Space', preventDefault: jest.fn() };
+    handleKeyDown(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+  });
+
+  test('handleKeyDown does nothing when game is not running', () => {
+    gameMock.isRunning.mockReturnValueOnce(false);
+    const event = { key: ' ', preventDefault: jest.fn() };
+    handleKeyDown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
 });
 
 describe('renderCard', () => {
@@ -251,6 +299,27 @@ describe('renderCard', () => {
     renderCard({ rank: 'JOKER', suit: 'joker', isJoker: true });
     expect(container.querySelector('#cr-card-label').textContent).toBe('Joker');
   });
+
+  test('uses the PNG sprite for normal cards', () => {
+    const container = buildContainer();
+    plugin.init(container);
+
+    renderCard({ rank: 'A', suit: 'hearts', isJoker: false });
+    const cardEl = container.querySelector('#cr-card');
+    expect(cardEl.style.backgroundImage).toContain('cards-sprite.png');
+    expect(cardEl.style.backgroundPosition).toBe('0% 0%');
+  });
+
+  test('renders joker from sprite and removes red-card class', () => {
+    const container = buildContainer();
+    plugin.init(container);
+
+    const cardEl = container.querySelector('#cr-card');
+    cardEl.classList.add('card-rat__card--red');
+    renderCard({ rank: 'JOKER', suit: 'joker', isJoker: true });
+    expect(cardEl.style.backgroundImage).toContain('cards-sprite.png');
+    expect(cardEl.classList.contains('card-rat__card--red')).toBe(false);
+  });
 });
 
 describe('stop and reset', () => {
@@ -266,6 +335,10 @@ describe('stop and reset', () => {
     expect(container.querySelector('#cr-end-panel').hidden).toBe(false);
     expect(saveScoreMock.saveScore).toHaveBeenCalled();
     expect(timerServiceMock.stopTimer).toHaveBeenCalled();
+
+    const extraFieldsCallback = saveScoreMock.saveScore.mock.calls[0][2];
+    const merged = extraFieldsCallback({ bestTriggerHits: 1 });
+    expect(merged.bestTriggerHits).toBe(2);
   });
 
   test('stop falls back when game is already not running', () => {
@@ -295,5 +368,22 @@ describe('beginDealLoop guard', () => {
   test('returns early when game is not running', () => {
     gameMock.isRunning.mockReturnValueOnce(false);
     expect(() => beginDealLoop()).not.toThrow();
+  });
+});
+
+describe('global key listener helpers', () => {
+  test('attachGlobalKeyListener is idempotent', () => {
+    const addSpy = jest.spyOn(document, 'addEventListener');
+    attachGlobalKeyListener();
+    attachGlobalKeyListener();
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    detachGlobalKeyListener();
+  });
+
+  test('detachGlobalKeyListener is idempotent', () => {
+    const removeSpy = jest.spyOn(document, 'removeEventListener');
+    detachGlobalKeyListener();
+    detachGlobalKeyListener();
+    expect(removeSpy).toHaveBeenCalledTimes(0);
   });
 });
