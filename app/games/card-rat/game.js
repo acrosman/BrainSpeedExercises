@@ -3,6 +3,7 @@
  *
  * Implements an Egyptian Rat Screw-inspired reaction task:
  * - React when two consecutive cards share the same rank.
+ * - React when a sandwich appears (same rank with one different card between).
  * - React when a joker appears.
  * - Do not react on non-trigger cards.
  *
@@ -64,6 +65,9 @@ let deckIndex = 0;
 let previousCard = null;
 
 /** @type {{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }|null} */
+let twoCardsAgo = null;
+
+/** @type {{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }|null} */
 let currentCard = null;
 
 /** @type {boolean} */
@@ -71,6 +75,9 @@ let mustReactToCurrentCard = false;
 
 /** @type {boolean} */
 let reactedToCurrentCard = false;
+
+/** @type {number[]} */
+let speedHistory = [];
 
 /** Joker image variants used in the deck. */
 export const JOKER_VARIANTS = ['joker1', 'joker2', 'joker3'];
@@ -129,6 +136,23 @@ export function createGameplayDeck() {
 }
 
 /**
+ * Determine whether three cards form a valid sandwich trigger.
+ *
+ * A sandwich is present when the outer cards share rank and the middle card
+ * has a different rank. Jokers never count toward sandwich evaluation.
+ *
+ * @param {{ rank: string, isJoker: boolean }|null} leftCard
+ * @param {{ rank: string, isJoker: boolean }|null} middleCard
+ * @param {{ rank: string, isJoker: boolean }|null} rightCard
+ * @returns {boolean}
+ */
+export function isSandwichPattern(leftCard, middleCard, rightCard) {
+  if (!leftCard || !middleCard || !rightCard) return false;
+  if (leftCard.isJoker || middleCard.isJoker || rightCard.isJoker) return false;
+  return leftCard.rank === rightCard.rank && middleCard.rank !== rightCard.rank;
+}
+
+/**
  * Initialize (or reset) game state.
  */
 export function initGame() {
@@ -144,9 +168,11 @@ export function initGame() {
   deck = shuffleDeck(createGameplayDeck());
   deckIndex = 0;
   previousCard = null;
+  twoCardsAgo = null;
   currentCard = null;
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
+  speedHistory = [];
 }
 
 /**
@@ -209,9 +235,12 @@ export function dealNextCard() {
     && !card.isJoker
     && previousCard.rank === card.rank;
 
+  const hasSandwich = isSandwichPattern(twoCardsAgo, previousCard, card);
+
   currentCard = card;
-  mustReactToCurrentCard = card.isJoker || hasPair;
+  mustReactToCurrentCard = card.isJoker || hasPair || hasSandwich;
   reactedToCurrentCard = false;
+  twoCardsAgo = previousCard;
   previousCard = card;
   cardsShown += 1;
 
@@ -242,6 +271,7 @@ export function respondToCurrentCard() {
       MIN_DISPLAY_DURATION_MS,
       Math.round(displayDurationMs * DISPLAY_SPEED_FACTOR),
     );
+    speedHistory.push(displayDurationMs);
     return 'hit';
   }
 
@@ -331,7 +361,7 @@ export function getCardsShown() {
 }
 
 /**
- * Return number of completed 52-card deck passes.
+ * Return number of completed full-deck passes.
  * @returns {number}
  */
 export function getDeckPasses() {
@@ -360,6 +390,14 @@ export function getDeckSize() {
  */
 export function getDisplayDurationMs() {
   return displayDurationMs;
+}
+
+/**
+ * Return display-duration history captured after successful reactions.
+ * @returns {number[]}
+ */
+export function getSpeedHistory() {
+  return speedHistory.slice();
 }
 
 /**

@@ -29,6 +29,10 @@ jest.unstable_mockModule('../../../components/audioService.js', () => ({
   playFailureSound: jest.fn(),
 }));
 
+jest.unstable_mockModule('../../../components/trendChartService.js', () => ({
+  renderTrendChart: jest.fn(),
+}));
+
 jest.unstable_mockModule('../game.js', () => ({
   RANKS: ['A', '2', '3'],
   SUITS: ['hearts', 'spades'],
@@ -61,6 +65,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getDeckIndex: jest.fn(() => 1),
   getDeckSize: jest.fn(() => 55),
   getDisplayDurationMs: jest.fn(() => 900),
+  getSpeedHistory: jest.fn(() => [1200, 1100, 1000]),
   getCurrentCard: jest.fn(() => ({ rank: 'A', suit: 'hearts', isJoker: false })),
   shouldReactNow: jest.fn(() => false),
   isRunning: jest.fn(() => true),
@@ -70,6 +75,7 @@ const gameMock = await import('../game.js');
 const timerServiceMock = await import('../../../components/timerService.js');
 const saveScoreMock = await import('../../../components/scoreService.js');
 const audioMock = await import('../../../components/audioService.js');
+const trendChartServiceMock = await import('../../../components/trendChartService.js');
 
 const indexModule = await import('../index.js');
 const plugin = indexModule.default;
@@ -112,6 +118,9 @@ function buildContainer() {
     <strong id="cr-display-time">0</strong>
     <strong id="cr-deck-progress">0 / 55</strong>
     <strong id="cr-session-timer">00:00</strong>
+    <polyline id="cr-trend-line"></polyline>
+    <p id="cr-trend-empty"></p>
+    <strong id="cr-trend-latest"></strong>
     <dd id="cr-final-score">0</dd>
     <dd id="cr-final-hits">0</dd>
     <dd id="cr-final-misses">0</dd>
@@ -141,6 +150,7 @@ describe('utility exports before init', () => {
 
   test('updateStats does not throw', () => {
     expect(() => updateStats()).not.toThrow();
+    expect(trendChartServiceMock.renderTrendChart).toHaveBeenCalled();
   });
 
   test('renderCard does not throw', () => {
@@ -214,6 +224,7 @@ describe('start', () => {
     plugin.init(container);
     plugin.start();
     expect(gameMock.dealNextCard).toHaveBeenCalled();
+    expect(container.querySelector('#cr-feedback').textContent).toContain('sandwich');
   });
 
   test('Space key on document reacts without card focus', () => {

@@ -11,6 +11,7 @@ import * as timerService from '../../components/timerService.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import { renderTrendChart } from '../../components/trendChartService.js';
 import { getDeckBackImagePath, getJokerImagePath, getStandardCardSpriteStyle } from './cardSvg.js';
 
 /** Human-readable plugin name. */
@@ -75,6 +76,15 @@ let _deckProgressEl = null;
 
 /** @type {HTMLElement|null} */
 let _sessionTimerEl = null;
+
+/** @type {SVGPolylineElement|null} */
+let _trendLineEl = null;
+
+/** @type {HTMLElement|null} */
+let _trendEmptyEl = null;
+
+/** @type {HTMLElement|null} */
+let _trendLatestEl = null;
 
 /** @type {HTMLElement|null} */
 let _finalScoreEl = null;
@@ -173,6 +183,18 @@ export function updateStats() {
   if (_falseAlarmsEl) _falseAlarmsEl.textContent = String(game.getFalseAlarms());
   if (_displayTimeEl) _displayTimeEl.textContent = String(game.getDisplayDurationMs());
   if (_deckProgressEl) _deckProgressEl.textContent = `${game.getDeckIndex()} / ${game.getDeckSize()}`;
+  updateTrendChart();
+}
+
+/**
+ * Render the speed trend chart from shared trend chart service.
+ */
+export function updateTrendChart() {
+  renderTrendChart(
+    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
+    game.getSpeedHistory(),
+    game.getDisplayDurationMs(),
+  );
 }
 
 /**
@@ -226,7 +248,7 @@ export function beginDealLoop() {
   if (_feedbackEl) {
     _feedbackEl.textContent = next.mustReact
       ? 'SLAP now! (Space or click)'
-      : 'Wait for a pair or a joker.';
+      : 'Wait for a pair, sandwich, or joker.';
   }
 
   clearDealTimer();
@@ -245,7 +267,7 @@ export function handleReaction() {
     if (outcome === 'hit') {
       _feedbackEl.textContent = 'Nice slap!';
     } else if (outcome === 'false-alarm') {
-      _feedbackEl.textContent = 'Too soon — only react to pairs or jokers.';
+      _feedbackEl.textContent = 'Too soon — only react to pairs, sandwiches, or jokers.';
     }
   }
 
@@ -342,6 +364,9 @@ function init(gameContainer) {
   _displayTimeEl = _container.querySelector('#cr-display-time');
   _deckProgressEl = _container.querySelector('#cr-deck-progress');
   _sessionTimerEl = _container.querySelector('#cr-session-timer');
+  _trendLineEl = _container.querySelector('#cr-trend-line');
+  _trendEmptyEl = _container.querySelector('#cr-trend-empty');
+  _trendLatestEl = _container.querySelector('#cr-trend-latest');
 
   _finalScoreEl = _container.querySelector('#cr-final-score');
   _finalHitsEl = _container.querySelector('#cr-final-hits');
@@ -390,7 +415,7 @@ function start() {
   }
 
   if (_feedbackEl) {
-    _feedbackEl.textContent = 'Game started. React to pairs and jokers.';
+    _feedbackEl.textContent = 'Game started. React to pairs, sandwiches, and jokers.';
   }
 
   renderDeckBack();
@@ -462,7 +487,7 @@ function reset() {
   if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
 
   if (_feedbackEl) {
-    _feedbackEl.textContent = 'React to rank matches and jokers.';
+    _feedbackEl.textContent = 'React to pairs, sandwiches, and jokers.';
   }
 
   renderDeckBack();

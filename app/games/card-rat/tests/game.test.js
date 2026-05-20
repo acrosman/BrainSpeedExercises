@@ -16,6 +16,7 @@ import {
   createStandardDeck,
   createJokerCards,
   createGameplayDeck,
+  isSandwichPattern,
   shuffleDeck,
   initGame,
   startGame,
@@ -32,6 +33,7 @@ import {
   getDeckIndex,
   getDeckSize,
   getDisplayDurationMs,
+  getSpeedHistory,
   getCurrentCard,
   shouldReactNow,
   isRunning,
@@ -83,6 +85,18 @@ describe('deck helpers', () => {
     expect(deck).toHaveLength(55);
     expect(deck.filter((card) => card.isJoker)).toHaveLength(3);
     expect(deck.filter((card) => !card.isJoker)).toHaveLength(52);
+  });
+
+  test('isSandwichPattern returns true only for valid sandwiches', () => {
+    const left = { rank: '2', isJoker: false };
+    const middle = { rank: '5', isJoker: false };
+    const right = { rank: '2', isJoker: false };
+    const joker = { rank: 'JOKER', isJoker: true };
+
+    expect(isSandwichPattern(left, middle, right)).toBe(true);
+    expect(isSandwichPattern(left, left, right)).toBe(false);
+    expect(isSandwichPattern(left, middle, joker)).toBe(false);
+    expect(isSandwichPattern(null, middle, right)).toBe(false);
   });
 });
 
@@ -182,6 +196,7 @@ describe('deal and response flow', () => {
     expect(getScore()).toBe(1);
     expect(getTriggerHits()).toBe(1);
     expect(getDisplayDurationMs()).toBeLessThan(BASE_DISPLAY_DURATION_MS);
+    expect(getSpeedHistory()).toHaveLength(1);
   });
 
   test('second response in same trigger window is ignored', () => {
@@ -235,5 +250,16 @@ describe('deal and response flow', () => {
       respondToCurrentCard();
     }
     expect(getDisplayDurationMs()).toBeGreaterThanOrEqual(MIN_DISPLAY_DURATION_MS);
+  });
+
+  test('getSpeedHistory returns a defensive copy', () => {
+    startGame();
+    expect(dealUntilTrigger()).toBe(true);
+    respondToCurrentCard();
+
+    const history = getSpeedHistory();
+    history.push(9999);
+
+    expect(getSpeedHistory()).not.toContain(9999);
   });
 });

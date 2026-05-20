@@ -5,10 +5,11 @@
     <h3>How to Play</h3>
     <p>
       Cards are dealt rapidly. React only when two cards in a row share the same value,
-      or when a joker appears.
+      when a sandwich appears (same value with one card between), or when a joker appears.
     </p>
     <ul>
       <li>Press <kbd>Space</kbd> or click the card area when you see a valid slap target.</li>
+      <li>Valid slap targets are pairs, sandwiches, and jokers.</li>
       <li>Do not react on non-matching cards.</li>
       <li>You must react before the next card is dealt.</li>
       <li>Each correct reaction speeds up future deals.</li>
@@ -42,7 +43,7 @@
     </button>
 
     <p id="cr-feedback" class="card-rat__feedback" role="status" aria-live="polite" aria-atomic="true">
-      React to rank matches and jokers.
+      React to pairs, sandwiches, and jokers.
     </p>
 
     <div class="card-rat__controls" role="group" aria-label="Game controls">
@@ -50,6 +51,18 @@
         End Game
       </button>
     </div>
+
+    <section class="game-trend" aria-labelledby="cr-trend-title">
+      <h4 id="cr-trend-title">Speed Trend (ms)</h4>
+      <svg id="cr-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Display interval trend over recent successful slaps">
+        <polyline id="cr-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="cr-trend-empty" class="game-trend__empty">Get a hit to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="cr-trend-latest">--</strong> ms
+      </p>
+    </section>
   </div>
 
   <div id="cr-end-panel" class="card-rat__end-panel game-end-panel" hidden>
