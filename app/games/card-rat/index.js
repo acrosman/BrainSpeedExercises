@@ -415,7 +415,7 @@ function start() {
   }
 
   if (_feedbackEl) {
-    _feedbackEl.textContent = 'Game started. React to pairs, sandwiches, and jokers.';
+    _feedbackEl.textContent = 'Game started. Build 3-hit streaks on pairs, sandwiches, and jokers.';
   }
 
   renderDeckBack();

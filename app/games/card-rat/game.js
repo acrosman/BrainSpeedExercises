@@ -23,10 +23,13 @@ export const SUITS = ['hearts', 'diamonds', 'clubs', 'spades'];
 export const BASE_DISPLAY_DURATION_MS = 1400;
 
 /** Minimum card display duration in milliseconds. */
-export const MIN_DISPLAY_DURATION_MS = 240;
+export const MIN_DISPLAY_DURATION_MS = 120;
 
 /** Multiplicative speed-up factor applied after each correct reaction. */
-export const DISPLAY_SPEED_FACTOR = 0.92;
+export const DISPLAY_SPEED_FACTOR = 0.85;
+
+/** Number of consecutive correct trigger reactions required to speed up. */
+export const HITS_REQUIRED_FOR_SPEED_UP = 3;
 
 /** @type {number} */
 let score = 0;
@@ -78,6 +81,9 @@ let reactedToCurrentCard = false;
 
 /** @type {number[]} */
 let speedHistory = [];
+
+/** @type {number} */
+let consecutiveTriggerHits = 0;
 
 /** Joker image variants used in the deck. */
 export const JOKER_VARIANTS = ['joker1', 'joker2', 'joker3'];
@@ -173,6 +179,7 @@ export function initGame() {
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
   speedHistory = [];
+  consecutiveTriggerHits = 0;
 }
 
 /**
@@ -194,6 +201,7 @@ export function startGame() {
 export function finalizeCurrentCard() {
   if (mustReactToCurrentCard && !reactedToCurrentCard) {
     misses += 1;
+    consecutiveTriggerHits = 0;
   }
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
@@ -267,16 +275,23 @@ export function respondToCurrentCard() {
     reactedToCurrentCard = true;
     triggerHits += 1;
     score += 1;
-    displayDurationMs = Math.max(
-      MIN_DISPLAY_DURATION_MS,
-      Math.round(displayDurationMs * DISPLAY_SPEED_FACTOR),
-    );
-    speedHistory.push(displayDurationMs);
+    consecutiveTriggerHits += 1;
+
+    if (consecutiveTriggerHits >= HITS_REQUIRED_FOR_SPEED_UP) {
+      displayDurationMs = Math.max(
+        MIN_DISPLAY_DURATION_MS,
+        Math.round(displayDurationMs * DISPLAY_SPEED_FACTOR),
+      );
+      speedHistory.push(displayDurationMs);
+      consecutiveTriggerHits = 0;
+    }
+
     return 'hit';
   }
 
   if (!mustReactToCurrentCard) {
     falseAlarms += 1;
+    consecutiveTriggerHits = 0;
     return 'false-alarm';
   }
 

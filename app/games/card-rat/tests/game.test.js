@@ -11,6 +11,7 @@ import {
   RANKS,
   SUITS,
   BASE_DISPLAY_DURATION_MS,
+  HITS_REQUIRED_FOR_SPEED_UP,
   MIN_DISPLAY_DURATION_MS,
   JOKER_VARIANTS,
   createStandardDeck,
@@ -160,6 +161,36 @@ describe('deal and response flow', () => {
     return false;
   }
 
+  /**
+   * Deal cards until a non-trigger appears.
+   *
+   * @param {number} [maxDeals=120]
+   * @returns {boolean}
+   */
+  function dealUntilNonTrigger(maxDeals = 120) {
+    for (let i = 0; i < maxDeals; i += 1) {
+      dealNextCard();
+      if (!shouldReactNow()) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Deal cards until a trigger appears, then hit it.
+   *
+   * @param {number} [maxDeals=120]
+   * @returns {boolean}
+   */
+  function hitNextTrigger(maxDeals = 120) {
+    for (let i = 0; i < maxDeals; i += 1) {
+      dealNextCard();
+      if (shouldReactNow()) {
+        return respondToCurrentCard() === 'hit';
+      }
+    }
+    return false;
+  }
+
   test('dealNextCard throws when not running', () => {
     expect(() => dealNextCard()).toThrow('not running');
   });
@@ -186,7 +217,7 @@ describe('deal and response flow', () => {
     expect(respondToCurrentCard()).toBe('ignored');
   });
 
-  test('pair trigger produces hit and speed-up', () => {
+  test('single trigger hit does not speed up immediately', () => {
     startGame();
 
     expect(dealUntilTrigger()).toBe(true);
@@ -195,6 +226,17 @@ describe('deal and response flow', () => {
     expect(respondToCurrentCard()).toBe('hit');
     expect(getScore()).toBe(1);
     expect(getTriggerHits()).toBe(1);
+    expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+    expect(getSpeedHistory()).toHaveLength(0);
+  });
+
+  test('speed-up applies after three consecutive trigger hits', () => {
+    startGame();
+
+    for (let i = 0; i < HITS_REQUIRED_FOR_SPEED_UP; i += 1) {
+      expect(hitNextTrigger()).toBe(true);
+    }
+
     expect(getDisplayDurationMs()).toBeLessThan(BASE_DISPLAY_DURATION_MS);
     expect(getSpeedHistory()).toHaveLength(1);
   });
@@ -212,6 +254,36 @@ describe('deal and response flow', () => {
     expect(shouldReactNow()).toBe(true);
     dealNextCard();
     expect(getMisses()).toBe(1);
+  });
+
+  test('missing a trigger resets the speed-up streak', () => {
+    startGame();
+    expect(hitNextTrigger()).toBe(true);
+    expect(hitNextTrigger()).toBe(true);
+    expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+
+    expect(dealUntilTrigger()).toBe(true);
+    const missesBefore = getMisses();
+    dealNextCard();
+    expect(getMisses()).toBe(missesBefore + 1);
+
+    expect(hitNextTrigger()).toBe(true);
+    expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+    expect(getSpeedHistory()).toHaveLength(0);
+  });
+
+  test('false alarm resets the speed-up streak', () => {
+    startGame();
+    expect(hitNextTrigger()).toBe(true);
+    expect(hitNextTrigger()).toBe(true);
+    expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+
+    expect(dealUntilNonTrigger()).toBe(true);
+    expect(respondToCurrentCard()).toBe('false-alarm');
+
+    expect(hitNextTrigger()).toBe(true);
+    expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+    expect(getSpeedHistory()).toHaveLength(0);
   });
 
   test('finalizeCurrentCard records miss for unresolved trigger', () => {
@@ -244,10 +316,8 @@ describe('deal and response flow', () => {
 
   test('display duration does not go below minimum', () => {
     startGame();
-    for (let i = 0; i < 40; i += 1) {
-      dealNextCard();
-      dealNextCard();
-      respondToCurrentCard();
+    for (let i = 0; i < 90; i += 1) {
+      expect(hitNextTrigger()).toBe(true);
     }
     expect(getDisplayDurationMs()).toBeGreaterThanOrEqual(MIN_DISPLAY_DURATION_MS);
   });
