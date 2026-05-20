@@ -1,0 +1,89 @@
+/* ── Card Rat ─────────────────────────────────────────────────────────────── */
+
+.card-rat {
+  --card-rat-card-gap: 0.65rem;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  color: var(--text-base);
+}
+
+.card-rat h2 {
+  margin: 0;
+}
+
+.card-rat__game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.card-rat__stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.card-rat__reaction-zone {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 1rem;
+  padding: 0.25rem;
+}
+
+.card-rat__reaction-zone:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.card-rat__card-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--card-rat-card-gap);
+}
+
+.card-rat__card {
+  width: min(24vw, 170px);
+  aspect-ratio: 722 / 1082;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 14%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-color: #f8f4e8;
+  box-sizing: border-box;
+}
+
+.card-rat__card--deck {
+  width: min(15vw, 106px);
+  transform: rotate(-8deg);
+}
+
+@media (width <= 720px) {
+  .card-rat__card {
+    width: min(50vw, 158px);
+  }
+
+  .card-rat__card--deck {
+    width: min(28vw, 94px);
+  }
+}
+
+.card-rat__feedback {
+  margin: 0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.card-rat__controls {
+  display: flex;
+  justify-content: center;
+}

@@ -1,0 +1,9 @@
+{
+  "id": "card-rat",
+  "name": "Card Rat",
+  "description": "React only to pairs, sandwiches, and jokers before the next card appears in this fast Egyptian Rat Screw-style challenge.",
+  "version": "0.1.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.png",
+  "author": "BrainSpeed Exercises"
+}
