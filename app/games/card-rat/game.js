@@ -6,9 +6,8 @@
  * - React when a joker appears.
  * - Do not react on non-trigger cards.
  *
- * The game tracks a standard 52-card deck and reshuffles at the end of each
- * full pass through the deck. Jokers are injected as special stimuli without
- * consuming cards from the 52-card deck.
+ * The game tracks a 55-card deck (52 standard cards plus three jokers) and
+ * reshuffles at the end of each full pass through the deck.
  *
  * @file Card Rat game logic module.
  */
@@ -27,12 +26,6 @@ export const MIN_DISPLAY_DURATION_MS = 240;
 
 /** Multiplicative speed-up factor applied after each correct reaction. */
 export const DISPLAY_SPEED_FACTOR = 0.92;
-
-/** Minimum number of normal cards shown before a joker appears. */
-export const MIN_JOKER_GAP = 7;
-
-/** Maximum number of normal cards shown before a joker appears. */
-export const MAX_JOKER_GAP = 14;
 
 /** @type {number} */
 let score = 0;
@@ -61,16 +54,16 @@ let running = false;
 /** @type {number|null} */
 let startTimeMs = null;
 
-/** @type {Array<{ rank: string, suit: string, isJoker: boolean }>} */
+/** @type {Array<{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }>} */
 let deck = [];
 
 /** @type {number} */
 let deckIndex = 0;
 
-/** @type {{ rank: string, suit: string, isJoker: boolean }|null} */
+/** @type {{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }|null} */
 let previousCard = null;
 
-/** @type {{ rank: string, suit: string, isJoker: boolean }|null} */
+/** @type {{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }|null} */
 let currentCard = null;
 
 /** @type {boolean} */
@@ -79,13 +72,13 @@ let mustReactToCurrentCard = false;
 /** @type {boolean} */
 let reactedToCurrentCard = false;
 
-/** @type {number} */
-let cardsUntilJoker = MIN_JOKER_GAP;
+/** Joker image variants used in the deck. */
+export const JOKER_VARIANTS = ['joker1', 'joker2', 'joker3'];
 
 /**
  * Create a standard 52-card deck.
  *
- * @returns {Array<{ rank: string, suit: string, isJoker: boolean }>}
+ * @returns {Array<{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }>}
  */
 export function createStandardDeck() {
   const result = [];
@@ -100,8 +93,8 @@ export function createStandardDeck() {
 /**
  * Return a shuffled copy of the provided deck using Fisher-Yates.
  *
- * @param {Array<{ rank: string, suit: string, isJoker: boolean }>} cards
- * @returns {Array<{ rank: string, suit: string, isJoker: boolean }>}
+ * @param {Array<{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }>} cards
+ * @returns {Array<{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }>}
  */
 export function shuffleDeck(cards) {
   const shuffled = cards.slice();
@@ -113,13 +106,26 @@ export function shuffleDeck(cards) {
 }
 
 /**
- * Draw a new gap value controlling how many normal cards appear before joker.
+ * Create joker cards for the deck.
  *
- * @returns {number}
+ * @returns {Array<{ rank: string, suit: string, isJoker: boolean, jokerVariant: string }>}
  */
-export function drawJokerGap() {
-  const span = MAX_JOKER_GAP - MIN_JOKER_GAP + 1;
-  return MIN_JOKER_GAP + Math.floor(Math.random() * span);
+export function createJokerCards() {
+  return JOKER_VARIANTS.map((jokerVariant) => ({
+    rank: 'JOKER',
+    suit: 'joker',
+    isJoker: true,
+    jokerVariant,
+  }));
+}
+
+/**
+ * Create a full gameplay deck containing standard cards and jokers.
+ *
+ * @returns {Array<{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }>}
+ */
+export function createGameplayDeck() {
+  return [...createStandardDeck(), ...createJokerCards()];
 }
 
 /**
@@ -135,13 +141,12 @@ export function initGame() {
   displayDurationMs = BASE_DISPLAY_DURATION_MS;
   running = false;
   startTimeMs = null;
-  deck = shuffleDeck(createStandardDeck());
+  deck = shuffleDeck(createGameplayDeck());
   deckIndex = 0;
   previousCard = null;
   currentCard = null;
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
-  cardsUntilJoker = drawJokerGap();
 }
 
 /**
@@ -172,10 +177,10 @@ export function finalizeCurrentCard() {
  * Draw the next card to show.
  *
  * This function finalizes the previous card window first, then deals the next
- * card. The 52-card deck is reshuffled after each complete pass.
+ * card. The full 55-card deck is reshuffled after each complete pass.
  *
  * @returns {{
- *   card: { rank: string, suit: string, isJoker: boolean },
+ *   card: { rank: string, suit: string, isJoker: boolean, jokerVariant?: string },
  *   mustReact: boolean,
  *   displayDurationMs: number,
  *   deckIndex: number,
@@ -190,21 +195,14 @@ export function dealNextCard() {
 
   finalizeCurrentCard();
 
-  let card;
-  if (cardsUntilJoker <= 0) {
-    card = { rank: 'JOKER', suit: 'joker', isJoker: true };
-    cardsUntilJoker = drawJokerGap();
-  } else {
-    if (deckIndex >= deck.length) {
-      deck = shuffleDeck(createStandardDeck());
-      deckIndex = 0;
-      deckPasses += 1;
-    }
-
-    card = deck[deckIndex];
-    deckIndex += 1;
-    cardsUntilJoker -= 1;
+  if (deckIndex >= deck.length) {
+    deck = shuffleDeck(createGameplayDeck());
+    deckIndex = 0;
+    deckPasses += 1;
   }
+
+  const card = deck[deckIndex];
+  deckIndex += 1;
 
   const hasPair = previousCard !== null
     && !previousCard.isJoker
@@ -341,11 +339,19 @@ export function getDeckPasses() {
 }
 
 /**
- * Return number of normal cards consumed from current deck pass.
+ * Return number of cards consumed from current deck pass.
  * @returns {number}
  */
 export function getDeckIndex() {
   return deckIndex;
+}
+
+/**
+ * Return total number of cards in the active deck.
+ * @returns {number}
+ */
+export function getDeckSize() {
+  return deck.length;
 }
 
 /**
@@ -358,7 +364,7 @@ export function getDisplayDurationMs() {
 
 /**
  * Return the currently visible card.
- * @returns {{ rank: string, suit: string, isJoker: boolean }|null}
+ * @returns {{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }|null}
  */
 export function getCurrentCard() {
   return currentCard;

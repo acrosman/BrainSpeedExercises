@@ -11,7 +11,7 @@ import * as timerService from '../../components/timerService.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
-import { getCardImageDataUrl, getDeckBackImageDataUrl } from './cardSvg.js';
+import { getDeckBackImagePath, getJokerImagePath, getStandardCardSpriteStyle } from './cardSvg.js';
 
 /** Human-readable plugin name. */
 const name = 'Card Rat';
@@ -107,19 +107,37 @@ let _isGlobalKeyListenerAttached = false;
  * Apply a card image URL to a card element.
  *
  * @param {HTMLElement} element
- * @param {string} imageDataUrl
+ * @param {string} imagePath
  */
-function applyCardImage(element, imageDataUrl) {
-  element.style.backgroundImage = `url("${imageDataUrl}")`;
-  element.style.backgroundSize = 'cover';
+function applyCardImage(element, imagePath) {
+  element.style.backgroundImage = `url('${imagePath}')`;
+  element.style.backgroundSize = 'contain';
   element.style.backgroundPosition = 'center';
   element.style.backgroundRepeat = 'no-repeat';
 }
 
 /**
+ * Return stable render dimensions for sprite-scaling calculations.
+ *
+ * @param {HTMLElement} element
+ * @returns {{ width: number, height: number }}
+ */
+function getRenderDimensions(element) {
+  const { width: rectWidth, height: rectHeight } = element.getBoundingClientRect();
+  const computedStyles = window.getComputedStyle(element);
+  const styleWidth = Number.parseFloat(computedStyles.width) || 0;
+  const styleHeight = Number.parseFloat(computedStyles.height) || 0;
+
+  return {
+    width: rectWidth || styleWidth || 170,
+    height: rectHeight || styleHeight || 255,
+  };
+}
+
+/**
  * Return a short card label for fallback and accessibility.
  *
- * @param {{ rank: string, suit: string, isJoker: boolean }} card
+ * @param {{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }} card
  * @returns {string}
  */
 function getCardLabel(card) {
@@ -154,20 +172,36 @@ export function updateStats() {
   if (_missesEl) _missesEl.textContent = String(game.getMisses());
   if (_falseAlarmsEl) _falseAlarmsEl.textContent = String(game.getFalseAlarms());
   if (_displayTimeEl) _displayTimeEl.textContent = String(game.getDisplayDurationMs());
-  if (_deckProgressEl) _deckProgressEl.textContent = `${game.getDeckIndex()} / 52`;
+  if (_deckProgressEl) _deckProgressEl.textContent = `${game.getDeckIndex()} / ${game.getDeckSize()}`;
 }
 
 /**
  * Render the current card in the play area.
  *
- * @param {{ rank: string, suit: string, isJoker: boolean }} card
+ * @param {{ rank: string, suit: string, isJoker: boolean, jokerVariant?: string }} card
  */
 export function renderCard(card) {
   if (!_cardEl) return;
 
   const label = getCardLabel(card);
   _cardEl.setAttribute('aria-label', `Current card: ${label}`);
-  applyCardImage(_cardEl, getCardImageDataUrl(card));
+
+  if (card.isJoker) {
+    applyCardImage(_cardEl, getJokerImagePath(card));
+    return;
+  }
+
+  const { width: renderedCardWidth, height: renderedCardHeight } = getRenderDimensions(_cardEl);
+  const spriteStyle = getStandardCardSpriteStyle(
+    card,
+    renderedCardWidth,
+    renderedCardHeight,
+    game.RANKS,
+  );
+  _cardEl.style.backgroundImage = `url('${spriteStyle.imagePath}')`;
+  _cardEl.style.backgroundSize = spriteStyle.backgroundSize;
+  _cardEl.style.backgroundPosition = spriteStyle.backgroundPosition;
+  _cardEl.style.backgroundRepeat = 'no-repeat';
 }
 
 /**
@@ -176,7 +210,7 @@ export function renderCard(card) {
 export function renderDeckBack() {
   if (!_deckCardEl) return;
   _deckCardEl.setAttribute('aria-label', 'Deck back');
-  applyCardImage(_deckCardEl, getDeckBackImageDataUrl());
+  applyCardImage(_deckCardEl, getDeckBackImagePath());
 }
 
 /**

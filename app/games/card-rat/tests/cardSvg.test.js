@@ -1,54 +1,48 @@
 import { describe, test, expect } from '@jest/globals';
-import { getCardImageDataUrl, getDeckBackImageDataUrl } from '../cardSvg.js';
-
-/**
- * Decode a generated SVG data URL into plain SVG markup.
- *
- * @param {string} dataUrl
- * @returns {string}
- */
-function decodeSvgDataUrl(dataUrl) {
-  const encodedPayload = dataUrl.replace('data:image/svg+xml;charset=UTF-8,', '');
-  return decodeURIComponent(encodedPayload);
-}
+import {
+  getDeckBackImagePath,
+  getJokerImagePath,
+  getStandardCardSpriteStyle,
+} from '../cardSvg.js';
 
 describe('cardSvg', () => {
-  test('generates a standard card SVG with rank and suit', () => {
-    const dataUrl = getCardImageDataUrl({ rank: 'Q', suit: 'hearts', isJoker: false });
-    const svgMarkup = decodeSvgDataUrl(dataUrl);
-
-    expect(dataUrl.startsWith('data:image/svg+xml')).toBe(true);
-    expect(svgMarkup).toContain('Q♥');
-    expect(svgMarkup).toContain('#c1121f');
+  test('returns deck-back image path', () => {
+    const imagePath = getDeckBackImagePath();
+    expect(imagePath).toBe('games/card-rat/images/card-back.png');
   });
 
-  test('generates a joker SVG', () => {
-    const dataUrl = getCardImageDataUrl({ rank: 'JOKER', suit: 'joker', isJoker: true });
-    const svgMarkup = decodeSvgDataUrl(dataUrl);
-
-    expect(svgMarkup).toContain('JOKER');
-    expect(svgMarkup).toContain('WILD');
+  test('returns specific joker image path when variant exists', () => {
+    const imagePath = getJokerImagePath({ jokerVariant: 'joker3' });
+    expect(imagePath).toBe('games/card-rat/images/joker3.png');
   });
 
-  test('generates a deck back SVG', () => {
-    const dataUrl = getDeckBackImageDataUrl();
-    const svgMarkup = decodeSvgDataUrl(dataUrl);
-
-    expect(svgMarkup).toContain('CR');
-    expect(svgMarkup).toContain('#1e3a8a');
+  test('falls back to joker1 image path when variant is missing', () => {
+    const imagePath = getJokerImagePath({});
+    expect(imagePath).toBe('games/card-rat/images/joker1.png');
   });
 
-  test('reuses cached data URLs for identical card requests', () => {
-    const first = getCardImageDataUrl({ rank: '9', suit: 'spades', isJoker: false });
-    const second = getCardImageDataUrl({ rank: '9', suit: 'spades', isJoker: false });
+  test('returns sprite style for a standard card', () => {
+    const style = getStandardCardSpriteStyle(
+      { rank: 'A', suit: 'spades' },
+      170,
+      255,
+      ['A', '2', '3'],
+    );
 
-    expect(first).toBe(second);
+    expect(style.imagePath).toBe('games/card-rat/images/cards-sprite.png');
+    expect(style.backgroundSize).toContain('px');
+    expect(style.backgroundPosition).toContain('-');
   });
 
-  test('escapes unsafe text in rank values', () => {
-    const dataUrl = getCardImageDataUrl({ rank: '<A&', suit: 'clubs', isJoker: false });
-    const svgMarkup = decodeSvgDataUrl(dataUrl);
+  test('defaults to first rank and row when rank or suit is unknown', () => {
+    const style = getStandardCardSpriteStyle(
+      { rank: 'unknown', suit: 'unknown' },
+      170,
+      255,
+      ['A', '2', '3'],
+    );
 
-    expect(svgMarkup).toContain('&lt;A&amp;');
+    expect(style.imagePath).toBe('games/card-rat/images/cards-sprite.png');
+    expect(style.backgroundPosition).toMatch(/^-\d+(\.\d+)?px -\d+(\.\d+)?px$/);
   });
 });

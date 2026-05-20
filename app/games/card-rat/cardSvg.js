@@ -1,154 +1,148 @@
 /**
- * cardSvg.js — SVG image generation for Card Rat cards.
+ * cardSvg.js — Card Rat image helpers for sprite and standalone card assets.
  *
- * Produces data URLs for standard cards, jokers, and deck back art so the game
- * does not rely on a sprite sheet.
- *
- * @file Card Rat SVG rendering helpers.
+ * @file Card Rat image helper module.
  */
 
-/** @type {Record<string, string>} */
-const SUIT_SYMBOL_BY_SUIT = {
-  hearts: '♥',
-  diamonds: '♦',
-  clubs: '♣',
-  spades: '♠',
+import { logger } from '../../components/logService.js';
+
+/** Sprite path for standard suit cards. */
+const STANDARD_CARD_SPRITE_PATH = 'games/card-rat/images/cards-sprite.png';
+
+/** Deck-back image path. */
+const DECK_BACK_IMAGE_PATH = 'games/card-rat/images/card-back.png';
+
+/** Joker image paths keyed by joker variant. */
+const JOKER_IMAGE_PATHS = {
+  joker1: 'games/card-rat/images/joker1.png',
+  joker2: 'games/card-rat/images/joker2.png',
+  joker3: 'games/card-rat/images/joker3.png',
 };
 
-/** @type {Record<string, string>} */
-const SUIT_COLOR_BY_SUIT = {
-  hearts: '#c1121f',
-  diamonds: '#c1121f',
-  clubs: '#1f2937',
-  spades: '#1f2937',
+/** Sprite file width in pixels. */
+const SPRITE_WIDTH_PX = 5081;
+
+/** Sprite file height in pixels. */
+const SPRITE_HEIGHT_PX = 2283;
+
+/** Source-sheet left offset to first card image. */
+const SOURCE_LEFT_OFFSET_PX = 22;
+
+/** Source-sheet top offset to first card image. */
+const SOURCE_TOP_OFFSET_PX = 18;
+
+/** Source-sheet card width in pixels. */
+const SOURCE_CARD_WIDTH_PX = 722;
+
+/** Source-sheet card height in pixels. */
+const SOURCE_CARD_HEIGHT_PX = 1082;
+
+/** Source-sheet gap between neighboring cards. */
+const SOURCE_CARD_GAP_PX = 30;
+
+/** Number of columns in the standard-card sprite sheet. */
+const CARD_COLUMNS = 13;
+
+/** Number of rows in the standard-card sprite sheet. */
+const CARD_ROWS = 4;
+
+/** Row index by suit using top-to-bottom order from the provided sprite. */
+const ROW_BY_SUIT = {
+  spades: 0,
+  hearts: 1,
+  diamonds: 2,
+  clubs: 3,
 };
 
-/** @type {Map<string, string>} */
-const CARD_DATA_URL_CACHE = new Map();
+/** Source sheet width before scaling/export. */
+const SOURCE_SHEET_WIDTH_PX = (SOURCE_LEFT_OFFSET_PX * 2)
+  + (CARD_COLUMNS * SOURCE_CARD_WIDTH_PX)
+  + ((CARD_COLUMNS - 1) * SOURCE_CARD_GAP_PX);
+
+/** Source sheet height before scaling/export. */
+const SOURCE_SHEET_HEIGHT_PX = (SOURCE_TOP_OFFSET_PX * 2)
+  + (CARD_ROWS * SOURCE_CARD_HEIGHT_PX)
+  + ((CARD_ROWS - 1) * SOURCE_CARD_GAP_PX);
+
+/** Width scaling ratio from source-card coordinates to exported sprite. */
+const SPRITE_SCALE_X = SPRITE_WIDTH_PX / SOURCE_SHEET_WIDTH_PX;
+
+/** Height scaling ratio from source-card coordinates to exported sprite. */
+const SPRITE_SCALE_Y = SPRITE_HEIGHT_PX / SOURCE_SHEET_HEIGHT_PX;
+
+/** Effective card width in exported sprite coordinates. */
+const CARD_WIDTH_PX = SOURCE_CARD_WIDTH_PX * SPRITE_SCALE_X;
+
+/** Effective card height in exported sprite coordinates. */
+const CARD_HEIGHT_PX = SOURCE_CARD_HEIGHT_PX * SPRITE_SCALE_Y;
 
 /**
- * Escape SVG text content.
+ * Resolve the standalone image path for a joker card.
  *
- * @param {string} value
+ * @param {{ jokerVariant?: string }} card
  * @returns {string}
  */
-function escapeSvgText(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('\'', '&#39;');
+export function getJokerImagePath(card) {
+  if (card.jokerVariant && JOKER_IMAGE_PATHS[card.jokerVariant]) {
+    return JOKER_IMAGE_PATHS[card.jokerVariant];
+  }
+  return JOKER_IMAGE_PATHS.joker1;
 }
 
 /**
- * Encode an SVG string as a browser-safe data URL.
+ * Return the deck-back image path.
  *
- * @param {string} svgMarkup
  * @returns {string}
  */
-function toSvgDataUrl(svgMarkup) {
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgMarkup)}`;
+export function getDeckBackImagePath() {
+  return DECK_BACK_IMAGE_PATH;
 }
 
 /**
- * Build a data URL for a standard suit card.
+ * Return CSS style values for the requested standard card inside the sprite.
  *
- * @param {{ rank: string, suit: string }} card
- * @returns {string}
+ * @param {{
+ *   rank: string,
+ *   suit: string,
+ * }} card
+ * @param {number} renderedCardWidth
+ * @param {number} renderedCardHeight
+ * @param {Array<string>} ranks
+ * @returns {{ imagePath: string, backgroundSize: string, backgroundPosition: string }}
  */
-function buildStandardCardDataUrl(card) {
-  const rank = escapeSvgText(card.rank);
-  const suitSymbol = escapeSvgText(SUIT_SYMBOL_BY_SUIT[card.suit] || '?');
-  const suitColor = SUIT_COLOR_BY_SUIT[card.suit] || '#1f2937';
-
-  const svgMarkup = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="250" height="350" viewBox="0 0 250 350">
-      <rect x="5" y="5" width="240" height="340" rx="18" fill="#ffffff" stroke="#6b4f2a" stroke-width="6" />
-      <text x="25" y="45" font-size="36" font-weight="700" fill="${suitColor}"
-        font-family="Arial, Helvetica, sans-serif">${rank}${suitSymbol}</text>
-      <text x="225" y="315" text-anchor="end" font-size="36" font-weight="700" fill="${suitColor}"
-        font-family="Arial, Helvetica, sans-serif">${rank}${suitSymbol}</text>
-      <text x="125" y="205" text-anchor="middle" font-size="112" fill="${suitColor}"
-        font-family="Arial, Helvetica, sans-serif">${suitSymbol}</text>
-    </svg>
-  `.trim();
-
-  return toSvgDataUrl(svgMarkup);
-}
-
-/**
- * Build a data URL for a joker card.
- *
- * @returns {string}
- */
-function buildJokerDataUrl() {
-  const svgMarkup = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="250" height="350" viewBox="0 0 250 350">
-      <rect x="5" y="5" width="240" height="340" rx="18" fill="#ffffff" stroke="#6b4f2a" stroke-width="6" />
-      <text x="125" y="92" text-anchor="middle" font-size="42" font-weight="800" fill="#6d28d9"
-        font-family="Arial, Helvetica, sans-serif">JOKER</text>
-      <text x="125" y="206" text-anchor="middle" font-size="92" fill="#2563eb"
-        font-family="Arial, Helvetica, sans-serif">★</text>
-      <text x="125" y="282" text-anchor="middle" font-size="30" font-weight="700" fill="#ef4444"
-        font-family="Arial, Helvetica, sans-serif">WILD</text>
-    </svg>
-  `.trim();
-
-  return toSvgDataUrl(svgMarkup);
-}
-
-/**
- * Build a data URL for the deck back card.
- *
- * @returns {string}
- */
-function buildDeckBackDataUrl() {
-  const svgMarkup = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="250" height="350" viewBox="0 0 250 350">
-      <rect x="5" y="5" width="240" height="340" rx="18" fill="#0f172a" stroke="#6b4f2a" stroke-width="6" />
-      <rect x="24" y="24" width="202" height="302" rx="12" fill="#1e3a8a" stroke="#e2e8f0" stroke-width="3" />
-      <path d="M36 56 L214 294 M214 56 L36 294" stroke="#93c5fd" stroke-width="6" opacity="0.6" />
-      <circle cx="125" cy="175" r="44" fill="#2563eb" stroke="#bfdbfe" stroke-width="5" />
-      <text x="125" y="188" text-anchor="middle" font-size="38" font-weight="800" fill="#f8fafc"
-        font-family="Arial, Helvetica, sans-serif">CR</text>
-    </svg>
-  `.trim();
-
-  return toSvgDataUrl(svgMarkup);
-}
-
-/**
- * Return a data URL for the provided card.
- *
- * @param {{ rank: string, suit: string, isJoker: boolean }} card
- * @returns {string}
- */
-export function getCardImageDataUrl(card) {
-  const cacheKey = card.isJoker ? 'joker' : `${card.rank}-${card.suit}`;
-  if (CARD_DATA_URL_CACHE.has(cacheKey)) {
-    return CARD_DATA_URL_CACHE.get(cacheKey);
+export function getStandardCardSpriteStyle(
+  card,
+  renderedCardWidth,
+  renderedCardHeight,
+  ranks,
+) {
+  const rankLookup = ranks.indexOf(card.rank);
+  const suitLookup = ROW_BY_SUIT[card.suit];
+  if (rankLookup < 0 || suitLookup === undefined) {
+    logger.warn('Card Rat sprite lookup fallback used', {
+      rank: card.rank,
+      suit: card.suit,
+    });
   }
 
-  const dataUrl = card.isJoker
-    ? buildJokerDataUrl()
-    : buildStandardCardDataUrl(card);
-  CARD_DATA_URL_CACHE.set(cacheKey, dataUrl);
-  return dataUrl;
-}
+  const rankIndex = Math.max(0, rankLookup);
+  const suitRow = suitLookup ?? 0;
 
-/**
- * Return a data URL for the deck back image.
- *
- * @returns {string}
- */
-export function getDeckBackImageDataUrl() {
-  const cacheKey = 'deck-back';
-  if (CARD_DATA_URL_CACHE.has(cacheKey)) {
-    return CARD_DATA_URL_CACHE.get(cacheKey);
-  }
+  const xOffset = (
+    SOURCE_LEFT_OFFSET_PX + (rankIndex * (SOURCE_CARD_WIDTH_PX + SOURCE_CARD_GAP_PX))
+  )
+    * SPRITE_SCALE_X;
+  const yOffset = (
+    SOURCE_TOP_OFFSET_PX + (suitRow * (SOURCE_CARD_HEIGHT_PX + SOURCE_CARD_GAP_PX))
+  )
+    * SPRITE_SCALE_Y;
 
-  const dataUrl = buildDeckBackDataUrl();
-  CARD_DATA_URL_CACHE.set(cacheKey, dataUrl);
-  return dataUrl;
+  const widthScale = renderedCardWidth / CARD_WIDTH_PX;
+  const heightScale = renderedCardHeight / CARD_HEIGHT_PX;
+
+  return {
+    imagePath: STANDARD_CARD_SPRITE_PATH,
+    backgroundSize: `${SPRITE_WIDTH_PX * widthScale}px ${SPRITE_HEIGHT_PX * heightScale}px`,
+    backgroundPosition: `${-xOffset * widthScale}px ${-yOffset * heightScale}px`,
+  };
 }

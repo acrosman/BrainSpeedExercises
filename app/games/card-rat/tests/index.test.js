@@ -59,6 +59,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getCardsShown: jest.fn(() => 10),
   getDeckPasses: jest.fn(() => 0),
   getDeckIndex: jest.fn(() => 1),
+  getDeckSize: jest.fn(() => 55),
   getDisplayDurationMs: jest.fn(() => 900),
   getCurrentCard: jest.fn(() => ({ rank: 'A', suit: 'hearts', isJoker: false })),
   shouldReactNow: jest.fn(() => false),
@@ -109,7 +110,7 @@ function buildContainer() {
     <strong id="cr-misses">0</strong>
     <strong id="cr-false-alarms">0</strong>
     <strong id="cr-display-time">0</strong>
-    <strong id="cr-deck-progress">0 / 52</strong>
+    <strong id="cr-deck-progress">0 / 55</strong>
     <strong id="cr-session-timer">00:00</strong>
     <dd id="cr-final-score">0</dd>
     <dd id="cr-final-hits">0</dd>
@@ -146,13 +147,13 @@ describe('utility exports before init', () => {
     expect(() => renderCard({ rank: 'A', suit: 'hearts', isJoker: false })).not.toThrow();
   });
 
-  test('renderDeckBack sets deck sprite image and accessibility label', () => {
+  test('renderDeckBack sets deck-back image and accessibility label', () => {
     const container = buildContainer();
     plugin.init(container);
 
     expect(() => renderDeckBack()).not.toThrow();
     const deckEl = container.querySelector('#cr-deck-card');
-    expect(deckEl.style.backgroundImage).toContain('data:image/svg+xml');
+    expect(deckEl.style.backgroundImage).toContain('card-back.png');
     expect(deckEl.style.backgroundPosition).toBe('center');
     expect(deckEl.getAttribute('aria-label')).toBe('Deck back');
   });
@@ -324,25 +325,23 @@ describe('renderCard', () => {
     expect(cardLabel).toBe('Current card: Joker');
   });
 
-  test('uses generated SVG for normal cards', () => {
+  test('uses sprite image for normal cards', () => {
     const container = buildContainer();
     plugin.init(container);
 
     renderCard({ rank: 'A', suit: 'hearts', isJoker: false });
     const cardEl = container.querySelector('#cr-card');
-    expect(cardEl.style.backgroundImage).toContain('data:image/svg+xml');
-    expect(cardEl.style.backgroundImage).not.toContain('cards-sprite.png');
-    expect(cardEl.style.backgroundPosition).toBe('center');
+    expect(cardEl.style.backgroundImage).toContain('cards-sprite.png');
+    expect(cardEl.style.backgroundPosition).toContain('-');
   });
 
-  test('uses generated SVG for joker cards', () => {
+  test('uses dedicated joker image for joker cards', () => {
     const container = buildContainer();
     plugin.init(container);
 
     const cardEl = container.querySelector('#cr-card');
     renderCard({ rank: 'JOKER', suit: 'joker', isJoker: true });
-    expect(cardEl.style.backgroundImage).toContain('data:image/svg+xml');
-    expect(cardEl.style.backgroundImage).toContain('JOKER');
+    expect(cardEl.style.backgroundImage).toContain('joker1.png');
   });
 
 });

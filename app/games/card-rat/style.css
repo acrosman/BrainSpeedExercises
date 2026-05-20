@@ -52,12 +52,13 @@
 
 .card-rat__card {
   width: min(24vw, 170px);
-  aspect-ratio: 5 / 7;
+  aspect-ratio: 722 / 1082;
   border-radius: 14px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 14%);
   background-repeat: no-repeat;
   background-position: center;
-  background-size: cover;
+  background-size: contain;
+  background-color: #f8f4e8;
   box-sizing: border-box;
 }
 
