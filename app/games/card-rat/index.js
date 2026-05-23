@@ -259,12 +259,11 @@ export function updateHintVisibility() {
 export function beginDealLoop() {
   if (!game.isRunning()) return;
 
-  const missesBeforeDeal = game.getMisses();
   const next = game.dealNextCard();
   if (!_cardSoundToggleEl || _cardSoundToggleEl.checked) {
     playCardFlickSound();
   }
-  if (game.getMisses() > missesBeforeDeal) {
+  if (next.missedTrigger) {
     playFailureSound();
   }
   renderCard(next.card);

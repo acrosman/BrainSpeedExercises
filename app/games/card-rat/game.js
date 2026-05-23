@@ -252,14 +252,18 @@ function applyStaircaseStep(wasCorrect) {
 
 /**
  * Finalize the currently visible card window before moving on.
+ *
+ * @returns {boolean} Whether the card window ended in a missed trigger.
  */
 export function finalizeCurrentCard() {
-  if (mustReactToCurrentCard && !reactedToCurrentCard) {
+  const missedTrigger = mustReactToCurrentCard && !reactedToCurrentCard;
+  if (missedTrigger) {
     misses += 1;
     applyStaircaseStep(false);
   }
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
+  return missedTrigger;
 }
 
 /**
@@ -271,6 +275,7 @@ export function finalizeCurrentCard() {
  * @returns {{
  *   card: { rank: string, suit: string, isJoker: boolean, jokerVariant?: string },
  *   mustReact: boolean,
+ *   missedTrigger: boolean,
  *   displayDurationMs: number,
  *   deckIndex: number,
  *   deckPasses: number,
@@ -282,7 +287,7 @@ export function dealNextCard() {
     throw new Error('Game is not running.');
   }
 
-  finalizeCurrentCard();
+  const missedTrigger = finalizeCurrentCard();
 
   if (deckIndex >= deck.length) {
     deck = shuffleDeck(createGameplayDeck());
@@ -310,6 +315,7 @@ export function dealNextCard() {
   return {
     card,
     mustReact: mustReactToCurrentCard,
+    missedTrigger,
     displayDurationMs,
     deckIndex,
     deckPasses,

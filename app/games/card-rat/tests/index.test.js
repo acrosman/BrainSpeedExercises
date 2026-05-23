@@ -52,6 +52,7 @@ jest.unstable_mockModule('../game.js', () => ({
   dealNextCard: jest.fn(() => ({
     card: { rank: 'A', suit: 'hearts', isJoker: false },
     mustReact: false,
+    missedTrigger: false,
     displayDurationMs: 1200,
     deckIndex: 1,
     deckPasses: 0,
@@ -251,10 +252,14 @@ describe('start', () => {
     const container = buildContainer();
     plugin.init(container);
     audioMock.playFailureSound.mockClear();
-    gameMock.getMisses
-      .mockReturnValueOnce(0)
-      .mockReturnValueOnce(1)
-      .mockReturnValue(1);
+    gameMock.dealNextCard.mockReturnValueOnce({
+      card: { rank: 'A', suit: 'hearts', isJoker: false },
+      mustReact: false,
+      missedTrigger: true,
+      displayDurationMs: 1200,
+      deckIndex: 2,
+      deckPasses: 0,
+    });
 
     beginDealLoop();
 

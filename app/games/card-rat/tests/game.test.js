@@ -287,8 +287,9 @@ describe('deal and response flow', () => {
     startGame();
     expect(dealUntilTrigger()).toBe(true);
     expect(shouldReactNow()).toBe(true);
-    dealNextCard();
+    const nextDeal = dealNextCard();
     expect(getMisses()).toBe(1);
+    expect(nextDeal.missedTrigger).toBe(true);
   });
 
   test('missing a trigger resets the speed-up streak', () => {
