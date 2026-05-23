@@ -20,7 +20,7 @@ import {
  * @returns {{ mockCtx: object, MockAC: jest.Mock }}
  */
 function buildMockAudioContext(state = 'running') {
-  const mockOscillator = {
+  const createMockOscillator = () => ({
     connect: jest.fn(),
     type: '',
     frequency: {
@@ -30,42 +30,42 @@ function buildMockAudioContext(state = 'running') {
     },
     start: jest.fn(),
     stop: jest.fn(),
-  };
+  });
 
-  const mockGain = {
+  const createMockGain = () => ({
     connect: jest.fn(),
     gain: {
       setValueAtTime: jest.fn(),
       linearRampToValueAtTime: jest.fn(),
       exponentialRampToValueAtTime: jest.fn(),
     },
-  };
+  });
 
-  const mockBufferSource = {
+  const createMockBufferSource = () => ({
     connect: jest.fn(),
     start: jest.fn(),
     stop: jest.fn(),
     buffer: null,
-  };
+  });
 
-  const mockBiquadFilter = {
+  const createMockBiquadFilter = () => ({
     connect: jest.fn(),
     type: '',
     frequency: {
       setValueAtTime: jest.fn(),
     },
-  };
+  });
 
   const mockCtx = {
     state,
     currentTime: 0,
     sampleRate: 44100,
     destination: {},
-    createOscillator: jest.fn(() => ({ ...mockOscillator })),
-    createGain: jest.fn(() => ({ ...mockGain })),
+    createOscillator: jest.fn(() => createMockOscillator()),
+    createGain: jest.fn(() => createMockGain()),
     createBuffer: jest.fn(() => ({ getChannelData: jest.fn(() => new Float32Array(1)) })),
-    createBufferSource: jest.fn(() => ({ ...mockBufferSource })),
-    createBiquadFilter: jest.fn(() => ({ ...mockBiquadFilter })),
+    createBufferSource: jest.fn(() => createMockBufferSource()),
+    createBiquadFilter: jest.fn(() => createMockBiquadFilter()),
     resume: jest.fn().mockResolvedValue(undefined),
   };
 
@@ -445,9 +445,12 @@ describe('playCardFlickSound', () => {
     globalThis.AudioContext = MockAC;
 
     playCardFlickSound();
-    const firstGain = mockCtx.createGain.mock.results[0].value;
-    expect(firstGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.15, expect.any(Number));
-    expect(firstGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.075, expect.any(Number));
+    const swishGain = mockCtx.createGain.mock.results[0].value;
+    const snapGain = mockCtx.createGain.mock.results[1].value;
+    expect(swishGain.gain.exponentialRampToValueAtTime)
+      .toHaveBeenCalledWith(0.075, expect.any(Number));
+    expect(snapGain.gain.exponentialRampToValueAtTime)
+      .toHaveBeenCalledWith(0.15, expect.any(Number));
 
     globalThis.AudioContext = original;
   });
