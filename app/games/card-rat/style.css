@@ -90,7 +90,7 @@
   justify-content: center;
 }
 
-.card-rat__card-sound-toggle {
+.card-rat__toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;

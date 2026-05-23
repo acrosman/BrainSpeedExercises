@@ -54,6 +54,9 @@ let _reactionZoneBtn = null;
 /** @type {HTMLInputElement|null} */
 let _cardSoundToggleEl = null;
 
+/** @type {HTMLInputElement|null} */
+let _hintToggleEl = null;
+
 /** @type {HTMLElement|null} */
 let _cardEl = null;
 
@@ -243,14 +246,26 @@ export function renderDeckBack() {
 }
 
 /**
+ * Show or hide the hint text under the cards.
+ */
+export function updateHintVisibility() {
+  if (!_feedbackEl) return;
+  _feedbackEl.hidden = Boolean(_hintToggleEl && !_hintToggleEl.checked);
+}
+
+/**
  * Start or continue the deal loop.
  */
 export function beginDealLoop() {
   if (!game.isRunning()) return;
 
+  const missesBeforeDeal = game.getMisses();
   const next = game.dealNextCard();
   if (!_cardSoundToggleEl || _cardSoundToggleEl.checked) {
     playCardFlickSound();
+  }
+  if (game.getMisses() > missesBeforeDeal) {
+    playFailureSound();
   }
   renderCard(next.card);
   updateStats();
@@ -363,6 +378,7 @@ function init(gameContainer) {
   _returnBtn = _container.querySelector('#cr-return-btn');
   _reactionZoneBtn = _container.querySelector('#cr-reaction-zone');
   _cardSoundToggleEl = _container.querySelector('#cr-card-sound-toggle');
+  _hintToggleEl = _container.querySelector('#cr-hint-toggle');
 
   _cardEl = _container.querySelector('#cr-card');
   _deckCardEl = _container.querySelector('#cr-deck-card');
@@ -398,6 +414,8 @@ function init(gameContainer) {
     _reactionZoneBtn.addEventListener('click', handleReaction);
     _reactionZoneBtn.addEventListener('keydown', handleKeyDown);
   }
+  if (_hintToggleEl) _hintToggleEl.addEventListener('change', updateHintVisibility);
+  updateHintVisibility();
 }
 
 /**
@@ -428,6 +446,7 @@ function start() {
   if (_feedbackEl) {
     _feedbackEl.textContent = 'Game started. Build 3-hit streaks on pairs, sandwiches, and jokers.';
   }
+  updateHintVisibility();
 
   renderDeckBack();
   beginDealLoop();
@@ -500,6 +519,7 @@ function reset() {
   if (_feedbackEl) {
     _feedbackEl.textContent = 'React to pairs, sandwiches, and jokers.';
   }
+  updateHintVisibility();
 
   renderDeckBack();
   updateStats();

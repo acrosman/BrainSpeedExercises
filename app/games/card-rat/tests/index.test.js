@@ -110,6 +110,7 @@ function buildContainer() {
     <button id="cr-return-btn"></button>
     <button id="cr-reaction-zone"></button>
     <input id="cr-card-sound-toggle" type="checkbox" checked>
+    <input id="cr-hint-toggle" type="checkbox" checked>
     <div id="cr-deck-card"></div>
     <div id="cr-card"></div>
     <p id="cr-feedback"></p>
@@ -244,6 +245,20 @@ describe('start', () => {
     audioMock.playCardFlickSound.mockClear();
     plugin.start();
     expect(audioMock.playCardFlickSound).not.toHaveBeenCalled();
+  });
+
+  test('beginDealLoop plays failure sound when a trigger is missed', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    audioMock.playFailureSound.mockClear();
+    gameMock.getMisses
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(1)
+      .mockReturnValue(1);
+
+    beginDealLoop();
+
+    expect(audioMock.playFailureSound).toHaveBeenCalled();
   });
 
   test('Space key on document reacts without card focus', () => {
@@ -415,6 +430,25 @@ describe('stop and reset', () => {
     expect(container.querySelector('#cr-instructions').hidden).toBe(false);
     expect(container.querySelector('#cr-game-area').hidden).toBe(true);
     expect(timerServiceMock.resetTimer).toHaveBeenCalled();
+  });
+});
+
+describe('hint toggle', () => {
+  test('hides and shows hint text when toggled', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    const hintToggle = container.querySelector('#cr-hint-toggle');
+    const feedback = container.querySelector('#cr-feedback');
+
+    expect(feedback.hidden).toBe(false);
+
+    hintToggle.checked = false;
+    hintToggle.dispatchEvent(new Event('change'));
+    expect(feedback.hidden).toBe(true);
+
+    hintToggle.checked = true;
+    hintToggle.dispatchEvent(new Event('change'));
+    expect(feedback.hidden).toBe(false);
   });
 });
 
