@@ -8,7 +8,7 @@
 
 import * as game from './game.js';
 import * as timerService from '../../components/timerService.js';
-import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
+import { playSuccessSound, playFailureSound, playCardFlickSound } from '../../components/audioService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
@@ -242,6 +242,7 @@ export function beginDealLoop() {
   if (!game.isRunning()) return;
 
   const next = game.dealNextCard();
+  playCardFlickSound();
   renderCard(next.card);
   updateStats();
 

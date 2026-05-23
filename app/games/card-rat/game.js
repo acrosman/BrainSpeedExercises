@@ -10,8 +10,15 @@
  * The game tracks a 55-card deck (52 standard cards plus three jokers) and
  * reshuffles at the end of each full pass through the deck.
  *
+ * Speed adapts via a 3-up / 3-down staircase:
+ * - Every 3 consecutive correct slaps the display interval decreases (faster).
+ * - Every 3 consecutive wrong outcomes (misses or false alarms) the display
+ *   interval increases by 2 steps (slower), matching the shared staircase rule.
+ *
  * @file Card Rat game logic module.
  */
+
+import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
 
 /** Ordered card ranks used in a standard deck. */
 export const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -25,11 +32,11 @@ export const BASE_DISPLAY_DURATION_MS = 1400;
 /** Minimum card display duration in milliseconds. */
 export const MIN_DISPLAY_DURATION_MS = 120;
 
-/** Multiplicative speed-up factor applied after each correct reaction. */
+/** Multiplicative factor applied when moving one speed level faster. */
 export const DISPLAY_SPEED_FACTOR = 0.85;
 
-/** Number of consecutive correct trigger reactions required to speed up. */
-export const HITS_REQUIRED_FOR_SPEED_UP = 3;
+/** Upper bound on the speed level (prevents runaway acceleration). */
+export const MAX_SPEED_LEVEL = 50;
 
 /** @type {number} */
 let score = 0;
@@ -82,11 +89,31 @@ let reactedToCurrentCard = false;
 /** @type {number[]} */
 let speedHistory = [];
 
-/** @type {number} */
-let consecutiveTriggerHits = 0;
+/** Integer speed level — higher means faster. Clamped to [0, MAX_SPEED_LEVEL]. */
+let speedLevel = 0;
+
+/** Consecutive correct trigger-slap counter used by the adaptive staircase. */
+let consecutiveCorrect = 0;
+
+/** Consecutive wrong outcome counter (misses + false alarms) used by the
+ *  adaptive staircase. Resets when any correct slap is registered. */
+let consecutiveWrong = 0;
 
 /** Joker image variants used in the deck. */
 export const JOKER_VARIANTS = ['joker1', 'joker2', 'joker3'];
+
+/**
+ * Calculate the display duration (ms) for a given speed level.
+ *
+ * @param {number} level - Non-negative integer speed level.
+ * @returns {number} Display duration in milliseconds, clamped to [MIN_DISPLAY_DURATION_MS, BASE_DISPLAY_DURATION_MS].
+ */
+export function calculateDisplayDuration(level) {
+  return Math.max(
+    MIN_DISPLAY_DURATION_MS,
+    Math.round(BASE_DISPLAY_DURATION_MS * DISPLAY_SPEED_FACTOR ** Math.max(0, level)),
+  );
+}
 
 /**
  * Create a standard 52-card deck.
@@ -179,7 +206,9 @@ export function initGame() {
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
   speedHistory = [];
-  consecutiveTriggerHits = 0;
+  speedLevel = 0;
+  consecutiveCorrect = 0;
+  consecutiveWrong = 0;
 }
 
 /**
@@ -196,12 +225,37 @@ export function startGame() {
 }
 
 /**
+ * Apply one adaptive-staircase step and update module-level speed state.
+ *
+ * @param {boolean} wasCorrect
+ */
+function applyStaircaseStep(wasCorrect) {
+  const result = updateAdaptiveDifficultyState({
+    value: speedLevel,
+    wasCorrect,
+    consecutiveCorrect,
+    consecutiveWrong,
+    minValue: 0,
+    maxValue: MAX_SPEED_LEVEL,
+  });
+
+  speedLevel = result.value;
+  consecutiveCorrect = result.consecutiveCorrect;
+  consecutiveWrong = result.consecutiveWrong;
+
+  if (result.valueDelta !== 0) {
+    displayDurationMs = calculateDisplayDuration(speedLevel);
+    speedHistory.push(displayDurationMs);
+  }
+}
+
+/**
  * Finalize the currently visible card window before moving on.
  */
 export function finalizeCurrentCard() {
   if (mustReactToCurrentCard && !reactedToCurrentCard) {
     misses += 1;
-    consecutiveTriggerHits = 0;
+    applyStaircaseStep(false);
   }
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
@@ -275,23 +329,13 @@ export function respondToCurrentCard() {
     reactedToCurrentCard = true;
     triggerHits += 1;
     score += 1;
-    consecutiveTriggerHits += 1;
-
-    if (consecutiveTriggerHits >= HITS_REQUIRED_FOR_SPEED_UP) {
-      displayDurationMs = Math.max(
-        MIN_DISPLAY_DURATION_MS,
-        Math.round(displayDurationMs * DISPLAY_SPEED_FACTOR),
-      );
-      speedHistory.push(displayDurationMs);
-      consecutiveTriggerHits = 0;
-    }
-
+    applyStaircaseStep(true);
     return 'hit';
   }
 
   if (!mustReactToCurrentCard) {
     falseAlarms += 1;
-    consecutiveTriggerHits = 0;
+    applyStaircaseStep(false);
     return 'false-alarm';
   }
 
@@ -437,4 +481,28 @@ export function shouldReactNow() {
  */
 export function isRunning() {
   return running;
+}
+
+/**
+ * Return the current integer speed level.
+ * @returns {number}
+ */
+export function getSpeedLevel() {
+  return speedLevel;
+}
+
+/**
+ * Return the consecutive correct trigger-slap counter.
+ * @returns {number}
+ */
+export function getConsecutiveCorrect() {
+  return consecutiveCorrect;
+}
+
+/**
+ * Return the consecutive wrong outcome counter (misses + false alarms).
+ * @returns {number}
+ */
+export function getConsecutiveWrong() {
+  return consecutiveWrong;
 }

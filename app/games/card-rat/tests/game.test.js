@@ -11,9 +11,10 @@ import {
   RANKS,
   SUITS,
   BASE_DISPLAY_DURATION_MS,
-  HITS_REQUIRED_FOR_SPEED_UP,
+  MAX_SPEED_LEVEL,
   MIN_DISPLAY_DURATION_MS,
   JOKER_VARIANTS,
+  calculateDisplayDuration,
   createStandardDeck,
   createJokerCards,
   createGameplayDeck,
@@ -35,6 +36,9 @@ import {
   getDeckSize,
   getDisplayDurationMs,
   getSpeedHistory,
+  getSpeedLevel,
+  getConsecutiveCorrect,
+  getConsecutiveWrong,
   getCurrentCard,
   shouldReactNow,
   isRunning,
@@ -99,6 +103,19 @@ describe('deck helpers', () => {
     expect(isSandwichPattern(left, middle, joker)).toBe(false);
     expect(isSandwichPattern(null, middle, right)).toBe(false);
   });
+
+  test('calculateDisplayDuration returns BASE at level 0', () => {
+    expect(calculateDisplayDuration(0)).toBe(BASE_DISPLAY_DURATION_MS);
+  });
+
+  test('calculateDisplayDuration returns less at higher levels', () => {
+    expect(calculateDisplayDuration(1)).toBeLessThan(BASE_DISPLAY_DURATION_MS);
+    expect(calculateDisplayDuration(10)).toBeLessThan(calculateDisplayDuration(1));
+  });
+
+  test('calculateDisplayDuration is clamped to MIN at very high levels', () => {
+    expect(calculateDisplayDuration(MAX_SPEED_LEVEL)).toBe(MIN_DISPLAY_DURATION_MS);
+  });
 });
 
 describe('lifecycle', () => {
@@ -112,6 +129,9 @@ describe('lifecycle', () => {
     expect(getDeckIndex()).toBe(0);
     expect(getDeckSize()).toBe(55);
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+    expect(getSpeedLevel()).toBe(0);
+    expect(getConsecutiveCorrect()).toBe(0);
+    expect(getConsecutiveWrong()).toBe(0);
     expect(isRunning()).toBe(false);
   });
 
@@ -226,19 +246,34 @@ describe('deal and response flow', () => {
     expect(respondToCurrentCard()).toBe('hit');
     expect(getScore()).toBe(1);
     expect(getTriggerHits()).toBe(1);
+    // Speed only changes after a complete staircase step (3 consecutive hits).
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
     expect(getSpeedHistory()).toHaveLength(0);
+    expect(getConsecutiveCorrect()).toBe(1);
+    expect(getConsecutiveWrong()).toBe(0);
   });
 
   test('speed-up applies after three consecutive trigger hits', () => {
     startGame();
 
-    for (let i = 0; i < HITS_REQUIRED_FOR_SPEED_UP; i += 1) {
+    // Hit three triggers without any misses or false alarms in between.
+    for (let i = 0; i < 3; i += 1) {
       expect(hitNextTrigger()).toBe(true);
     }
 
     expect(getDisplayDurationMs()).toBeLessThan(BASE_DISPLAY_DURATION_MS);
     expect(getSpeedHistory()).toHaveLength(1);
+    expect(getConsecutiveCorrect()).toBe(0); // reset after step
+    expect(getSpeedLevel()).toBe(1);
+  });
+
+  test('speed-up consecutive counter resets to zero after each step', () => {
+    startGame();
+    for (let i = 0; i < 3; i += 1) {
+      hitNextTrigger();
+    }
+    expect(getConsecutiveCorrect()).toBe(0);
+    expect(getSpeedLevel()).toBe(1);
   });
 
   test('second response in same trigger window is ignored', () => {
@@ -260,30 +295,91 @@ describe('deal and response flow', () => {
     startGame();
     expect(hitNextTrigger()).toBe(true);
     expect(hitNextTrigger()).toBe(true);
-    expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+    expect(getConsecutiveCorrect()).toBe(2);
 
+    // Miss the next trigger.
     expect(dealUntilTrigger()).toBe(true);
     const missesBefore = getMisses();
     dealNextCard();
     expect(getMisses()).toBe(missesBefore + 1);
 
-    expect(hitNextTrigger()).toBe(true);
+    // Correct counter was reset by the miss.
+    expect(getConsecutiveCorrect()).toBe(0);
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
     expect(getSpeedHistory()).toHaveLength(0);
+  });
+
+  test('three consecutive misses slow down the game', () => {
+    startGame();
+    // First get fast enough to have room to slow down.
+    for (let i = 0; i < 6; i += 1) {
+      hitNextTrigger();
+    }
+    const fastSpeed = getDisplayDurationMs();
+    const fastLevel = getSpeedLevel();
+    expect(fastLevel).toBeGreaterThanOrEqual(2);
+
+    // Accumulate three consecutive misses.
+    for (let i = 0; i < 3; i += 1) {
+      expect(dealUntilTrigger()).toBe(true);
+      dealNextCard(); // miss by advancing past it
+    }
+
+    // After 3 misses the staircase should have decreased level by 2.
+    expect(getSpeedLevel()).toBe(fastLevel - 2);
+    expect(getDisplayDurationMs()).toBeGreaterThan(fastSpeed);
+    // Wrong counter resets after the staircase step fires (may be slightly higher
+    // if passing over trigger cards during dealUntilTrigger traversal).
+    expect(getConsecutiveWrong()).toBeLessThan(3);
   });
 
   test('false alarm resets the speed-up streak', () => {
     startGame();
     expect(hitNextTrigger()).toBe(true);
     expect(hitNextTrigger()).toBe(true);
-    expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+    expect(getConsecutiveCorrect()).toBe(2);
 
     expect(dealUntilNonTrigger()).toBe(true);
     expect(respondToCurrentCard()).toBe('false-alarm');
 
-    expect(hitNextTrigger()).toBe(true);
+    // Correct counter reset, wrong counter incremented (may be higher than 1
+    // if dealUntilNonTrigger passed over intermediate trigger cards).
+    expect(getConsecutiveCorrect()).toBe(0);
+    expect(getConsecutiveWrong()).toBeGreaterThanOrEqual(1);
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
     expect(getSpeedHistory()).toHaveLength(0);
+  });
+
+  test('three consecutive false alarms slow down the game', () => {
+    startGame();
+    // Speed up first.
+    for (let i = 0; i < 6; i += 1) {
+      hitNextTrigger();
+    }
+    const fastSpeed = getDisplayDurationMs();
+    const fastLevel = getSpeedLevel();
+    expect(fastLevel).toBeGreaterThanOrEqual(2);
+
+    // Three consecutive false alarms.
+    for (let i = 0; i < 3; i += 1) {
+      expect(dealUntilNonTrigger()).toBe(true);
+      expect(respondToCurrentCard()).toBe('false-alarm');
+    }
+
+    expect(getSpeedLevel()).toBe(fastLevel - 2);
+    expect(getDisplayDurationMs()).toBeGreaterThan(fastSpeed);
+    expect(getConsecutiveWrong()).toBe(0);
+  });
+
+  test('speed level never goes below 0 (cannot be slower than base)', () => {
+    startGame();
+    // Three misses at level 0 should clamp at 0 (easierStep=-2 clamped to minValue=0).
+    for (let i = 0; i < 3; i += 1) {
+      expect(dealUntilTrigger()).toBe(true);
+      dealNextCard();
+    }
+    expect(getSpeedLevel()).toBe(0);
+    expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
   });
 
   test('finalizeCurrentCard records miss for unresolved trigger', () => {

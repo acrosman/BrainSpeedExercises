@@ -60,6 +60,7 @@ const {
   playSuccessSound,
   playFailureSound,
   playFeedbackSound,
+  playCardFlickSound,
   playSweepPair,
   SWEEP_LOW_FREQ_HZ,
   SWEEP_HIGH_FREQ_HZ,
@@ -333,6 +334,56 @@ describe('playFeedbackSound', () => {
     globalThis.AudioContext = original;
   });
 });
+
+describe('playCardFlickSound', () => {
+  test('plays without throwing when AudioContext is running', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    expect(() => playCardFlickSound()).not.toThrow();
+    expect(mockCtx.createOscillator).toHaveBeenCalled();
+    expect(mockCtx.createGain).toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('does not throw when no AudioContext is available', () => {
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    delete globalThis.AudioContext;
+    if (globalThis.window) delete globalThis.window.webkitAudioContext;
+
+    expect(() => playCardFlickSound()).not.toThrow();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('swallows errors thrown during oscillator setup', () => {
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const ThrowingCtx = {
+      state: 'running',
+      currentTime: 0,
+      destination: {},
+      createOscillator: jest.fn(() => { throw new Error('osc error'); }),
+      createGain: jest.fn(),
+    };
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => ThrowingCtx);
+
+    expect(() => playCardFlickSound()).not.toThrow();
+
+    globalThis.AudioContext = original;
+  });
+});
+
 
 describe('playSweepPair', () => {
   test('exported frequency constants are positive numbers', () => {

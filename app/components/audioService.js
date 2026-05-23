@@ -61,6 +61,21 @@ const FAILURE_FREQ_A_HZ = 440;
  * resolute negative feeling without a harsh buzz. */
 const FAILURE_FREQ_B_HZ = 294;
 
+// ── Card flick sound constants ────────────────────────────────────────────────
+
+/** Frequency (Hz) for the brief high triangle tone used as a card-flick cue. */
+const FLICK_FREQ_HZ = 5800;
+
+/** Duration (s) of the card flick sound. */
+const FLICK_DURATION_S = 0.07;
+
+/** Attack duration (s) of the card flick sound. */
+const FLICK_ATTACK_S = 0.005;
+
+/** Peak gain of the card flick sound. Kept very soft so it does not compete
+ *  with success/failure feedback tones. */
+const FLICK_PEAK_GAIN = 0.05;
+
 // ── Frequency sweep constants ─────────────────────────────────────────────────
 
 /**
@@ -221,6 +236,42 @@ export function playFeedbackSound(isSuccess) {
     playSuccessSound();
   } else {
     playFailureSound();
+  }
+}
+
+/**
+ * Play a soft card-flick sound — a brief, quiet high-frequency tone.
+ *
+ * Intended to give tactile-like feedback whenever a new card is dealt.
+ * Uses the shared AudioContext from {@link getAudioContext}.
+ */
+export function playCardFlickSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => { });
+    }
+
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(FLICK_FREQ_HZ, now);
+
+    gain.gain.setValueAtTime(GAIN_NEAR_ZERO, now);
+    gain.gain.linearRampToValueAtTime(FLICK_PEAK_GAIN, now + FLICK_ATTACK_S);
+    gain.gain.exponentialRampToValueAtTime(GAIN_NEAR_ZERO, now + FLICK_DURATION_S);
+
+    osc.start(now);
+    osc.stop(now + FLICK_DURATION_S);
+  } catch {
+    // Ignore audio errors in unsupported environments.
   }
 }
 

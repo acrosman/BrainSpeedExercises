@@ -27,6 +27,7 @@ jest.unstable_mockModule('../../../components/gameUtils.js', () => ({
 jest.unstable_mockModule('../../../components/audioService.js', () => ({
   playSuccessSound: jest.fn(),
   playFailureSound: jest.fn(),
+  playCardFlickSound: jest.fn(),
 }));
 
 jest.unstable_mockModule('../../../components/trendChartService.js', () => ({
@@ -225,6 +226,14 @@ describe('start', () => {
     plugin.start();
     expect(gameMock.dealNextCard).toHaveBeenCalled();
     expect(container.querySelector('#cr-feedback').textContent).toContain('sandwich');
+  });
+
+  test('beginDealLoop plays card flick sound on each deal', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    audioMock.playCardFlickSound.mockClear();
+    plugin.start();
+    expect(audioMock.playCardFlickSound).toHaveBeenCalled();
   });
 
   test('Space key on document reacts without card focus', () => {
