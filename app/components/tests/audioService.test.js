@@ -3,7 +3,7 @@
  * audioService.test.js - Unit tests for the central audio service.
  *
  * Covers all exported functions: getAudioContext, playSuccessSound,
- * playFailureSound, playFeedbackSound, and playSweepPair.
+ * playFailureSound, playFeedbackSound, playCardFlickSound, and playSweepPair.
  */
 import {
   jest,
@@ -26,6 +26,7 @@ function buildMockAudioContext(state = 'running') {
     frequency: {
       setValueAtTime: jest.fn(),
       linearRampToValueAtTime: jest.fn(),
+      exponentialRampToValueAtTime: jest.fn(),
     },
     start: jest.fn(),
     stop: jest.fn(),
@@ -347,6 +348,20 @@ describe('playCardFlickSound', () => {
     expect(() => playCardFlickSound()).not.toThrow();
     expect(mockCtx.createOscillator).toHaveBeenCalled();
     expect(mockCtx.createGain).toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('resumes a suspended context before playing', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('suspended');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playCardFlickSound();
+    expect(mockCtx.resume).toHaveBeenCalled();
 
     globalThis.AudioContext = original;
   });

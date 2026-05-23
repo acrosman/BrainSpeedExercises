@@ -63,18 +63,32 @@ const FAILURE_FREQ_B_HZ = 294;
 
 // ── Card flick sound constants ────────────────────────────────────────────────
 
-/** Frequency (Hz) for the brief high triangle tone used as a card-flick cue. */
-const FLICK_FREQ_HZ = 5800;
+/** Starting frequency (Hz) for the card-flick body tone. */
+const FLICK_BODY_START_FREQ_HZ = 2400;
 
-/** Duration (s) of the card flick sound. */
-const FLICK_DURATION_S = 0.07;
+/** Ending frequency (Hz) for the card-flick body tone. */
+const FLICK_BODY_END_FREQ_HZ = 900;
+
+/** Starting frequency (Hz) for a brief edge-transient layer. */
+const FLICK_EDGE_START_FREQ_HZ = 4200;
+
+/** Ending frequency (Hz) for a brief edge-transient layer. */
+const FLICK_EDGE_END_FREQ_HZ = 2800;
+
+/** Duration (s) of the card flick body tone. */
+const FLICK_BODY_DURATION_S = 0.09;
+
+/** Duration (s) of the card flick edge transient. */
+const FLICK_EDGE_DURATION_S = 0.03;
 
 /** Attack duration (s) of the card flick sound. */
-const FLICK_ATTACK_S = 0.005;
+const FLICK_ATTACK_S = 0.004;
 
-/** Peak gain of the card flick sound. Kept very soft so it does not compete
- *  with success/failure feedback tones. */
-const FLICK_PEAK_GAIN = 0.05;
+/** Peak gain of the body layer for the card flick sound. */
+const FLICK_BODY_PEAK_GAIN = 0.038;
+
+/** Peak gain of the edge-transient layer for the card flick sound. */
+const FLICK_EDGE_PEAK_GAIN = 0.02;
 
 // ── Frequency sweep constants ─────────────────────────────────────────────────
 
@@ -240,7 +254,7 @@ export function playFeedbackSound(isSuccess) {
 }
 
 /**
- * Play a soft card-flick sound — a brief, quiet high-frequency tone.
+ * Play a soft card-flick sound with a short downward pitch sweep.
  *
  * Intended to give tactile-like feedback whenever a new card is dealt.
  * Uses the shared AudioContext from {@link getAudioContext}.
@@ -256,20 +270,43 @@ export function playCardFlickSound() {
 
     const now = ctx.currentTime;
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    const bodyOsc = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    bodyOsc.connect(bodyGain);
+    bodyGain.connect(ctx.destination);
+    bodyOsc.type = 'triangle';
+    bodyOsc.frequency.setValueAtTime(FLICK_BODY_START_FREQ_HZ, now);
+    bodyOsc.frequency.exponentialRampToValueAtTime(
+      FLICK_BODY_END_FREQ_HZ,
+      now + FLICK_BODY_DURATION_S,
+    );
+    bodyGain.gain.setValueAtTime(GAIN_NEAR_ZERO, now);
+    bodyGain.gain.linearRampToValueAtTime(FLICK_BODY_PEAK_GAIN, now + FLICK_ATTACK_S);
+    bodyGain.gain.exponentialRampToValueAtTime(
+      GAIN_NEAR_ZERO,
+      now + FLICK_BODY_DURATION_S,
+    );
+    bodyOsc.start(now);
+    bodyOsc.stop(now + FLICK_BODY_DURATION_S);
 
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(FLICK_FREQ_HZ, now);
-
-    gain.gain.setValueAtTime(GAIN_NEAR_ZERO, now);
-    gain.gain.linearRampToValueAtTime(FLICK_PEAK_GAIN, now + FLICK_ATTACK_S);
-    gain.gain.exponentialRampToValueAtTime(GAIN_NEAR_ZERO, now + FLICK_DURATION_S);
-
-    osc.start(now);
-    osc.stop(now + FLICK_DURATION_S);
+    const edgeOsc = ctx.createOscillator();
+    const edgeGain = ctx.createGain();
+    edgeOsc.connect(edgeGain);
+    edgeGain.connect(ctx.destination);
+    edgeOsc.type = 'sine';
+    edgeOsc.frequency.setValueAtTime(FLICK_EDGE_START_FREQ_HZ, now);
+    edgeOsc.frequency.exponentialRampToValueAtTime(
+      FLICK_EDGE_END_FREQ_HZ,
+      now + FLICK_EDGE_DURATION_S,
+    );
+    edgeGain.gain.setValueAtTime(GAIN_NEAR_ZERO, now);
+    edgeGain.gain.linearRampToValueAtTime(FLICK_EDGE_PEAK_GAIN, now + FLICK_ATTACK_S);
+    edgeGain.gain.exponentialRampToValueAtTime(
+      GAIN_NEAR_ZERO,
+      now + FLICK_EDGE_DURATION_S,
+    );
+    edgeOsc.start(now);
+    edgeOsc.stop(now + FLICK_EDGE_DURATION_S);
   } catch {
     // Ignore audio errors in unsupported environments.
   }

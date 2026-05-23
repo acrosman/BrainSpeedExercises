@@ -106,7 +106,8 @@ export const JOKER_VARIANTS = ['joker1', 'joker2', 'joker3'];
  * Calculate the display duration (ms) for a given speed level.
  *
  * @param {number} level - Non-negative integer speed level.
- * @returns {number} Display duration in milliseconds, clamped to [MIN_DISPLAY_DURATION_MS, BASE_DISPLAY_DURATION_MS].
+ * @returns {number} Display duration in milliseconds, clamped to
+ * [MIN_DISPLAY_DURATION_MS, BASE_DISPLAY_DURATION_MS].
  */
 export function calculateDisplayDuration(level) {
   return Math.max(

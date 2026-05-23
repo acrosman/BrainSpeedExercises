@@ -8,7 +8,11 @@
 
 import * as game from './game.js';
 import * as timerService from '../../components/timerService.js';
-import { playSuccessSound, playFailureSound, playCardFlickSound } from '../../components/audioService.js';
+import {
+  playSuccessSound,
+  playFailureSound,
+  playCardFlickSound,
+} from '../../components/audioService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
