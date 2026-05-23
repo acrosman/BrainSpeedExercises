@@ -85,5 +85,15 @@
 
 .card-rat__controls {
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
   justify-content: center;
+}
+
+.card-rat__card-sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
 }

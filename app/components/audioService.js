@@ -76,10 +76,13 @@ const CARD_SNAP_START_FREQ_HZ = 120;
 const CARD_SNAP_END_FREQ_HZ = 20;
 
 /** Duration (s) of the card-flip snap transient layer. */
-const CARD_SNAP_DURATION_S = 0.05;
+const CARD_SNAP_DURATION_S = 0.025;
+
+/** Delay (s) before the snap starts so the swish happens first. */
+const CARD_SNAP_DELAY_S = 0.01;
 
 /** Peak gain of the card-flip snap transient layer. */
-const CARD_SNAP_PEAK_GAIN = 0.3;
+const CARD_SNAP_PEAK_GAIN = 0.15;
 
 /**
  * Low-pass filter cutoff frequency (Hz) for the card-flip swish noise layer.
@@ -95,7 +98,7 @@ const CARD_SWISH_FILTER_FREQ_HZ = 1000;
 const CARD_SWISH_DURATION_S = 0.12;
 
 /** Peak gain of the card-flip swish noise layer. */
-const CARD_SWISH_PEAK_GAIN = 0.15;
+const CARD_SWISH_PEAK_GAIN = 0.075;
 
 /**
  * Shared attack duration (s) for both card-flip layers.
@@ -292,23 +295,6 @@ export function playCardFlickSound() {
 
     const now = ctx.currentTime;
 
-    // ── Snap: percussive transient ────────────────────────────────────────────
-    const snapOsc = ctx.createOscillator();
-    const snapGain = ctx.createGain();
-    snapOsc.connect(snapGain);
-    snapGain.connect(ctx.destination);
-    snapOsc.type = 'triangle';
-    snapOsc.frequency.setValueAtTime(CARD_SNAP_START_FREQ_HZ, now);
-    snapOsc.frequency.exponentialRampToValueAtTime(
-      CARD_SNAP_END_FREQ_HZ,
-      now + CARD_SNAP_DURATION_S,
-    );
-    snapGain.gain.setValueAtTime(GAIN_NEAR_ZERO, now);
-    snapGain.gain.exponentialRampToValueAtTime(CARD_SNAP_PEAK_GAIN, now + CARD_FLIP_ATTACK_S);
-    snapGain.gain.exponentialRampToValueAtTime(GAIN_NEAR_ZERO, now + CARD_SNAP_DURATION_S);
-    snapOsc.start(now);
-    snapOsc.stop(now + CARD_SNAP_DURATION_S);
-
     // ── Swish: paper friction noise ───────────────────────────────────────────
     const bufferSize = Math.ceil(ctx.sampleRate * CARD_SWISH_DURATION_S);
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -335,6 +321,30 @@ export function playCardFlickSound() {
 
     noiseSource.start(now);
     noiseSource.stop(now + CARD_SWISH_DURATION_S);
+
+    // ── Snap: percussive transient ────────────────────────────────────────────
+    const snapStartTime = now + CARD_SNAP_DELAY_S;
+    const snapOsc = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+    snapOsc.connect(snapGain);
+    snapGain.connect(ctx.destination);
+    snapOsc.type = 'triangle';
+    snapOsc.frequency.setValueAtTime(CARD_SNAP_START_FREQ_HZ, snapStartTime);
+    snapOsc.frequency.exponentialRampToValueAtTime(
+      CARD_SNAP_END_FREQ_HZ,
+      snapStartTime + CARD_SNAP_DURATION_S,
+    );
+    snapGain.gain.setValueAtTime(GAIN_NEAR_ZERO, snapStartTime);
+    snapGain.gain.exponentialRampToValueAtTime(
+      CARD_SNAP_PEAK_GAIN,
+      snapStartTime + CARD_FLIP_ATTACK_S,
+    );
+    snapGain.gain.exponentialRampToValueAtTime(
+      GAIN_NEAR_ZERO,
+      snapStartTime + CARD_SNAP_DURATION_S,
+    );
+    snapOsc.start(snapStartTime);
+    snapOsc.stop(snapStartTime + CARD_SNAP_DURATION_S);
   } catch {
     // Ignore audio errors in unsupported environments.
   }

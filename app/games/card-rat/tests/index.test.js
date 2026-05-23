@@ -109,6 +109,7 @@ function buildContainer() {
     <button id="cr-play-again-btn"></button>
     <button id="cr-return-btn"></button>
     <button id="cr-reaction-zone"></button>
+    <input id="cr-card-sound-toggle" type="checkbox" checked>
     <div id="cr-deck-card"></div>
     <div id="cr-card"></div>
     <p id="cr-feedback"></p>
@@ -234,6 +235,15 @@ describe('start', () => {
     audioMock.playCardFlickSound.mockClear();
     plugin.start();
     expect(audioMock.playCardFlickSound).toHaveBeenCalled();
+  });
+
+  test('beginDealLoop skips card sound when card sound toggle is off', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    container.querySelector('#cr-card-sound-toggle').checked = false;
+    audioMock.playCardFlickSound.mockClear();
+    plugin.start();
+    expect(audioMock.playCardFlickSound).not.toHaveBeenCalled();
   });
 
   test('Space key on document reacts without card focus', () => {

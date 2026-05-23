@@ -418,6 +418,40 @@ describe('playCardFlickSound', () => {
     globalThis.AudioContext = original;
   });
 
+  test('plays swish before snap and uses the shorter snap timing', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playCardFlickSound();
+    const noiseSource = mockCtx.createBufferSource.mock.results[0].value;
+    const snapOsc = mockCtx.createOscillator.mock.results[0].value;
+    expect(noiseSource.start).toHaveBeenCalledWith(0);
+    expect(snapOsc.start).toHaveBeenCalledWith(0.01);
+    expect(snapOsc.stop).toHaveBeenCalledWith(0.035);
+
+    globalThis.AudioContext = original;
+  });
+
+  test('uses half-loud peak gains for snap and swish', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playCardFlickSound();
+    const firstGain = mockCtx.createGain.mock.results[0].value;
+    expect(firstGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.15, expect.any(Number));
+    expect(firstGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.075, expect.any(Number));
+
+    globalThis.AudioContext = original;
+  });
+
   test('resumes a suspended context before playing', () => {
     const { mockCtx, MockAC } = buildMockAudioContext('suspended');
     const existing = getAudioContext();

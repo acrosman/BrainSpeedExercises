@@ -51,6 +51,9 @@ let _returnBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _reactionZoneBtn = null;
 
+/** @type {HTMLInputElement|null} */
+let _cardSoundToggleEl = null;
+
 /** @type {HTMLElement|null} */
 let _cardEl = null;
 
@@ -246,7 +249,9 @@ export function beginDealLoop() {
   if (!game.isRunning()) return;
 
   const next = game.dealNextCard();
-  playCardFlickSound();
+  if (!_cardSoundToggleEl || _cardSoundToggleEl.checked) {
+    playCardFlickSound();
+  }
   renderCard(next.card);
   updateStats();
 
@@ -357,6 +362,7 @@ function init(gameContainer) {
   _playAgainBtn = _container.querySelector('#cr-play-again-btn');
   _returnBtn = _container.querySelector('#cr-return-btn');
   _reactionZoneBtn = _container.querySelector('#cr-reaction-zone');
+  _cardSoundToggleEl = _container.querySelector('#cr-card-sound-toggle');
 
   _cardEl = _container.querySelector('#cr-card');
   _deckCardEl = _container.querySelector('#cr-deck-card');
