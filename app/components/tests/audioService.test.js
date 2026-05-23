@@ -181,6 +181,21 @@ describe('playSuccessSound', () => {
     globalThis.AudioContext = original;
   });
 
+  test('handles resume rejection gracefully', async () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('suspended');
+    mockCtx.resume = jest.fn().mockRejectedValue(new Error('cannot resume'));
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    expect(() => playCardFlickSound()).not.toThrow();
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    globalThis.AudioContext = original;
+  });
+
   test('does not throw when no AudioContext is available', () => {
     const existing = getAudioContext();
     if (existing) existing.state = 'closed';
