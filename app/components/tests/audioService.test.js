@@ -41,12 +41,31 @@ function buildMockAudioContext(state = 'running') {
     },
   };
 
+  const mockBufferSource = {
+    connect: jest.fn(),
+    start: jest.fn(),
+    stop: jest.fn(),
+    buffer: null,
+  };
+
+  const mockBiquadFilter = {
+    connect: jest.fn(),
+    type: '',
+    frequency: {
+      setValueAtTime: jest.fn(),
+    },
+  };
+
   const mockCtx = {
     state,
     currentTime: 0,
+    sampleRate: 44100,
     destination: {},
     createOscillator: jest.fn(() => ({ ...mockOscillator })),
     createGain: jest.fn(() => ({ ...mockGain })),
+    createBuffer: jest.fn(() => ({ getChannelData: jest.fn(() => new Float32Array(1)) })),
+    createBufferSource: jest.fn(() => ({ ...mockBufferSource })),
+    createBiquadFilter: jest.fn(() => ({ ...mockBiquadFilter })),
     resume: jest.fn().mockResolvedValue(undefined),
   };
 
@@ -367,6 +386,38 @@ describe('playCardFlickSound', () => {
     globalThis.AudioContext = original;
   });
 
+  test('creates a noise buffer and buffer source for the swish layer', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playCardFlickSound();
+    expect(mockCtx.createBuffer).toHaveBeenCalled();
+    expect(mockCtx.createBufferSource).toHaveBeenCalled();
+    expect(mockCtx.createBiquadFilter).toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('configures the swish filter as a low-pass filter', () => {
+    const { mockCtx, MockAC } = buildMockAudioContext('running');
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+
+    playCardFlickSound();
+    const filter = mockCtx.createBiquadFilter.mock.results[0].value;
+    expect(filter.type).toBe('lowpass');
+    expect(filter.frequency.setValueAtTime).toHaveBeenCalled();
+
+    globalThis.AudioContext = original;
+  });
+
   test('resumes a suspended context before playing', () => {
     const { mockCtx, MockAC } = buildMockAudioContext('suspended');
     const existing = getAudioContext();
@@ -394,16 +445,20 @@ describe('playCardFlickSound', () => {
     globalThis.AudioContext = original;
   });
 
-  test('swallows errors thrown during oscillator setup', () => {
+  test('swallows errors thrown during audio node setup', () => {
     const existing = getAudioContext();
     if (existing) existing.state = 'closed';
 
     const ThrowingCtx = {
       state: 'running',
       currentTime: 0,
+      sampleRate: 44100,
       destination: {},
       createOscillator: jest.fn(() => { throw new Error('osc error'); }),
       createGain: jest.fn(),
+      createBuffer: jest.fn(),
+      createBufferSource: jest.fn(),
+      createBiquadFilter: jest.fn(),
     };
     const original = globalThis.AudioContext;
     globalThis.AudioContext = jest.fn(() => ThrowingCtx);
