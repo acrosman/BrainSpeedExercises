@@ -67,6 +67,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getDeckIndex: jest.fn(() => 1),
   getDeckSize: jest.fn(() => 55),
   getDisplayDurationMs: jest.fn(() => 900),
+  getLowestDisplayTimeMs: jest.fn(() => 900),
   getSpeedHistory: jest.fn(() => [1200, 1100, 1000]),
   getCurrentCard: jest.fn(() => ({ rank: 'A', suit: 'hearts', isJoker: false })),
   shouldReactNow: jest.fn(() => false),

@@ -468,7 +468,7 @@ function start() {
 function stop() {
   clearDealTimer();
   detachGlobalKeyListener();
-  timerService.stopTimer();
+  const sessionDurationMs = timerService.stopTimer();
 
   if (!game.isRunning()) {
     return {
@@ -478,7 +478,7 @@ function stop() {
       falseAlarms: game.getFalseAlarms(),
       cardsShown: game.getCardsShown(),
       deckPasses: game.getDeckPasses(),
-      lowestDisplayTime: game.getDisplayDurationMs(),
+      lowestDisplayTime: game.getLowestDisplayTimeMs(),
       duration: 0,
     };
   }
@@ -489,7 +489,7 @@ function stop() {
     GAME_ID,
     {
       score: result.score,
-      sessionDurationMs: result.duration,
+      sessionDurationMs,
       lowestDisplayTime: result.lowestDisplayTime,
     },
     (previousRecord) => ({

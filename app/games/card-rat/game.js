@@ -59,6 +59,9 @@ let deckPasses = 0;
 /** @type {number} */
 let displayDurationMs = BASE_DISPLAY_DURATION_MS;
 
+/** @type {number} */
+let lowestDisplayTimeMs = BASE_DISPLAY_DURATION_MS;
+
 /** @type {boolean} */
 let running = false;
 
@@ -197,6 +200,7 @@ export function initGame() {
   cardsShown = 0;
   deckPasses = 0;
   displayDurationMs = BASE_DISPLAY_DURATION_MS;
+  lowestDisplayTimeMs = BASE_DISPLAY_DURATION_MS;
   running = false;
   startTimeMs = null;
   deck = shuffleDeck(createGameplayDeck());
@@ -246,7 +250,10 @@ function applyStaircaseStep(wasCorrect) {
 
   if (result.valueDelta !== 0) {
     displayDurationMs = calculateDisplayDuration(speedLevel);
-    speedHistory.push(displayDurationMs);
+    lowestDisplayTimeMs = Math.min(lowestDisplayTimeMs, displayDurationMs);
+    if (wasCorrect) {
+      speedHistory.push(displayDurationMs);
+    }
   }
 }
 
@@ -381,7 +388,7 @@ export function stopGame() {
     falseAlarms,
     cardsShown,
     deckPasses,
-    lowestDisplayTime: displayDurationMs,
+    lowestDisplayTime: lowestDisplayTimeMs,
     duration,
   };
 }
@@ -456,6 +463,14 @@ export function getDeckSize() {
  */
 export function getDisplayDurationMs() {
   return displayDurationMs;
+}
+
+/**
+ * Return the lowest (fastest) display duration reached during the session.
+ * @returns {number}
+ */
+export function getLowestDisplayTimeMs() {
+  return lowestDisplayTimeMs;
 }
 
 /**
