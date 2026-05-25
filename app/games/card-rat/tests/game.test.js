@@ -35,6 +35,7 @@ import {
   getDeckIndex,
   getDeckSize,
   getDisplayDurationMs,
+  getLowestDisplayTimeMs,
   getSpeedHistory,
   getSpeedLevel,
   getConsecutiveCorrect,
@@ -129,6 +130,7 @@ describe('lifecycle', () => {
     expect(getDeckIndex()).toBe(0);
     expect(getDeckSize()).toBe(55);
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
+    expect(getLowestDisplayTimeMs()).toBe(BASE_DISPLAY_DURATION_MS);
     expect(getSpeedLevel()).toBe(0);
     expect(getConsecutiveCorrect()).toBe(0);
     expect(getConsecutiveWrong()).toBe(0);
@@ -265,6 +267,27 @@ describe('deal and response flow', () => {
     expect(getSpeedHistory()).toHaveLength(1);
     expect(getConsecutiveCorrect()).toBe(0); // reset after step
     expect(getSpeedLevel()).toBe(1);
+  });
+
+  test('getLowestDisplayTimeMs tracks the minimum display duration reached', () => {
+    startGame();
+    expect(getLowestDisplayTimeMs()).toBe(BASE_DISPLAY_DURATION_MS);
+
+    // Speed up: 3 hits → level 1, another 3 → level 2.
+    for (let i = 0; i < 6; i += 1) {
+      hitNextTrigger();
+    }
+    const fastDuration = getDisplayDurationMs();
+    expect(getLowestDisplayTimeMs()).toBe(fastDuration);
+
+    // Slow back down: 3 consecutive misses → level drops by 2.
+    for (let i = 0; i < 3; i += 1) {
+      expect(dealUntilTrigger()).toBe(true);
+      dealNextCard();
+    }
+    // Current duration is higher (slower) now, but lowest should still be the fast value.
+    expect(getDisplayDurationMs()).toBeGreaterThan(fastDuration);
+    expect(getLowestDisplayTimeMs()).toBe(fastDuration);
   });
 
   test('speed-up consecutive counter resets to zero after each step', () => {

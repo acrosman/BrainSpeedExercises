@@ -63,7 +63,9 @@ function buildMockAudioContext(state = 'running') {
     destination: {},
     createOscillator: jest.fn(() => createMockOscillator()),
     createGain: jest.fn(() => createMockGain()),
-    createBuffer: jest.fn((channels, length) => ({ getChannelData: jest.fn(() => new Float32Array(length)) })),
+    createBuffer: jest.fn((channels, length) => ({
+      getChannelData: jest.fn(() => new Float32Array(length)),
+    })),
     createBufferSource: jest.fn(() => createMockBufferSource()),
     createBiquadFilter: jest.fn(() => createMockBiquadFilter()),
     resume: jest.fn().mockResolvedValue(undefined),
