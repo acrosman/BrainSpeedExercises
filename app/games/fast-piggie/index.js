@@ -240,6 +240,8 @@ let _clickEnabled = false;
 let _selectedWedge = -1; // for keyboard navigation
 let _hoveredWedge = -1; // for mouse hover highlighting
 let _roundTimer = null; // setTimeout handle
+let _imageFlashTimer = null; // setTimeout handle before image flash
+// Give the board a small lead-in so previous wedge highlights clear before image flash starts.
 const ROUND_IMAGE_FLASH_DELAY_MS = 15;
 
 /**
@@ -303,6 +305,15 @@ function _highlightKeyboardSelection() {
 function _runRound() {
   if (!game.isRunning()) return;
 
+  if (_imageFlashTimer) {
+    clearTimeout(_imageFlashTimer);
+    _imageFlashTimer = null;
+  }
+  if (_roundTimer) {
+    clearTimeout(_roundTimer);
+    _roundTimer = null;
+  }
+
   _clickEnabled = false;
   _selectedWedge = -1;
   const round = game.generateRound(game.getLevel(), game.getSpeedLevel());
@@ -321,7 +332,8 @@ function _runRound() {
 
   const { width, height } = _canvas;
   clearImages(_ctx, width, height, wedgeCount);
-  _roundTimer = setTimeout(() => {
+  _imageFlashTimer = setTimeout(() => {
+    _imageFlashTimer = null;
     drawBoard(
       _ctx, width, height, wedgeCount, imageCount, _images,
       outlierWedgeIndex, true, slotAssignment,
@@ -618,6 +630,10 @@ export default {
    * @returns {Promise<object>} Game result
    */
   async stop() {
+    if (_imageFlashTimer) {
+      clearTimeout(_imageFlashTimer);
+      _imageFlashTimer = null;
+    }
     if (_roundTimer) {
       clearTimeout(_roundTimer);
       _roundTimer = null;
@@ -656,6 +672,10 @@ export default {
    * Reset the game to its initial state.
    */
   reset() {
+    if (_imageFlashTimer) {
+      clearTimeout(_imageFlashTimer);
+      _imageFlashTimer = null;
+    }
     if (_roundTimer) {
       clearTimeout(_roundTimer);
       _roundTimer = null;
