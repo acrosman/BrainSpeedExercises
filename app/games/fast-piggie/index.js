@@ -240,6 +240,7 @@ let _clickEnabled = false;
 let _selectedWedge = -1; // for keyboard navigation
 let _hoveredWedge = -1; // for mouse hover highlighting
 let _roundTimer = null; // setTimeout handle
+const ROUND_IMAGE_FLASH_DELAY_MS = 15;
 
 /**
  * Updates the score, round count, and display time in the UI.
@@ -319,19 +320,22 @@ function _runRound() {
   _currentRound = { ...round, slotAssignment };
 
   const { width, height } = _canvas;
-  drawBoard(
-    _ctx, width, height, wedgeCount, imageCount, _images,
-    outlierWedgeIndex, true, slotAssignment,
-  );
-
+  clearImages(_ctx, width, height, wedgeCount);
   _roundTimer = setTimeout(() => {
-    clearImages(_ctx, width, height, wedgeCount);
-    _currentRound._imagesHiddenAt = Date.now();
-    _clickEnabled = true;
-    _hoveredWedge = -1;
-    _selectedWedge = -1;
-    _canvas.focus();
-  }, displayDurationMs);
+    drawBoard(
+      _ctx, width, height, wedgeCount, imageCount, _images,
+      outlierWedgeIndex, true, slotAssignment,
+    );
+
+    _roundTimer = setTimeout(() => {
+      clearImages(_ctx, width, height, wedgeCount);
+      _currentRound._imagesHiddenAt = Date.now();
+      _clickEnabled = true;
+      _hoveredWedge = -1;
+      _selectedWedge = -1;
+      _canvas.focus();
+    }, displayDurationMs);
+  }, ROUND_IMAGE_FLASH_DELAY_MS);
 }
 
 /**

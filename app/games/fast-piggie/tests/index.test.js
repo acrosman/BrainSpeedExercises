@@ -1185,6 +1185,14 @@ describe('_triggerFlash and next-round timers', () => {
   });
 });
 
+describe('_runRound image flash timing', () => {
+  it('schedules the image flash 15ms after wedges are hidden', () => {
+    const setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout');
+    plugin.start();
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 15);
+  });
+});
+
 // ===========================================================================
 // loadImages onerror path and init() .catch() fallback
 // (f[4] and f[33] in index.js)
