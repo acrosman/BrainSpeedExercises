@@ -68,8 +68,8 @@ describe('exported constants', () => {
     expect(DIRECTION_PARAMS.up.phiDirection).toBe(-DIRECTION_PARAMS.down.phiDirection);
   });
 
-  test('COLOR_FAMILIES has exactly 4 entries', () => {
-    expect(COLOR_FAMILIES).toHaveLength(4);
+  test('COLOR_FAMILIES has exactly 6 entries', () => {
+    expect(COLOR_FAMILIES).toHaveLength(6);
   });
 
   test('each COLOR_FAMILIES entry has dark and bright arrays of length 3', () => {

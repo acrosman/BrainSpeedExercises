@@ -39,7 +39,7 @@ export const TWO_PI = 2 * Math.PI;
  * of the sinusoidal grating. The patch oscillates between these two colors, giving
  * each family a distinct hue while maintaining high contrast.
  *
- * Families: Blue, Purple, Orange, Grey.
+ * Families: Blue, Purple, Orange, Grey, Yellow, Teal.
  *
  * @type {Array<{ dark: [number, number, number], bright: [number, number, number] }>}
  */
@@ -48,6 +48,8 @@ export const COLOR_FAMILIES = [
   { dark: [60,  0,   130], bright: [220, 130, 255] }, // Purple
   { dark: [130, 40,  0],   bright: [255, 200,  70] }, // Orange
   { dark: [20,  20,  20],  bright: [235, 235, 235] }, // Grey
+  { dark: [70,  40,  0],   bright: [255, 240, 100] }, // Yellow
+  { dark: [0,   55,  60],  bright: [80,  230, 220] }, // Teal
 ];
 
 /**

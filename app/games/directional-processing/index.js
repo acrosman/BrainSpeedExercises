@@ -11,7 +11,9 @@
  */
 
 import * as game from './game.js';
-import { drawGabor, drawMask, getDirectionParams, pickColorFamily, PHASE_SPEED_RAD_PER_MS } from './gabor.js';
+import {
+  drawGabor, drawMask, getDirectionParams, pickColorFamily, PHASE_SPEED_RAD_PER_MS,
+} from './gabor.js';
 import { playFeedbackSound } from '../../components/audioService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { saveScore } from '../../components/scoreService.js';
@@ -30,7 +32,7 @@ const MASK_DURATION_MS = 150;
 const INTER_TRIAL_DELAY_MS = 400;
 
 /** Duration (ms) of the green/red flash overlay on the canvas stage. */
-const FEEDBACK_FLASH_MS = 250;
+const FEEDBACK_FLASH_MS = 600;
 
 // ── DOM element references (populated by init) ────────────────────────────────
 
@@ -95,7 +97,10 @@ let _currentDirection = null;
 /** Whether the player can currently submit a direction response. */
 let _responseEnabled = false;
 
-/** Active color family for Gabor patch rendering. Changes on each level change. @type {object|null} */
+/**
+ * Active color family for Gabor patch rendering. Changes on each level change.
+ * @type {object|null}
+ */
 let _colorFamily = null;
 
 // ── Async handle references ───────────────────────────────────────────────────
