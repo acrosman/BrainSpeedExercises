@@ -43,6 +43,7 @@ jest.unstable_mockModule('../gabor.js', () => ({
   drawGabor:            jest.fn(),
   drawMask:             jest.fn(),
   getDirectionParams:   jest.fn(() => ({ theta: 0, phiDirection: -1 })),
+  pickColorFamily:      jest.fn(() => ({ dark: [20, 20, 20], bright: [235, 235, 235] })),
   PHASE_SPEED_RAD_PER_MS: 0.015,
 }));
 
@@ -229,8 +230,10 @@ describe('directional-processing plugin', () => {
       document.querySelector('#dp-btn-right').classList.contains('dp-dir-btn--correct'),
     ).toBe(true);
 
-    // Fire the inter-trial timer → startTrial() → clearDirectionHighlights().
-    jest.runOnlyPendingTimers();
+    // Fire flash timer → callback shows background → fires post-flash pause
+    // → startTrial() → clearDirectionHighlights().
+    jest.runOnlyPendingTimers(); // flash timer
+    jest.runOnlyPendingTimers(); // post-flash pause timer → startTrial
 
     expect(
       document.querySelector('#dp-btn-right').classList.contains('dp-dir-btn--correct'),

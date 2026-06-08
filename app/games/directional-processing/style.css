@@ -60,13 +60,13 @@
   z-index: 3;
 }
 
-.dp-stage--flash-correct::after {
-  background: rgba(16, 185, 129, 0.34);
+.dp-stage--flash-wrong::after {
+  background: rgb(239, 68, 68);
   opacity: 1;
 }
 
-.dp-stage--flash-wrong::after {
-  background: rgba(239, 68, 68, 0.34);
+.dp-stage--flash-correct::after {
+  background: rgba(16, 185, 129);
   opacity: 1;
 }
 
