@@ -11,7 +11,7 @@
  */
 
 import * as game from './game.js';
-import { drawGabor, drawMask, getDirectionParams, PHASE_SPEED_RAD_PER_MS } from './gabor.js';
+import { drawGabor, drawMask, getDirectionParams, pickColorFamily, PHASE_SPEED_RAD_PER_MS } from './gabor.js';
 import { playFeedbackSound } from '../../components/audioService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { saveScore } from '../../components/scoreService.js';
@@ -94,6 +94,9 @@ let _currentDirection = null;
 
 /** Whether the player can currently submit a direction response. */
 let _responseEnabled = false;
+
+/** Active color family for Gabor patch rendering. Changes on each level change. @type {object|null} */
+let _colorFamily = null;
 
 // ── Async handle references ───────────────────────────────────────────────────
 
@@ -262,7 +265,7 @@ function enterResponsePhase() {
  * then transition to the response phase.
  */
 function runMaskPhase() {
-  if (_canvasEl) drawMask(_canvasEl);
+  if (_canvasEl) drawMask(_canvasEl, _colorFamily);
 
   const start = nowMs();
 
@@ -307,7 +310,7 @@ function runStimulusPhase(direction, contrast, displayDurationMs) {
     // Advance the grating phase to create the apparent motion effect.
     const phi = phiDirection * PHASE_SPEED_RAD_PER_MS * elapsed;
     if (_canvasEl) {
-      drawGabor(_canvasEl, { theta, phi, contrast });
+      drawGabor(_canvasEl, { theta, phi, contrast, colorFamily: _colorFamily });
     }
 
     _stimulusRafId = requestAnimationFrame(tick);
@@ -343,7 +346,11 @@ export function handleDirectionResponse(direction) {
   setDirectionButtonsEnabled(false);
 
   const success = direction === _currentDirection;
+  const prevLevel = game.getCurrentLevel();
   game.recordTrial({ success });
+  if (game.getCurrentLevel() !== prevLevel) {
+    _colorFamily = pickColorFamily();
+  }
 
   updateStats();
   updateTrendChart();
@@ -479,6 +486,7 @@ function init(gameContainer) {
  */
 function start() {
   game.startGame();
+  _colorFamily = pickColorFamily();
 
   timerService.startTimer((elapsedMs) => {
     if (_sessionTimerEl) {
@@ -542,6 +550,7 @@ function reset() {
 
   _currentDirection = null;
   _responseEnabled = false;
+  _colorFamily = null;
 
   if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
   if (_feedbackEl) _feedbackEl.textContent = '';

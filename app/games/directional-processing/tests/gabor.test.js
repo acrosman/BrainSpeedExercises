@@ -11,10 +11,12 @@ import {
   PHASE_SPEED_RAD_PER_MS,
   TWO_PI,
   DIRECTION_PARAMS,
+  COLOR_FAMILIES,
   computeGaborPixels,
   drawGabor,
   drawMask,
   getDirectionParams,
+  pickColorFamily,
 } from '../gabor.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -65,6 +67,24 @@ describe('exported constants', () => {
   test('up and down have opposite phiDirection values', () => {
     expect(DIRECTION_PARAMS.up.phiDirection).toBe(-DIRECTION_PARAMS.down.phiDirection);
   });
+
+  test('COLOR_FAMILIES has exactly 4 entries', () => {
+    expect(COLOR_FAMILIES).toHaveLength(4);
+  });
+
+  test('each COLOR_FAMILIES entry has dark and bright arrays of length 3', () => {
+    COLOR_FAMILIES.forEach((family) => {
+      expect(family.dark).toHaveLength(3);
+      expect(family.bright).toHaveLength(3);
+    });
+  });
+
+  test('pickColorFamily returns an object from COLOR_FAMILIES', () => {
+    const family = pickColorFamily();
+    expect(COLOR_FAMILIES).toContain(family);
+    expect(family.dark).toHaveLength(3);
+    expect(family.bright).toHaveLength(3);
+  });
 });
 
 // ── computeGaborPixels ────────────────────────────────────────────────────────
@@ -83,7 +103,7 @@ describe('computeGaborPixels', () => {
     }
   });
 
-  test('all RGB channels are equal (grayscale output)', () => {
+  test('all RGB channels are equal when no colorFamily is provided (grayscale output)', () => {
     const pixels = computeGaborPixels(8, 8);
     for (let i = 0; i < pixels.length; i += 4) {
       expect(pixels[i]).toBe(pixels[i + 1]);
@@ -121,6 +141,46 @@ describe('computeGaborPixels', () => {
     const pDefault = Array.from(computeGaborPixels(16, 16));
     const pCustom  = Array.from(computeGaborPixels(16, 16, { sigma: DEFAULT_SIGMA / 2 }));
     expect(pDefault).not.toEqual(pCustom);
+  });
+
+  test('with a colorFamily the RGB channels are not all equal', () => {
+    // Blue family has very different R, G, B endpoints so channels will differ.
+    const blueFamily = COLOR_FAMILIES[0];
+    const pixels = computeGaborPixels(16, 16, { colorFamily: blueFamily });
+    let allEqual = true;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] !== pixels[i + 1] || pixels[i] !== pixels[i + 2]) {
+        allEqual = false;
+        break;
+      }
+    }
+    expect(allEqual).toBe(false);
+  });
+
+  test('with a colorFamily all pixel values are bounded by the family endpoints', () => {
+    const family = { dark: [10, 20, 30], bright: [200, 180, 160] };
+    const pixels = computeGaborPixels(16, 16, { colorFamily: family });
+    for (let i = 0; i < pixels.length; i += 4) {
+      expect(pixels[i]).toBeGreaterThanOrEqual(family.dark[0]);
+      expect(pixels[i]).toBeLessThanOrEqual(family.bright[0]);
+      expect(pixels[i + 1]).toBeGreaterThanOrEqual(family.dark[1]);
+      expect(pixels[i + 1]).toBeLessThanOrEqual(family.bright[1]);
+      expect(pixels[i + 2]).toBeGreaterThanOrEqual(family.dark[2]);
+      expect(pixels[i + 2]).toBeLessThanOrEqual(family.bright[2]);
+    }
+  });
+
+  test('at zero contrast with a colorFamily all pixels are at the midpoint color', () => {
+    const family = { dark: [0, 40, 80], bright: [200, 160, 120] };
+    const pixels = computeGaborPixels(8, 8, { contrast: 0, colorFamily: family });
+    const midR = (family.dark[0] + family.bright[0]) / 2; // 100
+    const midG = (family.dark[1] + family.bright[1]) / 2; // 100
+    const midB = (family.dark[2] + family.bright[2]) / 2; // 100
+    for (let i = 0; i < pixels.length; i += 4) {
+      expect(pixels[i]).toBeCloseTo(midR, 0);
+      expect(pixels[i + 1]).toBeCloseTo(midG, 0);
+      expect(pixels[i + 2]).toBeCloseTo(midB, 0);
+    }
   });
 });
 
@@ -170,7 +230,7 @@ describe('drawGabor', () => {
 // ── drawMask ──────────────────────────────────────────────────────────────────
 
 describe('drawMask', () => {
-  test('fills the entire canvas with mid-gray', () => {
+  test('fills the entire canvas with mid-gray when no colorFamily is provided', () => {
     const mockFillRect = jest.fn();
     const mockCtx = {
       fillStyle: '',
@@ -185,6 +245,26 @@ describe('drawMask', () => {
     drawMask(mockCanvas);
 
     expect(mockCtx.fillStyle).toBe('rgb(128, 128, 128)');
+    expect(mockFillRect).toHaveBeenCalledWith(0, 0, 20, 15);
+  });
+
+  test('fills the canvas with the midpoint color of the provided colorFamily', () => {
+    const mockFillRect = jest.fn();
+    const mockCtx = {
+      fillStyle: '',
+      fillRect: mockFillRect,
+    };
+    const mockCanvas = {
+      width: 20,
+      height: 15,
+      getContext: () => mockCtx,
+    };
+    const family = { dark: [0, 40, 100], bright: [200, 160, 120] };
+
+    drawMask(mockCanvas, family);
+
+    // midpoint: R=100, G=100, B=110
+    expect(mockCtx.fillStyle).toBe('rgb(100, 100, 110)');
     expect(mockFillRect).toHaveBeenCalledWith(0, 0, 20, 15);
   });
 

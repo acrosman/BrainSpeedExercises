@@ -43,6 +43,7 @@ jest.unstable_mockModule('../gabor.js', () => ({
   drawGabor:            jest.fn(),
   drawMask:             jest.fn(),
   getDirectionParams:   jest.fn(() => ({ theta: 0, phiDirection: -1 })),
+  pickColorFamily:      jest.fn(() => ({ dark: [20, 20, 20], bright: [235, 235, 235] })),
   PHASE_SPEED_RAD_PER_MS: 0.015,
 }));
 
