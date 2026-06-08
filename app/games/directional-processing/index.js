@@ -28,11 +28,11 @@ const GAME_ID = 'directional-processing';
 /** Duration (ms) the visual mask is displayed between stimulus and response. */
 const MASK_DURATION_MS = 150;
 
-/** Pause (ms) between a response being submitted and the next trial starting. */
-const INTER_TRIAL_DELAY_MS = 400;
+/** Duration (ms) the color-family background is held after a flash before the next trial. */
+const POST_FLASH_PAUSE_MS = 100;
 
 /** Duration (ms) of the green/red flash overlay on the canvas stage. */
-const FEEDBACK_FLASH_MS = 600;
+const FEEDBACK_FLASH_MS = 250;
 
 // ── DOM element references (populated by init) ────────────────────────────────
 
@@ -205,12 +205,17 @@ export function updateTrendChart() {
 }
 
 /**
- * Apply a brief colored flash to the stage to indicate correct/incorrect.
+ * Apply a brief colored flash to the stage to indicate correct/incorrect,
+ * then invoke an optional callback once the flash has cleared.
  *
  * @param {boolean} isSuccess
+ * @param {(() => void) | null} [onComplete] - Called after the flash clears.
  */
-function flashStageFeedback(isSuccess) {
-  if (!_stageEl) return;
+function flashStageFeedback(isSuccess, onComplete = null) {
+  if (!_stageEl) {
+    if (onComplete) onComplete();
+    return;
+  }
 
   _stageEl.classList.remove('dp-stage--flash-correct', 'dp-stage--flash-wrong');
   _stageEl.classList.add(
@@ -226,6 +231,7 @@ function flashStageFeedback(isSuccess) {
       _stageEl.classList.remove('dp-stage--flash-correct', 'dp-stage--flash-wrong');
     }
     _flashTimer = null;
+    if (onComplete) onComplete();
   }, FEEDBACK_FLASH_MS);
 }
 
@@ -351,16 +357,11 @@ export function handleDirectionResponse(direction) {
   setDirectionButtonsEnabled(false);
 
   const success = direction === _currentDirection;
-  const prevLevel = game.getCurrentLevel();
   game.recordTrial({ success });
-  if (game.getCurrentLevel() !== prevLevel) {
-    _colorFamily = pickColorFamily();
-  }
 
   updateStats();
   updateTrendChart();
   playFeedbackSound(success);
-  flashStageFeedback(success);
 
   if (success) {
     announce('Correct!');
@@ -370,12 +371,18 @@ export function handleDirectionResponse(direction) {
     announce(`Incorrect — direction was ${_currentDirection}.`);
   }
 
-  if (game.isRunning()) {
-    _nextTrialTimer = setTimeout(() => {
-      _nextTrialTimer = null;
-      startTrial();
-    }, INTER_TRIAL_DELAY_MS);
-  }
+  // After the flash: switch to a new color family, show its background, then
+  // wait POST_FLASH_PAUSE_MS before starting the next trial.
+  flashStageFeedback(success, () => {
+    _colorFamily = pickColorFamily();
+    if (_canvasEl) drawMask(_canvasEl, _colorFamily);
+    if (game.isRunning()) {
+      _nextTrialTimer = setTimeout(() => {
+        _nextTrialTimer = null;
+        startTrial();
+      }, POST_FLASH_PAUSE_MS);
+    }
+  });
 }
 
 /**

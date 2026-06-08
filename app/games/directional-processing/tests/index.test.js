@@ -230,8 +230,10 @@ describe('directional-processing plugin', () => {
       document.querySelector('#dp-btn-right').classList.contains('dp-dir-btn--correct'),
     ).toBe(true);
 
-    // Fire the inter-trial timer → startTrial() → clearDirectionHighlights().
-    jest.runOnlyPendingTimers();
+    // Fire flash timer → callback shows background → fires post-flash pause
+    // → startTrial() → clearDirectionHighlights().
+    jest.runOnlyPendingTimers(); // flash timer
+    jest.runOnlyPendingTimers(); // post-flash pause timer → startTrial
 
     expect(
       document.querySelector('#dp-btn-right').classList.contains('dp-dir-btn--correct'),
