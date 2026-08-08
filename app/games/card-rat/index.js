@@ -16,6 +16,7 @@ import {
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import { showTutorial, showTutorialIfNeeded } from '../../components/tutorialService.js';
 import { getDeckBackImagePath, getJokerImagePath, getStandardCardSpriteStyle } from './cardSvg.js';
 
 /** Human-readable plugin name. */
@@ -23,6 +24,34 @@ const name = 'Card Rat';
 
 /** Game ID used for progress persistence. */
 const GAME_ID = 'card-rat';
+
+/** Tutorial steps shown to first-time players (and via replay). */
+const TUTORIAL_STEPS = [
+  {
+    title: 'Welcome to Card Rat',
+    content: '<p>React quickly, but only slap when a valid target appears.</p>',
+  },
+  {
+    title: 'When to Slap',
+    content: [
+      '<ul>',
+      '<li>Pair: two cards in a row match.</li>',
+      '<li>Sandwich: one card between two matching ranks.</li>',
+      '<li>Joker: slap immediately.</li>',
+      '</ul>',
+    ].join(''),
+  },
+  {
+    title: 'How to Score',
+    content: [
+      '<p>Use <kbd>Space</kbd> or click the cards.</p>',
+      '<p>',
+      'Correct slaps build streaks and speed up the deck.',
+      'False alarms and misses cost momentum.',
+      '</p>',
+    ].join(''),
+  },
+];
 
 /** @type {HTMLElement|null} */
 let _container = null;
@@ -38,6 +67,9 @@ let _endPanelEl = null;
 
 /** @type {HTMLButtonElement|null} */
 let _startBtn = null;
+
+/** @type {HTMLButtonElement|null} */
+let _replayTutorialBtn = null;
 
 /** @type {HTMLButtonElement|null} */
 let _stopBtn = null;
@@ -122,6 +154,12 @@ let _dealTimer = null;
  * @type {boolean}
  */
 let _isGlobalKeyListenerAttached = false;
+
+/**
+ * Whether a tutorial launch call is currently in flight.
+ * @type {boolean}
+ */
+let _isTutorialLaunchPending = false;
 
 /**
  * Apply a card image URL to a card element.
@@ -359,6 +397,15 @@ export function showEndPanel(result) {
 }
 
 /**
+ * Return whether a tutorial overlay is currently visible.
+ *
+ * @returns {boolean}
+ */
+function isTutorialOpen() {
+  return Boolean(_container && _container.querySelector('.tutorial-overlay'));
+}
+
+/**
  * Initialize plugin DOM references and event listeners.
  *
  * @param {HTMLElement|null} gameContainer
@@ -372,6 +419,7 @@ function init(gameContainer) {
   _endPanelEl = _container.querySelector('#cr-end-panel');
 
   _startBtn = _container.querySelector('#cr-start-btn');
+  _replayTutorialBtn = _container.querySelector('#cr-replay-tutorial-btn');
   _stopBtn = _container.querySelector('#cr-stop-btn');
   _playAgainBtn = _container.querySelector('#cr-play-again-btn');
   _returnBtn = _container.querySelector('#cr-return-btn');
@@ -406,6 +454,7 @@ function init(gameContainer) {
   updateStats();
 
   if (_startBtn) _startBtn.addEventListener('click', start);
+  if (_replayTutorialBtn) _replayTutorialBtn.addEventListener('click', replayTutorial);
   if (_stopBtn) _stopBtn.addEventListener('click', stop);
   if (_playAgainBtn) _playAgainBtn.addEventListener('click', start);
   if (_returnBtn) _returnBtn.addEventListener('click', returnToMainMenu);
@@ -418,9 +467,9 @@ function init(gameContainer) {
 }
 
 /**
- * Start the Card Rat game.
+ * Start the Card Rat game session immediately (without tutorial gating).
  */
-function start() {
+function beginGameSession() {
   clearDealTimer();
   detachGlobalKeyListener();
 
@@ -449,6 +498,30 @@ function start() {
 
   renderDeckBack();
   beginDealLoop();
+}
+
+/**
+ * Start the Card Rat game, showing the tutorial if needed.
+ *
+ * @returns {Promise<void>}
+ */
+async function start() {
+  if (!_container || _isTutorialLaunchPending || isTutorialOpen()) return;
+
+  _isTutorialLaunchPending = true;
+  try {
+    await showTutorialIfNeeded(GAME_ID, TUTORIAL_STEPS, _container, beginGameSession);
+  } finally {
+    _isTutorialLaunchPending = false;
+  }
+}
+
+/**
+ * Replay the tutorial on demand, then start a fresh session.
+ */
+function replayTutorial() {
+  if (!_container || _isTutorialLaunchPending || isTutorialOpen()) return;
+  showTutorial(GAME_ID, TUTORIAL_STEPS, _container, beginGameSession);
 }
 
 /**

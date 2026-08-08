@@ -34,6 +34,17 @@ jest.unstable_mockModule('../../../components/trendChartService.js', () => ({
   renderTrendChart: jest.fn(),
 }));
 
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  showTutorial: jest.fn((_gameId, _steps, _container, onComplete) => {
+    if (typeof onComplete === 'function') onComplete();
+    return document.createElement('div');
+  }),
+  showTutorialIfNeeded: jest.fn(async (_gameId, _steps, _container, onComplete) => {
+    if (typeof onComplete === 'function') onComplete();
+    return null;
+  }),
+}));
+
 jest.unstable_mockModule('../game.js', () => ({
   RANKS: ['A', '2', '3'],
   SUITS: ['hearts', 'spades'],
@@ -79,6 +90,7 @@ const timerServiceMock = await import('../../../components/timerService.js');
 const saveScoreMock = await import('../../../components/scoreService.js');
 const audioMock = await import('../../../components/audioService.js');
 const trendChartServiceMock = await import('../../../components/trendChartService.js');
+const tutorialServiceMock = await import('../../../components/tutorialService.js');
 
 const indexModule = await import('../index.js');
 const plugin = indexModule.default;
@@ -107,6 +119,7 @@ function buildContainer() {
     <div id="cr-game-area" hidden></div>
     <div id="cr-end-panel" hidden></div>
     <button id="cr-start-btn"></button>
+    <button id="cr-replay-tutorial-btn"></button>
     <button id="cr-stop-btn"></button>
     <button id="cr-play-again-btn"></button>
     <button id="cr-return-btn"></button>
@@ -213,6 +226,22 @@ describe('init', () => {
 });
 
 describe('start', () => {
+  test('calls showTutorialIfNeeded before starting gameplay', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+
+    await plugin.start();
+
+    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledWith(
+      'card-rat',
+      expect.any(Array),
+      container,
+      expect.any(Function),
+    );
+    expect(container.querySelector('#cr-game-area').hidden).toBe(false);
+    expect(container.querySelector('#cr-instructions').hidden).toBe(true);
+  });
+
   test('shows game area and hides instructions', () => {
     const container = buildContainer();
     plugin.init(container);
@@ -287,6 +316,36 @@ describe('start', () => {
     jest.advanceTimersByTime(1200);
 
     expect(gameMock.dealNextCard).toHaveBeenCalled();
+  });
+});
+
+describe('tutorial replay', () => {
+  test('replay button calls showTutorial with current container', () => {
+    const container = buildContainer();
+    plugin.init(container);
+
+    container.querySelector('#cr-replay-tutorial-btn').click();
+
+    expect(tutorialServiceMock.showTutorial).toHaveBeenCalledWith(
+      'card-rat',
+      expect.any(Array),
+      container,
+      expect.any(Function),
+    );
+  });
+
+  test('replay button does nothing when tutorial overlay is already open', () => {
+    const container = buildContainer();
+    plugin.init(container);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'tutorial-overlay';
+    container.appendChild(overlay);
+    tutorialServiceMock.showTutorial.mockClear();
+
+    container.querySelector('#cr-replay-tutorial-btn').click();
+
+    expect(tutorialServiceMock.showTutorial).not.toHaveBeenCalled();
   });
 });
 
