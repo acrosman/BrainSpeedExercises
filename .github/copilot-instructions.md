@@ -254,6 +254,7 @@ Mock `electron-log` with `jest.unstable_mockModule('electron-log', ...)` in Node
 For renderer-side tests that exercise code which calls `logger.*`, set `global.window.api.invoke`
 to a `jest.fn()` and assert on `'log:send'` calls, or simply verify the call count is correct.
 
+
 ---
 
 ### 5b — Shared Game Screen Components
@@ -302,8 +303,107 @@ See `app/games/_template/interface.html` for a complete annotated example.
 
 ---
 
+### 5d — Tutorial Service (`app/components/tutorialService.js`)
 
-All files and functions must include JSDoc comments. Use descriptive names for variables and functions. Use US English spelling (e.g. "initialize" not "initialise").
+All games **may** offer a tutorial shown automatically the first time the player opens the game.
+The Tutorial Service provides a shared framework so every game's tutorial looks and behaves the
+same way, with no repeated boilerplate.
+
+#### Stored state
+
+Tutorial seen-state is persisted under the top-level `tutorials` key of the player's progress
+file — separate from game scores stored under `games`. The key for each game is its manifest `id`:
+
+```json
+{
+  "playerId": "default",
+  "games": { ... },
+  "tutorials": {
+    "my-game-id": true
+  }
+}
+```
+
+#### Defining tutorial steps
+
+Define tutorial steps as an array of `{ title, content }` objects. `content` may contain inline
+HTML (e.g. `<strong>`, `<kbd>`, `<ul>`).
+
+```js
+const TUTORIAL_STEPS = [
+  {
+    title: 'Welcome to My Game',
+    content: '<p>Match the pattern before the timer runs out.</p>',
+  },
+  {
+    title: 'Scoring',
+    content: '<p>Each correct match earns <strong>10 points</strong>.</p>',
+  },
+  {
+    title: 'Controls',
+    content: '<ul><li>Click a card to select it.</li><li>Press <kbd>Esc</kbd> to end early.</li></ul>',
+  },
+];
+```
+
+#### Typical `init()` usage
+
+Call `showTutorialIfNeeded` at the end of your plugin's `init()` function. It will show the
+overlay the first time the player opens the game and call your callback when done (or
+immediately if the tutorial has already been seen):
+
+```js
+import { showTutorialIfNeeded } from '../../components/tutorialService.js';
+
+async function init(gameContainer) {
+  // ... bind DOM elements and event listeners ...
+
+  await showTutorialIfNeeded('my-game-id', TUTORIAL_STEPS, gameContainer, () => {
+    // Called when the player finishes or skips the tutorial.
+    // Optionally auto-start the game here.
+  });
+}
+```
+
+#### Public API
+
+| Function | Purpose |
+|---|---|
+| `showTutorialIfNeeded(gameId, steps, container, onComplete?)` | Show overlay if tutorial not yet seen; call `onComplete` immediately if already seen. **Primary entry point.** |
+| `showTutorial(gameId, steps, container, onComplete?)` | Always show the overlay (bypasses seen-check). |
+| `hasTutorialBeenSeen(gameId)` | `Promise<boolean>` — check seen state without showing the overlay. |
+| `markTutorialSeen(gameId)` | `Promise<void>` — mark tutorial seen without showing the overlay. |
+| `createTutorialOverlay(steps)` | Build and return the overlay DOM element (not yet appended). |
+| `renderTutorialStep(overlay, steps, stepIndex)` | Update an existing overlay for the given step index. |
+
+#### CSS classes
+
+The overlay is styled with classes from `app/styles/game-shared.css`. Do **not** duplicate these
+styles in game stylesheets.
+
+| Class | Purpose |
+|---|---|
+| `.tutorial-overlay` | Full-screen wrapper (positions backdrop + panel) |
+| `.tutorial-overlay__backdrop` | Semi-transparent scrim |
+| `.tutorial-overlay__panel` | White card holding tutorial content |
+| `.tutorial-overlay__step-indicator` | "Step N of M" counter |
+| `.tutorial-overlay__title` | Step heading |
+| `.tutorial-overlay__content` | Step body text / HTML |
+| `.tutorial-overlay__actions` | Prev / Next button row |
+| `.tutorial-overlay__btn` | Base nav button style |
+| `.tutorial-overlay__btn--primary` | "Next" / "Got it!" button |
+| `.tutorial-overlay__btn--secondary` | "Previous" button |
+| `.tutorial-overlay__skip` | "Skip Tutorial" link-style button |
+
+#### Testing
+
+Mock `logService.js` and provide a `globalThis.window.api.invoke` mock. Assert on
+`'progress:save'` payloads to verify `tutorials[gameId]` is set to `true` after the overlay
+is finished or skipped. See `app/components/tests/tutorialService.test.js` for full examples.
+
+---
+
+---l files and functions must include JSDoc comments. Use descriptive names for variables and functions. Use US English spelling (e.g. "initialize" not "initialise").
 
 When files get too large, break them into smaller modules. For example, if `index.js` exceeds 500 lines, consider moving game logic to `game.js` and UI rendering to `render.js`. Any file over 1000 lines is a red flag.
 
