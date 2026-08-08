@@ -428,4 +428,19 @@ describe('showTutorialIfNeeded', () => {
     await showTutorialIfNeeded('seen-game', SAMPLE_STEPS, container, onComplete);
     expect(onComplete).toHaveBeenCalledWith();
   });
+
+  test('does not throw when called without onComplete and tutorial is completed', async () => {
+    const { mock } = buildApiMock();
+    globalThis.window.api = { invoke: mock };
+    const container = makeContainer();
+
+    // No onComplete provided — the default () => {} must be invoked without error
+    // when the tutorial is finished (skip is clicked).
+    const overlay = await showTutorialIfNeeded('no-callback-game', SAMPLE_STEPS, container);
+    expect(overlay).not.toBeNull();
+
+    const skipBtn = overlay.querySelector('#tutorial-overlay-skip');
+    skipBtn.click();
+    await Promise.resolve();
+  });
 });
