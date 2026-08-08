@@ -440,6 +440,7 @@ describe('showTutorialIfNeeded', () => {
     expect(overlay).not.toBeNull();
 
     const skipBtn = overlay.querySelector('#tutorial-overlay-skip');
+    expect(skipBtn).not.toBeNull();
     skipBtn.click();
     await Promise.resolve();
   });
