@@ -23,14 +23,12 @@ export const TUTORIAL_STEPS = [
     content: [
       '<p>Use the guide to learn what to watch while cards are dealt:</p>',
       '<figure class="card-rat__tutorial-figure">',
-      '<img',
-      `  src="${TUTORIAL_SCREENSHOT_PATH}"`,
-      '  alt="Card Rat gameplay layout with score stats, card row, and controls."',
-      '  class="card-rat__tutorial-image"',
-      '>',
-      '<figcaption class="card-rat__tutorial-caption">',
-      '  Blue: live stats. Green: reaction cards. Orange: game controls.',
-      '</figcaption>',
+      '<div class="card-rat__tutorial-image-wrap">',
+      '  <img',
+      `    src="${TUTORIAL_SCREENSHOT_PATH}"`,
+      '    alt="Card Rat gameplay layout with score stats, card row, and controls."',
+      '    class="card-rat__tutorial-image"',
+      '  >',
       `
         <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--stats"
           aria-hidden="true"></span>
@@ -43,6 +41,10 @@ export const TUTORIAL_STEPS = [
         <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--controls"
           aria-hidden="true"></span>
       `,
+      '</div>',
+      '<figcaption class="card-rat__tutorial-caption">',
+      '  Blue: live stats. Green: reaction cards. Orange: game controls.',
+      '</figcaption>',
       '</figure>',
     ].join(''),
   },
