@@ -47,7 +47,7 @@ const FALLBACK_STEP_CONTENT = 'Tutorial content is temporarily unavailable.';
 let tutorialMarkupCache = new Map();
 
 /**
- * Clear cached screenshot step markup.
+ * Clear cached tutorial step markup.
  *
  * @returns {void}
  */
