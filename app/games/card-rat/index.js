@@ -18,40 +18,13 @@ import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import { showTutorial, showTutorialIfNeeded } from '../../components/tutorialService.js';
 import { getDeckBackImagePath, getJokerImagePath, getStandardCardSpriteStyle } from './cardSvg.js';
+import { TUTORIAL_STEPS } from './tutorial.js';
 
 /** Human-readable plugin name. */
 const name = 'Card Rat';
 
 /** Game ID used for progress persistence. */
 const GAME_ID = 'card-rat';
-
-/** Tutorial steps shown to first-time players (and via replay). */
-const TUTORIAL_STEPS = [
-  {
-    title: 'Welcome to Card Rat',
-    content: '<p>React quickly, but only slap when a valid target appears.</p>',
-  },
-  {
-    title: 'When to Slap',
-    content: [
-      '<ul>',
-      '<li>Pair: two cards in a row match.</li>',
-      '<li>Sandwich: one card between two matching ranks.</li>',
-      '<li>Joker: slap immediately.</li>',
-      '</ul>',
-    ].join(''),
-  },
-  {
-    title: 'How to Score',
-    content: [
-      '<p>Use <kbd>Space</kbd> or click the cards.</p>',
-      '<p>',
-      'Correct slaps build streaks and speed up the deck.',
-      'False alarms and misses cost momentum.',
-      '</p>',
-    ].join(''),
-  },
-];
 
 /** @type {HTMLElement|null} */
 let _container = null;

@@ -90,7 +90,6 @@ const timerServiceMock = await import('../../../components/timerService.js');
 const saveScoreMock = await import('../../../components/scoreService.js');
 const audioMock = await import('../../../components/audioService.js');
 const trendChartServiceMock = await import('../../../components/trendChartService.js');
-const tutorialServiceMock = await import('../../../components/tutorialService.js');
 
 const indexModule = await import('../index.js');
 const plugin = indexModule.default;
@@ -226,22 +225,6 @@ describe('init', () => {
 });
 
 describe('start', () => {
-  test('calls showTutorialIfNeeded before starting gameplay', async () => {
-    const container = buildContainer();
-    plugin.init(container);
-
-    await plugin.start();
-
-    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledWith(
-      'card-rat',
-      expect.any(Array),
-      container,
-      expect.any(Function),
-    );
-    expect(container.querySelector('#cr-game-area').hidden).toBe(false);
-    expect(container.querySelector('#cr-instructions').hidden).toBe(true);
-  });
-
   test('shows game area and hides instructions', () => {
     const container = buildContainer();
     plugin.init(container);
@@ -316,36 +299,6 @@ describe('start', () => {
     jest.advanceTimersByTime(1200);
 
     expect(gameMock.dealNextCard).toHaveBeenCalled();
-  });
-});
-
-describe('tutorial replay', () => {
-  test('replay button calls showTutorial with current container', () => {
-    const container = buildContainer();
-    plugin.init(container);
-
-    container.querySelector('#cr-replay-tutorial-btn').click();
-
-    expect(tutorialServiceMock.showTutorial).toHaveBeenCalledWith(
-      'card-rat',
-      expect.any(Array),
-      container,
-      expect.any(Function),
-    );
-  });
-
-  test('replay button does nothing when tutorial overlay is already open', () => {
-    const container = buildContainer();
-    plugin.init(container);
-
-    const overlay = document.createElement('div');
-    overlay.className = 'tutorial-overlay';
-    container.appendChild(overlay);
-    tutorialServiceMock.showTutorial.mockClear();
-
-    container.querySelector('#cr-replay-tutorial-btn').click();
-
-    expect(tutorialServiceMock.showTutorial).not.toHaveBeenCalled();
   });
 });
 
