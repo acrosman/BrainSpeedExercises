@@ -20,27 +20,10 @@ import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import { showTutorial, showTutorialIfNeeded } from '../../components/tutorialService.js';
+import { getTutorialSteps } from './tutorial/tutorial.js';
 
 /** Game identifier used for progress persistence (must match manifest.json id). */
 const GAME_ID = 'directional-processing';
-
-/** Tutorial steps shown before a player's first session. */
-const TUTORIAL_STEPS = [
-  {
-    title: 'Welcome to Directional Processing',
-    content: '<p>Train your visual system to detect motion direction under speed pressure.</p>',
-  },
-  {
-    title: 'What to Look For',
-    content: '<p>A moving pattern flashes briefly, then disappears behind a mask.</p>',
-  },
-  {
-    title: 'How to Respond',
-    content: '<ul><li>Use Arrow keys or direction buttons.</li>'
-      + '<li>Answer after the mask appears.</li>'
-      + '<li>Build streaks to move up levels.</li></ul>',
-  },
-];
 
 // ── Timing constants ──────────────────────────────────────────────────────────
 
@@ -564,7 +547,8 @@ async function start() {
 
   _isTutorialLaunchPending = true;
   try {
-    await showTutorialIfNeeded(GAME_ID, TUTORIAL_STEPS, _container, () => {
+    const tutorialSteps = await getTutorialSteps();
+    await showTutorialIfNeeded(GAME_ID, tutorialSteps, _container, () => {
       _isTutorialLaunchPending = false;
       beginGameSession();
     });
@@ -579,12 +563,13 @@ async function start() {
  *
  * @returns {Promise<void>}
  */
-function replayTutorial() {
+async function replayTutorial() {
   if (!_container || _isTutorialLaunchPending || isTutorialOpen()) return;
 
   _isTutorialLaunchPending = true;
   try {
-    showTutorial(GAME_ID, TUTORIAL_STEPS, _container, () => {
+    const tutorialSteps = await getTutorialSteps();
+    await showTutorial(GAME_ID, tutorialSteps, _container, () => {
       _isTutorialLaunchPending = false;
       beginGameSession();
     });
