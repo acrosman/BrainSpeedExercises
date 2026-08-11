@@ -55,11 +55,23 @@ jest.unstable_mockModule('../../../components/scoreService.js', () => ({
   saveScore: jest.fn(),
 }));
 
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  showTutorial: jest.fn((_gameId, _steps, _container, onComplete) => {
+    if (typeof onComplete === 'function') onComplete();
+    return document.createElement('div');
+  }),
+  showTutorialIfNeeded: jest.fn(async (_gameId, _steps, _container, onComplete) => {
+    if (typeof onComplete === 'function') onComplete();
+    return null;
+  }),
+}));
+
 const pluginModule = await import('../index.js');
 const plugin = pluginModule.default;
 const { announce, updateStats, handleKeyDown } = pluginModule;
 const gameMock        = await import('../game.js');
 const scoreServiceMock = await import('../../../components/scoreService.js');
+const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const gaborMock       = await import('../gabor.js');
 
 // ── DOM helper ────────────────────────────────────────────────────────────────
@@ -88,6 +100,7 @@ function buildContainer() {
     <button id="dp-btn-left" type="button">Left</button>
     <button id="dp-btn-right" type="button">Right</button>
     <button id="dp-start-btn" type="button">Start</button>
+    <button id="dp-replay-tutorial-btn" type="button">Replay Tutorial</button>
     <button id="dp-stop-btn" type="button">Stop</button>
     <button id="dp-play-again-btn" type="button">Play Again</button>
     <button id="dp-return-btn" type="button">Return</button>
@@ -166,6 +179,16 @@ describe('directional-processing plugin', () => {
     gameMock.startGame.mockClear();
     plugin.start();
     expect(gameMock.startGame).toHaveBeenCalled();
+  });
+
+  it('start calls showTutorialIfNeeded with directional-processing tutorial steps', () => {
+    plugin.start();
+    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledWith(
+      'directional-processing',
+      expect.any(Array),
+      expect.any(HTMLElement),
+      expect.any(Function),
+    );
   });
 
   it('start triggers the stimulus phase (getDirectionParams called for the trial)', () => {
@@ -528,6 +551,17 @@ describe('directional-processing plugin', () => {
     gameMock.startGame.mockClear();
     document.querySelector('#dp-play-again-btn').click();
     expect(gameMock.startGame).toHaveBeenCalled();
+  });
+
+  it('replay tutorial button calls showTutorial with game container', () => {
+    tutorialServiceMock.showTutorial.mockClear();
+    document.querySelector('#dp-replay-tutorial-btn').click();
+    expect(tutorialServiceMock.showTutorial).toHaveBeenCalledWith(
+      'directional-processing',
+      expect.any(Array),
+      expect.any(HTMLElement),
+      expect.any(Function),
+    );
   });
 
   it('return button dispatches bsx:return-to-main-menu event', () => {
