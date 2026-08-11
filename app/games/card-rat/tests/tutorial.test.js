@@ -80,7 +80,7 @@ jest.unstable_mockModule('../game.js', () => ({
 
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const plugin = (await import('../index.js')).default;
-const { TUTORIAL_STEPS } = await import('../tutorial.js');
+const tutorialModule = await import('../tutorial.js');
 
 /**
  * Build a minimal game container with tutorial action controls.
@@ -126,18 +126,32 @@ function buildContainer() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    text: async () => `
+      <figure class="card-rat__tutorial-figure">
+        <img src="./games/card-rat/images/tutorialScreenshot.png" class="card-rat__tutorial-image">
+        <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--stats"></span>
+        <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--cards"></span>
+        <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--controls"></span>
+      </figure>
+    `,
+  }));
 });
 
 afterEach(() => {
   document.body.innerHTML = '';
+  delete global.fetch;
 });
 
 describe('Card Rat tutorial content', () => {
-  test('includes screenshot step with highlighted gameplay regions', () => {
-    const screenshotStep = TUTORIAL_STEPS.find(
+  test('loads screenshot step from dedicated HTML markup file', async () => {
+    const tutorialSteps = await tutorialModule.getTutorialSteps();
+    const screenshotStep = tutorialSteps.find(
       (step) => step.title === 'Find the Main Play Area',
     );
 
+    expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-screenshot-step.html');
     expect(screenshotStep).toBeDefined();
     expect(screenshotStep.content).toContain('tutorialScreenshot.png');
     expect(screenshotStep.content).toContain('card-rat__tutorial-highlight--stats');
@@ -163,11 +177,14 @@ describe('Card Rat tutorial flow', () => {
     expect(container.querySelector('#cr-instructions').hidden).toBe(true);
   });
 
-  test('replay button calls showTutorial with current container', () => {
+  test('replay button calls showTutorial with current container', async () => {
     const container = buildContainer();
     plugin.init(container);
 
     container.querySelector('#cr-replay-tutorial-btn').click();
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
 
     expect(tutorialServiceMock.showTutorial).toHaveBeenCalledWith(
       'card-rat',

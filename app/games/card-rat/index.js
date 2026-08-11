@@ -18,7 +18,7 @@ import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import { showTutorial, showTutorialIfNeeded } from '../../components/tutorialService.js';
 import { getDeckBackImagePath, getJokerImagePath, getStandardCardSpriteStyle } from './cardSvg.js';
-import { TUTORIAL_STEPS } from './tutorial.js';
+import { getTutorialSteps } from './tutorial.js';
 
 /** Human-readable plugin name. */
 const name = 'Card Rat';
@@ -483,7 +483,8 @@ async function start() {
 
   _isTutorialLaunchPending = true;
   try {
-    await showTutorialIfNeeded(GAME_ID, TUTORIAL_STEPS, _container, beginGameSession);
+    const tutorialSteps = await getTutorialSteps();
+    await showTutorialIfNeeded(GAME_ID, tutorialSteps, _container, beginGameSession);
   } finally {
     _isTutorialLaunchPending = false;
   }
@@ -492,9 +493,15 @@ async function start() {
 /**
  * Replay the tutorial on demand, then start a fresh session.
  */
-function replayTutorial() {
+async function replayTutorial() {
   if (!_container || _isTutorialLaunchPending || isTutorialOpen()) return;
-  showTutorial(GAME_ID, TUTORIAL_STEPS, _container, beginGameSession);
+  _isTutorialLaunchPending = true;
+  try {
+    const tutorialSteps = await getTutorialSteps();
+    showTutorial(GAME_ID, tutorialSteps, _container, beginGameSession);
+  } finally {
+    _isTutorialLaunchPending = false;
+  }
 }
 
 /**
