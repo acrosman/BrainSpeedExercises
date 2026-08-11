@@ -4,7 +4,7 @@
  * @file Card Rat tutorial content.
  */
 
-import { logger } from '../../components/logService.js';
+import { logger } from '../../../components/logService.js';
 
 /**
  * Ordered Card Rat tutorial step definitions.
@@ -15,19 +15,23 @@ import { logger } from '../../components/logService.js';
 const TUTORIAL_STEP_DEFINITIONS = [
   {
     title: 'Welcome to Card Rat',
-    contentPath: './games/card-rat/tutorial-step-welcome.html',
+    contentPath: './games/card-rat/tutorial/tutorial-step-welcome.html',
   },
   {
     title: 'Find the Main Play Area',
-    contentPath: './games/card-rat/tutorial-screenshot-step.html',
-  },
-  {
-    title: 'When to Slap',
-    contentPath: './games/card-rat/tutorial-step-when-to-slap.html',
+    contentPath: './games/card-rat/tutorial/tutorial-screenshot-step.html',
   },
   {
     title: 'How to Score',
-    contentPath: './games/card-rat/tutorial-step-how-to-score.html',
+    contentPath: './games/card-rat/tutorial/tutorial-step-how-to-score.html',
+  },
+  {
+    title: 'When to Slap',
+    contentPath: './games/card-rat/tutorial/tutorial-step-when-to-slap.html',
+  },
+  {
+    title: 'Game Controls',
+    contentPath: './games/card-rat/tutorial/tutorial-step-game-controls.html',
   },
 ];
 

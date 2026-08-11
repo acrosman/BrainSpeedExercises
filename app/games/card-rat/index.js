@@ -18,7 +18,7 @@ import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import { showTutorial, showTutorialIfNeeded } from '../../components/tutorialService.js';
 import { getDeckBackImagePath, getJokerImagePath, getStandardCardSpriteStyle } from './cardSvg.js';
-import { getTutorialSteps } from './tutorial.js';
+import { getTutorialSteps } from './tutorial/tutorial.js';
 
 /** Human-readable plugin name. */
 const name = 'Card Rat';

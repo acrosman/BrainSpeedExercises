@@ -80,7 +80,7 @@ jest.unstable_mockModule('../game.js', () => ({
 
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const plugin = (await import('../index.js')).default;
-const tutorialModule = await import('../tutorial.js');
+const tutorialModule = await import('../tutorial/tutorial.js');
 
 /**
  * Build a minimal game container with tutorial action controls.
