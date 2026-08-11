@@ -7,19 +7,44 @@
 import { logger } from '../../components/logService.js';
 
 /**
- * Card Rat tutorial screenshot markup file path.
- * Path is renderer-root relative so it resolves from app/index.html.
+ * Ordered Card Rat tutorial step definitions.
+ * Each step stores only metadata and an external HTML content file path.
+ *
+ * @type {Array<{title: string, contentPath: string}>}
+ */
+const TUTORIAL_STEP_DEFINITIONS = [
+  {
+    title: 'Welcome to Card Rat',
+    contentPath: './games/card-rat/tutorial-step-welcome.html',
+  },
+  {
+    title: 'Find the Main Play Area',
+    contentPath: './games/card-rat/tutorial-screenshot-step.html',
+  },
+  {
+    title: 'When to Slap',
+    contentPath: './games/card-rat/tutorial-step-when-to-slap.html',
+  },
+  {
+    title: 'How to Score',
+    contentPath: './games/card-rat/tutorial-step-how-to-score.html',
+  },
+];
+
+/**
+ * Fallback content shown if a tutorial step file cannot be loaded.
+ * This intentionally uses plain text only (no HTML markup).
  *
  * @type {string}
  */
-const SCREENSHOT_MARKUP_PATH = './games/card-rat/tutorial-screenshot-step.html';
+const FALLBACK_STEP_CONTENT = 'Tutorial content is temporarily unavailable.';
 
 /**
- * Cached markup for the screenshot step.
+ * Cached markup for tutorial step files.
  *
- * @type {string|null}
+ * @type {Map<string, string>}
  */
-let screenshotStepMarkupCache = null;
+let tutorialMarkupCache = new Map();
 
 /**
  * Clear cached screenshot step markup.
@@ -27,32 +52,33 @@ let screenshotStepMarkupCache = null;
  * @returns {void}
  */
 export function clearTutorialMarkupCache() {
-  screenshotStepMarkupCache = null;
+  tutorialMarkupCache = new Map();
 }
 
 /**
- * Fetch screenshot step markup from its dedicated HTML file.
+ * Fetch tutorial step markup from a dedicated HTML file.
  *
+ * @param {string} contentPath
  * @returns {Promise<string>}
  */
-async function loadScreenshotStepMarkup() {
-  if (screenshotStepMarkupCache !== null) {
-    return screenshotStepMarkupCache;
+async function loadStepMarkup(contentPath) {
+  if (tutorialMarkupCache.has(contentPath)) {
+    return tutorialMarkupCache.get(contentPath);
   }
 
   try {
-    const response = await fetch(SCREENSHOT_MARKUP_PATH);
+    const response = await fetch(contentPath);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    screenshotStepMarkupCache = await response.text();
+    tutorialMarkupCache.set(contentPath, await response.text());
   } catch (error) {
-    logger.warn('Card Rat tutorial screenshot markup failed to load', error);
-    screenshotStepMarkupCache = '<p>Tutorial screenshot is temporarily unavailable.</p>';
+    logger.warn(`Card Rat tutorial markup failed to load: ${contentPath}`, error);
+    tutorialMarkupCache.set(contentPath, FALLBACK_STEP_CONTENT);
   }
 
-  return screenshotStepMarkupCache;
+  return tutorialMarkupCache.get(contentPath);
 }
 
 /**
@@ -61,36 +87,11 @@ async function loadScreenshotStepMarkup() {
  * @returns {Promise<Array<{title: string, content: string}>>}
  */
 export async function getTutorialSteps() {
-  const screenshotStepMarkup = await loadScreenshotStepMarkup();
-
-  return [
-    {
-      title: 'Welcome to Card Rat',
-      content: '<p>React quickly, but only slap when a valid target appears.</p>',
-    },
-    {
-      title: 'Find the Main Play Area',
-      content: screenshotStepMarkup,
-    },
-    {
-      title: 'When to Slap',
-      content: [
-        '<ul>',
-        '<li>Pair: two cards in a row match.</li>',
-        '<li>Sandwich: one card between two matching ranks.</li>',
-        '<li>Joker: slap immediately.</li>',
-        '</ul>',
-      ].join(''),
-    },
-    {
-      title: 'How to Score',
-      content: [
-        '<p>Use <kbd>Space</kbd> or click the cards.</p>',
-        '<p>',
-        'Correct slaps build streaks and speed up the deck.',
-        'False alarms and misses cost momentum.',
-        '</p>',
-      ].join(''),
-    },
-  ];
+  const steps = await Promise.all(
+    TUTORIAL_STEP_DEFINITIONS.map(async ({ title, contentPath }) => ({
+      title,
+      content: await loadStepMarkup(contentPath),
+    })),
+  );
+  return steps;
 }

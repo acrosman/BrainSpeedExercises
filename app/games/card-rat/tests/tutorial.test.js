@@ -127,16 +127,18 @@ function buildContainer() {
 beforeEach(() => {
   jest.clearAllMocks();
   tutorialModule.clearTutorialMarkupCache();
-  global.fetch = jest.fn(async () => ({
+  global.fetch = jest.fn(async (path) => ({
     ok: true,
-    text: async () => `
-      <figure class="card-rat__tutorial-figure">
-        <img src="./games/card-rat/images/tutorialScreenshot.png" class="card-rat__tutorial-image">
-        <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--stats"></span>
-        <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--cards"></span>
-        <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--controls"></span>
-      </figure>
-    `,
+    text: async () => (path === './games/card-rat/tutorial-screenshot-step.html'
+      ? `
+        <figure class="card-rat__tutorial-figure">
+          <img src="./games/card-rat/images/tutorialScreenshot.png" class="card-rat__tutorial-image">
+          <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--stats"></span>
+          <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--cards"></span>
+          <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--controls"></span>
+        </figure>
+      `
+      : '<p>mock step</p>'),
   }));
 });
 
@@ -152,7 +154,11 @@ describe('Card Rat tutorial content', () => {
       (step) => step.title === 'Find the Main Play Area',
     );
 
+    expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-step-welcome.html');
     expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-screenshot-step.html');
+    expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-step-when-to-slap.html');
+    expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-step-how-to-score.html');
+    expect(tutorialSteps).toHaveLength(4);
     expect(screenshotStep).toBeDefined();
     expect(screenshotStep.content).toContain('tutorialScreenshot.png');
     expect(screenshotStep.content).toContain('card-rat__tutorial-highlight--stats');

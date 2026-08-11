@@ -45,6 +45,13 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   }),
 }));
 
+jest.unstable_mockModule('../tutorial.js', () => ({
+  getTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Card Rat', content: '<p>Welcome</p>' },
+    { title: 'Find the Main Play Area', content: '<p>Layout</p>' },
+  ]),
+}));
+
 jest.unstable_mockModule('../game.js', () => ({
   RANKS: ['A', '2', '3'],
   SUITS: ['hearts', 'spades'],
@@ -225,10 +232,10 @@ describe('init', () => {
 });
 
 describe('start', () => {
-  test('shows game area and hides instructions', () => {
+  test('shows game area and hides instructions', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     expect(container.querySelector('#cr-game-area').hidden).toBe(false);
     expect(container.querySelector('#cr-instructions').hidden).toBe(true);
@@ -236,28 +243,28 @@ describe('start', () => {
     expect(gameMock.startGame).toHaveBeenCalled();
   });
 
-  test('beginDealLoop schedules next deal', () => {
+  test('beginDealLoop schedules next deal', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(gameMock.dealNextCard).toHaveBeenCalled();
     expect(container.querySelector('#cr-feedback').textContent).toContain('sandwich');
   });
 
-  test('beginDealLoop plays card flick sound on each deal', () => {
+  test('beginDealLoop plays card flick sound on each deal', async () => {
     const container = buildContainer();
     plugin.init(container);
     audioMock.playCardFlickSound.mockClear();
-    plugin.start();
+    await plugin.start();
     expect(audioMock.playCardFlickSound).toHaveBeenCalled();
   });
 
-  test('beginDealLoop skips card sound when card sound toggle is off', () => {
+  test('beginDealLoop skips card sound when card sound toggle is off', async () => {
     const container = buildContainer();
     plugin.init(container);
     container.querySelector('#cr-card-sound-toggle').checked = false;
     audioMock.playCardFlickSound.mockClear();
-    plugin.start();
+    await plugin.start();
     expect(audioMock.playCardFlickSound).not.toHaveBeenCalled();
   });
 
@@ -279,10 +286,10 @@ describe('start', () => {
     expect(audioMock.playFailureSound).toHaveBeenCalled();
   });
 
-  test('Space key on document reacts without card focus', () => {
+  test('Space key on document reacts without card focus', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true });
     document.dispatchEvent(event);
@@ -290,10 +297,10 @@ describe('start', () => {
     expect(gameMock.respondToCurrentCard).toHaveBeenCalled();
   });
 
-  test('deal loop timer callback continues the loop', () => {
+  test('deal loop timer callback continues the loop', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     gameMock.dealNextCard.mockClear();
     jest.advanceTimersByTime(1200);
@@ -303,10 +310,10 @@ describe('start', () => {
 });
 
 describe('reaction handlers', () => {
-  test('handleReaction plays success sound on hit', () => {
+  test('handleReaction plays success sound on hit', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     gameMock.respondToCurrentCard.mockReturnValueOnce('hit');
     handleReaction();
@@ -314,10 +321,10 @@ describe('reaction handlers', () => {
     expect(audioMock.playSuccessSound).toHaveBeenCalled();
   });
 
-  test('handleReaction plays failure sound on false alarm', () => {
+  test('handleReaction plays failure sound on false alarm', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     gameMock.respondToCurrentCard.mockReturnValueOnce('false-alarm');
     handleReaction();
@@ -331,30 +338,30 @@ describe('reaction handlers', () => {
     expect(event.preventDefault).not.toHaveBeenCalled();
   });
 
-  test('handleKeyDown triggers on space key', () => {
+  test('handleKeyDown triggers on space key', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     const event = { key: ' ', preventDefault: jest.fn() };
     handleKeyDown(event);
     expect(event.preventDefault).toHaveBeenCalled();
   });
 
-  test('handleKeyDown accepts legacy "Space" key value', () => {
+  test('handleKeyDown accepts legacy "Space" key value', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     const event = { key: 'Space', preventDefault: jest.fn() };
     handleKeyDown(event);
     expect(event.preventDefault).toHaveBeenCalled();
   });
 
-  test('handleKeyDown accepts legacy "Spacebar" key value', () => {
+  test('handleKeyDown accepts legacy "Spacebar" key value', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     const event = { key: 'Spacebar', preventDefault: jest.fn() };
     handleKeyDown(event);
@@ -413,7 +420,7 @@ describe('stop and reset', () => {
   test('stop returns game result and shows end panel', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     const result = plugin.stop();
     await Promise.resolve();
@@ -438,10 +445,10 @@ describe('stop and reset', () => {
     expect(result).toMatchObject({ score: 3, triggerHits: 2 });
   });
 
-  test('reset returns to instructions panel', () => {
+  test('reset returns to instructions panel', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     plugin.reset();
 
