@@ -2,6 +2,9 @@
 
 .card-rat {
   --card-rat-card-gap: 0.65rem;
+  --card-rat-tutorial-highlight-stats: #1976d2;
+  --card-rat-tutorial-highlight-cards: #2e7d32;
+  --card-rat-tutorial-highlight-controls: #ed6c02;
 
   display: flex;
   flex-direction: column;
@@ -13,6 +16,13 @@
 
 .card-rat h2 {
   margin: 0;
+}
+
+.card-rat__instruction-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .card-rat__game-area {
@@ -67,7 +77,7 @@
   transform: rotate(-8deg);
 }
 
-@media (width <= 720px) {
+@media (width <=720px) {
   .card-rat__card {
     width: min(50vw, 158px);
   }
@@ -96,4 +106,51 @@
   gap: 0.35rem;
   font-size: 0.95rem;
   font-weight: 600;
+}
+
+.card-rat__tutorial-figure {
+  margin: 0.75rem 0 0;
+}
+
+.card-rat__tutorial-image-wrap {
+  position: relative;
+}
+
+.card-rat__tutorial-image {
+  display: block;
+  width: 100%;
+  max-width: 540px;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+}
+
+.card-rat__tutorial-caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.card-rat__tutorial-highlight {
+  position: absolute;
+  border-radius: 10px;
+  border: 4px solid;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card-rat__tutorial-highlight--stats {
+  left: 7.5%;
+  top: 9%;
+  width: 84.5%;
+  height: 8%;
+  border-color: var(--card-rat-tutorial-highlight-stats, #1976d2);
+  background: rgb(25 118 210 / 16%);
+}
+
+.card-rat__tutorial-highlight--controls {
+  left: 29%;
+  top: 55%;
+  width: 40%;
+  height: 9%;
+  border-color: var(--card-rat-tutorial-highlight-controls, #ed6c02);
+  background: rgb(237 108 2 / 16%);
 }
