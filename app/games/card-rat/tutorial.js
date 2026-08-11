@@ -22,6 +22,15 @@ const SCREENSHOT_MARKUP_PATH = './games/card-rat/tutorial-screenshot-step.html';
 let screenshotStepMarkupCache = null;
 
 /**
+ * Clear cached screenshot step markup.
+ *
+ * @returns {void}
+ */
+export function clearTutorialMarkupCache() {
+  screenshotStepMarkupCache = null;
+}
+
+/**
  * Fetch screenshot step markup from its dedicated HTML file.
  *
  * @returns {Promise<string>}

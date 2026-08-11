@@ -126,6 +126,7 @@ function buildContainer() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  tutorialModule.clearTutorialMarkupCache();
   global.fetch = jest.fn(async () => ({
     ok: true,
     text: async () => `
