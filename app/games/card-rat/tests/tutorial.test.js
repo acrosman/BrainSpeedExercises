@@ -129,12 +129,11 @@ beforeEach(() => {
   tutorialModule.clearTutorialMarkupCache();
   global.fetch = jest.fn(async (path) => ({
     ok: true,
-    text: async () => (path === './games/card-rat/tutorial-screenshot-step.html'
+    text: async () => (path === './games/card-rat/tutorial/tutorial-screenshot-step.html'
       ? `
         <figure class="card-rat__tutorial-figure">
           <img src="./games/card-rat/images/tutorialScreenshot.png" class="card-rat__tutorial-image">
           <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--stats"></span>
-          <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--cards"></span>
           <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--controls"></span>
         </figure>
       `
@@ -154,15 +153,20 @@ describe('Card Rat tutorial content', () => {
       (step) => step.title === 'Find the Main Play Area',
     );
 
-    expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-step-welcome.html');
-    expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-screenshot-step.html');
-    expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-step-when-to-slap.html');
-    expect(global.fetch).toHaveBeenCalledWith('./games/card-rat/tutorial-step-how-to-score.html');
-    expect(tutorialSteps).toHaveLength(4);
+    expect(global.fetch).toHaveBeenCalledWith(
+      './games/card-rat/tutorial/tutorial-step-welcome.html');
+    expect(global.fetch).toHaveBeenCalledWith(
+      './games/card-rat/tutorial/tutorial-screenshot-step.html');
+    expect(global.fetch).toHaveBeenCalledWith(
+      './games/card-rat/tutorial/tutorial-step-when-to-slap.html');
+    expect(global.fetch).toHaveBeenCalledWith(
+      './games/card-rat/tutorial/tutorial-step-game-controls.html');
+    expect(global.fetch).toHaveBeenCalledWith(
+      './games/card-rat/tutorial/tutorial-step-how-to-score.html');
+    expect(tutorialSteps).toHaveLength(5);
     expect(screenshotStep).toBeDefined();
     expect(screenshotStep.content).toContain('tutorialScreenshot.png');
     expect(screenshotStep.content).toContain('card-rat__tutorial-highlight--stats');
-    expect(screenshotStep.content).toContain('card-rat__tutorial-highlight--cards');
     expect(screenshotStep.content).toContain('card-rat__tutorial-highlight--controls');
   });
 });

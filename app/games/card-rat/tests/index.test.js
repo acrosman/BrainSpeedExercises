@@ -45,7 +45,7 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   }),
 }));
 
-jest.unstable_mockModule('../tutorial.js', () => ({
+jest.unstable_mockModule('../tutorial/tutorial.js', () => ({
   getTutorialSteps: jest.fn(async () => [
     { title: 'Welcome to Card Rat', content: '<p>Welcome</p>' },
     { title: 'Find the Main Play Area', content: '<p>Layout</p>' },
