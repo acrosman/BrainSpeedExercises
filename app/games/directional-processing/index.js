@@ -564,9 +564,13 @@ async function start() {
 
   _isTutorialLaunchPending = true;
   try {
-    await showTutorialIfNeeded(GAME_ID, TUTORIAL_STEPS, _container, beginGameSession);
-  } finally {
+    await showTutorialIfNeeded(GAME_ID, TUTORIAL_STEPS, _container, () => {
+      _isTutorialLaunchPending = false;
+      beginGameSession();
+    });
+  } catch (error) {
     _isTutorialLaunchPending = false;
+    throw error;
   }
 }
 
@@ -575,14 +579,18 @@ async function start() {
  *
  * @returns {Promise<void>}
  */
-async function replayTutorial() {
+function replayTutorial() {
   if (!_container || _isTutorialLaunchPending || isTutorialOpen()) return;
 
   _isTutorialLaunchPending = true;
   try {
-    showTutorial(GAME_ID, TUTORIAL_STEPS, _container, beginGameSession);
-  } finally {
+    showTutorial(GAME_ID, TUTORIAL_STEPS, _container, () => {
+      _isTutorialLaunchPending = false;
+      beginGameSession();
+    });
+  } catch (error) {
     _isTutorialLaunchPending = false;
+    throw error;
   }
 }
 
