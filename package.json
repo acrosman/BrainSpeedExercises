@@ -44,7 +44,7 @@
     "@electron-forge/publisher-github": "^7",
     "@jest/globals": "^29",
     "babel-jest": "^29",
-    "electron": "^39",
+    "electron": "^44",
     "eslint": "^9",
     "icon-gen": "^4",
     "jest": "^30",
