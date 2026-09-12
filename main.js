@@ -92,8 +92,41 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('before-quit', () => {
-  log.info('BrainSpeedExercises shutting down');
+/**
+ * Whether the quit flow has already been confirmed by the renderer.
+ * Used to prevent re-entrant handling of before-quit.
+ * @type {boolean}
+ */
+let isQuitting = false;
+
+/**
+ * Milliseconds to wait for the renderer to confirm progress is saved before
+ * forcing the application to exit.
+ * @type {number}
+ */
+const QUIT_TIMEOUT_MS = 5000;
+
+app.on('before-quit', (event) => {
+  if (isQuitting) return;
+  event.preventDefault();
+  log.info('BrainSpeedExercises shutting down — requesting renderer to save progress');
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('app:before-quit');
+
+    // Fallback: force-exit if the renderer does not respond within the timeout.
+    setTimeout(() => {
+      if (!isQuitting) {
+        log.warn('Renderer did not respond before quit timeout — forcing exit');
+        isQuitting = true;
+        app.exit(0);
+      }
+    }, QUIT_TIMEOUT_MS);
+  } else {
+    // No window to ask — exit immediately.
+    isQuitting = true;
+    app.exit(0);
+  }
 });
 
 // Extra security filters.
@@ -145,6 +178,16 @@ ipcMain.handle('progress:load', async (event, { playerId }) => loadProgress(play
 ipcMain.handle('progress:save', async (event, { playerId, data }) => saveProgress(playerId, data));
 
 ipcMain.handle('progress:reset', async (event, { playerId }) => resetProgress(playerId));
+
+/**
+ * Renderer confirms that in-progress game state has been saved.
+ * Clears the quit guard and exits the application.
+ */
+ipcMain.handle('app:quit-ready', () => {
+  log.info('Renderer confirmed progress saved — exiting');
+  isQuitting = true;
+  app.exit(0);
+});
 
 const gamesPath = path.join(app.getAppPath(), 'app', 'games');
 

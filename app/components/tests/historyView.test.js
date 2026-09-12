@@ -19,6 +19,7 @@ import {
   createTotalPlayTimeChart,
   buildHistoryPanel,
   INITIAL_VISIBLE_DAYS,
+  MAX_X_LABELS,
 } from '../historyView.js';
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
@@ -307,9 +308,38 @@ describe('createBarChart()', () => {
     const btn = chart.querySelector('.history-chart__show-more-btn');
     expect(btn).toBeNull();
   });
-});
 
-// ── createBarChart show-more ──────────────────────────────────────────────────
+  it('includes a y-axis element', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const yAxis = chart.querySelector('.history-chart__y-axis');
+    expect(yAxis).not.toBeNull();
+  });
+
+  it('y-axis contains three tick labels per day group', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const ticks = chart.querySelectorAll('.history-chart__y-tick');
+    // 3 ticks per group × number of days in summaryData
+    expect(ticks.length).toBe(summaryData.length * 3);
+  });
+
+  it('y-axis bottom tick label shows 00:00', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const ticks = [...chart.querySelectorAll('.history-chart__y-tick')];
+    expect(ticks[ticks.length - 1].textContent).toBe('00:00');
+  });
+
+  it('each day group y-axis top tick reflects that day\'s own total time', () => {
+    // summaryData uses dates ['2024-01-01', '2024-01-02'].
+    // 2024-01-01: game-a=60000 + game-b=30000 = total 90000 ms → '01:30'
+    // 2024-01-02: game-a=120000 + game-b=0   = total 120000 ms → '02:00'
+    // Groups are rendered newest-first: [2024-01-02, 2024-01-01].
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const groups = [...chart.querySelectorAll('.history-chart__group')];
+    const topTickOf = (group) => group.querySelector('.history-chart__y-tick').textContent;
+    expect(topTickOf(groups[0])).toBe('02:00'); // 2024-01-02 total = 120000 ms
+    expect(topTickOf(groups[1])).toBe('01:30'); // 2024-01-01 total = 90000 ms
+  });
+});
 
 describe('createBarChart() show-more behaviour', () => {
   const dates = getAllDates(PROGRESS_MANY_DAYS);
@@ -325,15 +355,16 @@ describe('createBarChart() show-more behaviour', () => {
   it('older days grid is hidden by default', () => {
     const chart = createBarChart(summaryData, gameIds, MANIFESTS);
     const grids = chart.querySelectorAll('.history-chart__grid');
-    // First grid (older days) must be hidden; second grid (recent days) must not.
-    expect(grids[0].hidden).toBe(true);
-    expect(grids[1].hidden).toBe(false);
+    // First grid (recent days) must be visible; second grid (older days) must be hidden.
+    expect(grids[0].hidden).toBe(false);
+    expect(grids[1].hidden).toBe(true);
   });
 
   it('show-more button reveals the older days grid when clicked', () => {
     const chart = createBarChart(summaryData, gameIds, MANIFESTS);
     const btn = chart.querySelector('.history-chart__show-more-btn');
-    const olderGrid = chart.querySelector('.history-chart__grid');
+    const grids = chart.querySelectorAll('.history-chart__grid');
+    const olderGrid = grids[1]; // older grid is the second grid after the fix
     btn.click();
     expect(olderGrid.hidden).toBe(false);
   });
@@ -351,9 +382,32 @@ describe('createBarChart() show-more behaviour', () => {
   it('recent grid always contains at most INITIAL_VISIBLE_DAYS groups', () => {
     const chart = createBarChart(summaryData, gameIds, MANIFESTS);
     const grids = chart.querySelectorAll('.history-chart__grid');
-    const recentGrid = grids[grids.length - 1];
+    const recentGrid = grids[0]; // recent grid is now the first grid
     const groups = recentGrid.querySelectorAll('.history-chart__group');
     expect(groups.length).toBeLessThanOrEqual(INITIAL_VISIBLE_DAYS);
+  });
+
+  it('recent grid shows days in newest-to-oldest order', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const grids = chart.querySelectorAll('.history-chart__grid');
+    const recentGrid = grids[0];
+    const labels = [...recentGrid.querySelectorAll('.history-chart__label')];
+    // PROGRESS_MANY_DAYS has 8 days (2024-01-01 to 2024-01-08); the 6 most
+    // recent span 2024-01-03 to 2024-01-08. After reversal the first label
+    // must be '01-08' (most recent) and the last must be '01-03'.
+    expect(labels[0].textContent).toBe('01-08');
+    expect(labels[labels.length - 1].textContent).toBe('01-03');
+  });
+
+  it('show-more button appears after both grids in the DOM', () => {
+    const chart = createBarChart(summaryData, gameIds, MANIFESTS);
+    const btn = chart.querySelector('.history-chart__show-more-btn');
+    const grids = chart.querySelectorAll('.history-chart__grid');
+    const recentGrid = grids[0];
+    const olderGrid = grids[1];
+    // The button must appear after both grids in DOM order.
+    expect(btn.compareDocumentPosition(recentGrid) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(btn.compareDocumentPosition(olderGrid) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
   });
 });
 
@@ -403,6 +457,50 @@ describe('createTotalPlayTimeChart()', () => {
     const chart = createTotalPlayTimeChart(summaryData);
     const labels = [...chart.querySelectorAll('.history-total-chart__x-label')];
     expect(labels[0].textContent).toBe('01-01');
+  });
+
+  it('shows all x-axis labels when data points are within MAX_X_LABELS', () => {
+    // summaryData has 3 points, well under MAX_X_LABELS (10)
+    const chart = createTotalPlayTimeChart(summaryData);
+    const labels = chart.querySelectorAll('.history-total-chart__x-label');
+    expect(labels.length).toBe(dates.length);
+  });
+
+  it('thins x-axis labels to at most MAX_X_LABELS when there are many data points', () => {
+    // Build summaryData with MAX_X_LABELS + 5 data points to trigger thinning.
+    const manyDates = Array.from({ length: MAX_X_LABELS + 5 }, (_, i) => {
+      const d = new Date(2024, 0, i + 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+    const manyData = manyDates.map((date) => ({ date, total: 60000 }));
+    const chart = createTotalPlayTimeChart(manyData);
+    const labels = chart.querySelectorAll('.history-total-chart__x-label');
+    expect(labels.length).toBeLessThanOrEqual(MAX_X_LABELS);
+  });
+
+  it('SVG contains three y-axis labels at 0%, 50%, and 100% of scale', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = chart.querySelectorAll('.history-total-chart__y-label');
+    expect(yLabels.length).toBe(3);
+  });
+
+  it('y-axis top label shows the maximum total time', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = [...chart.querySelectorAll('.history-total-chart__y-label')];
+    // summaryData max total: 2024-01-02 has 120000 ms for game-a alone → "02:00"
+    expect(yLabels[0].textContent).toBe('02:00');
+  });
+
+  it('y-axis bottom label shows 00:00', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const yLabels = [...chart.querySelectorAll('.history-total-chart__y-label')];
+    expect(yLabels[yLabels.length - 1].textContent).toBe('00:00');
+  });
+
+  it('SVG contains three horizontal grid lines', () => {
+    const chart = createTotalPlayTimeChart(summaryData);
+    const gridLines = chart.querySelectorAll('.history-total-chart__grid-line');
+    expect(gridLines.length).toBe(3);
   });
 
   it('includes a title paragraph', () => {

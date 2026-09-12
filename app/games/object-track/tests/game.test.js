@@ -67,7 +67,7 @@ describe('getLevelConfig', () => {
     expect(getLevelConfig(0)).toEqual({
       numCircles: 8,
       numTargets: 3,
-      speedPxPerSec: 150,
+      speedPxPerSec: 250,
       trackingDurationMs: 5000,
     });
   });
@@ -95,8 +95,8 @@ describe('getLevelConfig', () => {
   });
 
   it('speed increases with level', () => {
-    expect(getLevelConfig(1).speedPxPerSec).toBe(165);
-    expect(getLevelConfig(10).speedPxPerSec).toBe(300);
+    expect(getLevelConfig(1).speedPxPerSec).toBe(265);
+    expect(getLevelConfig(10).speedPxPerSec).toBe(400);
   });
 });
 

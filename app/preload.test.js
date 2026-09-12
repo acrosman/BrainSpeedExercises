@@ -4,6 +4,7 @@ import { jest } from '@jest/globals';
 const mockIpcRenderer = {
   send: jest.fn(),
   on: jest.fn(),
+  once: jest.fn(),
   invoke: jest.fn().mockResolvedValue('mocked-result'),
 };
 
@@ -36,10 +37,11 @@ describe('preload.js', () => {
     delete global.require;
   });
 
-  it('exposes "api" with send, receive, and invoke via contextBridge', () => {
+  it('exposes "api" with invoke and receive via contextBridge', () => {
     expect(api).toEqual(
       expect.objectContaining({
         invoke: expect.any(Function),
+        receive: expect.any(Function),
       }),
     );
   });
@@ -47,6 +49,7 @@ describe('preload.js', () => {
   describe('invoke', () => {
     it.each([
       'games:list', 'games:load', 'progress:save', 'progress:load', 'progress:reset', 'log:send',
+      'app:quit-ready',
     ])(
       'calls ipcRenderer.invoke for allowed channel "%s"',
       async (channel) => {
@@ -59,6 +62,34 @@ describe('preload.js', () => {
       await expect(api.invoke('blocked_channel', {})).rejects.toThrow(
         'Blocked IPC channel: blocked_channel',
       );
+    });
+  });
+
+  describe('receive', () => {
+    it('registers an ipcRenderer.once listener for the app:before-quit channel', () => {
+      const callback = jest.fn();
+      api.receive('app:before-quit', callback);
+      expect(mockIpcRenderer.once).toHaveBeenCalledWith('app:before-quit', expect.any(Function));
+    });
+
+    it('invokes the callback with forwarded arguments when the event fires', () => {
+      const callback = jest.fn();
+      api.receive('app:before-quit', callback);
+
+      // Simulate the main process sending the event.
+      const [, registeredHandler] = mockIpcRenderer.once.mock.calls.find(
+        ([channel]) => channel === 'app:before-quit',
+      );
+      registeredHandler({}, 'extra-arg');
+      expect(callback).toHaveBeenCalledWith('extra-arg');
+    });
+
+    it('does not register a listener for a blocked channel', () => {
+      api.receive('blocked_channel', jest.fn());
+      const blockedCall = mockIpcRenderer.once.mock.calls.find(
+        ([channel]) => channel === 'blocked_channel',
+      );
+      expect(blockedCall).toBeUndefined();
     });
   });
 });

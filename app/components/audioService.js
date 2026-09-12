@@ -61,6 +61,51 @@ const FAILURE_FREQ_A_HZ = 440;
  * resolute negative feeling without a harsh buzz. */
 const FAILURE_FREQ_B_HZ = 294;
 
+// ── Card flip sound constants ──────────────────────────────────────────────────
+
+/**
+ * Starting frequency (Hz) for the card-flip snap transient oscillator.
+ * A low frequency simulates stiff cardboard bending and clicking into place.
+ */
+const CARD_SNAP_START_FREQ_HZ = 120;
+
+/**
+ * Ending frequency (Hz) for the card-flip snap transient pitch drop.
+ * A rapid exponential drop to near-silence creates the percussive click.
+ */
+const CARD_SNAP_END_FREQ_HZ = 20;
+
+/** Duration (s) of the card-flip snap transient layer. */
+const CARD_SNAP_DURATION_S = 0.025;
+
+/** Delay (s) before the snap starts so the swish happens first. */
+const CARD_SNAP_DELAY_S = 0.01;
+
+/** Peak gain of the card-flip snap transient layer. */
+const CARD_SNAP_PEAK_GAIN = 0.15;
+
+/**
+ * Low-pass filter cutoff frequency (Hz) for the card-flip swish noise layer.
+ * Attenuates harsh high frequencies so the noise sounds like thick paper,
+ * not TV static.
+ */
+const CARD_SWISH_FILTER_FREQ_HZ = 1000;
+
+/**
+ * Duration (s) of the card-flip swish noise layer — also the total sound
+ * duration (~120 ms keeps the effect brief and non-intrusive).
+ */
+const CARD_SWISH_DURATION_S = 0.12;
+
+/** Peak gain of the card-flip swish noise layer. */
+const CARD_SWISH_PEAK_GAIN = 0.075;
+
+/**
+ * Shared attack duration (s) for both card-flip layers.
+ * A 2 ms ramp provides an immediate onset without an audible click.
+ */
+const CARD_FLIP_ATTACK_S = 0.002;
+
 // ── Frequency sweep constants ─────────────────────────────────────────────────
 
 /**
@@ -221,6 +266,87 @@ export function playFeedbackSound(isSuccess) {
     playSuccessSound();
   } else {
     playFailureSound();
+  }
+}
+
+/**
+ * Play a synthesized playing-card-flipping sound.
+ *
+ * Layers two components for a realistic card-flip effect:
+ *   - **Snap** (percussive transient): a triangle-wave oscillator that drops
+ *     rapidly from a low frequency to near-silence, simulating stiff cardboard
+ *     clicking into place.
+ *   - **Swish** (paper friction): a short burst of white noise filtered through
+ *     a low-pass BiquadFilterNode to sound like thick paper, not TV static.
+ *
+ * Both layers use exponential gain envelopes for a sharp attack and fast decay.
+ * Total duration is approximately 120 ms.
+ *
+ * Uses the shared AudioContext from {@link getAudioContext}.
+ */
+export function playCardFlickSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => { });
+    }
+
+    const now = ctx.currentTime;
+
+    // ── Swish: paper friction noise ───────────────────────────────────────────
+    const bufferSize = Math.ceil(ctx.sampleRate * CARD_SWISH_DURATION_S);
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const channelData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      channelData[i] = Math.random() * 2 - 1;
+    }
+
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(CARD_SWISH_FILTER_FREQ_HZ, now);
+
+    const swishGain = ctx.createGain();
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(swishGain);
+    swishGain.connect(ctx.destination);
+
+    swishGain.gain.setValueAtTime(GAIN_NEAR_ZERO, now);
+    swishGain.gain.exponentialRampToValueAtTime(CARD_SWISH_PEAK_GAIN, now + CARD_FLIP_ATTACK_S);
+    swishGain.gain.exponentialRampToValueAtTime(GAIN_NEAR_ZERO, now + CARD_SWISH_DURATION_S);
+
+    noiseSource.start(now);
+    noiseSource.stop(now + CARD_SWISH_DURATION_S);
+
+    // ── Snap: percussive transient ────────────────────────────────────────────
+    const snapStartTime = now + CARD_SNAP_DELAY_S;
+    const snapOsc = ctx.createOscillator();
+    const snapGain = ctx.createGain();
+    snapOsc.connect(snapGain);
+    snapGain.connect(ctx.destination);
+    snapOsc.type = 'triangle';
+    snapOsc.frequency.setValueAtTime(CARD_SNAP_START_FREQ_HZ, snapStartTime);
+    snapOsc.frequency.exponentialRampToValueAtTime(
+      CARD_SNAP_END_FREQ_HZ,
+      snapStartTime + CARD_SNAP_DURATION_S,
+    );
+    snapGain.gain.setValueAtTime(GAIN_NEAR_ZERO, snapStartTime);
+    snapGain.gain.exponentialRampToValueAtTime(
+      CARD_SNAP_PEAK_GAIN,
+      snapStartTime + CARD_FLIP_ATTACK_S,
+    );
+    snapGain.gain.exponentialRampToValueAtTime(
+      GAIN_NEAR_ZERO,
+      snapStartTime + CARD_SNAP_DURATION_S,
+    );
+    snapOsc.start(snapStartTime);
+    snapOsc.stop(snapStartTime + CARD_SNAP_DURATION_S);
+  } catch {
+    // Ignore audio errors in unsupported environments.
   }
 }
 

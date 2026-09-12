@@ -84,7 +84,7 @@ export function getLevelConfig(lvl) {
   return {
     numCircles: Math.min(8 + Math.floor(lvl / 3), 14),
     numTargets: Math.min(3 + Math.floor(lvl / 5), 6),
-    speedPxPerSec: 150 + lvl * 15,
+    speedPxPerSec: 250 + lvl * 15,
     trackingDurationMs: Math.min(5000 + Math.floor(lvl / 2) * 500, 10000),
   };
 }

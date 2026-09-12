@@ -86,6 +86,7 @@ export function hidePlayTimeSummary() {
  * @param {string} gameId - The ID of the game to load.
  * @param {HTMLElement} gameContainer - The element that will receive the game HTML.
  * @param {HTMLElement} announcer - Aria-live element for accessibility announcements.
+ * @returns {Promise<object>} The initialized game plugin module default export.
  */
 async function loadAndInitGame(gameId, gameContainer, announcer) {
   const result = await window.api.invoke('games:load', gameId);
@@ -94,6 +95,7 @@ async function loadAndInitGame(gameId, gameContainer, announcer) {
   announcer.textContent = `${result.manifest.name} loaded. Get ready to play!`;
   const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
   mod.default.init(gameContainer);
+  return mod.default;
 }
 
 /**
@@ -181,6 +183,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   announcer.setAttribute('aria-atomic', 'true');
   announcer.className = 'sr-only';
   document.body.appendChild(announcer);
+
+  /**
+   * Reference to the currently active game plugin, or null when no game is loaded.
+   * Used to call stop() when the application quits mid-game.
+   * @type {object|null}
+   */
+  let activePlugin = null;
+
+  // Register the before-quit handler so any mid-game progress is saved when the
+  // user quits the application. The renderer calls stop() on the active plugin
+  // (which persists progress via the score service), then notifies the main process
+  // that it is safe to exit.
+  if (window.api && typeof window.api.receive === 'function') {
+    window.api.receive('app:before-quit', async () => {
+      if (activePlugin && typeof activePlugin.stop === 'function') {
+        try {
+          await activePlugin.stop();
+        } catch (err) {
+          logger.error('Error saving progress on quit', err);
+        }
+      }
+      try {
+        await window.api.invoke('app:quit-ready');
+      } catch (err) {
+        logger.error('Failed to notify main process of quit-ready', err);
+      }
+    });
+  }
 
   // Load player progress (default player)
   let progress = {};
@@ -284,13 +314,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     gameSelector.remove();
     hidePlayTimeSummary();
     try {
-      await loadAndInitGame(gameId, gameContainer, announcer);
+      activePlugin = await loadAndInitGame(gameId, gameContainer, announcer);
     } catch (err) {
       handleGameLoadError(gameId, gameContainer, announcer, err);
     }
   });
   // Listen for custom event to return to main menu from any game
   window.addEventListener('bsx:return-to-main-menu', () => {
+    activePlugin = null;
     // Remove any game UI and its stylesheet
     gameContainer.innerHTML = '';
     removeGameStylesheet();
@@ -333,7 +364,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         selector.remove();
         hidePlayTimeSummary();
         try {
-          await loadAndInitGame(gameId, gameContainer, announcer);
+          activePlugin = await loadAndInitGame(gameId, gameContainer, announcer);
         } catch (err) {
           handleGameLoadError(gameId, gameContainer, announcer, err);
         }
