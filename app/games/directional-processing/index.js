@@ -19,6 +19,8 @@ import { returnToMainMenu } from '../../components/gameUtils.js';
 import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import { showTutorial, showTutorialIfNeeded } from '../../components/tutorialService.js';
+import { getTutorialSteps } from './tutorial/tutorial.js';
 
 /** Game identifier used for progress persistence (must match manifest.json id). */
 const GAME_ID = 'directional-processing';
@@ -83,6 +85,8 @@ let _rightBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _startBtn = null;
 /** @type {HTMLButtonElement|null} */
+let _replayTutorialBtn = null;
+/** @type {HTMLButtonElement|null} */
 let _stopBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _playAgainBtn = null;
@@ -116,6 +120,9 @@ let _nextTrialTimer = null;
 
 /** setTimeout handle for clearing the flash feedback class. @type {number|null} */
 let _flashTimer = null;
+
+/** Whether a tutorial launch call is currently in flight. @type {boolean} */
+let _isTutorialLaunchPending = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -427,6 +434,39 @@ function showEndPanel(result) {
   if (_endPanelEl) _endPanelEl.hidden = false;
 }
 
+/**
+ * Whether a tutorial overlay is currently open in the game container.
+ *
+ * @returns {boolean}
+ */
+function isTutorialOpen() {
+  return !!(_container && _container.querySelector('.tutorial-overlay'));
+}
+
+/**
+ * Start a gameplay session immediately without tutorial gating.
+ */
+function beginGameSession() {
+  game.startGame();
+  _colorFamily = pickColorFamily();
+
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+  if (_gameAreaEl) _gameAreaEl.hidden = false;
+  if (_feedbackEl) _feedbackEl.textContent = '';
+
+  clearDirectionHighlights();
+  setDirectionButtonsEnabled(false);
+
+  startTrial();
+}
+
 // ── Plugin contract ───────────────────────────────────────────────────────────
 
 /** Human-readable plugin name. */
@@ -468,16 +508,20 @@ function init(gameContainer) {
   _leftBtn        = _container.querySelector('#dp-btn-left');
   _rightBtn       = _container.querySelector('#dp-btn-right');
   _startBtn       = _container.querySelector('#dp-start-btn');
+  _replayTutorialBtn = _container.querySelector('#dp-replay-tutorial-btn');
   _stopBtn        = _container.querySelector('#dp-stop-btn');
   _playAgainBtn   = _container.querySelector('#dp-play-again-btn');
   _returnBtn      = _container.querySelector('#dp-return-btn');
 
-  if (_startBtn) _startBtn.addEventListener('click', () => start());
+  if (_startBtn) _startBtn.addEventListener('click', () => { void start(); });
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => { void replayTutorial(); });
+  }
   if (_stopBtn)  _stopBtn.addEventListener('click', () => stop());
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
-      start();
+      void start();
     });
   }
   if (_returnBtn) _returnBtn.addEventListener('click', () => returnToMainMenu());
@@ -495,26 +539,44 @@ function init(gameContainer) {
 
 /**
  * Start a gameplay session.
+ *
+ * @returns {Promise<void>}
  */
-function start() {
-  game.startGame();
-  _colorFamily = pickColorFamily();
+async function start() {
+  if (!_container || _isTutorialLaunchPending || isTutorialOpen()) return;
 
-  timerService.startTimer((elapsedMs) => {
-    if (_sessionTimerEl) {
-      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
-    }
-  });
+  _isTutorialLaunchPending = true;
+  try {
+    const tutorialSteps = await getTutorialSteps();
+    await showTutorialIfNeeded(GAME_ID, tutorialSteps, _container, () => {
+      _isTutorialLaunchPending = false;
+      beginGameSession();
+    });
+  } catch (error) {
+    _isTutorialLaunchPending = false;
+    throw error;
+  }
+}
 
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_endPanelEl)     _endPanelEl.hidden = true;
-  if (_gameAreaEl)     _gameAreaEl.hidden = false;
-  if (_feedbackEl)     _feedbackEl.textContent = '';
+/**
+ * Replay the tutorial on demand, then start a new gameplay session.
+ *
+ * @returns {Promise<void>}
+ */
+async function replayTutorial() {
+  if (!_container || _isTutorialLaunchPending || isTutorialOpen()) return;
 
-  clearDirectionHighlights();
-  setDirectionButtonsEnabled(false);
-
-  startTrial();
+  _isTutorialLaunchPending = true;
+  try {
+    const tutorialSteps = await getTutorialSteps();
+    await showTutorial(GAME_ID, tutorialSteps, _container, () => {
+      _isTutorialLaunchPending = false;
+      beginGameSession();
+    });
+  } catch (error) {
+    _isTutorialLaunchPending = false;
+    throw error;
+  }
 }
 
 /**
