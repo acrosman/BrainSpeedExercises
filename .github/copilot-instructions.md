@@ -6,6 +6,8 @@ exactly as if they were written here:
 
 - `CLAUDE.md` (repository root): commands, architecture, IPC channels, coding standards,
   testing and coverage rules, accessibility, and security.
+- `app/CLAUDE.md`: the renderer shell, shared components, styles, preload bridge, and progress
+  storage.
 - `app/games/CLAUDE.md`: the game plugin contract, lifecycle, shared services, shared screen
   markup, and how to test games.
 - `app/games/<game-id>/CLAUDE.md`: details for one game. Read the file for any game you touch.

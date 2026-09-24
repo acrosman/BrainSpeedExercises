@@ -2,8 +2,9 @@
 
 Electron desktop app that delivers brain-speed training games. The player picks a game from a
 selection screen, plays it, and their progress is saved locally. Each game is a self-contained
-plugin under `app/games/`. See [app/games/CLAUDE.md](app/games/CLAUDE.md) for the plugin
-contract and the shared services games use.
+plugin under `app/games/`. See [app/CLAUDE.md](app/CLAUDE.md) for the renderer shell,
+components, styles, preload, and progress storage, and [app/games/CLAUDE.md](app/games/CLAUDE.md)
+for the plugin contract and the shared services games use.
 
 ## General Practices
 
