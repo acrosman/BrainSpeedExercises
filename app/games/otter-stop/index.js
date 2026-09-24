@@ -133,6 +133,9 @@ let _feedbackTimer = null;
 /** setTimeout handle for the inter-stimulus interval. */
 let _isiTimer = null;
 
+/** Whether handleKeyDown is currently attached to document. */
+let _isGlobalKeyListenerAttached = false;
+
 // ── DOM helpers ───────────────────────────────────────────────────────────────
 
 /**
@@ -376,13 +379,12 @@ export function clearAllTimers() {
  */
 export function handleKeyDown(event) {
   if (event.code !== 'Space') return;
+  if (!game.isRunning()) return;
 
-  // Always prevent the Space bar from scrolling the page while the game
-  // component is mounted — whether on the instructions screen, mid-trial,
-  // or on the end panel.
+  // Prevent Space from scrolling the page or activating a focused button
+  // while a session is running, even between trials.
   event.preventDefault();
 
-  if (!game.isRunning()) return;
   if (_currentImageKey === null) return;
 
   _spacePressedThisTrial = true;
@@ -411,6 +413,24 @@ export function handleClick() {
     _trialTimer = null;
   }
   endTrial();
+}
+
+/**
+ * Attach the document-level Space key handler for the active session.
+ */
+export function attachGlobalKeyListener() {
+  if (_isGlobalKeyListenerAttached) return;
+  document.addEventListener('keydown', handleKeyDown);
+  _isGlobalKeyListenerAttached = true;
+}
+
+/**
+ * Detach the document-level Space key handler so Space works normally elsewhere.
+ */
+export function detachGlobalKeyListener() {
+  if (!_isGlobalKeyListenerAttached) return;
+  document.removeEventListener('keydown', handleKeyDown);
+  _isGlobalKeyListenerAttached = false;
 }
 
 // ── Plugin lifecycle ──────────────────────────────────────────────────────────
@@ -481,7 +501,7 @@ function init(container) {
     _returnBtn.addEventListener('click', () => returnToMainMenu());
   }
 
-  document.addEventListener('keydown', handleKeyDown);
+  detachGlobalKeyListener();
   if (_stimulusEl) {
     _stimulusEl.addEventListener('click', handleClick);
   }
@@ -493,6 +513,7 @@ function init(container) {
 function start() {
   game.initGame();
   game.startGame();
+  attachGlobalKeyListener();
 
   timerService.startTimer((elapsedMs) => {
     if (_sessionTimerEl) {
@@ -518,6 +539,7 @@ function start() {
  */
 function stop() {
   clearAllTimers();
+  detachGlobalKeyListener();
   hideImage();
   hideFeedback();
 
@@ -549,6 +571,7 @@ function stop() {
  */
 function reset() {
   clearAllTimers();
+  detachGlobalKeyListener();
   hideImage();
   hideFeedback();
   game.initGame();

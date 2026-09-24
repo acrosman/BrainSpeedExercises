@@ -94,6 +94,8 @@ const {
   handleKeyDown,
   handleClick,
   loadGoImages,
+  attachGlobalKeyListener,
+  detachGlobalKeyListener,
 } = indexModule;
 
 // ── 4. DOM helpers ────────────────────────────────────────────────────────────
@@ -549,15 +551,14 @@ describe('handleKeyDown()', () => {
     expect(preventDefaultSpy).not.toHaveBeenCalled();
   });
 
-  it('calls preventDefault on Space even when game is not running (prevents page scroll)', () => {
+  it('does not call preventDefault on Space when no session is running', () => {
     const container = buildContainer();
     gameMock.isRunning.mockReturnValue(false);
     plugin.init(container);
     const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
     const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
     handleKeyDown(event);
-    // Space is always prevented from scrolling, but game logic is skipped
-    expect(preventDefaultSpy).toHaveBeenCalled();
+    expect(preventDefaultSpy).not.toHaveBeenCalled();
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
   });
 
@@ -571,6 +572,78 @@ describe('handleKeyDown()', () => {
     handleKeyDown(event);
     expect(preventDefaultSpy).toHaveBeenCalled();
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
+  });
+});
+
+// ── Global key listener lifecycle ─────────────────────────────────────────────
+
+describe('global Space key listener', () => {
+  /**
+   * Dispatch a cancelable Space keydown on document.
+   * @returns {KeyboardEvent}
+   */
+  function pressSpace() {
+    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
+    document.dispatchEvent(event);
+    return event;
+  }
+
+  afterEach(() => {
+    detachGlobalKeyListener();
+  });
+
+  it('is not attached by init()', () => {
+    gameMock.isRunning.mockReturnValue(true);
+    plugin.init(buildContainer());
+    expect(pressSpace().defaultPrevented).toBe(false);
+  });
+
+  it('is attached by start() and handles Space during a session', () => {
+    plugin.init(buildContainer());
+    plugin.start();
+    gameMock.isRunning.mockReturnValue(true);
+    expect(pressSpace().defaultPrevented).toBe(true);
+  });
+
+  it('is detached by stop()', () => {
+    plugin.init(buildContainer());
+    plugin.start();
+    plugin.stop();
+    gameMock.isRunning.mockReturnValue(true);
+    expect(pressSpace().defaultPrevented).toBe(false);
+  });
+
+  it('is detached by reset()', () => {
+    plugin.init(buildContainer());
+    plugin.start();
+    plugin.reset();
+    gameMock.isRunning.mockReturnValue(true);
+    expect(pressSpace().defaultPrevented).toBe(false);
+  });
+
+  it('is detached when init() runs again after a session', () => {
+    plugin.init(buildContainer());
+    plugin.start();
+    plugin.init(buildContainer());
+    gameMock.isRunning.mockReturnValue(true);
+    expect(pressSpace().defaultPrevented).toBe(false);
+  });
+
+  it('attaches only once when attachGlobalKeyListener() is called twice', () => {
+    detachGlobalKeyListener();
+    const addSpy = jest.spyOn(document, 'addEventListener');
+    attachGlobalKeyListener();
+    attachGlobalKeyListener();
+    expect(addSpy.mock.calls.filter(([type]) => type === 'keydown')).toHaveLength(1);
+    addSpy.mockRestore();
+  });
+
+  it('does nothing when detachGlobalKeyListener() is called while detached', () => {
+    const removeSpy = jest.spyOn(document, 'removeEventListener');
+    detachGlobalKeyListener();
+    detachGlobalKeyListener();
+    expect(removeSpy).not.toHaveBeenCalled();
+    removeSpy.mockRestore();
   });
 });
 
