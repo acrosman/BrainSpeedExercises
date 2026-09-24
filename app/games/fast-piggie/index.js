@@ -579,6 +579,9 @@ export default {
     _trendEmptyEl = container.querySelector('#fp-trend-empty');
     _trendLatestEl = container.querySelector('#fp-trend-latest');
 
+    // Sync the stats bar with the game's starting values so the markup placeholders never show.
+    _updateStats();
+
     // Pre-load images
     const base = new URL('../fast-piggie/images/', import.meta.url).href;
     loadImages(`${base}PiggiesSource.jpg`)
