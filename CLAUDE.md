@@ -48,7 +48,6 @@ app/progress/            progressManager.js: load/save/reset of the progress JSO
 app/games/               Game plugins plus registry.js (main-process manifest scanner)
 __mocks__/               electron.js and electron-log.js mocks for Jest
 scripts/build-icons.js   Icon generation (console output allowed here)
-.github/copilot-instructions.md  Points Copilot at these CLAUDE.md files; keep rules out of it
 ```
 
 ## Process boundaries and IPC
