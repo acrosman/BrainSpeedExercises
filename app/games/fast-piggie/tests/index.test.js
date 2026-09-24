@@ -151,6 +151,7 @@ function buildContainer() {
         <div class="fp-stats">
           <span class="fp-stat">Round: <strong id="fp-round-count">0</strong></span>
           <span class="fp-stat">Score: <strong id="fp-score">0</strong></span>
+          <span class="fp-stat">Display Time: <strong id="fp-display-time">--</strong> ms</span>
         </div>
         <div id="fp-feedback" role="status" aria-live="assertive" class="fp-feedback sr-only"></div>
         <div id="fp-flash" class="fp-flash"></div>
@@ -270,6 +271,13 @@ describe('named exports', () => {
 // init(container)
 // ===========================================================================
 describe('init(container)', () => {
+  it('sets #fp-display-time to the current difficulty display duration', () => {
+    const fresh = buildContainer();
+    plugin.init(fresh);
+    expect(fresh.querySelector('#fp-display-time').textContent)
+      .toBe(String(game.getCurrentDifficulty().displayDurationMs));
+  });
+
   it('does not throw with a valid container', () => {
     expect(() => plugin.init(buildContainer())).not.toThrow();
   });
@@ -409,6 +417,14 @@ describe('reset()', () => {
   it('calls game.initGame()', () => {
     plugin.reset();
     expect(game.initGame).toHaveBeenCalled();
+  });
+
+  it('sets #fp-display-time to the current difficulty display duration', () => {
+    const displayTime = container.querySelector('#fp-display-time');
+    displayTime.textContent = '--';
+    plugin.reset();
+    expect(displayTime.textContent)
+      .toBe(String(game.getCurrentDifficulty().displayDurationMs));
   });
 
   it('sets #fp-continue-btn hidden', () => {
