@@ -27,26 +27,34 @@
     "publish": "electron-forge publish"
   },
   "dependencies": {
-    "electron-debug": "^4",
+    "electron-debug": "^5",
     "electron-log": "^5"
   },
   "overrides": {
-    "yauzl": "^3.2.1"
+    "yauzl": "^3.2.1",
+    "icon-gen": {
+      "sharp": "$sharp"
+    },
+    "external-editor": {
+      "tmp": "^0.2.6"
+    }
   },
   "devDependencies": {
-    "@babel/core": "^7",
-    "@babel/preset-env": "^7",
+    "@babel/core": "^8",
+    "@babel/preset-env": "^8",
     "@electron-forge/cli": "^7",
     "@electron-forge/maker-deb": "^7",
     "@electron-forge/maker-dmg": "^7",
     "@electron-forge/maker-rpm": "^7",
     "@electron-forge/maker-squirrel": "^7",
     "@electron-forge/publisher-github": "^7",
-    "@jest/globals": "^29",
-    "babel-jest": "^29",
+    "@eslint/js": "^10",
+    "@jest/globals": "^30",
+    "babel-jest": "^30",
     "electron": "^44",
-    "eslint": "^9",
-    "icon-gen": "^4",
+    "eslint": "^10",
+    "globals": "^17",
+    "icon-gen": "^5",
     "jest": "^30",
     "jest-environment-jsdom": "^30",
     "sharp": "^0.35"
