@@ -29,4 +29,5 @@ jobs:
       - name: Publish release artifacts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run publish
+        # One universal build runs natively on both Apple Silicon and Intel Macs.
+        run: npm run publish -- ${{ matrix.os == 'macos-latest' && '--arch=universal' || '' }}

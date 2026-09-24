@@ -3,13 +3,20 @@ const path = require('path');
 
 module.exports = {
   packagerConfig: {
-    appId: 'com.aaroncrosman.brainspeedexercises',
-    productName: 'Brain Speed Exercises',
+    appBundleId: 'com.aaroncrosman.brainspeedexercises',
     executableName: 'brain-speed-exercises',
     icon: path.resolve(__dirname, 'assets/icons/app'), // .icns/.ico/.png auto-appended
     asar: false, // dynamic import() of game modules
+    // Ad-hoc sign the whole bundle ('-' identity) so the signature stays valid after
+    // packager renames the app. No Apple Developer ID is needed. Hardened runtime is off
+    // because it requires every framework to share a Team ID, which ad-hoc signing lacks.
+    osxSign: {
+      identity: '-',
+      identityValidation: false,
+      optionsForFile: () => ({ hardenedRuntime: false }),
+    },
     ignore: [
-      /^\/\.github/, /^\/coverage/, /^\/__mocks__/,
+      /^\/\.github/, /^\/coverage/, /^\/__mocks__/, /^\/out\//,
       /^\/scripts/, 'contributing.md', 'CODE_OF_CONDUCT.md',
       '.eslint.config.js', 'jest.config.js', 'forge.config.cjs',
       /\/tests\//, /.test.js$/, /assets\/icons\/source\.png$/,
@@ -20,7 +27,6 @@ module.exports = {
     {
       name: '@electron-forge/maker-dmg',
       platforms: ['darwin'],
-      arch: ['x64', 'arm64', 'universal'],
       config: {
         format: 'ULMO',
       },
