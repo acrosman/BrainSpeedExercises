@@ -2,8 +2,8 @@
  * index.js - Field of View plugin entry point.
  *
  * Handles DOM wiring, high-precision timing flow, and plugin lifecycle.
- * Rendering utilities are in render.js, audio feedback in audio.js,
- * and progress persistence in progress.js.
+ * Rendering utilities are in render.js, audio feedback comes from the shared
+ * components/audioService.js, and progress persistence is in progress.js.
  *
  * @file Field of View game plugin (UI/controller layer).
  */

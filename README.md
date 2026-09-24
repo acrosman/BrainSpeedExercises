@@ -15,7 +15,7 @@ Brain Speed Exercises ships with eight games, each targeting a different cogniti
 | **Directional Processing** | Rapid visual motion perception — identify the direction of a briefly-displayed moving Gabor pattern. |
 | **Fast Piggie** | Visual attention — spot the different guinea pig before they disappear! |
 | **Field of View** | Split attention — identify the center kitten and the peripheral toys under rapid masked flashes. |
-| **High Speed Memory** | Working memory — memorize the grid of cards, then find all the matching pairs from memory. |
+| **High Speed Memory** | Working memory — memorize the grid of cards, then find all 3 copies of the target card from memory. |
 | **Object Track** | Attention and visual memory — track multiple moving targets among identical distractors. |
 | **Orbit Sprite Memory** | Spatial memory — track where the target sprite appears around the circle, then pick its three positions. |
 | **Otter Stop** | Inhibitory control — react fast to each otter, but freeze when the no-go fish appears. |

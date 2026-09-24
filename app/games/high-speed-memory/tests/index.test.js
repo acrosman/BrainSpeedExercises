@@ -46,7 +46,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getLevel: jest.fn(() => 2),
   getRoundsCompleted: jest.fn(() => 6),
   getConsecutiveCorrectRounds: jest.fn(() => 1),
-  isRunning: jest.fn(() => false),
+  isRunning: jest.fn(() => true),
   getSpeedHistory: jest.fn(() => []),
 }));
 
@@ -708,6 +708,18 @@ describe('startRound', () => {
     });
     jest.useRealTimers();
   });
+
+  test('does nothing when the game is not running', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.generateGrid.mockClear();
+    gameMock.isRunning.mockReturnValueOnce(false);
+    startRound();
+    expect(gameMock.generateGrid).not.toHaveBeenCalled();
+    expect(container.querySelectorAll('#hsm-grid button').length).toBe(0);
+    jest.useRealTimers();
+  });
 });
 
 // ── handleCardClick ───────────────────────────────────────────────────────────
@@ -835,6 +847,24 @@ describe('handleCardClick', () => {
     handleCardClick(8); // 3rd Primary → triggers onRoundComplete → playSuccessSound
 
     expect(mockAudioCtx.createOscillator).toHaveBeenCalled();
+  });
+
+  test('stopping during the inter-round pause cancels the next round', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    plugin.start();
+    jest.runAllTimers(); // release flip lock
+
+    handleCardClick(0);
+    handleCardClick(4);
+    handleCardClick(8); // 3rd Primary → schedules the next round
+
+    plugin.stop();
+    gameMock.generateGrid.mockClear();
+    jest.advanceTimersByTime(5000);
+
+    expect(gameMock.generateGrid).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
   });
 });
 

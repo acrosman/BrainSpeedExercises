@@ -133,6 +133,12 @@ let _answerRevealTimer = null;
  */
 let _hideTimer = null;
 
+/**
+ * Pending setTimeout handle for starting the next round after a completed round.
+ * @type {ReturnType<typeof setTimeout>|null}
+ */
+let _nextRoundTimer = null;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
@@ -300,8 +306,11 @@ export function revealPrimaryCards() {
 
 /**
  * Start a new round: generate a fresh grid, render it revealed, then hide after delay.
+ * Does nothing if the game is no longer running.
  */
 export function startRound() {
+  if (!game.isRunning()) return;
+
   _primaryFound = 0;
   _flipLock = true;
 
@@ -395,7 +404,10 @@ function onRoundComplete() {
   }
 
   // Brief pause so the player sees the completed board before the next round starts
-  setTimeout(startRound, 1200);
+  _nextRoundTimer = setTimeout(() => {
+    _nextRoundTimer = null;
+    startRound();
+  }, 1200);
 }
 
 /**
@@ -414,6 +426,10 @@ function clearTimers() {
   if (_hideTimer !== null) {
     clearTimeout(_hideTimer);
     _hideTimer = null;
+  }
+  if (_nextRoundTimer !== null) {
+    clearTimeout(_nextRoundTimer);
+    _nextRoundTimer = null;
   }
 }
 
