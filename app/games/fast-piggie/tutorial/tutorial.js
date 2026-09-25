@@ -36,6 +36,21 @@ const TUTORIAL_STEP_DEFINITIONS = [
 ];
 
 /**
+ * Coach instructions for the guided practice rounds that follow the slides.
+ * Any text that describes a click also gives the keyboard alternative.
+ */
+export const PRACTICE_TEXT = Object.freeze({
+  /** While the piggies are on screen. */
+  watch: 'Watch the circle. The piggies vanish quickly, so spot the orange one fast.',
+  /** After they vanish, in a guided round (the correct spot is ringed and shaded). */
+  guidedAnswer: 'The orange piggie was in the ringed spot. Click it, or press the arrow keys '
+    + 'until that slice is shaded, then press Enter.',
+  /** After they vanish, in an unguided round. */
+  answer: 'Where was the orange piggie? Click that spot, or use the arrow keys to shade it '
+    + 'and press Enter.',
+});
+
+/**
  * Build the tutorial steps shown to first-time players and on replay.
  *
  * @returns {Promise<Array<{title: string, content: string}>>}

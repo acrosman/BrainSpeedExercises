@@ -13,14 +13,20 @@ import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
-import { showTutorial, showTutorialIfNeeded } from '../../components/tutorialService.js';
-import { getTutorialSteps } from './tutorial/tutorial.js';
+import {
+  runGuidedTutorial,
+  runGuidedTutorialIfNeeded,
+} from '../../components/tutorialService.js';
+import { getTutorialSteps, PRACTICE_TEXT } from './tutorial/tutorial.js';
 
 /** Game identifier used for progress persistence (must match manifest.json id). */
 const GAME_ID = 'fast-piggie';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
 const SPRITE_INSET = 2;
+
+/** Fill for the correct wedge: revealed after a miss, and the practice-round hint. */
+const CORRECT_WEDGE_COLOR = 'rgba(255, 193, 7, 0.65)';
 
 /**
  * Renders a cropped region of an image into a new offscreen canvas.
@@ -210,6 +216,33 @@ export function highlightWedge(ctx, width, height, wedgeIndex, wedgeCount, color
   ctx.fill();
 }
 
+/**
+ * Where to ring a wedge for the tutorial marker: a square centered where that wedge's image
+ * is drawn, sized to fit inside the wedge, as fractions of the canvas.
+ * @param {number} width - Canvas width.
+ * @param {number} height - Canvas height.
+ * @param {number} wedgeIndex
+ * @param {number} wedgeCount
+ * @returns {{ x: number, y: number, width: number, height: number }}
+ */
+export function wedgeMarkerRegion(width, height, wedgeIndex, wedgeCount) {
+  const radius = Math.min(width, height) / 2 - 10;
+  const angleStep = (2 * Math.PI) / wedgeCount;
+  const midAngle = -Math.PI / 2 + (wedgeIndex + 0.5) * angleStep;
+  // drawBoard centers images at 0.6 of the radius (before its small stagger).
+  const imageRadius = radius * 0.6;
+  const centerX = width / 2 + Math.cos(midAngle) * imageRadius;
+  const centerY = height / 2 + Math.sin(midAngle) * imageRadius;
+  // Keep the ring within the wedge's arc so it does not spill onto its neighbors.
+  const size = Math.min(radius * 0.5, imageRadius * angleStep);
+  return {
+    x: (centerX - size / 2) / width,
+    y: (centerY - size / 2) / height,
+    width: size / width,
+    height: size / height,
+  };
+}
+
 // DOM references — populated by init()
 let _container = null;
 let _canvas = null;
@@ -252,6 +285,17 @@ let _imageFlashTimer = null; // setTimeout handle before image flash
 const ROUND_IMAGE_FLASH_DELAY_MS = 15;
 /** Whether a tutorial launch call is currently in flight. @type {boolean} */
 let _isTutorialLaunchPending = false;
+/**
+ * The guided tutorial in progress, if any.
+ * @type {import('../../components/tutorialService.js').GuidedTutorialRun|null}
+ */
+let _tutorialRun = null;
+/**
+ * The practice round in progress, if any. `hintWedge` is the correct wedge, kept shaded
+ * during a guided round (-1 when there is no hint).
+ * @type {{ context: object, resolve: Function, hintWedge: number }|null}
+ */
+let _practice = null;
 
 /**
  * Updates the score, round count, and display time in the UI.
@@ -291,13 +335,40 @@ function _triggerFlash(type) {
 }
 
 /**
+ * Cancel the pending image-flash and image-hide timers.
+ */
+function _clearRoundTimers() {
+  if (_imageFlashTimer) {
+    clearTimeout(_imageFlashTimer);
+    _imageFlashTimer = null;
+  }
+  if (_roundTimer) {
+    clearTimeout(_roundTimer);
+    _roundTimer = null;
+  }
+}
+
+/**
+ * Redraw the empty wheel for the current round. During a guided practice round the correct
+ * wedge stays shaded, so hover and keyboard highlights do not erase the hint.
+ */
+function _clearBoard() {
+  const { wedgeCount } = _currentRound;
+  const { width, height } = _canvas;
+  clearImages(_ctx, width, height, wedgeCount);
+  if (_practice && _practice.hintWedge >= 0) {
+    highlightWedge(_ctx, width, height, _practice.hintWedge, wedgeCount, CORRECT_WEDGE_COLOR);
+  }
+}
+
+/**
  * Highlights the currently selected wedge for keyboard navigation.
  */
 function _highlightKeyboardSelection() {
   if (!_currentRound || _selectedWedge < 0) return;
   const { wedgeCount } = _currentRound;
   const { width, height } = _canvas;
-  clearImages(_ctx, width, height, wedgeCount);
+  _clearBoard();
   highlightWedge(
     _ctx,
     width,
@@ -309,23 +380,16 @@ function _highlightKeyboardSelection() {
 }
 
 /**
- * Starts a new round and handles image display/hide timing.
+ * Show a round: flash the images for its display time, hide them, then accept an answer.
+ * @param {{ wedgeCount: number, imageCount: number, displayDurationMs: number,
+ *   outlierWedgeIndex: number }} round - Round parameters from game.js.
+ * @param {Function} [onImagesHidden] - Called when the images vanish and answers open.
  */
-function _runRound() {
-  if (!game.isRunning()) return;
-
-  if (_imageFlashTimer) {
-    clearTimeout(_imageFlashTimer);
-    _imageFlashTimer = null;
-  }
-  if (_roundTimer) {
-    clearTimeout(_roundTimer);
-    _roundTimer = null;
-  }
+function _playRound(round, onImagesHidden = () => {}) {
+  _clearRoundTimers();
 
   _clickEnabled = false;
   _selectedWedge = -1;
-  const round = game.generateRound(game.getLevel(), game.getSpeedLevel());
   const { wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex } = round;
   // Generate slot assignment if needed
   let slotAssignment = null;
@@ -354,9 +418,18 @@ function _runRound() {
       _clickEnabled = true;
       _hoveredWedge = -1;
       _selectedWedge = -1;
+      onImagesHidden();
       _canvas.focus();
     }, displayDurationMs);
   }, ROUND_IMAGE_FLASH_DELAY_MS);
+}
+
+/**
+ * Starts the next scored round at the current difficulty.
+ */
+function _runRound() {
+  if (!game.isRunning()) return;
+  _playRound(game.generateRound(game.getLevel(), game.getSpeedLevel()));
 }
 
 /**
@@ -415,7 +488,7 @@ function _handleMouseMove(event) {
   _selectedWedge = -1;
   const { wedgeCount } = _currentRound;
   const { width, height } = _canvas;
-  clearImages(_ctx, width, height, wedgeCount);
+  _clearBoard();
   if (wedge !== -1) {
     highlightWedge(_ctx, width, height, wedge, wedgeCount, 'rgba(0, 95, 204, 0.25)');
   }
@@ -427,9 +500,7 @@ function _handleMouseMove(event) {
 function _handleMouseLeave() {
   if (!_clickEnabled || !_currentRound) return;
   _hoveredWedge = -1;
-  const { wedgeCount } = _currentRound;
-  const { width, height } = _canvas;
-  clearImages(_ctx, width, height, wedgeCount);
+  _clearBoard();
 }
 
 /**
@@ -476,19 +547,18 @@ function _showEndPanel(score, highScore) {
 }
 
 /**
- * Resolves the round after a wedge is selected, updates state and feedback.
- * @param {number} wedge
+ * Check the chosen wedge and show the result: shade the wedge, play a sound, flash the
+ * board, and announce it. On a miss the correct wedge is shaded too.
+ * Changes no game state.
+ * @param {number} wedge - The wedge the player chose.
+ * @returns {boolean} Whether the answer was correct.
  */
-function _resolveRound(wedge) {
-  _clickEnabled = false;
-
-  // Destructure with line break for lint compliance, and remove unused displayDurationMs
+function _showAnswerFeedback(wedge) {
   const {
     wedgeCount,
     outlierWedgeIndex,
     slotAssignment,
     imageCount,
-    displayDurationMs,
   } = _currentRound;
   const { width, height } = _canvas;
   const correctWedgeIndex = _getCorrectWedgeIndex(_currentRound);
@@ -499,15 +569,7 @@ function _resolveRound(wedge) {
   }
   const correct = game.checkAnswer(answerIdx, outlierWedgeIndex);
 
-  // Track answer speed (time from images hidden to answer)
-  // We'll store the time when images are hidden in _currentRound._imagesHiddenAt
-  let answerSpeedMs = null;
-  if (_currentRound._imagesHiddenAt != null) {
-    answerSpeedMs = Date.now() - _currentRound._imagesHiddenAt;
-  }
-
   if (correct) {
-    game.addScore(imageCount, answerSpeedMs, displayDurationMs);
     highlightWedge(
       _ctx,
       width,
@@ -536,13 +598,55 @@ function _resolveRound(wedge) {
         height,
         correctWedgeIndex,
         wedgeCount,
-        'rgba(255, 193, 7, 0.65)',
+        CORRECT_WEDGE_COLOR,
       );
     }
-    game.addMiss(imageCount, displayDurationMs);
     playFailureSound();
     _triggerFlash('wrong');
     _feedbackEl.textContent = 'Not quite — the different piggie is highlighted.';
+  }
+
+  return correct;
+}
+
+/**
+ * End a practice round once the player answers: show the result without scoring it, and
+ * hand control back to the tutorial.
+ * @param {number} wedge - The wedge the player chose.
+ */
+function _finishPracticeRound(wedge) {
+  const { context, resolve } = _practice;
+  _practice = null;
+  context.hideMarker();
+  // Drop the hint shading so the result colors are drawn on a clean wheel.
+  _clearBoard();
+  _showAnswerFeedback(wedge);
+  resolve();
+}
+
+/**
+ * Resolves the round after a wedge is selected, updates state and feedback.
+ * @param {number} wedge
+ */
+function _resolveRound(wedge) {
+  _clickEnabled = false;
+
+  if (_practice) {
+    _finishPracticeRound(wedge);
+    return;
+  }
+
+  const { imageCount, displayDurationMs } = _currentRound;
+  // Answer speed is the time from the images vanishing to the answer.
+  let answerSpeedMs = null;
+  if (_currentRound._imagesHiddenAt != null) {
+    answerSpeedMs = Date.now() - _currentRound._imagesHiddenAt;
+  }
+
+  if (_showAnswerFeedback(wedge)) {
+    game.addScore(imageCount, answerSpeedMs, displayDurationMs);
+  } else {
+    game.addMiss(imageCount, displayDurationMs);
   }
 
   _updateStats();
@@ -556,20 +660,78 @@ function _resolveRound(wedge) {
 }
 
 /**
- * Whether a tutorial overlay is currently open in the game container.
- * @returns {boolean}
+ * Show the game area in place of the welcome and end panels.
  */
-function _isTutorialOpen() {
-  return !!(_container && _container.querySelector('.tutorial-overlay'));
+function _showGameArea() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_gameAreaEl) _gameAreaEl.hidden = false;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+}
+
+/**
+ * Stop any practice round: cancel its timers and settle its promise. Runs when the
+ * tutorial's practice signal aborts, which happens whenever the tutorial ends.
+ */
+function _endPractice() {
+  _clearRoundTimers();
+  _clickEnabled = false;
+  _currentRound = null;
+  if (_practice) {
+    const { resolve } = _practice;
+    _practice = null;
+    resolve();
+  }
+}
+
+/**
+ * Play one tutorial practice round at the easiest setting. It uses the real round display
+ * and controls but never touches the score, levels, speed history, session timer, or saved
+ * progress. In a guided round the correct wedge is shaded and ringed once the images vanish.
+ * @param {import('../../components/tutorialService.js').PracticeRoundContext} context
+ * @returns {Promise<void>} Resolves once the player answers, or when the tutorial ends.
+ */
+function _playPracticeRound(context) {
+  _showGameArea();
+  context.signal.addEventListener('abort', _endPractice, { once: true });
+
+  return new Promise((resolve) => {
+    _practice = { context, resolve, hintWedge: -1 };
+    context.setInstructions(PRACTICE_TEXT.watch);
+
+    _playRound(game.generatePracticeRound(), () => {
+      if (!context.guided) {
+        context.setInstructions(PRACTICE_TEXT.answer);
+        return;
+      }
+      const { wedgeCount } = _currentRound;
+      const { width, height } = _canvas;
+      _practice.hintWedge = _getCorrectWedgeIndex(_currentRound);
+      _clearBoard();
+      context.showMarker({
+        anchor: _canvas,
+        region: wedgeMarkerRegion(width, height, _practice.hintWedge, wedgeCount),
+      });
+      context.setInstructions(PRACTICE_TEXT.guidedAnswer);
+    });
+  });
+}
+
+/**
+ * Cancel the guided tutorial, if one is running. Its practice signal aborts, which clears
+ * any practice round.
+ */
+function _cancelTutorial() {
+  if (!_tutorialRun) return;
+  const run = _tutorialRun;
+  _tutorialRun = null;
+  run.cancel();
 }
 
 /**
  * Start a gameplay session immediately without tutorial gating.
  */
 function _beginGameSession() {
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_gameAreaEl) _gameAreaEl.hidden = false;
-  if (_endPanelEl) _endPanelEl.hidden = true;
+  _showGameArea();
   game.startGame();
   timerService.startTimer((elapsedMs) => {
     if (_sessionTimerEl) {
@@ -581,18 +743,34 @@ function _beginGameSession() {
 }
 
 /**
- * Load the tutorial steps and hand them to a tutorialService launcher, guarding against
- * overlapping launches and an already-open overlay.
- * @param {typeof showTutorial | typeof showTutorialIfNeeded} launch - Which launcher to use.
+ * Load the tutorial steps and hand them to a guided-tutorial launcher, guarding against
+ * overlapping launches and a tutorial already in progress. When the tutorial finishes or
+ * is skipped, the real session begins.
+ * @param {typeof runGuidedTutorial | typeof runGuidedTutorialIfNeeded} launch - Which
+ *   launcher to use.
  * @returns {Promise<void>}
  */
 async function _launchTutorial(launch) {
-  if (!_container || _isTutorialLaunchPending || _isTutorialOpen()) return;
+  if (!_container || _isTutorialLaunchPending || _tutorialRun) return;
 
   _isTutorialLaunchPending = true;
   try {
-    const tutorialSteps = await getTutorialSteps();
-    await launch(GAME_ID, tutorialSteps, _container, _beginGameSession);
+    const introSteps = await getTutorialSteps();
+    // Returns null (after starting the session) when the tutorial was already seen.
+    const run = await launch({
+      gameId: GAME_ID,
+      container: _container,
+      introSteps,
+      playPracticeRound: _playPracticeRound,
+      onComplete: _beginGameSession,
+    });
+    if (run) {
+      _tutorialRun = run;
+      // Clearing on `finished` works even if the run ended before this line was reached.
+      void run.finished.then(() => {
+        if (_tutorialRun === run) _tutorialRun = null;
+      });
+    }
   } finally {
     _isTutorialLaunchPending = false;
   }
@@ -650,7 +828,9 @@ export default {
     // Bind events
     _startBtn.addEventListener('click', () => { void this.start(); });
     // Replay always shows the tutorial, then starts a session.
-    _replayTutorialBtn.addEventListener('click', () => { void _launchTutorial(showTutorial); });
+    _replayTutorialBtn.addEventListener('click', () => {
+      void _launchTutorial(runGuidedTutorial);
+    });
     _canvas.addEventListener('click', _handleClick);
     _canvas.addEventListener('mousemove', _handleMouseMove);
     _canvas.addEventListener('mouseleave', _handleMouseLeave);
@@ -672,23 +852,28 @@ export default {
    * @returns {Promise<void>}
    */
   start() {
-    return _launchTutorial(showTutorialIfNeeded);
+    return _launchTutorial(runGuidedTutorialIfNeeded);
   },
 
   /**
    * Stop the game, persist progress, and show final score.
+   *
+   * With no session running (on the welcome screen, during the tutorial, or when the app
+   * quits after a session ended) there is nothing to save. Leaving a tutorial this way
+   * cancels it and returns to the welcome screen.
    * @returns {Promise<object>} Game result
    */
   async stop() {
-    if (_imageFlashTimer) {
-      clearTimeout(_imageFlashTimer);
-      _imageFlashTimer = null;
-    }
-    if (_roundTimer) {
-      clearTimeout(_roundTimer);
-      _roundTimer = null;
-    }
+    _clearRoundTimers();
     _clickEnabled = false;
+    if (!game.isRunning()) {
+      if (_tutorialRun) this.reset();
+      return {
+        score: game.getScore(),
+        roundsPlayed: game.getRoundsPlayed(),
+        duration: 0,
+      };
+    }
     const result = game.stopGame();
     const sessionDurationMs = timerService.stopTimer();
 
@@ -722,14 +907,8 @@ export default {
    * Reset the game to its initial state.
    */
   reset() {
-    if (_imageFlashTimer) {
-      clearTimeout(_imageFlashTimer);
-      _imageFlashTimer = null;
-    }
-    if (_roundTimer) {
-      clearTimeout(_roundTimer);
-      _roundTimer = null;
-    }
+    _cancelTutorial();
+    _clearRoundTimers();
     game.initGame();
     _clickEnabled = false;
     _currentRound = null;

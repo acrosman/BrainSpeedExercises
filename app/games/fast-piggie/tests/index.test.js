@@ -14,7 +14,7 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
   formatDuration: jest.fn(() => '00:00'),
   getTodayDateString: jest.fn(() => '2024-01-15'),
 }));
-await import('../../../components/timerService.js');
+const timerService = await import('../../../components/timerService.js');
 
 // ---------------------------------------------------------------------------
 // 1 — Mock game.js (must be called before dynamic import of index.js)
@@ -28,6 +28,12 @@ jest.unstable_mockModule('../game.js', () => ({
     imageCount: 3,
     displayDurationMs: 2000,
     outlierWedgeIndex: 2,
+  })),
+  generatePracticeRound: jest.fn(() => ({
+    wedgeCount: 6,
+    imageCount: 6,
+    displayDurationMs: 800,
+    outlierWedgeIndex: 4,
   })),
   checkAnswer: jest.fn(() => true),
   calculateWedgeIndex: jest.fn(() => 2),
@@ -54,12 +60,14 @@ jest.unstable_mockModule('../game.js', () => ({
 }));
 
 jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
-  showTutorial: jest.fn((_gameId, _steps, _container, onComplete) => {
-    if (typeof onComplete === 'function') onComplete();
-    return document.createElement('div');
+  // Default replay: the player finishes the tutorial at once.
+  runGuidedTutorial: jest.fn((options) => {
+    options.onComplete();
+    return { cancel: jest.fn(), finished: Promise.resolve('completed') };
   }),
-  showTutorialIfNeeded: jest.fn(async (_gameId, _steps, _container, onComplete) => {
-    if (typeof onComplete === 'function') onComplete();
+  // Default first start: the tutorial was already seen.
+  runGuidedTutorialIfNeeded: jest.fn(async (options) => {
+    options.onComplete();
     return null;
   }),
 }));
@@ -69,6 +77,11 @@ jest.unstable_mockModule('../tutorial/tutorial.js', () => ({
     { title: 'Welcome to Fast Piggie', content: '<p>Welcome</p>' },
     { title: 'What to Look For', content: '<p>Find the orange piggie.</p>' },
   ]),
+  PRACTICE_TEXT: {
+    watch: 'watch text',
+    guidedAnswer: 'guided answer text',
+    answer: 'answer text',
+  },
 }));
 
 const game = await import('../game.js');
@@ -81,6 +94,7 @@ const {
   drawBoard,
   clearImages,
   highlightWedge,
+  wedgeMarkerRegion,
 } = indexModule;
 
 // ---------------------------------------------------------------------------
@@ -1202,65 +1216,119 @@ describe('start button click event', () => {
 // ===========================================================================
 // Tutorial
 // ===========================================================================
+/**
+ * Make the next start() open a guided tutorial that stays in progress until the test
+ * settles it. Like the real runner, cancel() aborts the practice signal.
+ * @returns {Promise<{ options: object, run: object, controller: AbortController,
+ *   settle: (outcome: string) => void }>}
+ */
+async function startPendingTutorial() {
+  let options = null;
+  let settle = () => {};
+  const controller = new AbortController();
+  const run = {
+    cancel: jest.fn(() => controller.abort()),
+    finished: new Promise((resolve) => { settle = resolve; }),
+  };
+  tutorialService.runGuidedTutorialIfNeeded.mockImplementationOnce(async (opts) => {
+    options = opts;
+    return run;
+  });
+  await plugin.start();
+  return {
+    options, run, controller, settle,
+  };
+}
+
+/**
+ * Build a practice-round context like the one the tutorial runner passes in.
+ * @param {AbortController} controller - Supplies the context's signal.
+ * @param {boolean} [guided=true]
+ * @returns {object}
+ */
+function buildPracticeContext(controller, guided = true) {
+  return {
+    round: guided ? 1 : 2,
+    maxRounds: 2,
+    guided,
+    signal: controller.signal,
+    setInstructions: jest.fn(),
+    showMarker: jest.fn(),
+    hideMarker: jest.fn(),
+  };
+}
+
+/** Fill color used to shade the correct wedge. */
+const HINT_COLOR = 'rgba(255, 193, 7, 0.65)';
+
 describe('tutorial', () => {
-  it('start() shows the tutorial if needed with the Fast Piggie steps', async () => {
+  it('start() runs the guided tutorial if needed with the Fast Piggie steps', async () => {
     await plugin.start();
     expect(tutorialContent.getTutorialSteps).toHaveBeenCalled();
-    expect(tutorialService.showTutorialIfNeeded).toHaveBeenCalledWith(
-      'fast-piggie',
-      expect.arrayContaining([
+    expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledWith({
+      gameId: 'fast-piggie',
+      container,
+      introSteps: expect.arrayContaining([
         expect.objectContaining({ title: 'Welcome to Fast Piggie' }),
       ]),
-      container,
-      expect.any(Function),
-    );
+      playPracticeRound: expect.any(Function),
+      onComplete: expect.any(Function),
+    });
   });
 
   it('does not start the game until the tutorial completes', async () => {
-    let finishTutorial = null;
-    tutorialService.showTutorialIfNeeded.mockImplementationOnce(
-      async (_gameId, _steps, _container, onComplete) => {
-        finishTutorial = onComplete;
-        return document.createElement('div');
-      },
-    );
-    await plugin.start();
+    const { options } = await startPendingTutorial();
     expect(game.startGame).not.toHaveBeenCalled();
     expect(container.querySelector('#fp-game-area').hidden).toBe(true);
 
-    finishTutorial();
+    options.onComplete();
     expect(game.startGame).toHaveBeenCalled();
     expect(container.querySelector('#fp-game-area').hidden).toBe(false);
   });
 
-  it('replay tutorial button calls showTutorial and then starts the game', async () => {
+  it('replay tutorial button runs the guided tutorial and then starts the game', async () => {
     container.querySelector('#fp-replay-tutorial-btn').click();
     await flushMicrotasks();
-    expect(tutorialService.showTutorial).toHaveBeenCalledWith(
-      'fast-piggie',
-      expect.arrayContaining([
-        expect.objectContaining({ title: 'Welcome to Fast Piggie' }),
-      ]),
+    expect(tutorialService.runGuidedTutorial).toHaveBeenCalledWith(expect.objectContaining({
+      gameId: 'fast-piggie',
       container,
-      expect.any(Function),
-    );
-    expect(tutorialService.showTutorialIfNeeded).not.toHaveBeenCalled();
+      playPracticeRound: expect.any(Function),
+    }));
+    expect(tutorialService.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
     expect(game.startGame).toHaveBeenCalled();
   });
 
-  it('start and replay do nothing while a tutorial overlay is open', async () => {
-    const overlay = document.createElement('div');
-    overlay.className = 'tutorial-overlay';
-    container.appendChild(overlay);
+  it('start and replay do nothing while a tutorial is in progress', async () => {
+    await startPendingTutorial();
+    jest.clearAllMocks();
 
     await plugin.start();
     container.querySelector('#fp-replay-tutorial-btn').click();
     await flushMicrotasks();
 
     expect(tutorialContent.getTutorialSteps).not.toHaveBeenCalled();
-    expect(tutorialService.showTutorialIfNeeded).not.toHaveBeenCalled();
-    expect(tutorialService.showTutorial).not.toHaveBeenCalled();
-    expect(game.startGame).not.toHaveBeenCalled();
+    expect(tutorialService.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(tutorialService.runGuidedTutorial).not.toHaveBeenCalled();
+  });
+
+  it('can launch again once the tutorial run finishes', async () => {
+    const { settle } = await startPendingTutorial();
+    settle('completed');
+    await flushMicrotasks();
+
+    await plugin.start();
+    expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a newer run when an older one finishes', async () => {
+    const first = await startPendingTutorial();
+    plugin.reset(); // cancels the first run
+    const second = await startPendingTutorial();
+    first.settle('cancelled');
+    await flushMicrotasks();
+
+    plugin.reset();
+    expect(second.run.cancel).toHaveBeenCalled();
   });
 
   it('ignores a second start while the first tutorial launch is in flight', async () => {
@@ -1268,7 +1336,7 @@ describe('tutorial', () => {
     const second = plugin.start();
     await Promise.all([first, second]);
     expect(tutorialContent.getTutorialSteps).toHaveBeenCalledTimes(1);
-    expect(tutorialService.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
+    expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
     expect(game.startGame).toHaveBeenCalledTimes(1);
   });
 
@@ -1277,8 +1345,228 @@ describe('tutorial', () => {
     await expect(plugin.start()).rejects.toThrow('load failed');
 
     await plugin.start();
-    expect(tutorialService.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
+    expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
     expect(game.startGame).toHaveBeenCalled();
+  });
+
+  it('reset() cancels a tutorial in progress', async () => {
+    const { run } = await startPendingTutorial();
+    plugin.reset();
+    expect(run.cancel).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('practice round', () => {
+  let pending;
+  let fills;
+  let api;
+
+  beforeEach(async () => {
+    game.isRunning.mockReturnValue(false);
+    fills = [];
+    ctx2d.fill.mockImplementation(() => fills.push(ctx2d.fillStyle));
+    api = { invoke: jest.fn(async () => ({ playerId: 'default', games: {} })) };
+    globalThis.api = api;
+    pending = await startPendingTutorial();
+  });
+
+  afterEach(() => {
+    game.isRunning.mockReturnValue(true);
+    ctx2d.fill.mockImplementation(() => {});
+    delete globalThis.api;
+  });
+
+  /**
+   * Fills other than the plain white wedges that every redraw of the wheel paints.
+   * @returns {string[]}
+   */
+  function colorFills() {
+    return fills.filter((color) => color !== '#ffffff');
+  }
+
+  /** Advance past the pre-flash gap and the 800 ms practice display time. */
+  function hidePiggies() {
+    jest.advanceTimersByTime(15 + 800);
+  }
+
+  /** Click the canvas; calculateWedgeIndex decides which wedge is hit. */
+  function clickCanvas() {
+    container.querySelector('#fp-canvas').dispatchEvent(
+      new MouseEvent('click', { clientX: 250, clientY: 100, bubbles: true }),
+    );
+  }
+
+  it('shows the board at the easiest setting without starting a session', () => {
+    const context = buildPracticeContext(pending.controller);
+    void pending.options.playPracticeRound(context);
+
+    expect(container.querySelector('#fp-instructions').hidden).toBe(true);
+    expect(container.querySelector('#fp-game-area').hidden).toBe(false);
+    expect(game.generatePracticeRound).toHaveBeenCalledTimes(1);
+    expect(game.generateRound).not.toHaveBeenCalled();
+    expect(game.startGame).not.toHaveBeenCalled();
+    expect(timerService.startTimer).not.toHaveBeenCalled();
+    expect(context.setInstructions).toHaveBeenCalledWith('watch text');
+  });
+
+  it('a guided round shades and rings the correct wedge once the piggies vanish', () => {
+    const context = buildPracticeContext(pending.controller);
+    void pending.options.playPracticeRound(context);
+    expect(context.showMarker).not.toHaveBeenCalled();
+
+    hidePiggies();
+    const canvas = container.querySelector('#fp-canvas');
+    expect(context.showMarker).toHaveBeenCalledWith({
+      anchor: canvas,
+      region: wedgeMarkerRegion(500, 500, 4, 6),
+    });
+    expect(context.setInstructions).toHaveBeenLastCalledWith('guided answer text');
+    expect(fills[fills.length - 1]).toBe(HINT_COLOR);
+  });
+
+  it('hover and keyboard highlights keep the hint shaded', () => {
+    void pending.options.playPracticeRound(buildPracticeContext(pending.controller));
+    hidePiggies();
+    const canvas = container.querySelector('#fp-canvas');
+
+    fills.length = 0;
+    canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 250, clientY: 100 }));
+    expect(fills.slice(-2)).toEqual([HINT_COLOR, 'rgba(0, 95, 204, 0.25)']);
+
+    fills.length = 0;
+    canvas.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(fills[fills.length - 1]).toBe(HINT_COLOR);
+
+    fills.length = 0;
+    canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(fills.slice(-2)).toEqual([HINT_COLOR, 'rgba(0, 95, 204, 0.35)']);
+  });
+
+  it('an unguided round shows no marker or hint', () => {
+    const context = buildPracticeContext(pending.controller, false);
+    void pending.options.playPracticeRound(context);
+    hidePiggies();
+
+    expect(context.showMarker).not.toHaveBeenCalled();
+    expect(context.setInstructions).toHaveBeenLastCalledWith('answer text');
+    expect(fills).not.toContain(HINT_COLOR);
+  });
+
+  it('a correct answer gives feedback and ends the round without scoring', async () => {
+    const context = buildPracticeContext(pending.controller);
+    const done = pending.options.playPracticeRound(context);
+    hidePiggies();
+    game.checkAnswer.mockReturnValueOnce(true);
+    fills.length = 0;
+    clickCanvas();
+
+    await expect(done).resolves.toBeUndefined();
+    expect(context.hideMarker).toHaveBeenCalled();
+    expect(container.querySelector('#fp-feedback').textContent).toBe('Correct! Well spotted.');
+    // The hint is cleared before the result is drawn.
+    expect(colorFills()).toEqual(['rgba(40, 167, 69, 0.45)']);
+    expect(game.addScore).not.toHaveBeenCalled();
+    expect(game.addMiss).not.toHaveBeenCalled();
+
+    // No next round is scheduled, and nothing is saved.
+    jest.runAllTimers();
+    expect(game.generatePracticeRound).toHaveBeenCalledTimes(1);
+    expect(game.generateRound).not.toHaveBeenCalled();
+    expect(api.invoke).not.toHaveBeenCalledWith('progress:save', expect.anything());
+  });
+
+  it('a wrong answer reveals the correct wedge and ends the round without scoring', async () => {
+    const done = pending.options.playPracticeRound(buildPracticeContext(pending.controller));
+    hidePiggies();
+    game.checkAnswer.mockReturnValueOnce(false);
+    fills.length = 0;
+    clickCanvas();
+
+    await expect(done).resolves.toBeUndefined();
+    expect(colorFills()).toEqual(['rgba(220, 53, 69, 0.45)', HINT_COLOR]);
+    expect(container.querySelector('#fp-feedback').textContent)
+      .toBe('Not quite — the different piggie is highlighted.');
+    expect(game.addMiss).not.toHaveBeenCalled();
+  });
+
+  it('ending the tutorial mid-round cancels the round', async () => {
+    const context = buildPracticeContext(pending.controller);
+    const done = pending.options.playPracticeRound(context);
+
+    pending.controller.abort();
+    await expect(done).resolves.toBeUndefined();
+
+    jest.runAllTimers();
+    expect(context.showMarker).not.toHaveBeenCalled();
+    expect(context.setInstructions).toHaveBeenCalledTimes(1);
+    clickCanvas();
+    expect(container.querySelector('#fp-feedback').textContent).toBe('');
+  });
+
+  it('a later tutorial end after the round finished is harmless', async () => {
+    const done = pending.options.playPracticeRound(buildPracticeContext(pending.controller));
+    hidePiggies();
+    clickCanvas();
+    await done;
+
+    expect(() => pending.controller.abort()).not.toThrow();
+  });
+
+  it('End Game during practice cancels the tutorial and shows the welcome screen', async () => {
+    void pending.options.playPracticeRound(buildPracticeContext(pending.controller));
+    hidePiggies();
+
+    container.querySelector('#fp-stop-btn').click();
+    await flushMicrotasks();
+
+    expect(pending.run.cancel).toHaveBeenCalled();
+    expect(container.querySelector('#fp-instructions').hidden).toBe(false);
+    expect(container.querySelector('#fp-game-area').hidden).toBe(true);
+    expect(container.querySelector('#fp-end-panel').hidden).toBe(true);
+    expect(game.stopGame).not.toHaveBeenCalled();
+    expect(api.invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe('stop() with no session running', () => {
+  afterEach(() => {
+    game.isRunning.mockReturnValue(true);
+  });
+
+  it('returns an idle result without stopping, saving, or changing the screen', async () => {
+    game.isRunning.mockReturnValue(false);
+    const api = { invoke: jest.fn() };
+    globalThis.api = api;
+
+    const result = await plugin.stop();
+
+    expect(result).toEqual({ score: 3, roundsPlayed: 5, duration: 0 });
+    expect(game.stopGame).not.toHaveBeenCalled();
+    expect(api.invoke).not.toHaveBeenCalled();
+    expect(container.querySelector('#fp-end-panel').hidden).toBe(true);
+    expect(game.initGame).not.toHaveBeenCalled();
+    delete globalThis.api;
+  });
+});
+
+describe('wedgeMarkerRegion()', () => {
+  it('centers a square on where the wedge image is drawn', () => {
+    // 6 wedges on a 500 × 500 canvas: radius 240, images at 144 from the center.
+    const region = wedgeMarkerRegion(500, 500, 0, 6);
+    const midAngle = -Math.PI / 2 + Math.PI / 6;
+    const centerX = (250 + Math.cos(midAngle) * 144) / 500;
+    const centerY = (250 + Math.sin(midAngle) * 144) / 500;
+
+    expect(region.width).toBeCloseTo(120 / 500);
+    expect(region.height).toBeCloseTo(120 / 500);
+    expect(region.x + region.width / 2).toBeCloseTo(centerX);
+    expect(region.y + region.height / 2).toBeCloseTo(centerY);
+  });
+
+  it('shrinks to fit a narrow wedge', () => {
+    const region = wedgeMarkerRegion(500, 500, 0, 42);
+    // Arc length at the image radius: 144 × 2π / 42.
+    expect(region.width).toBeCloseTo((144 * 2 * Math.PI) / 42 / 500);
   });
 });
 

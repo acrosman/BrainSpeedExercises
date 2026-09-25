@@ -8,16 +8,31 @@ images disappear, the player picks the wedge where the outlier was.
 
 - `game.js`: round generation, the two difficulty axes, and session bests. `generateRound()`
   returns `{ wedgeCount, imageCount, displayDurationMs, outlierWedgeIndex }`.
+  `generatePracticeRound()` is the same at level 0 (3 images, 6 wedges, 800 ms).
   `calculateWedgeIndex()` converts a click position on the canvas into a wedge index.
 - `index.js`: everything on the canvas. `loadImages()` splits `images/PiggiesSource.jpg` into
   left and right halves (normal and outlier). Each half is copied into its own offscreen canvas
   with a 2 px `SPRITE_INSET`, which stops the seam from bleeding into small draws.
-  `drawBoard()`, `clearImages()`, and `highlightWedge()` are exported for tests.
-- `tutorial/`: the first-run tutorial. `tutorial.js` lists the step HTML files, and
-  `start()` in `index.js` shows them through `showTutorialIfNeeded` before the session begins.
-  The screenshot step highlights regions of `images/tutorialScreenshot.png` with the
-  percentage-positioned `.fp-tutorial-highlight--*` boxes in `style.css`. Retake the screenshot
-  and update those boxes together if the game layout changes.
+  `drawBoard()`, `clearImages()`, `highlightWedge()`, and `wedgeMarkerRegion()` are exported
+  for tests.
+- `tutorial/`: the first-run tutorial. `tutorial.js` lists the step HTML files and the coach
+  text for practice rounds (`PRACTICE_TEXT`). `start()` in `index.js` runs them through
+  `runGuidedTutorialIfNeeded` before the session begins. The screenshot step highlights regions
+  of `images/tutorialScreenshot.png` with the percentage-positioned `.fp-tutorial-highlight--*`
+  boxes in `style.css`. Retake the screenshot and update those boxes together if the game
+  layout changes.
+
+## Tutorial practice rounds
+
+After the slides, `_playPracticeRound` plays up to two rounds from `generatePracticeRound()`,
+using the same `_playRound` display code as the real game. The session is never started, so
+`game.isRunning()` stays `false`. `_resolveRound` sends practice answers to
+`_finishPracticeRound`, which shows the usual feedback but skips `addScore`/`addMiss` and the
+auto-advance. In the guided round, once the piggies vanish, the correct wedge is shaded
+(`_practice.hintWedge`, redrawn by `_clearBoard()` after hover and keyboard highlights) and
+ringed by the tutorial marker at `wedgeMarkerRegion()`. The practice signal's `abort` runs
+`_endPractice`, which cancels the round timers. End Game during practice (`stop()` with no
+session) cancels the tutorial and returns to the welcome panel without saving.
 
 ## Difficulty: two coupled levels
 

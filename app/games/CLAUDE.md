@@ -106,10 +106,12 @@ slides → practice round → "Play another round?" → optional second round �
 `onComplete`. Options are `{ gameId, container, introSteps, playPracticeRound, maxRounds = 2,
 guidedRounds = 1, onComplete }`.
 
-- Both return a run handle (`IfNeeded` returns `null` when already seen). Keep it and call
-  `run.cancel()` from `stop()` and `reset()`. Cancelling removes the tutorial UI and does not
-  mark the tutorial seen or call `onComplete`. Set the handle back to `null` in `onComplete`,
-  and use it as the "tutorial in progress" guard against a second launch.
+- Both return a run handle `{ cancel, finished }` (`IfNeeded` returns `null` when already
+  seen). Keep it until `run.finished` settles, and use it as the "tutorial in progress" guard
+  against a second launch. Clear it from `finished` rather than from `onComplete`, which can
+  run before the launcher's return value is assigned. Call `run.cancel()` from `stop()` and
+  `reset()`. Cancelling removes the tutorial UI, and does not mark the tutorial seen or call
+  `onComplete`.
 - `playPracticeRound(context)` plays one round at the game's easiest setting and resolves once
   the player answers. `context` holds `round`, `maxRounds`, `guided` (show the marker; only
   the first `guidedRounds` rounds are guided), `signal`, `setInstructions(text)`,
@@ -126,12 +128,13 @@ guidedRounds = 1, onComplete }`.
   box so the marker stays put when CSS scales the canvas. Use `shape: 'box'` for wide targets
   such as buttons.
 
-`card-rat`, `directional-processing`, and `fast-piggie` use a tutorial. Copy their pattern: step
-HTML files in `<id>/tutorial/` plus a `tutorial.js` whose `getTutorialSteps()` passes their
-definitions to `loadTutorialSteps`, an annotated
-`images/tutorialScreenshot.png`, a "Replay Tutorial" button on the welcome panel, and an async
-`start()` that loads the steps and calls `showTutorialIfNeeded` with a function that begins the
-session. Guard against a second launch while one is loading or an overlay is open.
+`card-rat`, `directional-processing`, and `fast-piggie` use a tutorial. Copy their pattern:
+step HTML files in `<id>/tutorial/` plus a `tutorial.js` whose `getTutorialSteps()` passes
+their definitions to `loadTutorialSteps`, an annotated `images/tutorialScreenshot.png`, a
+"Replay Tutorial" button on the welcome panel, and an async `start()` that loads the steps and
+launches the tutorial with a function that begins the session. Guard against a second launch
+while one is loading or in progress. `fast-piggie` is the reference for guided tutorials with
+practice rounds. The other two still use the slides-only `showTutorialIfNeeded`.
 
 ## Shared screen markup
 
