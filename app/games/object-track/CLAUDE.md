@@ -18,6 +18,10 @@ In the response phase, clicking circles toggles them on and off. The answer is *
 automatically** once the number selected equals the number of targets, so there is no Submit
 button. A round is correct only when every selected circle is a target and no target was missed.
 
+Circles are native `<button type="button">` elements with `aria-pressed`, so Enter and Space
+fire the same delegated arena `click` handler that the mouse uses. Keep them as buttons rather
+than `div role="button"`, which would need its own key handling.
+
 ## Physics (`game.js`)
 
 All physics is pure: `createCircles` (no overlap at spawn, up to `MAX_SPAWN_ATTEMPTS`),
