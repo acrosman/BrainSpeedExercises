@@ -93,6 +93,11 @@ describe('init', () => {
     expect(() => plugin.init(null)).not.toThrow();
   });
 
+  test('session timer is not inside a live region', () => {
+    expect($('game-template-timer').closest('[aria-live]')).toBeNull();
+    expect($('game-template-score').closest('[aria-live]')).not.toBeNull();
+  });
+
   test('Return to Menu dispatches bsx:return-to-main-menu on window', () => {
     const listener = jest.fn();
     window.addEventListener('bsx:return-to-main-menu', listener);

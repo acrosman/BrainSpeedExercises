@@ -32,7 +32,8 @@
 
 /* ── Active play area ─────────────────────────────────────────────────────── */
 
-.game-template__stats {
+.game-template__stats,
+.game-template__stats-live {
   display: flex;
   gap: 2rem;
   font-size: 1rem;
