@@ -548,13 +548,9 @@ async function start() {
   _isTutorialLaunchPending = true;
   try {
     const tutorialSteps = await getTutorialSteps();
-    await showTutorialIfNeeded(GAME_ID, tutorialSteps, _container, () => {
-      _isTutorialLaunchPending = false;
-      beginGameSession();
-    });
-  } catch (error) {
+    await showTutorialIfNeeded(GAME_ID, tutorialSteps, _container, beginGameSession);
+  } finally {
     _isTutorialLaunchPending = false;
-    throw error;
   }
 }
 
@@ -569,13 +565,9 @@ async function replayTutorial() {
   _isTutorialLaunchPending = true;
   try {
     const tutorialSteps = await getTutorialSteps();
-    await showTutorial(GAME_ID, tutorialSteps, _container, () => {
-      _isTutorialLaunchPending = false;
-      beginGameSession();
-    });
-  } catch (error) {
+    showTutorial(GAME_ID, tutorialSteps, _container, beginGameSession);
+  } finally {
     _isTutorialLaunchPending = false;
-    throw error;
   }
 }
 

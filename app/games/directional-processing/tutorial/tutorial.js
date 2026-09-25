@@ -18,12 +18,20 @@ const TUTORIAL_STEP_DEFINITIONS = [
     contentPath: './games/directional-processing/tutorial/tutorial-step-welcome.html',
   },
   {
+    title: 'Find the Main Play Area',
+    contentPath: './games/directional-processing/tutorial/tutorial-screenshot-step.html',
+  },
+  {
     title: 'What to Look For',
     contentPath: './games/directional-processing/tutorial/tutorial-step-what-to-look-for.html',
   },
   {
     title: 'How to Respond',
     contentPath: './games/directional-processing/tutorial/tutorial-step-how-to-respond.html',
+  },
+  {
+    title: 'Levels and Scoring',
+    contentPath: './games/directional-processing/tutorial/tutorial-step-levels.html',
   },
 ];
 

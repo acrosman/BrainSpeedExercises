@@ -37,8 +37,14 @@ describe('directional-processing tutorial steps', () => {
       if (path.includes('tutorial-step-what-to-look-for.html')) {
         return makeResponse(true, '<p>Direction matters content</p>');
       }
+      if (path.includes('tutorial-screenshot-step.html')) {
+        return makeResponse(true, '<p>Screenshot content</p>');
+      }
       if (path.includes('tutorial-step-how-to-respond.html')) {
         return makeResponse(true, '<p>Response content</p>');
+      }
+      if (path.includes('tutorial-step-levels.html')) {
+        return makeResponse(true, '<p>Levels content</p>');
       }
       return makeResponse(false, '', 404);
     });
@@ -46,13 +52,20 @@ describe('directional-processing tutorial steps', () => {
 
   test('loads tutorial steps from separate HTML files', async () => {
     const steps = await getTutorialSteps();
-    expect(steps).toHaveLength(3);
+    expect(steps).toHaveLength(5);
     expect(steps[0]).toEqual(expect.objectContaining({
       title: 'Welcome to Directional Processing',
       content: '<p>Welcome tutorial content</p>',
     }));
-    expect(steps[1].content).toContain('Direction matters');
-    expect(global.fetch).toHaveBeenCalledTimes(3);
+    expect(steps.map((step) => step.title)).toEqual([
+      'Welcome to Directional Processing',
+      'Find the Main Play Area',
+      'What to Look For',
+      'How to Respond',
+      'Levels and Scoring',
+    ]);
+    expect(steps[2].content).toContain('Direction matters');
+    expect(global.fetch).toHaveBeenCalledTimes(5);
   });
 
   test('uses fallback content when a step fails to load', async () => {
@@ -64,7 +77,7 @@ describe('directional-processing tutorial steps', () => {
     });
 
     const steps = await getTutorialSteps();
-    expect(steps[1]).toEqual(expect.objectContaining({
+    expect(steps[2]).toEqual(expect.objectContaining({
       title: 'What to Look For',
       content: 'Tutorial content is temporarily unavailable.',
     }));
@@ -74,13 +87,13 @@ describe('directional-processing tutorial steps', () => {
   test('caches loaded tutorial markup between calls', async () => {
     await getTutorialSteps();
     await getTutorialSteps();
-    expect(global.fetch).toHaveBeenCalledTimes(3);
+    expect(global.fetch).toHaveBeenCalledTimes(5);
   });
 
   test('clearTutorialMarkupCache clears cached tutorial markup', async () => {
     await getTutorialSteps();
     clearTutorialMarkupCache();
     await getTutorialSteps();
-    expect(global.fetch).toHaveBeenCalledTimes(6);
+    expect(global.fetch).toHaveBeenCalledTimes(10);
   });
 });

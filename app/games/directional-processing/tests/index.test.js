@@ -580,6 +580,51 @@ describe('directional-processing plugin', () => {
     );
   });
 
+  it('replayTutorial starts a game session when the tutorial completes', async () => {
+    gameMock.startGame.mockClear();
+    document.querySelector('#dp-replay-tutorial-btn').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(document.querySelector('#dp-game-area').hidden).toBe(false);
+  });
+
+  it('start does nothing while a tutorial overlay is open', async () => {
+    const overlay = document.createElement('div');
+    overlay.className = 'tutorial-overlay';
+    document.querySelector('#dp-instructions').appendChild(overlay);
+
+    await plugin.start();
+    document.querySelector('#dp-replay-tutorial-btn').click();
+    await Promise.resolve();
+
+    expect(tutorialServiceMock.showTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(tutorialServiceMock.showTutorial).not.toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+  });
+
+  it('ignores a second start while the first tutorial launch is in flight', async () => {
+    const first = plugin.start();
+    const second = plugin.start();
+    await Promise.all([first, second]);
+    expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalledTimes(1);
+    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
+  });
+
+  it('start does nothing when init received no container', async () => {
+    plugin.init(null);
+    await plugin.start();
+    expect(tutorialContentMock.getTutorialSteps).not.toHaveBeenCalled();
+  });
+
+  it('clears the pending flag when loading tutorial steps fails', async () => {
+    tutorialContentMock.getTutorialSteps.mockRejectedValueOnce(new Error('load failed'));
+    await expect(plugin.start()).rejects.toThrow('load failed');
+
+    await plugin.start();
+    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
+  });
+
   it('return button dispatches bsx:return-to-main-menu event', async () => {
     let fired = false;
     window.addEventListener('bsx:return-to-main-menu', () => { fired = true; }, { once: true });
