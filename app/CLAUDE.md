@@ -55,7 +55,8 @@ Each module is plain functions plus module state, with no classes. Tests live in
 | `scoreService.js` | games, shell | Save and load game results; `clearHistory()` backs the Clear History button |
 | `timerService.js` | games, cards | Session timer, plus `formatDuration` and `getTodayDateString` (the `dailyTime` key) |
 | `logService.js` | everything | `logger.*`, which sends log lines to the main process |
-| `tutorialService.js` | games | First-run tutorial overlay |
+| `tutorialService.js` | games | Tutorial slides, the seen flag, and `runGuidedTutorial` (slides, then live practice rounds) |
+| `tutorialCoach.js` | tutorialService | Practice-round coach banner, round prompt, and target marker |
 | `audioService.js` | games | One shared `AudioContext` and all sound effects, including sweep synthesis |
 | `adaptiveDifficultyService.js` | games | Staircase counter math |
 | `trendChartService.js` | games | In-game SVG trend line |
@@ -83,12 +84,12 @@ fires `bsx:return-to-main-menu` so the menu rebuilds. Build any new modal the sa
 
 | File | Contents |
 | --- | --- |
-| `variables.css` | All design tokens: backgrounds, text, borders, focus ring, buttons, status colors, results table, trend chart, radii, transitions, and chart colors |
+| `variables.css` | All design tokens: backgrounds, text, borders, focus ring, buttons, status colors, results table, trend chart, tutorial marker, radii, transitions, and chart colors |
 | `base.css` | Reset, body defaults, `.sr-only`, global focus ring |
 | `layout.css` | Header, nav, main, footer, game-selector grid |
 | `game-card.css` | Game tiles and the play-time bar |
 | `history.css` | History modal, charts, table |
-| `game-shared.css` | Shared game panels, buttons, trend chart, tutorial overlay |
+| `game-shared.css` | Shared game panels, buttons, trend chart, tutorial overlay, practice coach and marker |
 
 - Use `var(--token)` instead of hard-coded colors, radii, or transitions. When you add a token
   to `variables.css`, record its contrast ratio in a comment, as the text tokens do. All

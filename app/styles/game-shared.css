@@ -302,8 +302,9 @@
   margin-top: 0.5rem;
 }
 
-/* Tutorial nav buttons reuse the same base shape as .game-btn */
-.tutorial-overlay__btn {
+/* Tutorial nav and coach buttons reuse the same base shape as .game-btn */
+.tutorial-overlay__btn,
+.tutorial-coach__btn {
   padding: 0.5rem 1.25rem;
   font-size: 0.95rem;
   font-weight: 600;
@@ -313,32 +314,38 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.tutorial-overlay__btn:focus-visible {
+.tutorial-overlay__btn:focus-visible,
+.tutorial-coach__btn:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
-.tutorial-overlay__btn--primary {
+.tutorial-overlay__btn--primary,
+.tutorial-coach__btn--primary {
   background: var(--btn-primary-bg);
   color: var(--bg-card);
   border-color: var(--btn-primary-border);
 }
 
-.tutorial-overlay__btn--primary:hover {
+.tutorial-overlay__btn--primary:hover,
+.tutorial-coach__btn--primary:hover {
   background: var(--btn-primary-hover);
 }
 
-.tutorial-overlay__btn--secondary {
+.tutorial-overlay__btn--secondary,
+.tutorial-coach__btn--secondary {
   background: transparent;
   color: var(--text-muted);
   border-color: var(--border-color);
 }
 
-.tutorial-overlay__btn--secondary:hover {
+.tutorial-overlay__btn--secondary:hover,
+.tutorial-coach__btn--secondary:hover {
   background: var(--bg-subtle);
 }
 
-.tutorial-overlay__skip {
+.tutorial-overlay__skip,
+.tutorial-coach__skip {
   align-self: center;
   background: none;
   border: none;
@@ -351,11 +358,116 @@
   transition: color var(--transition-fast);
 }
 
-.tutorial-overlay__skip:hover {
+.tutorial-overlay__skip:hover,
+.tutorial-coach__skip:hover {
   color: var(--text-muted);
 }
 
-.tutorial-overlay__skip:focus-visible {
+.tutorial-overlay__skip:focus-visible,
+.tutorial-coach__skip:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* ── Tutorial practice coach and marker ──────────────────────────────────── */
+/*
+ * Shown by tutorialService.js (built in tutorialCoach.js) while a game plays a guided
+ * practice round. Neither covers the game, so the player can still use the board.
+ *
+ *   .tutorial-coach             — sticky banner prepended to the game container
+ *     .tutorial-coach__message  — aria-live label ("Practice round 1 of 2") and instructions
+ *     .tutorial-coach__actions  — "Play Another Round" / "Start the Game" prompt buttons
+ *     .tutorial-coach__skip     — "Skip Practice" link-style button
+ *   .tutorial-marker            — pulsing ring over the control to use (pointer-events: none)
+ */
+
+.tutorial-coach {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto 1rem;
+  padding: 0.75rem 1rem;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--tutorial-marker);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.tutorial-coach:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.tutorial-coach__message {
+  flex: 1 1 16rem;
+}
+
+.tutorial-coach__label {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tutorial-coach__text {
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-base);
+}
+
+.tutorial-coach__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tutorial-coach__actions:empty {
+  display: none;
+}
+
+.tutorial-marker {
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: 4px solid var(--tutorial-marker);
+  /* White halo keeps the ring visible on dark or busy backgrounds. */
+  box-shadow: 0 0 0 3px var(--bg-card), inset 0 0 0 2px var(--bg-card);
+  animation: tutorial-marker-pulse 1.2s ease-in-out infinite;
+}
+
+.tutorial-marker--ring {
+  border-radius: 50%;
+}
+
+.tutorial-marker--box {
+  border-radius: var(--radius-lg);
+}
+
+@keyframes tutorial-marker-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-marker {
+    animation: none;
+  }
 }

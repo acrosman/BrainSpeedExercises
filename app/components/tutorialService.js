@@ -4,26 +4,36 @@
  * Provides a shared mechanism to:
  *   1. Track whether a player has seen a game's tutorial (persisted in progress data).
  *   2. Render a multi-step tutorial overlay inside any game container.
+ *   3. Run a guided tutorial: the overlay, then live practice rounds the game plays at its
+ *      easiest setting, with a coach banner and a marker on the control to use.
  *
  * All persistence calls go through the window.api IPC bridge; never import
  * Electron APIs directly in this module.
  *
- * Typical usage inside a game plugin's init():
+ * Typical usage inside a game plugin's start():
  * ```js
- * import { showTutorialIfNeeded } from '../../components/tutorialService.js';
+ * import { runGuidedTutorialIfNeeded } from '../../components/tutorialService.js';
  *
- * async function init(gameContainer) {
- *   // ... other init work ...
- *   await showTutorialIfNeeded('my-game-id', TUTORIAL_STEPS, gameContainer, () => {
- *     start();
- *   });
- * }
+ * _tutorialRun = await runGuidedTutorialIfNeeded({
+ *   gameId: 'my-game-id',
+ *   container,
+ *   introSteps: await getTutorialSteps(),
+ *   playPracticeRound, // (context) => Promise that resolves once the player answers
+ *   onComplete: () => { _tutorialRun = null; beginGameSession(); },
+ * });
+ * // In stop() and reset(): _tutorialRun?.cancel();
  * ```
  *
  * @file Shared tutorial overlay service.
  */
 
 import { logger } from './logService.js';
+import {
+  askCoachQuestion,
+  createTutorialCoach,
+  setCoachMessage,
+  showTutorialMarker,
+} from './tutorialCoach.js';
 
 /** Default player ID used throughout the application. */
 const DEFAULT_PLAYER_ID = 'default';
@@ -234,9 +244,10 @@ export function createTutorialOverlay(steps) {
  * @param {HTMLElement}     overlay   - The root `.tutorial-overlay` element.
  * @param {TutorialStep[]}  steps     - Full ordered list of tutorial steps.
  * @param {number}          stepIndex - Zero-based index of the step to display.
+ * @param {string}          [finishLabel='Got it!'] - Text of the Next button on the last step.
  * @returns {void}
  */
-export function renderTutorialStep(overlay, steps, stepIndex) {
+export function renderTutorialStep(overlay, steps, stepIndex, finishLabel = 'Got it!') {
   const total = steps.length;
   const step = steps[stepIndex];
   const isFirst = stepIndex === 0;
@@ -257,13 +268,54 @@ export function renderTutorialStep(overlay, steps, stepIndex) {
     prevBtn.disabled = isFirst;
   }
 
-  if (nextBtn) {
-    nextBtn.textContent = isLast ? 'Got it!' : 'Next';
-    nextBtn.setAttribute(
-      'aria-label',
-      isLast ? 'Finish tutorial' : `Go to step ${stepIndex + 2} of ${total}`,
-    );
-  }
+  // No aria-label: the accessible name must match the visible text (WCAG 2.5.3), and the
+  // live step indicator already announces the position.
+  if (nextBtn) nextBtn.textContent = isLast ? finishLabel : 'Next';
+}
+
+/**
+ * Append a slide overlay to `container`, focus it, and wire its navigation.
+ * The caller decides what finishing and skipping mean, and removes the overlay.
+ *
+ * @param {TutorialStep[]} steps     - Ordered list of tutorial steps.
+ * @param {HTMLElement}    container - DOM element to append the overlay into.
+ * @param {object}         handlers
+ * @param {Function}       handlers.onFinish - Called when Next is pressed on the last step.
+ * @param {Function}       handlers.onSkip   - Called when Skip Tutorial is pressed.
+ * @param {string}         [handlers.finishLabel] - Next button text on the last step.
+ * @returns {HTMLElement} The overlay element.
+ */
+function _openSlideOverlay(steps, container, { onFinish, onSkip, finishLabel }) {
+  const overlay = createTutorialOverlay(steps);
+  let currentStep = 0;
+
+  renderTutorialStep(overlay, steps, currentStep, finishLabel);
+  container.appendChild(overlay);
+
+  // Move focus into the overlay panel for keyboard accessibility.
+  const panel = overlay.querySelector('.tutorial-overlay__panel');
+  panel.setAttribute('tabindex', '-1');
+  panel.focus();
+
+  overlay.querySelector('#tutorial-overlay-next').addEventListener('click', () => {
+    if (currentStep < steps.length - 1) {
+      currentStep += 1;
+      renderTutorialStep(overlay, steps, currentStep, finishLabel);
+    } else {
+      onFinish();
+    }
+  });
+
+  overlay.querySelector('#tutorial-overlay-prev').addEventListener('click', () => {
+    if (currentStep > 0) {
+      currentStep -= 1;
+      renderTutorialStep(overlay, steps, currentStep, finishLabel);
+    }
+  });
+
+  overlay.querySelector('#tutorial-overlay-skip').addEventListener('click', () => onSkip());
+
+  return overlay;
 }
 
 /**
@@ -282,19 +334,6 @@ export function renderTutorialStep(overlay, steps, stepIndex) {
  * @returns {HTMLElement} The overlay element (already appended to `container`).
  */
 export function showTutorial(gameId, steps, container, onComplete = () => {}) {
-  const overlay = createTutorialOverlay(steps);
-  let currentStep = 0;
-
-  renderTutorialStep(overlay, steps, currentStep);
-  container.appendChild(overlay);
-
-  // Move focus into the overlay panel for keyboard accessibility.
-  const panel = overlay.querySelector('.tutorial-overlay__panel');
-  if (panel) {
-    panel.setAttribute('tabindex', '-1');
-    panel.focus();
-  }
-
   /** Finish the tutorial: persist seen state, remove overlay, invoke callback. */
   async function _finish() {
     try {
@@ -305,26 +344,7 @@ export function showTutorial(gameId, steps, container, onComplete = () => {}) {
     }
   }
 
-  overlay.querySelector('#tutorial-overlay-next').addEventListener('click', () => {
-    if (currentStep < steps.length - 1) {
-      currentStep += 1;
-      renderTutorialStep(overlay, steps, currentStep);
-    } else {
-      _finish();
-    }
-  });
-
-  overlay.querySelector('#tutorial-overlay-prev').addEventListener('click', () => {
-    if (currentStep > 0) {
-      currentStep -= 1;
-      renderTutorialStep(overlay, steps, currentStep);
-    }
-  });
-
-  overlay.querySelector('#tutorial-overlay-skip').addEventListener('click', () => {
-    _finish();
-  });
-
+  const overlay = _openSlideOverlay(steps, container, { onFinish: _finish, onSkip: _finish });
   return overlay;
 }
 
@@ -351,4 +371,226 @@ export async function showTutorialIfNeeded(
     return null;
   }
   return showTutorial(gameId, steps, container, onComplete);
+}
+
+// ── Guided tutorial runner ────────────────────────────────────────────────────
+
+/**
+ * What a game's `playPracticeRound` receives for each round.
+ *
+ * @typedef {object} PracticeRoundContext
+ * @property {number}  round     - This round's number, starting at 1.
+ * @property {number}  maxRounds - Most practice rounds the player can be offered.
+ * @property {boolean} guided    - Whether to show the marker this round. Rounds after
+ *   `guidedRounds` leave the player on their own.
+ * @property {AbortSignal} signal - Aborted when the tutorial ends for any reason (finished,
+ *   skipped, or cancelled). Cancel practice timers and clear practice state when it fires.
+ * @property {(text: string) => void} setInstructions - Replace the coach instruction line.
+ *   Include the keyboard alternative whenever the text describes a click.
+ * @property {(options: import('./tutorialCoach.js').MarkerOptions) => void} showMarker -
+ *   Mark the control to use, replacing any marker already shown.
+ * @property {() => void} hideMarker - Remove the marker.
+ */
+
+/**
+ * @typedef {object} GuidedTutorialOptions
+ * @property {string}         gameId    - Game ID (must match manifest.json `id`).
+ * @property {HTMLElement}    container - Game container; the overlay and coach go inside it.
+ * @property {TutorialStep[]} [introSteps=[]] - Slides shown before practice. Empty skips them.
+ * @property {(context: PracticeRoundContext) => Promise<void>} [playPracticeRound] - Play one
+ *   round at the game's easiest setting without scoring, saving, timing the session, or
+ *   changing difficulty. Resolve once the player has answered. Omit it for a slides-only
+ *   tutorial.
+ * @property {number}   [maxRounds=2]    - Most practice rounds to offer.
+ * @property {number}   [guidedRounds=1] - How many rounds, counting from the first, are guided.
+ * @property {Function} [onComplete]     - Called after the tutorial is finished or skipped and
+ *   marked seen, to start the real game. Not called when the run is cancelled.
+ */
+
+/**
+ * @typedef {'completed'|'skipped'|'cancelled'} GuidedTutorialOutcome
+ */
+
+/**
+ * @typedef {object} GuidedTutorialRun
+ * @property {() => void} cancel - End the tutorial now without marking it seen or calling
+ *   `onComplete`. Call it from the game's `stop()` and `reset()`. Safe to call more than once.
+ * @property {Promise<GuidedTutorialOutcome>} finished - Settles when the tutorial ends.
+ */
+
+/** Coach button that ends practice and starts the real game. */
+const START_GAME_CHOICE = { label: 'Start the Game', value: 'start' };
+/** Coach button that plays another practice round. */
+const ANOTHER_ROUND_CHOICE = { label: 'Play Another Round', value: 'again' };
+
+/**
+ * Run a guided tutorial: intro slides, then live practice rounds with a coach banner and a
+ * marker, then the real game.
+ *
+ * Flow: slides → `playPracticeRound` → "Play another round?" → (repeat up to `maxRounds`)
+ * → mark seen → `onComplete`. "Skip Tutorial" on the slides and "Skip Practice" on the coach
+ * both jump to mark seen → `onComplete`.
+ *
+ * @param {GuidedTutorialOptions} options - What to show and how to play a practice round.
+ * @returns {GuidedTutorialRun} Handle for cancelling the run.
+ */
+export function runGuidedTutorial({
+  gameId,
+  container,
+  introSteps = [],
+  playPracticeRound = null,
+  maxRounds = 2,
+  guidedRounds = 1,
+  onComplete = () => {},
+}) {
+  const controller = new AbortController();
+  let overlay = null;
+  let coach = null;
+  let removeMarker = () => {};
+  let ended = false;
+  let cancelled = false;
+  let settle;
+  const finished = new Promise((resolve) => { settle = resolve; });
+
+  /** Remove the current marker, if any. */
+  function hideMarker() {
+    removeMarker();
+    removeMarker = () => {};
+  }
+
+  /**
+   * Replace the marker. Ignored once the run has ended.
+   * @param {import('./tutorialCoach.js').MarkerOptions} options
+   */
+  function showMarker(options) {
+    if (ended) return;
+    hideMarker();
+    removeMarker = showTutorialMarker(container, options);
+  }
+
+  /**
+   * Replace the coach instruction line. Ignored once the run has ended.
+   * @param {string} text
+   */
+  function setInstructions(text) {
+    if (ended || !coach) return;
+    setCoachMessage(coach, { text });
+  }
+
+  /**
+   * End the run once: remove the tutorial UI and abort the practice signal. Finishing and
+   * skipping then mark the tutorial seen and call `onComplete`, unless the run is cancelled
+   * while the flag is being saved.
+   * @param {GuidedTutorialOutcome} outcome
+   * @returns {Promise<void>}
+   */
+  async function end(outcome) {
+    if (ended) return;
+    ended = true;
+    if (overlay) overlay.remove();
+    hideMarker();
+    if (coach) coach.remove();
+    controller.abort();
+
+    if (outcome !== 'cancelled') {
+      await markTutorialSeen(gameId);
+      if (!cancelled) {
+        onComplete();
+        settle(outcome);
+        return;
+      }
+    }
+    settle('cancelled');
+  }
+
+  /**
+   * Play practice rounds, asking after each one whether to play another.
+   * @returns {Promise<void>}
+   */
+  async function practice() {
+    coach = createTutorialCoach(() => { void end('skipped'); });
+    container.prepend(coach);
+
+    for (let round = 1; round <= maxRounds; round += 1) {
+      setCoachMessage(coach, { label: `Practice round ${round} of ${maxRounds}`, text: '' });
+      // Focus the coach so its instructions are read, and so focus is not left on the
+      // removed prompt button (or the closed overlay) when a round starts.
+      coach.focus();
+      await playPracticeRound({
+        round,
+        maxRounds,
+        guided: round <= guidedRounds,
+        signal: controller.signal,
+        setInstructions,
+        showMarker,
+        hideMarker,
+      });
+      if (ended) return;
+      hideMarker();
+
+      const isLastRound = round === maxRounds;
+      const choice = await askCoachQuestion(
+        coach,
+        isLastRound
+          ? 'Practice complete. Start the game when you are ready.'
+          : `Round ${round} done. Play another practice round, or start the game?`,
+        isLastRound
+          ? [{ ...START_GAME_CHOICE, primary: true }]
+          : [{ ...ANOTHER_ROUND_CHOICE, primary: true }, START_GAME_CHOICE],
+      );
+      // No `ended` check needed: ending removes the coach, so the prompt can't be answered.
+      if (choice === START_GAME_CHOICE.value) break;
+    }
+    await end('completed');
+  }
+
+  /** Close the slides and begin practice, or finish if there is nothing to practice. */
+  function startPractice() {
+    if (overlay) {
+      overlay.remove();
+      overlay = null;
+    }
+    if (!playPracticeRound || maxRounds < 1) {
+      void end('completed');
+      return;
+    }
+    practice().catch((err) => {
+      // Never strand the player in a broken practice round: go on to the real game.
+      logger.error('tutorialService: practice round failed', err);
+      void end('skipped');
+    });
+  }
+
+  if (introSteps.length > 0) {
+    overlay = _openSlideOverlay(introSteps, container, {
+      onFinish: startPractice,
+      onSkip: () => { void end('skipped'); },
+      finishLabel: playPracticeRound ? 'Start Practice' : undefined,
+    });
+  } else {
+    startPractice();
+  }
+
+  return {
+    cancel() {
+      cancelled = true;
+      void end('cancelled');
+    },
+    finished,
+  };
+}
+
+/**
+ * Run the guided tutorial only if the player has not yet seen it. Otherwise call
+ * `onComplete` immediately and return `null`.
+ *
+ * @param {GuidedTutorialOptions} options - Same options as {@link runGuidedTutorial}.
+ * @returns {Promise<GuidedTutorialRun|null>} The run handle, or `null` if already seen.
+ */
+export async function runGuidedTutorialIfNeeded(options) {
+  if (await hasTutorialBeenSeen(options.gameId)) {
+    if (typeof options.onComplete === 'function') options.onComplete();
+    return null;
+  }
+  return runGuidedTutorial(options);
 }
