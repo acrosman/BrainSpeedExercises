@@ -82,7 +82,7 @@ export function drawBoard(
   const angleStep = (2 * Math.PI) / wedgeCount;
 
   // Use provided slotAssignment for image placement, or generate if not provided.
-  let slots = [];
+  let slots;
   if (showImages && imageCount < wedgeCount) {
     if (Array.isArray(slotAssignment) && slotAssignment.length === imageCount) {
       slots = slotAssignment.slice();
