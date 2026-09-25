@@ -1280,14 +1280,6 @@ describe('tutorial', () => {
     expect(tutorialService.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
     expect(game.startGame).toHaveBeenCalled();
   });
-
-  it('init works without a replay tutorial button', async () => {
-    const noReplay = buildContainer();
-    noReplay.querySelector('#fp-replay-tutorial-btn').remove();
-    expect(() => plugin.init(noReplay)).not.toThrow();
-    await plugin.start();
-    expect(game.startGame).toHaveBeenCalled();
-  });
 });
 
 // ===========================================================================

@@ -583,7 +583,7 @@ function _beginGameSession() {
 /**
  * Load the tutorial steps and hand them to a tutorialService launcher, guarding against
  * overlapping launches and an already-open overlay.
- * @param {Function} launch - `showTutorial` or `showTutorialIfNeeded`.
+ * @param {typeof showTutorial | typeof showTutorialIfNeeded} launch - Which launcher to use.
  * @returns {Promise<void>}
  */
 async function _launchTutorial(launch) {
@@ -596,14 +596,6 @@ async function _launchTutorial(launch) {
   } finally {
     _isTutorialLaunchPending = false;
   }
-}
-
-/**
- * Replay the tutorial on demand, then start a new gameplay session.
- * @returns {Promise<void>}
- */
-function _replayTutorial() {
-  return _launchTutorial(showTutorial);
 }
 
 /**
@@ -657,9 +649,8 @@ export default {
 
     // Bind events
     _startBtn.addEventListener('click', () => { void this.start(); });
-    if (_replayTutorialBtn) {
-      _replayTutorialBtn.addEventListener('click', () => { void _replayTutorial(); });
-    }
+    // Replay always shows the tutorial, then starts a session.
+    _replayTutorialBtn.addEventListener('click', () => { void _launchTutorial(showTutorial); });
     _canvas.addEventListener('click', _handleClick);
     _canvas.addEventListener('mousemove', _handleMouseMove);
     _canvas.addEventListener('mouseleave', _handleMouseLeave);
