@@ -89,6 +89,9 @@ HTML.
 stored under `progress.tutorials[gameId]`.
 
 - Steps are `{ title, content }`, where `content` is an HTML string.
+- `loadTutorialSteps(definitions)` builds steps from `{ title, contentPath }` definitions whose
+  content is an HTML fragment file. It caches each file and shows fallback text if one fails
+  to load (`clearTutorialMarkupCache()` resets the cache in tests).
 - `showTutorialIfNeeded(gameId, steps, container, onComplete)` shows the overlay only the first
   time. Otherwise it calls `onComplete` immediately. `showTutorial(...)` always shows it, which
   suits a "How to play" replay button.
@@ -96,7 +99,8 @@ stored under `progress.tutorials[gameId]`.
   them per game.
 
 `card-rat`, `directional-processing`, and `fast-piggie` use a tutorial. Copy their pattern: step
-HTML files and a `getTutorialSteps()` loader in `<id>/tutorial/`, an annotated
+HTML files in `<id>/tutorial/` plus a `tutorial.js` whose `getTutorialSteps()` passes their
+definitions to `loadTutorialSteps`, an annotated
 `images/tutorialScreenshot.png`, a "Replay Tutorial" button on the welcome panel, and an async
 `start()` that loads the steps and calls `showTutorialIfNeeded` with a function that begins the
 session. Guard against a second launch while one is loading or an overlay is open.

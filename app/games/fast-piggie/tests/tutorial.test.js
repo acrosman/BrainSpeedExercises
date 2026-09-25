@@ -1,62 +1,29 @@
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+/**
+ * tutorial.test.js — Tests for the Fast Piggie tutorial step definitions.
+ *
+ * @file Tests for app/games/fast-piggie/tutorial/tutorial.js
+ */
 
-jest.unstable_mockModule('../../../components/logService.js', () => ({
-  logger: {
-    warn: jest.fn(),
-  },
+import { describe, test, expect, jest } from '@jest/globals';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  // Echo the definitions so the test can inspect the paths getTutorialSteps passes in.
+  loadTutorialSteps: jest.fn(async (definitions) => definitions.map(
+    ({ title, contentPath }) => ({ title, content: contentPath }),
+  )),
 }));
 
-const { logger } = await import('../../../components/logService.js');
-const tutorialModule = await import('../tutorial/tutorial.js');
-const { getTutorialSteps, clearTutorialMarkupCache } = tutorialModule;
+const { getTutorialSteps } = await import('../tutorial/tutorial.js');
 
-/**
- * Create a fetch Response-like object for tutorial markup tests.
- *
- * @param {boolean} ok
- * @param {string} text
- * @param {number} [status=200]
- * @returns {{ok: boolean, status: number, text: () => Promise<string>}}
- */
-function makeResponse(ok, text, status = 200) {
-  return {
-    ok,
-    status,
-    text: async () => text,
-  };
-}
+/** Absolute path of `app/`, which step and image paths are relative to. */
+const APP_DIR = fileURLToPath(new URL('../../../', import.meta.url));
 
 describe('fast-piggie tutorial steps', () => {
-  beforeEach(() => {
-    clearTutorialMarkupCache();
-    logger.warn.mockClear();
-    global.fetch = jest.fn(async (path) => {
-      if (path.includes('tutorial-step-welcome.html')) {
-        return makeResponse(true, '<p>Welcome tutorial content</p>');
-      }
-      if (path.includes('tutorial-step-what-to-look-for.html')) {
-        return makeResponse(true, '<p>Different piggie content</p>');
-      }
-      if (path.includes('tutorial-screenshot-step.html')) {
-        return makeResponse(true, '<p>Screenshot content</p>');
-      }
-      if (path.includes('tutorial-step-how-to-respond.html')) {
-        return makeResponse(true, '<p>Response content</p>');
-      }
-      if (path.includes('tutorial-step-levels.html')) {
-        return makeResponse(true, '<p>Levels content</p>');
-      }
-      return makeResponse(false, '', 404);
-    });
-  });
-
-  test('loads tutorial steps from separate HTML files', async () => {
+  test('lists the steps in order', async () => {
     const steps = await getTutorialSteps();
-    expect(steps).toHaveLength(5);
-    expect(steps[0]).toEqual(expect.objectContaining({
-      title: 'Welcome to Fast Piggie',
-      content: '<p>Welcome tutorial content</p>',
-    }));
     expect(steps.map((step) => step.title)).toEqual([
       'Welcome to Fast Piggie',
       'Find the Main Play Area',
@@ -64,36 +31,25 @@ describe('fast-piggie tutorial steps', () => {
       'How to Respond',
       'Levels and Scoring',
     ]);
-    expect(steps[2].content).toContain('Different piggie');
-    expect(global.fetch).toHaveBeenCalledTimes(5);
   });
 
-  test('uses fallback content when a step fails to load', async () => {
-    global.fetch = jest.fn(async (path) => {
-      if (path.includes('tutorial-step-what-to-look-for.html')) {
-        return makeResponse(false, '', 500);
-      }
-      return makeResponse(true, '<p>ok</p>');
-    });
-
+  test('every step points at an HTML fragment in this game\'s tutorial folder', async () => {
     const steps = await getTutorialSteps();
-    expect(steps[2]).toEqual(expect.objectContaining({
-      title: 'What to Look For',
-      content: 'Tutorial content is temporarily unavailable.',
-    }));
-    expect(logger.warn).toHaveBeenCalledTimes(1);
+    steps.forEach(({ content: contentPath }) => {
+      expect(contentPath).toMatch(/^\.\/games\/fast-piggie\/tutorial\/[\w-]+\.html$/);
+      expect(fs.existsSync(path.join(APP_DIR, contentPath))).toBe(true);
+    });
   });
 
-  test('caches loaded tutorial markup between calls', async () => {
-    await getTutorialSteps();
-    await getTutorialSteps();
-    expect(global.fetch).toHaveBeenCalledTimes(5);
-  });
-
-  test('clearTutorialMarkupCache clears cached tutorial markup', async () => {
-    await getTutorialSteps();
-    clearTutorialMarkupCache();
-    await getTutorialSteps();
-    expect(global.fetch).toHaveBeenCalledTimes(10);
+  test('every image a step references exists', async () => {
+    const steps = await getTutorialSteps();
+    const imageSrcs = steps.flatMap(({ content: contentPath }) => {
+      const markup = fs.readFileSync(path.join(APP_DIR, contentPath), 'utf8');
+      return [...markup.matchAll(/<img[^>]*\ssrc="([^"]+)"/g)].map((match) => match[1]);
+    });
+    expect(imageSrcs).toContain('./games/fast-piggie/images/tutorialScreenshot.png');
+    imageSrcs.forEach((src) => {
+      expect(fs.existsSync(path.join(APP_DIR, src))).toBe(true);
+    });
   });
 });

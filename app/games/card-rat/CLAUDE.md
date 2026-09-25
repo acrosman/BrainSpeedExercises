@@ -21,9 +21,9 @@ A joker never forms a pair or sandwich with a card next to it.
   The sprite geometry constants must match that image exactly. Update them together if the
   sprite changes.
 - `tutorial/`: the first-run tutorial. `tutorial.js` lists steps as
-  `{ title, contentPath }` pointing to the `tutorial-step-*.html` fragments. It fetches and
-  caches them, and falls back to plain text if a fetch fails (`clearTutorialMarkupCache()` for
-  tests). `index.js` calls `showTutorialIfNeeded` before the first session, and
+  `{ title, contentPath }` pointing to the `tutorial-step-*.html` fragments, and
+  `getTutorialSteps()` loads them with `loadTutorialSteps` from the tutorial service.
+  `index.js` calls `showTutorialIfNeeded` before the first session, and
   `#cr-replay-tutorial-btn` calls `showTutorial`.
 
 ## Difficulty

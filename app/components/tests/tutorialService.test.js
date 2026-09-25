@@ -2,7 +2,7 @@
  * tutorialService.test.js — Unit tests for the shared tutorial framework.
  *
  * Exercises hasTutorialBeenSeen, markTutorialSeen, createTutorialOverlay,
- * renderTutorialStep, showTutorial, and showTutorialIfNeeded.
+ * renderTutorialStep, showTutorial, showTutorialIfNeeded, and step content loading.
  *
  * @file Tests for app/components/tutorialService.js
  */
@@ -28,7 +28,10 @@ const {
   renderTutorialStep,
   showTutorial,
   showTutorialIfNeeded,
+  loadTutorialSteps,
+  clearTutorialMarkupCache,
 } = await import('../tutorialService.js');
+const { logger } = await import('../logService.js');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -443,5 +446,58 @@ describe('showTutorialIfNeeded', () => {
     expect(skipBtn).not.toBeNull();
     skipBtn.click();
     await Promise.resolve();
+  });
+});
+
+describe('loadTutorialSteps', () => {
+  const DEFINITIONS = [
+    { title: 'One', contentPath: './one.html' },
+    { title: 'Two', contentPath: './two.html' },
+  ];
+
+  beforeEach(() => {
+    clearTutorialMarkupCache();
+    logger.warn.mockClear();
+    global.fetch = jest.fn(async (path) => ({
+      ok: true,
+      status: 200,
+      text: async () => `<p>${path}</p>`,
+    }));
+  });
+
+  afterEach(() => {
+    delete global.fetch;
+  });
+
+  it('returns one step per definition, in order, with the fetched markup', async () => {
+    const steps = await loadTutorialSteps(DEFINITIONS);
+    expect(steps).toEqual([
+      { title: 'One', content: '<p>./one.html</p>' },
+      { title: 'Two', content: '<p>./two.html</p>' },
+    ]);
+  });
+
+  it('uses fallback text and warns when a response is not ok', async () => {
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 404, text: async () => '' });
+    const steps = await loadTutorialSteps(DEFINITIONS);
+    expect(steps[0].content).toBe('Tutorial content is temporarily unavailable.');
+    expect(steps[1].content).toBe('<p>./two.html</p>');
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses fallback text when fetch rejects', async () => {
+    global.fetch.mockRejectedValueOnce(new Error('offline'));
+    const steps = await loadTutorialSteps(DEFINITIONS.slice(0, 1));
+    expect(steps[0].content).toBe('Tutorial content is temporarily unavailable.');
+  });
+
+  it('caches markup between loads until the cache is cleared', async () => {
+    await loadTutorialSteps(DEFINITIONS);
+    await loadTutorialSteps(DEFINITIONS);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+
+    clearTutorialMarkupCache();
+    await loadTutorialSteps(DEFINITIONS);
+    expect(global.fetch).toHaveBeenCalledTimes(4);
   });
 });

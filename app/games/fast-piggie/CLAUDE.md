@@ -13,7 +13,7 @@ images disappear, the player picks the wedge where the outlier was.
   left and right halves (normal and outlier). Each half is copied into its own offscreen canvas
   with a 2 px `SPRITE_INSET`, which stops the seam from bleeding into small draws.
   `drawBoard()`, `clearImages()`, and `highlightWedge()` are exported for tests.
-- `tutorial/`: the first-run tutorial. `tutorial.js` loads the step HTML files, and
+- `tutorial/`: the first-run tutorial. `tutorial.js` lists the step HTML files, and
   `start()` in `index.js` shows them through `showTutorialIfNeeded` before the session begins.
   The screenshot step highlights regions of `images/tutorialScreenshot.png` with the
   percentage-positioned `.fp-tutorial-highlight--*` boxes in `style.css`. Retake the screenshot
