@@ -189,6 +189,66 @@
   outline-offset: 2px;
 }
 
+/* ── Tutorial screenshot ─────────────────────────────────────────────────────── */
+/* Annotated gameplay screenshot shown inside the shared tutorial overlay.       */
+/* Highlight boxes are positioned as percentages of tutorialScreenshot.png.      */
+
+.dp-tutorial-figure {
+  margin: 0.75rem 0 0;
+}
+
+.dp-tutorial-image-wrap {
+  position: relative;
+}
+
+.dp-tutorial-image {
+  display: block;
+  width: 100%;
+  max-width: 540px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.dp-tutorial-caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.dp-tutorial-highlight {
+  position: absolute;
+  border-radius: 8px;
+  border: 3px solid;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dp-tutorial-highlight--stats {
+  left: 0.5%;
+  top: 1%;
+  width: 40%;
+  height: 7%;
+  border-color: #1976d2;
+  background: rgb(25 118 210 / 16%);
+}
+
+.dp-tutorial-highlight--pattern {
+  left: 32%;
+  top: 7%;
+  width: 36%;
+  height: 59%;
+  border-color: #2e7d32;
+  background: rgb(46 125 50 / 10%);
+}
+
+.dp-tutorial-highlight--buttons {
+  left: 41%;
+  top: 71%;
+  width: 18.5%;
+  height: 27.5%;
+  border-color: #ed6c02;
+  background: rgb(237 108 2 / 16%);
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 480px) {
