@@ -118,6 +118,73 @@
   justify-content: center;
 }
 
+/* ── Tutorial screenshot ─────────────────────────────────────────────────── */
+/* Annotated gameplay screenshot shown inside the shared tutorial overlay.     */
+/* Highlight boxes are positioned as percentages of tutorialScreenshot.png.    */
+
+.fp-tutorial-figure {
+  margin: 0.75rem 0 0;
+}
+
+.fp-tutorial-image-wrap {
+  position: relative;
+}
+
+.fp-tutorial-image {
+  display: block;
+  width: 100%;
+  max-width: 540px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.fp-tutorial-caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.fp-tutorial-highlight {
+  position: absolute;
+  border-radius: 8px;
+  border: 3px solid;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.fp-tutorial-highlight--stats {
+  left: 1%;
+  top: 0.8%;
+  width: 98.5%;
+  height: 5.4%;
+  border-color: #1976d2;
+  background: rgb(25 118 210 / 16%);
+}
+
+.fp-tutorial-highlight--board {
+  left: 2.5%;
+  top: 6.8%;
+  width: 79%;
+  height: 54.8%;
+  border-color: #2e7d32;
+  background: rgb(46 125 50 / 10%);
+}
+
+.fp-tutorial-highlight--controls {
+  left: 37.5%;
+  top: 92.3%;
+  width: 25%;
+  height: 6.3%;
+  border-color: #ed6c02;
+  background: rgb(237 108 2 / 16%);
+}
+
+/* Target piggie shown on the "What to Look For" step */
+.fp-tutorial-target {
+  display: block;
+  margin: 0.5rem auto;
+  max-height: 120px;
+}
+
 /* ── Instructions panel ──────────────────────────────────────────────────── */
 /* Layout is provided by .game-welcome in app/style.css.                       */
 /* Add any game-specific overrides here.                                       */

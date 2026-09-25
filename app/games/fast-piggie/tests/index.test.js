@@ -53,7 +53,27 @@ jest.unstable_mockModule('../game.js', () => ({
   })),
 }));
 
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  showTutorial: jest.fn((_gameId, _steps, _container, onComplete) => {
+    if (typeof onComplete === 'function') onComplete();
+    return document.createElement('div');
+  }),
+  showTutorialIfNeeded: jest.fn(async (_gameId, _steps, _container, onComplete) => {
+    if (typeof onComplete === 'function') onComplete();
+    return null;
+  }),
+}));
+
+jest.unstable_mockModule('../tutorial/tutorial.js', () => ({
+  getTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Fast Piggie', content: '<p>Welcome</p>' },
+    { title: 'What to Look For', content: '<p>Find the orange piggie.</p>' },
+  ]),
+}));
+
 const game = await import('../game.js');
+const tutorialService = await import('../../../components/tutorialService.js');
+const tutorialContent = await import('../tutorial/tutorial.js');
 const indexModule = await import('../index.js');
 const plugin = indexModule.default;
 const {
@@ -145,6 +165,7 @@ function buildContainer() {
     <section class="fast-piggie">
       <div id="fp-instructions" class="fp-instructions">
         <button id="fp-start-btn" class="fp-btn fp-btn--primary">Start Game</button>
+        <button id="fp-replay-tutorial-btn" type="button">Replay Tutorial</button>
       </div>
       <div id="fp-game-area" hidden>
         <canvas id="fp-canvas" width="500" height="500"></canvas>
@@ -180,6 +201,16 @@ function buildContainer() {
     </section>
   `;
   return div;
+}
+
+/**
+ * Let pending promise callbacks run (fake timers do not advance native promises).
+ * @returns {Promise<void>}
+ */
+async function flushMicrotasks() {
+  for (let i = 0; i < 5; i += 1) {
+    await Promise.resolve();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -335,27 +366,27 @@ describe('init(container)', () => {
 // start()
 // ===========================================================================
 describe('start()', () => {
-  it('calls game.startGame()', () => {
-    plugin.start();
+  it('calls game.startGame()', async () => {
+    await plugin.start();
     expect(game.startGame).toHaveBeenCalled();
   });
 
-  it('calls game.generateRound() via _runRound', () => {
-    plugin.start();
+  it('calls game.generateRound() via _runRound', async () => {
+    await plugin.start();
     expect(game.generateRound).toHaveBeenCalled();
   });
 
-  it('hides #fp-instructions', () => {
+  it('hides #fp-instructions', async () => {
     const instructions = container.querySelector('#fp-instructions');
     instructions.hidden = false;
-    plugin.start();
+    await plugin.start();
     expect(instructions.hidden).toBe(true);
   });
 
-  it('shows #fp-game-area', () => {
+  it('shows #fp-game-area', async () => {
     const gameArea = container.querySelector('#fp-game-area');
     gameArea.hidden = true;
-    plugin.start();
+    await plugin.start();
     expect(gameArea.hidden).toBe(false);
   });
 });
@@ -364,8 +395,8 @@ describe('start()', () => {
 // stop()
 // ===========================================================================
 describe('stop()', () => {
-  beforeEach(() => {
-    plugin.start();
+  beforeEach(async () => {
+    await plugin.start();
   });
 
   it('calls game.stopGame()', () => {
@@ -409,8 +440,8 @@ describe('stop()', () => {
 // reset()
 // ===========================================================================
 describe('reset()', () => {
-  beforeEach(() => {
-    plugin.start();
+  beforeEach(async () => {
+    await plugin.start();
     plugin.stop();
   });
 
@@ -473,10 +504,10 @@ describe('reset()', () => {
 // _handleClick — correct answer branch
 // ===========================================================================
 describe('_handleClick — correct answer (calculateWedgeIndex returns 2)', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     game.calculateWedgeIndex.mockReturnValue(2);
     game.checkAnswer.mockReturnValue(true);
-    plugin.start();
+    await plugin.start();
     // Advance past displayDurationMs to enable clicking
     jest.runAllTimers();
   });
@@ -525,10 +556,10 @@ describe('_handleClick — correct answer (calculateWedgeIndex returns 2)', () =
 // _handleClick — wrong answer branch
 // ===========================================================================
 describe('_handleClick — wrong answer (checkAnswer returns false)', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     game.calculateWedgeIndex.mockReturnValue(4);
     game.checkAnswer.mockReturnValue(false);
-    plugin.start();
+    await plugin.start();
     jest.runAllTimers();
   });
 
@@ -576,7 +607,7 @@ describe('_handleClick — wrong answer (checkAnswer returns false)', () => {
     expect(flash.classList.contains('fp-flash--wrong')).toBe(true);
   });
 
-  it('highlights the actual outlier wedge slot when images were shuffled', () => {
+  it('highlights the actual outlier wedge slot when images were shuffled', async () => {
     plugin.reset();
     const mathRandomSpy = jest.spyOn(Math, 'random')
       .mockReturnValueOnce(0)
@@ -585,7 +616,7 @@ describe('_handleClick — wrong answer (checkAnswer returns false)', () => {
       .mockReturnValueOnce(0)
       .mockReturnValueOnce(0);
 
-    plugin.start();
+    await plugin.start();
     jest.runAllTimers();
     ctx2d.arc.mockClear();
 
@@ -606,10 +637,10 @@ describe('_handleClick — wrong answer (checkAnswer returns false)', () => {
 // _handleClick — outside circle (calculateWedgeIndex returns -1)
 // ===========================================================================
 describe('_handleClick — click outside circle', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     game.calculateWedgeIndex.mockReturnValue(-1);
     game.checkAnswer.mockReturnValue(true);
-    plugin.start();
+    await plugin.start();
     jest.runAllTimers();
   });
 
@@ -638,10 +669,10 @@ describe('_handleClick — click outside circle', () => {
 // _handleKeydown
 // ===========================================================================
 describe('_handleKeydown', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     game.calculateWedgeIndex.mockReturnValue(2);
     game.checkAnswer.mockReturnValue(true);
-    plugin.start();
+    await plugin.start();
     // Advance past displayDurationMs so _clickEnabled becomes true
     jest.runAllTimers();
     ctx2d.clearRect.mockClear();
@@ -800,8 +831,8 @@ describe('loadImages()', () => {
 // _handleKeydown — additional key navigation coverage
 // ===========================================================================
 describe('_handleKeydown — ArrowLeft navigation', () => {
-  beforeEach(() => {
-    plugin.start();
+  beforeEach(async () => {
+    await plugin.start();
     jest.runAllTimers();
   });
 
@@ -840,8 +871,8 @@ describe('_handleKeydown — ArrowLeft navigation', () => {
 // _handleKeydown — guard: not active when _clickEnabled is false
 // ===========================================================================
 describe('_handleKeydown — guard when click not enabled', () => {
-  it('does nothing if _clickEnabled is false (before displayDurationMs)', () => {
-    plugin.start();
+  it('does nothing if _clickEnabled is false (before displayDurationMs)', async () => {
+    await plugin.start();
     // Do NOT advance timers — _clickEnabled stays false
     const canvas = container.querySelector('#fp-canvas');
     canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
@@ -853,9 +884,9 @@ describe('_handleKeydown — guard when click not enabled', () => {
 // _handleMouseMove
 // ===========================================================================
 describe('_handleMouseMove', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     game.calculateWedgeIndex.mockReturnValue(2);
-    plugin.start();
+    await plugin.start();
     jest.runAllTimers();
     ctx2d.clearRect.mockClear();
     ctx2d.fill.mockClear();
@@ -867,9 +898,9 @@ describe('_handleMouseMove', () => {
     );
   }
 
-  it('does nothing when _clickEnabled is false', () => {
+  it('does nothing when _clickEnabled is false', async () => {
     plugin.reset();
-    plugin.start(); // timers not advanced — _clickEnabled stays false
+    await plugin.start(); // timers not advanced — _clickEnabled stays false
     ctx2d.clearRect.mockClear();
     fireMouseMove();
     expect(ctx2d.clearRect).not.toHaveBeenCalled();
@@ -910,9 +941,9 @@ describe('_handleMouseMove', () => {
 // _handleMouseLeave
 // ===========================================================================
 describe('_handleMouseLeave', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     game.calculateWedgeIndex.mockReturnValue(2);
-    plugin.start();
+    await plugin.start();
     jest.runAllTimers();
     // Establish a hover state first
     container.querySelector('#fp-canvas').dispatchEvent(
@@ -928,9 +959,9 @@ describe('_handleMouseLeave', () => {
     expect(ctx2d.clearRect).toHaveBeenCalled();
   });
 
-  it('does nothing when _clickEnabled is false', () => {
+  it('does nothing when _clickEnabled is false', async () => {
     plugin.reset();
-    plugin.start(); // timers not advanced
+    await plugin.start(); // timers not advanced
     ctx2d.clearRect.mockClear();
     container.querySelector('#fp-canvas').dispatchEvent(
       new MouseEvent('mouseleave', { bubbles: true }),
@@ -943,8 +974,8 @@ describe('_handleMouseLeave', () => {
 // _handleClick — guard: click before round is active
 // ===========================================================================
 describe('_handleClick — guard when click not enabled', () => {
-  it('does nothing if _clickEnabled is false', () => {
-    plugin.start();
+  it('does nothing if _clickEnabled is false', async () => {
+    await plugin.start();
     // Do NOT advance timers
     const canvas = container.querySelector('#fp-canvas');
     canvas.dispatchEvent(new MouseEvent('click', { clientX: 250, clientY: 100, bubbles: true }));
@@ -956,9 +987,9 @@ describe('_handleClick — guard when click not enabled', () => {
 // _runRound — guard: does not run if game is not running
 // ===========================================================================
 describe('_runRound — guard when game is not running', () => {
-  it('does not call generateRound if isRunning returns false', () => {
+  it('does not call generateRound if isRunning returns false', async () => {
     game.isRunning.mockReturnValueOnce(false);
-    plugin.start();
+    await plugin.start();
     expect(game.generateRound).not.toHaveBeenCalled();
   });
 });
@@ -967,8 +998,8 @@ describe('_runRound — guard when game is not running', () => {
 // stop button triggers stop()
 // ===========================================================================
 describe('stop button', () => {
-  it('clicking stop button calls game.stopGame()', () => {
-    plugin.start();
+  it('clicking stop button calls game.stopGame()', async () => {
+    await plugin.start();
     const stopBtn = container.querySelector('#fp-stop-btn');
     stopBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(game.stopGame).toHaveBeenCalled();
@@ -979,8 +1010,8 @@ describe('stop button', () => {
 // stop() cancels pending round timer
 // ===========================================================================
 describe('stop() timer cleanup', () => {
-  it('clears the round timer on stop', () => {
-    plugin.start();
+  it('clears the round timer on stop', async () => {
+    await plugin.start();
     // Timer is pending — stop should clear it without throwing
     expect(() => plugin.stop()).not.toThrow();
   });
@@ -990,8 +1021,8 @@ describe('stop() timer cleanup', () => {
 // reset() timer cleanup
 // ===========================================================================
 describe('reset() timer cleanup', () => {
-  it('clears any pending round timer on reset', () => {
-    plugin.start();
+  it('clears any pending round timer on reset', async () => {
+    await plugin.start();
     expect(() => plugin.reset()).not.toThrow();
   });
 });
@@ -1011,7 +1042,7 @@ describe('progress saving', () => {
     globalThis.api = mockApi;
 
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     await plugin.stop();
 
     expect(mockApi.invoke).toHaveBeenCalledWith('progress:load', { playerId: 'default' });
@@ -1040,7 +1071,7 @@ describe('progress saving', () => {
     globalThis.api = mockApi;
 
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     // Suppress unhandled rejection for this test
     let errorCaught = false;
     try {
@@ -1065,7 +1096,7 @@ describe('progress saving', () => {
     globalThis.api = mockApi;
 
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     await plugin.stop();
 
     const loadCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:load');
@@ -1088,7 +1119,7 @@ describe('progress saving', () => {
     globalThis.api = mockApi;
 
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     await plugin.stop();
 
     const saveCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:save');
@@ -1118,7 +1149,7 @@ describe('progress saving', () => {
     globalThis.api = mockApi;
 
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     await plugin.stop();
 
     const saveCall = mockApi.invoke.mock.calls.find((c) => c[0] === 'progress:save');
@@ -1133,7 +1164,7 @@ describe('progress saving', () => {
 // ===========================================================================
 describe('stop() end-panel flow and _returnToMainMenu', () => {
   it('stop() shows the end panel with score and high score', async () => {
-    plugin.start();
+    await plugin.start();
     await plugin.stop();
     const endPanel = container.querySelector('#fp-end-panel');
     expect(endPanel.hidden).toBe(false);
@@ -1142,7 +1173,7 @@ describe('stop() end-panel flow and _returnToMainMenu', () => {
   });
 
   it('stop() hides the game area and End Game button', async () => {
-    plugin.start();
+    await plugin.start();
     await plugin.stop();
     expect(container.querySelector('#fp-game-area').hidden).toBe(true);
     expect(container.querySelector('#fp-stop-btn').hidden).toBe(true);
@@ -1160,9 +1191,101 @@ describe('stop() end-panel flow and _returnToMainMenu', () => {
 // start button click callback (f[34] in index.js)
 // ===========================================================================
 describe('start button click event', () => {
-  it('clicking #fp-start-btn triggers plugin.start()', () => {
+  it('clicking #fp-start-btn triggers plugin.start()', async () => {
     const startBtn = container.querySelector('#fp-start-btn');
     startBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushMicrotasks();
+    expect(game.startGame).toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// Tutorial
+// ===========================================================================
+describe('tutorial', () => {
+  it('start() shows the tutorial if needed with the Fast Piggie steps', async () => {
+    await plugin.start();
+    expect(tutorialContent.getTutorialSteps).toHaveBeenCalled();
+    expect(tutorialService.showTutorialIfNeeded).toHaveBeenCalledWith(
+      'fast-piggie',
+      expect.arrayContaining([
+        expect.objectContaining({ title: 'Welcome to Fast Piggie' }),
+      ]),
+      container,
+      expect.any(Function),
+    );
+  });
+
+  it('does not start the game until the tutorial completes', async () => {
+    let finishTutorial = null;
+    tutorialService.showTutorialIfNeeded.mockImplementationOnce(
+      async (_gameId, _steps, _container, onComplete) => {
+        finishTutorial = onComplete;
+        return document.createElement('div');
+      },
+    );
+    await plugin.start();
+    expect(game.startGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#fp-game-area').hidden).toBe(true);
+
+    finishTutorial();
+    expect(game.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#fp-game-area').hidden).toBe(false);
+  });
+
+  it('replay tutorial button calls showTutorial and then starts the game', async () => {
+    container.querySelector('#fp-replay-tutorial-btn').click();
+    await flushMicrotasks();
+    expect(tutorialService.showTutorial).toHaveBeenCalledWith(
+      'fast-piggie',
+      expect.arrayContaining([
+        expect.objectContaining({ title: 'Welcome to Fast Piggie' }),
+      ]),
+      container,
+      expect.any(Function),
+    );
+    expect(tutorialService.showTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(game.startGame).toHaveBeenCalled();
+  });
+
+  it('start and replay do nothing while a tutorial overlay is open', async () => {
+    const overlay = document.createElement('div');
+    overlay.className = 'tutorial-overlay';
+    container.appendChild(overlay);
+
+    await plugin.start();
+    container.querySelector('#fp-replay-tutorial-btn').click();
+    await flushMicrotasks();
+
+    expect(tutorialContent.getTutorialSteps).not.toHaveBeenCalled();
+    expect(tutorialService.showTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(tutorialService.showTutorial).not.toHaveBeenCalled();
+    expect(game.startGame).not.toHaveBeenCalled();
+  });
+
+  it('ignores a second start while the first tutorial launch is in flight', async () => {
+    const first = plugin.start();
+    const second = plugin.start();
+    await Promise.all([first, second]);
+    expect(tutorialContent.getTutorialSteps).toHaveBeenCalledTimes(1);
+    expect(tutorialService.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
+    expect(game.startGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the pending flag when loading tutorial steps fails', async () => {
+    tutorialContent.getTutorialSteps.mockRejectedValueOnce(new Error('load failed'));
+    await expect(plugin.start()).rejects.toThrow('load failed');
+
+    await plugin.start();
+    expect(tutorialService.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
+    expect(game.startGame).toHaveBeenCalled();
+  });
+
+  it('init works without a replay tutorial button', async () => {
+    const noReplay = buildContainer();
+    noReplay.querySelector('#fp-replay-tutorial-btn').remove();
+    expect(() => plugin.init(noReplay)).not.toThrow();
+    await plugin.start();
     expect(game.startGame).toHaveBeenCalled();
   });
 });
@@ -1178,10 +1301,10 @@ describe('_triggerFlash and next-round timers', () => {
     );
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     game.calculateWedgeIndex.mockReturnValue(2);
     game.checkAnswer.mockReturnValue(true);
-    plugin.start();
+    await plugin.start();
     jest.runAllTimers(); // advance past displayDurationMs → _clickEnabled = true
   });
 
@@ -1204,10 +1327,10 @@ describe('_triggerFlash and next-round timers', () => {
 describe('_runRound image flash timing', () => {
   const mockedDisplayDurationMs = 2000;
 
-  it('schedules the image flash 15ms after wedges are hidden', () => {
+  it('schedules the image flash 15ms after wedges are hidden', async () => {
     const setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout');
     try {
-      plugin.start();
+      await plugin.start();
       expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 15);
       jest.advanceTimersByTime(15);
       expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), mockedDisplayDurationMs);
@@ -1266,7 +1389,7 @@ describe('init() — loadImages .catch() fallback', () => {
 // (covers the `return outlierWedgeIndex` else-path in _getCorrectWedgeIndex)
 // ===========================================================================
 describe('_resolveRound — no slot assignment when imageCount equals wedgeCount', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     game.generateRound.mockReturnValueOnce({
       wedgeCount: 6,
       imageCount: 6,
@@ -1275,7 +1398,7 @@ describe('_resolveRound — no slot assignment when imageCount equals wedgeCount
     });
     game.calculateWedgeIndex.mockReturnValue(2);
     game.checkAnswer.mockReturnValue(true);
-    plugin.start();
+    await plugin.start();
     jest.runAllTimers();
   });
 
@@ -1291,7 +1414,7 @@ describe('_resolveRound — no slot assignment when imageCount equals wedgeCount
 // ===========================================================================
 describe('_showEndPanel and _returnToMainMenu', () => {
   it('end panel contains Session Ended heading after stop()', async () => {
-    plugin.start();
+    await plugin.start();
     await plugin.stop();
     const endPanel = container.querySelector('#fp-end-panel');
     expect(endPanel.textContent).toContain('Session Ended');
@@ -1324,7 +1447,7 @@ describe('dailyTime accumulation', () => {
   beforeEach(async () => {
     timerMod = await import('../../../components/timerService.js');
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
   });
 
   afterEach(() => {
