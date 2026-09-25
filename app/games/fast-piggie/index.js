@@ -669,18 +669,15 @@ function _showGameArea() {
 }
 
 /**
- * Stop any practice round: cancel its timers and settle its promise. Runs when the
- * tutorial's practice signal aborts, which happens whenever the tutorial ends.
+ * Drop any practice round and cancel its timers. Runs when the tutorial's practice signal
+ * aborts, which happens whenever the tutorial ends. The round's promise is left pending:
+ * the tutorial no longer waits on it.
  */
 function _endPractice() {
   _clearRoundTimers();
   _clickEnabled = false;
   _currentRound = null;
-  if (_practice) {
-    const { resolve } = _practice;
-    _practice = null;
-    resolve();
-  }
+  _practice = null;
 }
 
 /**
@@ -688,10 +685,11 @@ function _endPractice() {
  * and controls but never touches the score, levels, speed history, session timer, or saved
  * progress. In a guided round the correct wedge is shaded and ringed once the images vanish.
  * @param {import('../../components/tutorialService.js').PracticeRoundContext} context
- * @returns {Promise<void>} Resolves once the player answers, or when the tutorial ends.
+ * @returns {Promise<void>} Resolves once the player answers.
  */
 function _playPracticeRound(context) {
   _showGameArea();
+  // Adding the same listener again in round 2 is a no-op, so this never stacks up.
   context.signal.addEventListener('abort', _endPractice, { once: true });
 
   return new Promise((resolve) => {
@@ -717,14 +715,20 @@ function _playPracticeRound(context) {
 }
 
 /**
+ * Whether a guided tutorial is in progress.
+ * @returns {boolean}
+ */
+function _isTutorialActive() {
+  return !!_tutorialRun && _tutorialRun.isActive();
+}
+
+/**
  * Cancel the guided tutorial, if one is running. Its practice signal aborts, which clears
  * any practice round.
  */
 function _cancelTutorial() {
-  if (!_tutorialRun) return;
-  const run = _tutorialRun;
+  if (_tutorialRun) _tutorialRun.cancel();
   _tutorialRun = null;
-  run.cancel();
 }
 
 /**
@@ -751,26 +755,19 @@ function _beginGameSession() {
  * @returns {Promise<void>}
  */
 async function _launchTutorial(launch) {
-  if (!_container || _isTutorialLaunchPending || _tutorialRun) return;
+  if (!_container || _isTutorialLaunchPending || _isTutorialActive()) return;
 
   _isTutorialLaunchPending = true;
   try {
     const introSteps = await getTutorialSteps();
-    // Returns null (after starting the session) when the tutorial was already seen.
-    const run = await launch({
+    // Null (after starting the session) when the tutorial was already seen.
+    _tutorialRun = await launch({
       gameId: GAME_ID,
       container: _container,
       introSteps,
       playPracticeRound: _playPracticeRound,
       onComplete: _beginGameSession,
     });
-    if (run) {
-      _tutorialRun = run;
-      // Clearing on `finished` works even if the run ended before this line was reached.
-      void run.finished.then(() => {
-        if (_tutorialRun === run) _tutorialRun = null;
-      });
-    }
   } finally {
     _isTutorialLaunchPending = false;
   }
@@ -867,7 +864,7 @@ export default {
     _clearRoundTimers();
     _clickEnabled = false;
     if (!game.isRunning()) {
-      if (_tutorialRun) this.reset();
+      if (_isTutorialActive()) this.reset();
       return {
         score: game.getScore(),
         roundsPlayed: game.getRoundsPlayed(),

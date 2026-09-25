@@ -14,18 +14,15 @@
  * ```js
  * import { runGuidedTutorialIfNeeded } from '../../components/tutorialService.js';
  *
- * const run = await runGuidedTutorialIfNeeded({
+ * if (_tutorialRun && _tutorialRun.isActive()) return;
+ * _tutorialRun = await runGuidedTutorialIfNeeded({
  *   gameId: 'my-game-id',
  *   container,
  *   introSteps: await getTutorialSteps(),
  *   playPracticeRound, // (context) => Promise that resolves once the player answers
  *   onComplete: beginGameSession,
  * });
- * if (run) {
- *   _tutorialRun = run;
- *   run.finished.then(() => { if (_tutorialRun === run) _tutorialRun = null; });
- * }
- * // In stop() and reset(): cancel _tutorialRun if it is set.
+ * // In stop() and reset(): if (_tutorialRun) _tutorialRun.cancel();
  * ```
  *
  * @file Shared tutorial overlay service.
@@ -389,6 +386,7 @@ export async function showTutorialIfNeeded(
  *   `guidedRounds` leave the player on their own.
  * @property {AbortSignal} signal - Aborted when the tutorial ends for any reason (finished,
  *   skipped, or cancelled). Cancel practice timers and clear practice state when it fires.
+ *   The runner stops waiting on the round then, so its promise need not settle.
  * @property {(text: string) => void} setInstructions - Replace the coach instruction line.
  *   Include the keyboard alternative whenever the text describes a click.
  * @property {(options: import('./tutorialCoach.js').MarkerOptions) => void} showMarker -
@@ -418,7 +416,10 @@ export async function showTutorialIfNeeded(
 /**
  * @typedef {object} GuidedTutorialRun
  * @property {() => void} cancel - End the tutorial now without marking it seen or calling
- *   `onComplete`. Call it from the game's `stop()` and `reset()`. Safe to call more than once.
+ *   `onComplete`. Call it from the game's `stop()` and `reset()`. Safe to call at any time,
+ *   including after the run has ended.
+ * @property {() => boolean} isActive - Whether the run is still in progress (until
+ *   `finished` settles). Use it to guard against launching a second tutorial.
  * @property {Promise<GuidedTutorialOutcome>} finished - Settles when the tutorial ends.
  */
 
@@ -453,8 +454,18 @@ export function runGuidedTutorial({
   let removeMarker = () => {};
   let ended = false;
   let cancelled = false;
-  let settle;
-  const finished = new Promise((resolve) => { settle = resolve; });
+  let settled = false;
+  let resolveFinished;
+  const finished = new Promise((resolve) => { resolveFinished = resolve; });
+
+  /**
+   * Settle `finished` with the run's outcome.
+   * @param {GuidedTutorialOutcome} outcome
+   */
+  function settle(outcome) {
+    settled = true;
+    resolveFinished(outcome);
+  }
 
   /** Remove the current marker, if any. */
   function hideMarker() {
@@ -496,15 +507,13 @@ export function runGuidedTutorial({
     if (coach) coach.remove();
     controller.abort();
 
-    if (outcome !== 'cancelled') {
-      await markTutorialSeen(gameId);
-      if (!cancelled) {
-        onComplete();
-        settle(outcome);
-        return;
-      }
+    if (!cancelled) await markTutorialSeen(gameId);
+    if (cancelled) {
+      settle('cancelled');
+      return;
     }
-    settle('cancelled');
+    onComplete();
+    settle(outcome);
   }
 
   /**
@@ -577,9 +586,11 @@ export function runGuidedTutorial({
 
   return {
     cancel() {
+      if (settled) return;
       cancelled = true;
       void end('cancelled');
     },
+    isActive: () => !settled,
     finished,
   };
 }

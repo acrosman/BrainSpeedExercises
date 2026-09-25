@@ -816,6 +816,30 @@ describe('runGuidedTutorial', () => {
     expect(api.mock).not.toHaveBeenCalledWith('progress:save', expect.anything());
   });
 
+  test('isActive() stays true until finished settles', async () => {
+    const run = runGuidedTutorial({
+      gameId: 'g', container, introSteps: SAMPLE_STEPS,
+    });
+    expect(run.isActive()).toBe(true);
+    container.querySelector('#tutorial-overlay-skip').click();
+    // The UI is gone, but the seen flag is still being saved.
+    expect(container.querySelector('.tutorial-overlay')).toBeNull();
+    expect(run.isActive()).toBe(true);
+
+    await run.finished;
+    expect(run.isActive()).toBe(false);
+  });
+
+  test('cancel() after the run has finished changes nothing', async () => {
+    const onComplete = jest.fn();
+    const run = runGuidedTutorial({ gameId: 'g', container, onComplete });
+    await expect(run.finished).resolves.toBe('completed');
+
+    run.cancel();
+    await expect(run.finished).resolves.toBe('completed');
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
   test('cancel() while the slides are open removes the overlay', async () => {
     const run = runGuidedTutorial({
       gameId: 'g', container, introSteps: SAMPLE_STEPS,

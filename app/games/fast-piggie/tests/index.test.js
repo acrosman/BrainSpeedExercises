@@ -63,7 +63,7 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   // Default replay: the player finishes the tutorial at once.
   runGuidedTutorial: jest.fn((options) => {
     options.onComplete();
-    return { cancel: jest.fn(), finished: Promise.resolve('completed') };
+    return { cancel: jest.fn(), isActive: () => false };
   }),
   // Default first start: the tutorial was already seen.
   runGuidedTutorialIfNeeded: jest.fn(async (options) => {
@@ -1218,17 +1218,21 @@ describe('start button click event', () => {
 // ===========================================================================
 /**
  * Make the next start() open a guided tutorial that stays in progress until the test
- * settles it. Like the real runner, cancel() aborts the practice signal.
+ * calls finish(). Like the real runner, cancel() aborts the practice signal and ends the run.
  * @returns {Promise<{ options: object, run: object, controller: AbortController,
- *   settle: (outcome: string) => void }>}
+ *   finish: () => void }>}
  */
 async function startPendingTutorial() {
   let options = null;
-  let settle = () => {};
+  let active = true;
   const controller = new AbortController();
+  const finish = () => { active = false; };
   const run = {
-    cancel: jest.fn(() => controller.abort()),
-    finished: new Promise((resolve) => { settle = resolve; }),
+    cancel: jest.fn(() => {
+      controller.abort();
+      finish();
+    }),
+    isActive: jest.fn(() => active),
   };
   tutorialService.runGuidedTutorialIfNeeded.mockImplementationOnce(async (opts) => {
     options = opts;
@@ -1236,7 +1240,7 @@ async function startPendingTutorial() {
   });
   await plugin.start();
   return {
-    options, run, controller, settle,
+    options, run, controller, finish,
   };
 }
 
@@ -1312,23 +1316,22 @@ describe('tutorial', () => {
   });
 
   it('can launch again once the tutorial run finishes', async () => {
-    const { settle } = await startPendingTutorial();
-    settle('completed');
-    await flushMicrotasks();
+    const { finish } = await startPendingTutorial();
+    finish();
 
     await plugin.start();
     expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps a newer run when an older one finishes', async () => {
-    const first = await startPendingTutorial();
-    plugin.reset(); // cancels the first run
-    const second = await startPendingTutorial();
-    first.settle('cancelled');
-    await flushMicrotasks();
+  it('stop() with no session ignores a tutorial that already finished', async () => {
+    const { finish } = await startPendingTutorial();
+    finish();
+    game.isRunning.mockReturnValueOnce(false);
+    container.querySelector('#fp-end-panel').hidden = false;
 
-    plugin.reset();
-    expect(second.run.cancel).toHaveBeenCalled();
+    await plugin.stop();
+    expect(game.initGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#fp-end-panel').hidden).toBe(false);
   });
 
   it('ignores a second start while the first tutorial launch is in flight', async () => {
@@ -1491,11 +1494,9 @@ describe('practice round', () => {
 
   it('ending the tutorial mid-round cancels the round', async () => {
     const context = buildPracticeContext(pending.controller);
-    const done = pending.options.playPracticeRound(context);
+    void pending.options.playPracticeRound(context);
 
     pending.controller.abort();
-    await expect(done).resolves.toBeUndefined();
-
     jest.runAllTimers();
     expect(context.showMarker).not.toHaveBeenCalled();
     expect(context.setInstructions).toHaveBeenCalledTimes(1);
