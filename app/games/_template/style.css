@@ -32,7 +32,8 @@
 
 /* ── Active play area ─────────────────────────────────────────────────────── */
 
-.game-template__stats {
+.game-template__stats,
+.game-template__stats-live {
   display: flex;
   gap: 2rem;
   font-size: 1rem;
@@ -42,6 +43,8 @@
 .game-template__play-area {
   min-height: 300px;
   display: flex;
+  flex-direction: column;
+  gap: 1rem;
   align-items: center;
   justify-content: center;
   background: var(--bg-subtle);

@@ -36,17 +36,36 @@
   <!-- ── Active game area (hidden until Start is clicked) ── -->
   <div id="game-template-play-area" class="game-template__play-area" hidden>
 
-    <!-- Live stats bar: update values via JS each round -->
-    <div class="game-template__stats" aria-live="polite" aria-atomic="true">
-      <span>Score: <strong id="game-template-score">0</strong></span>
-      <span>Session: <strong id="game-template-timer" aria-live="polite">00:00</strong></span>
+    <!-- Stats bar: update values via JS each round. Only per-trial stats sit in
+         the live region; the session timer stays outside it so screen readers
+         are not interrupted every second. -->
+    <div class="game-template__stats">
+      <div class="game-template__stats-live" aria-live="polite" aria-atomic="true">
+        <span>Level: <strong id="game-template-level">1</strong></span>
+        <span>Score: <strong id="game-template-score">0</strong></span>
+      </div>
+      <span>Session: <strong id="game-template-timer">00:00</strong></span>
     </div>
 
     <!-- Replace this placeholder with your game's interactive content -->
     <p class="game-template__placeholder">Game content goes here.</p>
 
     <!-- Screen-reader feedback region -->
+    <!-- announce() in index.js writes here -->
     <div id="game-template-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Speed trend chart, drawn by renderTrendChart (shared .game-trend styles) -->
+    <section class="game-trend" aria-labelledby="game-template-trend-title">
+      <h4 id="game-template-trend-title">Speed Trend (ms)</h4>
+      <svg class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Display time trend over recent trials">
+        <polyline id="game-template-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="game-template-trend-empty" class="game-trend__empty">Complete a trial to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="game-template-trend-latest">--</strong> ms
+      </p>
+    </section>
 
     <!-- Controls -->
     <div class="game-template__controls" role="group" aria-label="Game controls">
@@ -71,6 +90,10 @@
       <div class="game-results__row">
         <dt class="game-results__label">Score</dt>
         <dd class="game-results__value" id="game-template-final-score">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Level Reached</dt>
+        <dd class="game-results__value" id="game-template-final-level">1</dd>
       </div>
       <!-- Add more rows for additional metrics (e.g. level, accuracy, best score): -->
       <!--
