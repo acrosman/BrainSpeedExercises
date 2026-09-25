@@ -20,7 +20,7 @@ A joker never forms a pair or sandwich with a card next to it.
   cut cards out of `images/cards-sprite.png`, plus the paths for the joker and card-back PNGs.
   The sprite geometry constants must match that image exactly. Update them together if the
   sprite changes.
-- `tutorial/`: this is the only game with a tutorial. `tutorial.js` lists steps as
+- `tutorial/`: the first-run tutorial. `tutorial.js` lists steps as
   `{ title, contentPath }` pointing to the `tutorial-step-*.html` fragments. It fetches and
   caches them, and falls back to plain text if a fetch fails (`clearTutorialMarkupCache()` for
   tests). `index.js` calls `showTutorialIfNeeded` before the first session, and

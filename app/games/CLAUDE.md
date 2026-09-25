@@ -95,7 +95,11 @@ stored under `progress.tutorials[gameId]`.
 - Overlay styles live in `.tutorial-overlay*` in `app/styles/game-shared.css`. Do not restyle
   them per game.
 
-`card-rat` is currently the only game that uses a tutorial.
+`card-rat`, `directional-processing`, and `fast-piggie` use a tutorial. Copy their pattern: step
+HTML files and a `getTutorialSteps()` loader in `<id>/tutorial/`, an annotated
+`images/tutorialScreenshot.png`, a "Replay Tutorial" button on the welcome panel, and an async
+`start()` that loads the steps and calls `showTutorialIfNeeded` with a function that begins the
+session. Guard against a second launch while one is loading or an overlay is open.
 
 ## Shared screen markup
 
