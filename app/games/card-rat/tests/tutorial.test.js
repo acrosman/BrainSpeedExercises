@@ -6,6 +6,9 @@ import {
   afterEach,
   jest,
 } from '@jest/globals';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 jest.unstable_mockModule('../../../components/timerService.js', () => ({
   startTimer: jest.fn(),
@@ -41,6 +44,10 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
     if (typeof onComplete === 'function') onComplete();
     return null;
   }),
+  // Echo the definitions so the test can inspect the paths getTutorialSteps passes in.
+  loadTutorialSteps: jest.fn(async (definitions) => definitions.map(
+    ({ title, contentPath }) => ({ title, content: contentPath }),
+  )),
 }));
 
 jest.unstable_mockModule('../game.js', () => ({
@@ -81,6 +88,9 @@ jest.unstable_mockModule('../game.js', () => ({
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const plugin = (await import('../index.js')).default;
 const tutorialModule = await import('../tutorial/tutorial.js');
+
+/** Absolute path of `app/`, which step and image paths are relative to. */
+const APP_DIR = fileURLToPath(new URL('../../../', import.meta.url));
 
 /**
  * Build a minimal game container with tutorial action controls.
@@ -126,48 +136,42 @@ function buildContainer() {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  tutorialModule.clearTutorialMarkupCache();
-  global.fetch = jest.fn(async (path) => ({
-    ok: true,
-    text: async () => (path === './games/card-rat/tutorial/tutorial-screenshot-step.html'
-      ? `
-        <figure class="card-rat__tutorial-figure">
-          <img src="./games/card-rat/images/tutorialScreenshot.png" class="card-rat__tutorial-image">
-          <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--stats"></span>
-          <span class="card-rat__tutorial-highlight card-rat__tutorial-highlight--controls"></span>
-        </figure>
-      `
-      : '<p>mock step</p>'),
-  }));
 });
 
 afterEach(() => {
   document.body.innerHTML = '';
-  delete global.fetch;
 });
 
 describe('Card Rat tutorial content', () => {
-  test('loads screenshot step from dedicated HTML markup file', async () => {
-    const tutorialSteps = await tutorialModule.getTutorialSteps();
-    const screenshotStep = tutorialSteps.find(
-      (step) => step.title === 'Find the Main Play Area',
-    );
+  test('lists the steps in order', async () => {
+    const steps = await tutorialModule.getTutorialSteps();
+    expect(steps.map((step) => step.title)).toEqual([
+      'Welcome to Card Rat',
+      'Find the Main Play Area',
+      'How to Score',
+      'When to Slap',
+      'Game Controls',
+    ]);
+  });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      './games/card-rat/tutorial/tutorial-step-welcome.html');
-    expect(global.fetch).toHaveBeenCalledWith(
-      './games/card-rat/tutorial/tutorial-screenshot-step.html');
-    expect(global.fetch).toHaveBeenCalledWith(
-      './games/card-rat/tutorial/tutorial-step-when-to-slap.html');
-    expect(global.fetch).toHaveBeenCalledWith(
-      './games/card-rat/tutorial/tutorial-step-game-controls.html');
-    expect(global.fetch).toHaveBeenCalledWith(
-      './games/card-rat/tutorial/tutorial-step-how-to-score.html');
-    expect(tutorialSteps).toHaveLength(5);
-    expect(screenshotStep).toBeDefined();
-    expect(screenshotStep.content).toContain('tutorialScreenshot.png');
-    expect(screenshotStep.content).toContain('card-rat__tutorial-highlight--stats');
-    expect(screenshotStep.content).toContain('card-rat__tutorial-highlight--controls');
+  test('every step points at an HTML fragment in the tutorial folder', async () => {
+    const steps = await tutorialModule.getTutorialSteps();
+    steps.forEach(({ content: contentPath }) => {
+      expect(contentPath).toMatch(/^\.\/games\/card-rat\/tutorial\/[\w-]+\.html$/);
+      expect(fs.existsSync(path.join(APP_DIR, contentPath))).toBe(true);
+    });
+  });
+
+  test('the screenshot step shows the screenshot with its highlight boxes', () => {
+    const markup = fs.readFileSync(
+      path.join(APP_DIR, 'games/card-rat/tutorial/tutorial-screenshot-step.html'),
+      'utf8',
+    );
+    expect(markup).toContain('./games/card-rat/images/tutorialScreenshot.png');
+    expect(markup).toContain('card-rat__tutorial-highlight--stats');
+    expect(markup).toContain('card-rat__tutorial-highlight--controls');
+    expect(fs.existsSync(path.join(APP_DIR, 'games/card-rat/images/tutorialScreenshot.png')))
+      .toBe(true);
   });
 });
 

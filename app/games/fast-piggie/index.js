@@ -13,6 +13,11 @@ import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import { showTutorial, showTutorialIfNeeded } from '../../components/tutorialService.js';
+import { getTutorialSteps } from './tutorial/tutorial.js';
+
+/** Game identifier used for progress persistence (must match manifest.json id). */
+const GAME_ID = 'fast-piggie';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
 const SPRITE_INSET = 2;
@@ -206,9 +211,11 @@ export function highlightWedge(ctx, width, height, wedgeIndex, wedgeCount, color
 }
 
 // DOM references — populated by init()
+let _container = null;
 let _canvas = null;
 let _ctx = null;
 let _startBtn = null;
+let _replayTutorialBtn = null;
 let _stopBtn = null;
 let _scoreEl = null;
 let _roundEl = null;
@@ -243,6 +250,8 @@ let _roundTimer = null; // setTimeout handle
 let _imageFlashTimer = null; // setTimeout handle before image flash
 // Give the board a small lead-in so previous wedge highlights clear before image flash starts.
 const ROUND_IMAGE_FLASH_DELAY_MS = 15;
+/** Whether a tutorial launch call is currently in flight. @type {boolean} */
+let _isTutorialLaunchPending = false;
 
 /**
  * Updates the score, round count, and display time in the UI.
@@ -547,6 +556,49 @@ function _resolveRound(wedge) {
 }
 
 /**
+ * Whether a tutorial overlay is currently open in the game container.
+ * @returns {boolean}
+ */
+function _isTutorialOpen() {
+  return !!(_container && _container.querySelector('.tutorial-overlay'));
+}
+
+/**
+ * Start a gameplay session immediately without tutorial gating.
+ */
+function _beginGameSession() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_gameAreaEl) _gameAreaEl.hidden = false;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+  game.startGame();
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+  _updateStats();
+  _runRound();
+}
+
+/**
+ * Load the tutorial steps and hand them to a tutorialService launcher, guarding against
+ * overlapping launches and an already-open overlay.
+ * @param {typeof showTutorial | typeof showTutorialIfNeeded} launch - Which launcher to use.
+ * @returns {Promise<void>}
+ */
+async function _launchTutorial(launch) {
+  if (!_container || _isTutorialLaunchPending || _isTutorialOpen()) return;
+
+  _isTutorialLaunchPending = true;
+  try {
+    const tutorialSteps = await getTutorialSteps();
+    await launch(GAME_ID, tutorialSteps, _container, _beginGameSession);
+  } finally {
+    _isTutorialLaunchPending = false;
+  }
+}
+
+/**
  * Fast Piggie plugin contract for dynamic loading by the app shell.
  * Implements { name, init, start, stop, reset }.
  */
@@ -558,10 +610,12 @@ export default {
    * @param {HTMLElement} container
    */
   init(container) {
+    _container = container;
     _instructionsEl = container.querySelector('#fp-instructions');
     _gameAreaEl = container.querySelector('#fp-game-area');
     _endPanelEl = container.querySelector('#fp-end-panel');
     _startBtn = container.querySelector('#fp-start-btn');
+    _replayTutorialBtn = container.querySelector('#fp-replay-tutorial-btn');
     _canvas = container.querySelector('#fp-canvas');
     _ctx = _canvas.getContext('2d');
     _stopBtn = container.querySelector('#fp-stop-btn');
@@ -594,7 +648,9 @@ export default {
       });
 
     // Bind events
-    _startBtn.addEventListener('click', () => this.start());
+    _startBtn.addEventListener('click', () => { void this.start(); });
+    // Replay always shows the tutorial, then starts a session.
+    _replayTutorialBtn.addEventListener('click', () => { void _launchTutorial(showTutorial); });
     _canvas.addEventListener('click', _handleClick);
     _canvas.addEventListener('mousemove', _handleMouseMove);
     _canvas.addEventListener('mouseleave', _handleMouseLeave);
@@ -603,7 +659,7 @@ export default {
     if (_playAgainBtn) {
       _playAgainBtn.addEventListener('click', () => {
         this.reset();
-        this.start();
+        void this.start();
       });
     }
     if (_returnToMenuBtn) {
@@ -612,20 +668,11 @@ export default {
   },
 
   /**
-   * Start the game and first round.
+   * Start the game, showing the tutorial first if the player has not seen it.
+   * @returns {Promise<void>}
    */
   start() {
-    if (_instructionsEl) _instructionsEl.hidden = true;
-    if (_gameAreaEl) _gameAreaEl.hidden = false;
-    if (_endPanelEl) _endPanelEl.hidden = true;
-    game.startGame();
-    timerService.startTimer((elapsedMs) => {
-      if (_sessionTimerEl) {
-        _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
-      }
-    });
-    _updateStats();
-    _runRound();
+    return _launchTutorial(showTutorialIfNeeded);
   },
 
   /**
@@ -649,7 +696,7 @@ export default {
     _stopBtn.hidden = true;
 
     const bestStats = game.getBestStats();
-    const savedRecord = await saveScore('fast-piggie', {
+    const savedRecord = await saveScore(GAME_ID, {
       score: result.score,
       sessionDurationMs,
       level: typeof bestStats.maxScore === 'number' ? bestStats.maxScore : undefined,

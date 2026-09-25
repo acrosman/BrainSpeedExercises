@@ -34,6 +34,22 @@ const DEFAULT_PLAYER_ID = 'default';
  * @property {string} content - Body text (may contain HTML).
  */
 
+/**
+ * @typedef {object} TutorialStepDefinition
+ * @property {string} title       - Heading for this step.
+ * @property {string} contentPath - Path to the step's HTML fragment, relative to
+ *   `app/index.html` (for example `./games/<id>/tutorial/tutorial-step-welcome.html`).
+ */
+
+/** Plain-text body shown in place of a step whose HTML fragment fails to load. */
+const FALLBACK_STEP_CONTENT = 'Tutorial content is temporarily unavailable.';
+
+/**
+ * Loaded step markup, keyed by content path.
+ * @type {Map<string, string>}
+ */
+const _stepMarkupCache = new Map();
+
 // ── Persistence helpers ───────────────────────────────────────────────────────
 
 /**
@@ -100,6 +116,54 @@ export async function markTutorialSeen(gameId) {
     },
   };
   await _saveProgress(updated);
+}
+
+// ── Step content loading ──────────────────────────────────────────────────────
+
+/**
+ * Clear cached tutorial step markup so the next load fetches it again.
+ *
+ * @returns {void}
+ */
+export function clearTutorialMarkupCache() {
+  _stepMarkupCache.clear();
+}
+
+/**
+ * Fetch one step's HTML fragment, caching the result. Falls back to
+ * {@link FALLBACK_STEP_CONTENT} (and caches that) if the fetch fails.
+ *
+ * @param {string} contentPath - Path to the HTML fragment.
+ * @returns {Promise<string>} The step markup.
+ */
+async function _loadStepMarkup(contentPath) {
+  if (!_stepMarkupCache.has(contentPath)) {
+    try {
+      const response = await fetch(contentPath);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      _stepMarkupCache.set(contentPath, await response.text());
+    } catch (err) {
+      logger.warn(`tutorialService: failed to load tutorial step ${contentPath}`, err);
+      _stepMarkupCache.set(contentPath, FALLBACK_STEP_CONTENT);
+    }
+  }
+  return _stepMarkupCache.get(contentPath);
+}
+
+/**
+ * Build tutorial steps from definitions whose content lives in HTML fragment files.
+ *
+ * The fragments are trusted, game-authored files; see the XSS warning on
+ * {@link createTutorialOverlay}.
+ *
+ * @param {TutorialStepDefinition[]} definitions - Ordered step definitions.
+ * @returns {Promise<TutorialStep[]>} Steps ready for {@link showTutorial}.
+ */
+export function loadTutorialSteps(definitions) {
+  return Promise.all(definitions.map(async ({ title, contentPath }) => ({
+    title,
+    content: await _loadStepMarkup(contentPath),
+  })));
 }
 
 // ── DOM helpers ───────────────────────────────────────────────────────────────

@@ -1,37 +1,37 @@
 /**
- * tutorial.js — Directional Processing tutorial step definitions.
+ * tutorial.js — Fast Piggie tutorial step definitions.
  *
- * @file Directional Processing tutorial content.
+ * @file Fast Piggie tutorial content.
  */
 
 import { loadTutorialSteps } from '../../../components/tutorialService.js';
 
 /**
- * Ordered Directional Processing tutorial steps.
+ * Ordered Fast Piggie tutorial steps.
  * Each step's body is an HTML fragment in this folder.
  *
  * @type {import('../../../components/tutorialService.js').TutorialStepDefinition[]}
  */
 const TUTORIAL_STEP_DEFINITIONS = [
   {
-    title: 'Welcome to Directional Processing',
-    contentPath: './games/directional-processing/tutorial/tutorial-step-welcome.html',
+    title: 'Welcome to Fast Piggie',
+    contentPath: './games/fast-piggie/tutorial/tutorial-step-welcome.html',
   },
   {
     title: 'Find the Main Play Area',
-    contentPath: './games/directional-processing/tutorial/tutorial-screenshot-step.html',
+    contentPath: './games/fast-piggie/tutorial/tutorial-screenshot-step.html',
   },
   {
     title: 'What to Look For',
-    contentPath: './games/directional-processing/tutorial/tutorial-step-what-to-look-for.html',
+    contentPath: './games/fast-piggie/tutorial/tutorial-step-what-to-look-for.html',
   },
   {
     title: 'How to Respond',
-    contentPath: './games/directional-processing/tutorial/tutorial-step-how-to-respond.html',
+    contentPath: './games/fast-piggie/tutorial/tutorial-step-how-to-respond.html',
   },
   {
     title: 'Levels and Scoring',
-    contentPath: './games/directional-processing/tutorial/tutorial-step-levels.html',
+    contentPath: './games/fast-piggie/tutorial/tutorial-step-levels.html',
   },
 ];
 
