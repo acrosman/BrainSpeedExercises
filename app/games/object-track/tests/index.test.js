@@ -459,6 +459,21 @@ describe('renderCircles()', () => {
     expect(arena.querySelector('#mot-circle-1')).not.toBeNull();
   });
 
+  it('renders circles as unpressed native buttons so the keyboard can reach them', () => {
+    const container = buildContainer();
+    document.body.appendChild(container); // focus() needs a connected element
+    plugin.init(container);
+    renderCircles([{ id: 0, x: 100, y: 100, radius: 30, isTarget: false }]);
+    const el = container.querySelector('#mot-circle-0');
+    expect(el.tagName).toBe('BUTTON');
+    expect(el.type).toBe('button');
+    expect(el.hasAttribute('role')).toBe(false);
+    expect(el.getAttribute('aria-pressed')).toBe('false');
+    expect(el.getAttribute('aria-label')).toBe('Circle 1');
+    el.focus();
+    expect(document.activeElement).toBe(el);
+  });
+
   it('does not throw when called before init (arenaEl null)', () => {
     expect(() => renderCircles([{ id: 0, x: 10, y: 10, radius: 30, isTarget: false }]))
       .not.toThrow();
@@ -626,6 +641,46 @@ describe('handleCircleClick(event)', () => {
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
     handleCircleClick({ target: circleEl }); // 1 selected >= 1 → auto-submit
     expect(gameMock.evaluateResponse).toHaveBeenCalled();
+  });
+
+  it('toggles a circle through button activation during the response phase', () => {
+    // Browsers turn Enter/Space on a focused <button> into a click event.
+    // jsdom does not simulate that key mapping, so activate the button with
+    // click() and check that the event reaches the delegated arena handler.
+    gameMock.getCurrentCircles.mockReturnValue([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
+    ]);
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
+    ]);
+    enterResponsePhase(); // caches _numTargets = 2
+    const circleEl = container.querySelector('#mot-circle-0');
+    circleEl.click();
+    expect(circleEl.getAttribute('aria-pressed')).toBe('true');
+    circleEl.click();
+    expect(circleEl.getAttribute('aria-pressed')).toBe('false');
+    expect(gameMock.evaluateResponse).not.toHaveBeenCalled();
+  });
+
+  it('submits once every target has been selected through button activation', () => {
+    gameMock.getCurrentCircles.mockReturnValue([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
+    ]);
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
+    ]);
+    enterResponsePhase(); // caches _numTargets = 2
+    container.querySelector('#mot-circle-0').click();
+    container.querySelector('#mot-circle-1').click();
+    expect(gameMock.evaluateResponse).toHaveBeenCalledTimes(1);
   });
 
   it('ignores clicks on non-circle elements', () => {

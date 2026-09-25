@@ -101,6 +101,13 @@
  */
 
 .mot-circle {
+  /* Circles are native <button>s; clear the browser's button chrome. */
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  color: inherit;
   position: absolute;
   border-radius: 50%;
   background:
@@ -138,6 +145,26 @@
 .mot-arena--response .mot-circle {
   pointer-events: auto;
   cursor: pointer;
+}
+
+/*
+ * Keyboard focus ring. `.mot-circle` sets a transparent outline, which would
+ * otherwise hide the global `*:focus-visible` ring. The ring sits outside the
+ * 4px state ring so focus and selection stay distinguishable, and pairs a white
+ * outline with a dark halo so it shows on both light and dark backgrounds.
+ */
+.mot-circle:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 6px;
+}
+
+.mot-circle:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border: 3px solid #000000;
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 /* ── Target reveal (marking phase) ──────────────────────────────────────────── */

@@ -225,7 +225,10 @@ export function renderCircles(roundCircles) {
   if (!_arenaEl) return;
   _arenaEl.innerHTML = '';
   roundCircles.forEach((c) => {
-    const el = document.createElement('div');
+    // A native <button> fires `click` on Enter and Space, so keyboard players
+    // reach the same arena click handler as mouse players.
+    const el = document.createElement('button');
+    el.type = 'button';
     el.className = 'mot-circle';
     el.id = `mot-circle-${c.id}`;
     el.dataset.circleId = String(c.id);
@@ -237,8 +240,7 @@ export function renderCircles(roundCircles) {
     el.style.setProperty('--mot-c-mid', _currentPalette.mid);
     el.style.setProperty('--mot-c-lo', _currentPalette.lo);
     el.setAttribute('aria-label', `Circle ${c.id + 1}`);
-    el.setAttribute('role', 'button');
-    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-pressed', 'false');
     _arenaEl.appendChild(el);
   });
 }
