@@ -14,14 +14,18 @@
  * ```js
  * import { runGuidedTutorialIfNeeded } from '../../components/tutorialService.js';
  *
- * _tutorialRun = await runGuidedTutorialIfNeeded({
+ * const run = await runGuidedTutorialIfNeeded({
  *   gameId: 'my-game-id',
  *   container,
  *   introSteps: await getTutorialSteps(),
  *   playPracticeRound, // (context) => Promise that resolves once the player answers
- *   onComplete: () => { _tutorialRun = null; beginGameSession(); },
+ *   onComplete: beginGameSession,
  * });
- * // In stop() and reset(): _tutorialRun?.cancel();
+ * if (run) {
+ *   _tutorialRun = run;
+ *   run.finished.then(() => { if (_tutorialRun === run) _tutorialRun = null; });
+ * }
+ * // In stop() and reset(): cancel _tutorialRun if it is set.
  * ```
  *
  * @file Shared tutorial overlay service.

@@ -374,11 +374,13 @@
  * Shown by tutorialService.js (built in tutorialCoach.js) while a game plays a guided
  * practice round. Neither covers the game, so the player can still use the board.
  *
- *   .tutorial-coach             — sticky banner prepended to the game container
- *     .tutorial-coach__message  — aria-live label ("Practice round 1 of 2") and instructions
- *     .tutorial-coach__actions  — "Play Another Round" / "Start the Game" prompt buttons
- *     .tutorial-coach__skip     — "Skip Practice" link-style button
- *   .tutorial-marker            — pulsing ring over the control to use (pointer-events: none)
+ *   .tutorial-coach               — sticky banner prepended to the game container
+ *     .tutorial-coach__message    — aria-live label ("Practice round 1 of 2") and instructions
+ *     .tutorial-coach__controls   — always-present row, so the banner keeps its height and
+ *                                   the board below does not jump when a prompt appears
+ *       .tutorial-coach__actions  — "Play Another Round" / "Start the Game" prompt buttons
+ *       .tutorial-coach__skip     — "Skip Practice" link-style button
+ *   .tutorial-marker              — pulsing ring over the control to use (pointer-events: none)
  */
 
 .tutorial-coach {
@@ -386,9 +388,8 @@
   top: 0;
   z-index: 50;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
   max-width: 560px;
   width: 100%;
   margin: 0 auto 1rem;
@@ -406,10 +407,6 @@
   outline-offset: 2px;
 }
 
-.tutorial-coach__message {
-  flex: 1 1 16rem;
-}
-
 .tutorial-coach__label {
   margin: 0;
   font-size: 0.8rem;
@@ -419,11 +416,23 @@
   letter-spacing: 0.04em;
 }
 
+/* Room for two lines, so instructions of different lengths do not resize the banner. */
 .tutorial-coach__text {
+  min-height: 3em;
   margin: 0.25rem 0 0;
   font-size: 0.95rem;
   line-height: 1.5;
   color: var(--text-base);
+}
+
+/* Tall enough for a prompt button whether or not one is showing. */
+.tutorial-coach__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  min-height: 2.5rem;
 }
 
 .tutorial-coach__actions {
@@ -432,8 +441,8 @@
   gap: 0.5rem;
 }
 
-.tutorial-coach__actions:empty {
-  display: none;
+.tutorial-coach__controls .tutorial-coach__skip {
+  margin-left: auto;
 }
 
 .tutorial-marker {

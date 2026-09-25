@@ -57,8 +57,9 @@ const FULL_REGION = {
  *     .tutorial-coach__message          — aria-live region holding the label and text
  *       p.tutorial-coach__label         — "Practice round 1 of 2"
  *       p.tutorial-coach__text          — what to do right now
- *     .tutorial-coach__actions          — prompt buttons (empty between prompts)
- *     button.tutorial-coach__skip       — Skip Practice
+ *     .tutorial-coach__controls         — always present, so the banner keeps its height
+ *       .tutorial-coach__actions        — prompt buttons (empty between prompts)
+ *       button.tutorial-coach__skip     — Skip Practice
  *
  * @param {Function} onSkip - Called when the player presses Skip Practice.
  * @returns {HTMLElement} The `.tutorial-coach` element.
@@ -74,8 +75,10 @@ export function createTutorialCoach(onSkip) {
       <p class="tutorial-coach__label"></p>
       <p class="tutorial-coach__text"></p>
     </div>
-    <div class="tutorial-coach__actions"></div>
-    <button type="button" class="tutorial-coach__skip">Skip Practice</button>
+    <div class="tutorial-coach__controls">
+      <div class="tutorial-coach__actions"></div>
+      <button type="button" class="tutorial-coach__skip">Skip Practice</button>
+    </div>
   `;
 
   coach.querySelector('.tutorial-coach__skip').addEventListener('click', () => onSkip());

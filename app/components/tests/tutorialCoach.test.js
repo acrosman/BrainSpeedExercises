@@ -59,6 +59,11 @@ describe('createTutorialCoach', () => {
     expect(message.getAttribute('aria-atomic')).toBe('true');
     expect(message.querySelector('.tutorial-coach__label')).not.toBeNull();
     expect(message.querySelector('.tutorial-coach__text')).not.toBeNull();
+
+    // The prompt buttons and Skip Practice share one always-present row.
+    const controls = coach.querySelector('.tutorial-coach__controls');
+    expect(controls.querySelector('.tutorial-coach__actions')).not.toBeNull();
+    expect(controls.querySelector('.tutorial-coach__skip')).not.toBeNull();
   });
 
   test('Skip Practice calls onSkip', () => {
