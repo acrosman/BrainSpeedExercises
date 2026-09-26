@@ -20,6 +20,7 @@ import {
   startGame,
   stopGame,
   pickDirection,
+  generatePracticeTrial,
   recordTrial,
   getCurrentLevel,
   getCurrentLevelConfig,
@@ -147,6 +148,32 @@ describe('pickDirection', () => {
 });
 
 // ── recordTrial staircase behavior ────────────────────────────────────────────
+
+describe('generatePracticeTrial', () => {
+  test('uses the easiest level: 500 ms at full contrast', () => {
+    const trial = generatePracticeTrial();
+    expect(trial).toEqual(expect.objectContaining({ displayDurationMs: 500, contrast: 1 }));
+    expect(DIRECTIONS).toContain(trial.direction);
+  });
+
+  test('ignores the current level and changes no game state', () => {
+    startGame();
+    for (let i = 0; i < CORRECT_STREAK_TO_ADVANCE * 2; i += 1) recordTrial({ success: true });
+    const snapshot = () => ({
+      level: getCurrentLevel(),
+      score: getScore(),
+      trials: getTrialsCompleted(),
+      streak: getConsecutiveCorrect(),
+      history: getSpeedHistory(),
+    });
+    const before = snapshot();
+    expect(before.level).toBeGreaterThan(0);
+
+    expect(generatePracticeTrial().displayDurationMs).toBe(LEVELS[0].displayDurationMs);
+    expect(snapshot()).toEqual(before);
+    stopGame();
+  });
+});
 
 describe('recordTrial — staircase advancement', () => {
   test('3 consecutive correct responses advance the level by 1', () => {

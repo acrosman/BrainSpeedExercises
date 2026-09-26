@@ -16,7 +16,7 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   )),
 }));
 
-const { getTutorialSteps } = await import('../tutorial/tutorial.js');
+const { getTutorialSteps, PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 
 /** Absolute path of `app/`, which step and image paths are relative to. */
 const APP_DIR = fileURLToPath(new URL('../../../', import.meta.url));
@@ -39,6 +39,25 @@ describe('directional-processing tutorial steps', () => {
       expect(contentPath).toMatch(/^\.\/games\/directional-processing\/tutorial\/[\w-]+\.html$/);
       expect(fs.existsSync(path.join(APP_DIR, contentPath))).toBe(true);
     });
+  });
+
+  test('practice text covers each stage and always offers the keyboard option to answer', () => {
+    expect(Object.keys(PRACTICE_TEXT)).toEqual(['watch', 'guidedAnswer', 'answer']);
+    expect(PRACTICE_TEXT.answer).toMatch(/Click/);
+    expect(PRACTICE_TEXT.answer).toMatch(/arrow key/);
+    expect(Object.isFrozen(PRACTICE_TEXT)).toBe(true);
+  });
+
+  test.each([
+    ['up', 'Up'],
+    ['down', 'Down'],
+    ['left', 'Left'],
+    ['right', 'Right'],
+  ])('guided text for %s names the direction and its arrow key', (direction, key) => {
+    const text = PRACTICE_TEXT.guidedAnswer(direction);
+    expect(text).toContain(`moved ${direction}`);
+    expect(text).toMatch(/Click/);
+    expect(text).toContain(`${key} arrow key`);
   });
 
   test('every image a step references exists', async () => {

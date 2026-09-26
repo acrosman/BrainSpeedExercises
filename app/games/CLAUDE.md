@@ -94,16 +94,45 @@ stored under `progress.tutorials[gameId]`.
   to load (`clearTutorialMarkupCache()` resets the cache in tests).
 - `showTutorialIfNeeded(gameId, steps, container, onComplete)` shows the overlay only the first
   time. Otherwise it calls `onComplete` immediately. `showTutorial(...)` always shows it, which
-  suits a "How to play" replay button.
-- Overlay styles live in `.tutorial-overlay*` in `app/styles/game-shared.css`. Do not restyle
-  them per game.
+  suits a "How to play" replay button. These are slides only.
+- Overlay, coach, and marker styles live in `.tutorial-overlay*`, `.tutorial-coach*`, and
+  `.tutorial-marker*` in `app/styles/game-shared.css`. Do not restyle them per game.
 
-`card-rat`, `directional-processing`, and `fast-piggie` use a tutorial. Copy their pattern: step
-HTML files in `<id>/tutorial/` plus a `tutorial.js` whose `getTutorialSteps()` passes their
-definitions to `loadTutorialSteps`, an annotated
-`images/tutorialScreenshot.png`, a "Replay Tutorial" button on the welcome panel, and an async
-`start()` that loads the steps and calls `showTutorialIfNeeded` with a function that begins the
-session. Guard against a second launch while one is loading or an overlay is open.
+### Guided tutorials (slides, then live practice)
+
+`runGuidedTutorial(options)` and `runGuidedTutorialIfNeeded(options)` run the full #105 flow:
+slides → practice round → "Play another round?" → optional second round → mark seen →
+`onComplete`. "Skip Tutorial" (slides) and "Skip Practice" (coach) both jump to mark seen →
+`onComplete`. Options are `{ gameId, container, introSteps, playPracticeRound, maxRounds = 2,
+guidedRounds = 1, onComplete }`.
+
+- Both return a run handle `{ cancel, isActive, finished }` (`IfNeeded` returns `null` when
+  already seen). Store it, and guard against a second launch with `run.isActive()`. Call
+  `run.cancel()` from `stop()` and `reset()`; it is safe on a run that has already ended.
+  Cancelling removes the tutorial UI, and does not mark the tutorial seen or call `onComplete`.
+- `playPracticeRound(context)` plays one round at the game's easiest setting and resolves once
+  the player answers. `context` holds `round`, `maxRounds`, `guided` (show the marker; only
+  the first `guidedRounds` rounds are guided), `signal`, `setInstructions(text)`,
+  `showMarker({ anchor, region?, shape? })`, and `hideMarker()`.
+- `signal` aborts when the tutorial ends for any reason. Listen for it to cancel practice
+  timers and clear practice state in one place.
+- A practice round must not score, change difficulty, add speed history, start the session
+  timer, or save. Build it from `game.js` helpers that have no side effects, and never call
+  `startGame()`. `game.isRunning()` stays `false` throughout, so `stop()` must handle an idle
+  game (see "How a game gets loaded").
+- `setInstructions` text goes to an `aria-live` region. Whenever it describes a click, also
+  give the keyboard alternative. The marker is decorative (`aria-hidden`).
+- `showMarker` rings `anchor`. For a canvas, pass `region` as fractions (0–1) of the anchor's
+  box so the marker stays put when CSS scales the canvas. Use `shape: 'box'` for wide targets
+  such as buttons.
+
+`card-rat`, `directional-processing`, and `fast-piggie` use a tutorial. Copy their pattern:
+step HTML files in `<id>/tutorial/` plus a `tutorial.js` whose `getTutorialSteps()` passes
+their definitions to `loadTutorialSteps`, an annotated `images/tutorialScreenshot.png`, a
+"Replay Tutorial" button on the welcome panel, and an async `start()` that loads the steps and
+launches the tutorial with a function that begins the session. Guard against a second launch
+while one is loading or in progress. `fast-piggie` is the reference for guided tutorials with
+practice rounds, `card-rat` and `directional-processing` follows it. 
 
 ## Shared screen markup
 

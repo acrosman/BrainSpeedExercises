@@ -179,6 +179,16 @@ export function generateRound(currentImageLevel, currentSpeedLevel) {
 }
 
 /**
+ * Generate a tutorial practice round at the easiest setting (the level-0 image count and
+ * display time). Like {@link generateRound}, it does not change any game state.
+ * @returns {{ wedgeCount: number, imageCount: number,
+ *  displayDurationMs: number, outlierWedgeIndex: number }}
+ */
+export function generatePracticeRound() {
+  return generateRound(0, 0);
+}
+
+/**
  * Check if the clicked wedge is the outlier.
  * @param {number} clickedWedge
  * @param {number} outlierWedge

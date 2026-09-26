@@ -16,7 +16,7 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   )),
 }));
 
-const { getTutorialSteps } = await import('../tutorial/tutorial.js');
+const { getTutorialSteps, PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 
 /** Absolute path of `app/`, which step and image paths are relative to. */
 const APP_DIR = fileURLToPath(new URL('../../../', import.meta.url));
@@ -39,6 +39,16 @@ describe('fast-piggie tutorial steps', () => {
       expect(contentPath).toMatch(/^\.\/games\/fast-piggie\/tutorial\/[\w-]+\.html$/);
       expect(fs.existsSync(path.join(APP_DIR, contentPath))).toBe(true);
     });
+  });
+
+  test('practice text covers each stage and always offers the keyboard option to answer', () => {
+    expect(Object.keys(PRACTICE_TEXT)).toEqual(['watch', 'guidedAnswer', 'answer']);
+    [PRACTICE_TEXT.guidedAnswer, PRACTICE_TEXT.answer].forEach((text) => {
+      expect(text).toMatch(/Click/);
+      expect(text).toMatch(/arrow keys/);
+      expect(text).toMatch(/Enter/);
+    });
+    expect(Object.isFrozen(PRACTICE_TEXT)).toBe(true);
   });
 
   test('every image a step references exists', async () => {

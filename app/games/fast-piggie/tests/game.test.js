@@ -6,6 +6,7 @@ import {
   startGame,
   stopGame,
   generateRound,
+  generatePracticeRound,
   checkAnswer,
   calculateWedgeIndex,
   addScore,
@@ -312,6 +313,44 @@ describe('generateRound(level)', () => {
     const { imageCount, outlierWedgeIndex } = generateRound(0, 0);
     expect(outlierWedgeIndex).toBeGreaterThanOrEqual(0);
     expect(outlierWedgeIndex).toBeLessThan(imageCount);
+  });
+});
+
+describe('generatePracticeRound()', () => {
+  it('uses the easiest setting: 3 images, 6 wedges, 800 ms', () => {
+    const round = generatePracticeRound();
+    expect(round).toEqual(expect.objectContaining({
+      imageCount: 3,
+      wedgeCount: 6,
+      displayDurationMs: 800,
+    }));
+    expect(round.outlierWedgeIndex).toBeGreaterThanOrEqual(0);
+    expect(round.outlierWedgeIndex).toBeLessThan(3);
+  });
+
+  it('ignores the current levels and changes no game state', () => {
+    startGame();
+    for (let i = 0; i < 6; i += 1) addScore(3, 500, 800);
+    const before = {
+      score: getScore(),
+      rounds: getRoundsPlayed(),
+      level: getLevel(),
+      speedLevel: getSpeedLevel(),
+      history: getSpeedHistory(),
+    };
+    expect(before.level).toBeGreaterThan(0);
+
+    const round = generatePracticeRound();
+    expect(round.imageCount).toBe(3);
+    expect(round.displayDurationMs).toBe(800);
+    expect({
+      score: getScore(),
+      rounds: getRoundsPlayed(),
+      level: getLevel(),
+      speedLevel: getSpeedLevel(),
+      history: getSpeedHistory(),
+    }).toEqual(before);
+    stopGame();
   });
 });
 

@@ -35,6 +35,30 @@ const TUTORIAL_STEP_DEFINITIONS = [
   },
 ];
 
+/** Arrow key named in the coach text for each direction. */
+const ARROW_KEY_NAMES = Object.freeze({
+  up: 'Up', down: 'Down', left: 'Left', right: 'Right',
+});
+
+/**
+ * Coach instructions for the guided practice rounds that follow the slides.
+ * Any text that describes a click also gives the keyboard alternative.
+ */
+export const PRACTICE_TEXT = Object.freeze({
+  /** While the pattern is on screen. */
+  watch: 'Watch the pattern. It moves for only a moment, so notice which way the stripes drift.',
+  /**
+   * After the pattern ends, in a guided round (the correct button is ringed). The marker is
+   * not announced, so the text names the direction too.
+   * @param {string} direction - One of 'up', 'down', 'left', 'right'.
+   * @returns {string}
+   */
+  guidedAnswer: (direction) => `The pattern moved ${direction}, so the ringed button is the `
+    + `answer. Click it, or press the ${ARROW_KEY_NAMES[direction]} arrow key.`,
+  /** After the pattern ends, in an unguided round. */
+  answer: 'Which way did the pattern move? Click that button, or press the matching arrow key.',
+});
+
 /**
  * Build the tutorial steps shown to first-time players and on replay.
  *

@@ -56,6 +56,10 @@
   --game-results-label:      #333;     /* <dt> label text                        */
   --game-results-value:      #111;     /* <dd> value text                        */
 
+  /* ── Tutorial practice marker ───────────────────────────────────────────── */
+  --tutorial-marker: #005fcc;  /* Ring and coach accent (~6.0:1 on --bg-card, ~4.3:1 on
+                                  Fast Piggie's yellow hint wedge; 3:1 needed)        */
+
   /* ── Speed-trend chart ──────────────────────────────────────────────────── */
   --trend-border:       #c1c9d2;
   --trend-bg:           #eef2f6;
