@@ -19,6 +19,9 @@ import {
   createJokerCards,
   createGameplayDeck,
   isSandwichPattern,
+  getSlapReason,
+  getPracticeSequence,
+  PRACTICE_SEQUENCES,
   shuffleDeck,
   initGame,
   startGame,
@@ -103,6 +106,22 @@ describe('deck helpers', () => {
     expect(isSandwichPattern(left, left, right)).toBe(false);
     expect(isSandwichPattern(left, middle, joker)).toBe(false);
     expect(isSandwichPattern(null, middle, right)).toBe(false);
+  });
+
+  test('getSlapReason names jokers, pairs, and sandwiches', () => {
+    const two = { rank: '2', isJoker: false };
+    const five = { rank: '5', isJoker: false };
+    const nine = { rank: '9', isJoker: false };
+    const joker = { rank: 'JOKER', isJoker: true };
+
+    expect(getSlapReason(null, null, joker)).toBe('joker');
+    expect(getSlapReason(null, two, joker)).toBe('joker');
+    expect(getSlapReason(null, two, { ...two })).toBe('pair');
+    expect(getSlapReason(two, five, { ...two })).toBe('sandwich');
+    expect(getSlapReason(null, null, two)).toBeNull();
+    expect(getSlapReason(two, five, nine)).toBeNull();
+    // A joker never pairs or sandwiches with the cards around it.
+    expect(getSlapReason(two, joker, { ...two })).toBeNull();
   });
 
   test('calculateDisplayDuration returns BASE at level 0', () => {
@@ -451,5 +470,40 @@ describe('deal and response flow', () => {
     history.push(9999);
 
     expect(getSpeedHistory()).not.toContain(9999);
+  });
+});
+
+describe('practice sequences', () => {
+  test('each sequence ends on its only card to slap: a pair, then a sandwich', () => {
+    const reasons = PRACTICE_SEQUENCES.map((cards) => cards.map((card, i) => getSlapReason(
+      cards[i - 2] || null,
+      cards[i - 1] || null,
+      card,
+    )));
+    expect(reasons).toEqual([
+      [null, null, null, 'pair'],
+      [null, null, null, 'sandwich'],
+    ]);
+  });
+
+  test('getPracticeSequence returns copies by round and starts over after the last', () => {
+    const first = getPracticeSequence(1);
+    expect(first).toEqual(PRACTICE_SEQUENCES[0]);
+    first[0].rank = 'A';
+    expect(PRACTICE_SEQUENCES[0][0].rank).toBe('K');
+
+    expect(getPracticeSequence(2)).toEqual(PRACTICE_SEQUENCES[1]);
+    expect(getPracticeSequence(3)).toEqual(PRACTICE_SEQUENCES[0]);
+  });
+
+  test('getPracticeSequence changes no game state', () => {
+    startGame();
+    dealNextCard();
+    const snapshot = () => ({
+      cards: getCardsShown(), index: getDeckIndex(), current: getCurrentCard(), score: getScore(),
+    });
+    const before = snapshot();
+    getPracticeSequence(1);
+    expect(snapshot()).toEqual(before);
   });
 });

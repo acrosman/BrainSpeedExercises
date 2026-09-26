@@ -106,6 +106,26 @@ let consecutiveWrong = 0;
 export const JOKER_VARIANTS = ['joker1', 'joker2', 'joker3'];
 
 /**
+ * Scripted card sequences for tutorial practice rounds, one per round. Each ends on the only
+ * card to slap: round 1 on a pair, round 2 on a sandwich.
+ * @type {ReadonlyArray<ReadonlyArray<{ rank: string, suit: string, isJoker: boolean }>>}
+ */
+export const PRACTICE_SEQUENCES = Object.freeze([
+  [
+    { rank: 'K', suit: 'spades', isJoker: false },
+    { rank: '3', suit: 'hearts', isJoker: false },
+    { rank: '7', suit: 'diamonds', isJoker: false },
+    { rank: '7', suit: 'clubs', isJoker: false },
+  ],
+  [
+    { rank: '5', suit: 'clubs', isJoker: false },
+    { rank: 'Q', suit: 'hearts', isJoker: false },
+    { rank: '2', suit: 'spades', isJoker: false },
+    { rank: 'Q', suit: 'diamonds', isJoker: false },
+  ],
+]);
+
+/**
  * Calculate the display duration (ms) for a given speed level.
  *
  * @param {number} level - Non-negative integer speed level.
@@ -187,6 +207,36 @@ export function isSandwichPattern(leftCard, middleCard, rightCard) {
   if (!leftCard || !middleCard || !rightCard) return false;
   if (leftCard.isJoker || middleCard.isJoker || rightCard.isJoker) return false;
   return leftCard.rank === rightCard.rank && middleCard.rank !== rightCard.rank;
+}
+
+/**
+ * Say why a card is one to slap, given the two cards dealt before it.
+ *
+ * A joker always is. Otherwise it forms a pair with the previous card or a sandwich with
+ * the card two back; jokers never count toward either.
+ *
+ * @param {{ rank: string, isJoker: boolean }|null} twoCardsBack
+ * @param {{ rank: string, isJoker: boolean }|null} previous
+ * @param {{ rank: string, isJoker: boolean }} card
+ * @returns {'joker' | 'pair' | 'sandwich' | null} The trigger, or `null` for a card to let pass.
+ */
+export function getSlapReason(twoCardsBack, previous, card) {
+  if (card.isJoker) return 'joker';
+  if (previous !== null && !previous.isJoker && previous.rank === card.rank) return 'pair';
+  if (isSandwichPattern(twoCardsBack, previous, card)) return 'sandwich';
+  return null;
+}
+
+/**
+ * Get the scripted cards for a tutorial practice round. Rounds past the last sequence start
+ * over from the first. Changes no game state.
+ *
+ * @param {number} round - Practice round number, starting at 1.
+ * @returns {Array<{ rank: string, suit: string, isJoker: boolean }>} Copies of the cards.
+ */
+export function getPracticeSequence(round) {
+  const sequence = PRACTICE_SEQUENCES[(round - 1) % PRACTICE_SEQUENCES.length];
+  return sequence.map((card) => ({ ...card }));
 }
 
 /**
@@ -305,15 +355,8 @@ export function dealNextCard() {
   const card = deck[deckIndex];
   deckIndex += 1;
 
-  const hasPair = previousCard !== null
-    && !previousCard.isJoker
-    && !card.isJoker
-    && previousCard.rank === card.rank;
-
-  const hasSandwich = isSandwichPattern(twoCardsAgo, previousCard, card);
-
   currentCard = card;
-  mustReactToCurrentCard = card.isJoker || hasPair || hasSandwich;
+  mustReactToCurrentCard = getSlapReason(twoCardsAgo, previousCard, card) !== null;
   reactedToCurrentCard = false;
   twoCardsAgo = previousCard;
   previousCard = card;
