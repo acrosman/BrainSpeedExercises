@@ -24,10 +24,14 @@
 
 /* ── Stats bar ───────────────────────────────────────────────────────────────── */
 
-.ss-stats {
+.ss-stats,
+.ss-stats-live {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1.5rem;
+}
+
+.ss-stats {
   margin-bottom: 1rem;
 }
 
