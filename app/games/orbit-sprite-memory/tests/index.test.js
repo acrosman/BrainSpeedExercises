@@ -19,6 +19,14 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
 }));
 await import('../../../components/timerService.js');
 
+jest.unstable_mockModule('../../../components/scoreService.js', () => ({
+  saveScore: jest.fn(() => Promise.resolve(null)),
+  loadProgress: jest.fn(() => Promise.resolve({ playerId: 'default', games: {} })),
+  loadGameScore: jest.fn(() => Promise.resolve({})),
+  clearHistory: jest.fn(() => Promise.resolve()),
+}));
+const scoreServiceMock = await import('../../../components/scoreService.js');
+
 jest.unstable_mockModule('../game.js', () => ({
   TOTAL_SPRITES: 8,
   SPRITE_COLUMNS: 4,
@@ -120,6 +128,7 @@ function buildContainer() {
     <strong id="osm-final-level">1</strong>
     <strong id="osm-final-best-level">1</strong>
     <strong id="osm-final-best-score">0</strong>
+    <strong id="osm-session-timer">00:00</strong>
   `;
   document.body.appendChild(el);
   return el;
@@ -292,41 +301,25 @@ describe('exported helper utilities', () => {
     expect(gameMock.createRound).toHaveBeenCalled();
   });
 
-  test('loadBestStatsFromProgress reads saved best stats when API is available', async () => {
-    const oldApi = globalThis.window.api;
-    globalThis.window.api = {
-      invoke: jest.fn().mockResolvedValue({
-        games: {
-          'orbit-sprite-memory': {
-            highScore: 12,
-            highestLevel: 4,
-          },
-        },
-      }),
-    };
+  test('loadBestStatsFromProgress shows the record from loadGameScore', async () => {
+    scoreServiceMock.loadGameScore.mockResolvedValueOnce({ highScore: 12, highestLevel: 4 });
 
     await loadBestStatsFromProgress();
 
+    expect(scoreServiceMock.loadGameScore).toHaveBeenCalledWith('orbit-sprite-memory');
     expect(document.querySelector('#osm-best-score').textContent).toBe('12');
     expect(document.querySelector('#osm-best-level').textContent).toBe('5');
     expect(document.querySelector('#osm-final-best-score').textContent).toBe('12');
     expect(document.querySelector('#osm-final-best-level').textContent).toBe('5');
-
-    globalThis.window.api = oldApi;
   });
 
-  test('loadBestStatsFromProgress handles API rejection gracefully (line 268)', async () => {
-    const oldApi = globalThis.window.api;
-    globalThis.window.api = {
-      invoke: jest.fn().mockRejectedValue(new Error('network error')),
-    };
+  test('loadBestStatsFromProgress shows defaults for an empty record', async () => {
+    scoreServiceMock.loadGameScore.mockResolvedValueOnce({});
 
     await loadBestStatsFromProgress();
 
-    // catch block calls updateBestStats(undefined) → defaults to 0
     expect(document.querySelector('#osm-best-score').textContent).toBe('0');
-
-    globalThis.window.api = oldApi;
+    expect(document.querySelector('#osm-best-level').textContent).toBe('1');
   });
 });
 
@@ -383,67 +376,34 @@ describe('plugin contract and lifecycle', () => {
     expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
   });
 
-  test('stop saves progress via window.api invoke', async () => {
+  test('stop saves the session through saveScore', () => {
     const container = buildContainer();
     plugin.init(container);
     plugin.start();
-
-    const mockApi = {
-      invoke: jest.fn()
-        .mockResolvedValueOnce({ playerId: 'default', games: {} })
-        .mockResolvedValueOnce(undefined),
-    };
-    globalThis.window = globalThis.window || {};
-    const oldApi = globalThis.window.api;
-    globalThis.window.api = mockApi;
+    scoreServiceMock.saveScore.mockClear();
 
     plugin.stop();
-    await Promise.resolve();
-    await Promise.resolve();
 
-    expect(mockApi.invoke).toHaveBeenCalledWith(
-      'progress:save',
-      expect.objectContaining({
-        playerId: 'default',
-      }),
-    );
-
-    globalThis.window.api = oldApi;
+    expect(scoreServiceMock.saveScore).toHaveBeenCalledWith('orbit-sprite-memory', {
+      score: 4,
+      sessionDurationMs: 0,
+      level: 1,
+      lowestDisplayTime: 900,
+    });
   });
 
-  test('stop merges existing orbit progress and keeps higher historical bests', async () => {
+  test('stop refreshes best stats from the record saveScore returns', async () => {
     const container = buildContainer();
     plugin.init(container);
     plugin.start();
-
-    const mockApi = {
-      invoke: jest.fn()
-        .mockResolvedValueOnce({
-          playerId: 'default',
-          games: {
-            'orbit-sprite-memory': {
-              highScore: 10,
-              sessionsPlayed: 2,
-              highestLevel: 3,
-            },
-          },
-        })
-        .mockResolvedValueOnce(undefined),
-    };
-    const oldApi = globalThis.window.api;
-    globalThis.window.api = mockApi;
+    scoreServiceMock.saveScore.mockResolvedValueOnce({ highScore: 10, highestLevel: 3 });
 
     plugin.stop();
     await Promise.resolve();
     await Promise.resolve();
 
-    const saveCall = mockApi.invoke.mock.calls.find((call) => call[0] === 'progress:save');
-    const saved = saveCall[1].data.games['orbit-sprite-memory'];
-    expect(saved.highScore).toBe(10);
-    expect(saved.highestLevel).toBe(3);
-    expect(saved.sessionsPlayed).toBe(3);
-
-    globalThis.window.api = oldApi;
+    expect(container.querySelector('#osm-final-best-score').textContent).toBe('10');
+    expect(container.querySelector('#osm-final-best-level').textContent).toBe('4');
   });
 
   test('reset returns to pre-game state', () => {
@@ -490,35 +450,23 @@ describe('plugin contract and lifecycle', () => {
     expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
   });
 
-  test('stop handles progress:load rejection in inner try-catch (line 579)', async () => {
+  test('stop keeps the end panel when saveScore resolves null', async () => {
     const container = buildContainer();
     plugin.init(container);
     plugin.start();
-
-    // progress:load rejects → inner catch sets existing to empty defaults
-    // progress:save also rejects → outer catch swallows it
-    const mockApi = {
-      invoke: jest.fn().mockRejectedValue(new Error('IPC error')),
-    };
-    const oldApi = globalThis.window.api;
-    globalThis.window.api = mockApi;
+    scoreServiceMock.saveScore.mockResolvedValueOnce(null);
 
     plugin.stop();
-    // Flush nested promise chains: outer IIFE → inner progress:load → inner catch
-    await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
 
-    // End panel should still appear despite progress errors
     expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
-
-    globalThis.window.api = oldApi;
   });
 });
 
-// ── dailyTime accumulation ────────────────────────────────────────────────────
+// ── session duration ──────────────────────────────────────────────────────────
 
-describe('dailyTime accumulation', () => {
+describe('session duration', () => {
   let timerMod;
 
   beforeEach(async () => {
@@ -530,64 +478,18 @@ describe('dailyTime accumulation', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    delete globalThis.window.api;
+    document.body.innerHTML = '';
   });
 
-  test('writes dailyTime[today] into saved progress when stopTimer returns > 0', async () => {
+  test('passes the stopped timer duration to saveScore', () => {
     timerMod.stopTimer.mockReturnValueOnce(90000);
-    timerMod.getTodayDateString.mockReturnValue('2024-01-15');
-
-    const mockProgress = { playerId: 'default', games: {} };
-    const savedPayloads = [];
-    globalThis.window.api = {
-      invoke: jest.fn((channel, payload) => {
-        if (channel === 'progress:load') return Promise.resolve(mockProgress);
-        if (channel === 'progress:save') {
-          savedPayloads.push(payload);
-          return Promise.resolve();
-        }
-        return Promise.resolve();
-      }),
-    };
 
     plugin.stop();
-    await Promise.resolve();
-    await Promise.resolve();
 
-    expect(savedPayloads[0].data.games['orbit-sprite-memory'].dailyTime['2024-01-15']).toBe(90000);
-  });
-
-  test('accumulates dailyTime on top of an existing entry for the same day', async () => {
-    timerMod.stopTimer.mockReturnValueOnce(60000);
-    timerMod.getTodayDateString.mockReturnValue('2024-01-15');
-
-    const mockProgress = {
-      playerId: 'default',
-      games: {
-        'orbit-sprite-memory': {
-          highScore: 0,
-          sessionsPlayed: 1,
-          dailyTime: { '2024-01-15': 30000 },
-        },
-      },
-    };
-    const savedPayloads = [];
-    globalThis.window.api = {
-      invoke: jest.fn((channel, payload) => {
-        if (channel === 'progress:load') return Promise.resolve(mockProgress);
-        if (channel === 'progress:save') {
-          savedPayloads.push(payload);
-          return Promise.resolve();
-        }
-        return Promise.resolve();
-      }),
-    };
-
-    plugin.stop();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    // 30000 (existing) + 60000 (new) = 90000
-    expect(savedPayloads[0].data.games['orbit-sprite-memory'].dailyTime['2024-01-15']).toBe(90000);
+    expect(scoreServiceMock.saveScore).toHaveBeenCalledWith(
+      'orbit-sprite-memory',
+      expect.objectContaining({ sessionDurationMs: 90000 }),
+    );
   });
 });
+
