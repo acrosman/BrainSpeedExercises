@@ -137,6 +137,16 @@ export function pickDirection() {
 }
 
 /**
+ * Generate a tutorial practice trial at the easiest level (`LEVELS[0]`) with a random
+ * direction. It does not change any game state.
+ *
+ * @returns {{ direction: string, displayDurationMs: number, contrast: number }}
+ */
+export function generatePracticeTrial() {
+  return { direction: pickDirection(), ...LEVELS[0] };
+}
+
+/**
  * Record the outcome of one trial and apply the adaptive staircase rules.
  *
  * - 3 consecutive correct → advance 1 level, reset both streaks.

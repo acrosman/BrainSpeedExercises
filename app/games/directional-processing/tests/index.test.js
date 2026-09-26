@@ -21,7 +21,7 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
   formatDuration: jest.fn(() => '00:01'),
   getTodayDateString: jest.fn(() => '2024-01-15'),
 }));
-await import('../../../components/timerService.js');
+const timerMock = await import('../../../components/timerService.js');
 
 jest.unstable_mockModule('../game.js', () => ({
   initGame:            jest.fn(),
@@ -37,6 +37,9 @@ jest.unstable_mockModule('../game.js', () => ({
   getConsecutiveWrong:   jest.fn(() => 0),
   isRunning:           jest.fn(() => true),
   getSpeedHistory:     jest.fn(() => []),
+  generatePracticeTrial: jest.fn(() => ({
+    direction: 'left', displayDurationMs: 500, contrast: 1,
+  })),
 }));
 
 jest.unstable_mockModule('../gabor.js', () => ({
@@ -56,12 +59,14 @@ jest.unstable_mockModule('../../../components/scoreService.js', () => ({
 }));
 
 jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
-  showTutorial: jest.fn((_gameId, _steps, _container, onComplete) => {
-    if (typeof onComplete === 'function') onComplete();
-    return document.createElement('div');
+  // Default replay: the player finishes the tutorial at once.
+  runGuidedTutorial: jest.fn((options) => {
+    options.onComplete();
+    return { cancel: jest.fn(), isActive: () => false };
   }),
-  showTutorialIfNeeded: jest.fn(async (_gameId, _steps, _container, onComplete) => {
-    if (typeof onComplete === 'function') onComplete();
+  // Default first start: the tutorial was already seen.
+  runGuidedTutorialIfNeeded: jest.fn(async (options) => {
+    options.onComplete();
     return null;
   }),
 }));
@@ -71,6 +76,11 @@ jest.unstable_mockModule('../tutorial/tutorial.js', () => ({
     { title: 'Welcome to Directional Processing', content: '<p>Welcome</p>' },
     { title: 'What to Look For', content: '<p>Direction matters.</p>' },
   ]),
+  PRACTICE_TEXT: {
+    watch: 'watch text',
+    guidedAnswer: (direction) => `guided answer text: ${direction}`,
+    answer: 'answer text',
+  },
 }));
 
 const pluginModule = await import('../index.js');
@@ -81,6 +91,61 @@ const scoreServiceMock = await import('../../../components/scoreService.js');
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const tutorialContentMock = await import('../tutorial/tutorial.js');
 const gaborMock       = await import('../gabor.js');
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Let pending promise callbacks (such as a tutorial launch) run. */
+async function flushMicrotasks() {
+  for (let i = 0; i < 5; i += 1) {
+    await Promise.resolve();
+  }
+}
+
+/**
+ * Make the next start() open a guided tutorial that stays in progress until the test
+ * calls finish(). Like the real runner, cancel() aborts the practice signal and ends the run.
+ * @returns {Promise<{ options: object, run: object, controller: AbortController,
+ *   finish: () => void }>}
+ */
+async function startPendingTutorial() {
+  let options = null;
+  let active = true;
+  const controller = new AbortController();
+  const finish = () => { active = false; };
+  const run = {
+    cancel: jest.fn(() => {
+      controller.abort();
+      finish();
+    }),
+    isActive: jest.fn(() => active),
+  };
+  tutorialServiceMock.runGuidedTutorialIfNeeded.mockImplementationOnce(async (opts) => {
+    options = opts;
+    return run;
+  });
+  await plugin.start();
+  return {
+    options, run, controller, finish,
+  };
+}
+
+/**
+ * Build a practice-round context like the one the tutorial runner passes in.
+ * @param {AbortController} controller - Supplies the context's signal.
+ * @param {boolean} [guided=true]
+ * @returns {object}
+ */
+function buildPracticeContext(controller, guided = true) {
+  return {
+    round: guided ? 1 : 2,
+    maxRounds: 2,
+    guided,
+    signal: controller.signal,
+    setInstructions: jest.fn(),
+    showMarker: jest.fn(),
+    hideMarker: jest.fn(),
+  };
+}
 
 // ── DOM helper ────────────────────────────────────────────────────────────────
 
@@ -157,6 +222,8 @@ describe('directional-processing plugin', () => {
   });
 
   afterEach(() => {
+    // Cancel any tutorial left running so the next test starts clean.
+    plugin.reset();
     jest.clearAllMocks();
     jest.useRealTimers();
     document.body.innerHTML = '';
@@ -189,17 +256,18 @@ describe('directional-processing plugin', () => {
     expect(gameMock.startGame).toHaveBeenCalled();
   });
 
-  it('start calls showTutorialIfNeeded with directional-processing tutorial steps', async () => {
+  it('start runs the guided tutorial if needed with the Directional Processing steps', async () => {
     await plugin.start();
     expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalled();
-    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledWith(
-      'directional-processing',
-      expect.arrayContaining([
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith({
+      gameId: 'directional-processing',
+      container: expect.any(HTMLElement),
+      introSteps: expect.arrayContaining([
         expect.objectContaining({ title: 'Welcome to Directional Processing' }),
       ]),
-      expect.any(HTMLElement),
-      expect.any(Function),
-    );
+      playPracticeRound: expect.any(Function),
+      onComplete: expect.any(Function),
+    });
   });
 
   it('start triggers the stimulus phase (getDirectionParams called for the trial)', async () => {
@@ -433,20 +501,28 @@ describe('directional-processing plugin', () => {
   });
 
   it('stop does not call saveScore when trialsCompleted is 0', async () => {
-    gameMock.isRunning.mockReturnValueOnce(false);
-    gameMock.getTrialsCompleted.mockReturnValueOnce(0);
+    gameMock.stopGame.mockReturnValueOnce({
+      score: 0, level: 0, trialsCompleted: 0, duration: 100,
+    });
     scoreServiceMock.saveScore.mockClear();
 
+    await plugin.start();
     plugin.stop();
+    expect(document.querySelector('#dp-end-panel').hidden).toBe(false);
     expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
   });
 
-  it('stop returns idle result when game is not running', async () => {
+  it('stop returns an idle result without stopping, saving, or changing the screen', () => {
     gameMock.isRunning.mockReturnValueOnce(false);
     const result = plugin.stop();
     // Falls back to getScore / getCurrentLevel / getTrialsCompleted
-    expect(result.score).toBe(5);
-    expect(result.level).toBe(2);
+    expect(result).toEqual({
+      score: 5, level: 2, trialsCompleted: 8, duration: 0,
+    });
+    expect(gameMock.stopGame).not.toHaveBeenCalled();
+    expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+    expect(document.querySelector('#dp-end-panel').hidden).toBe(true);
+    expect(gameMock.initGame).toHaveBeenCalledTimes(1); // only from init()
   });
 
   it('stop cancels pending stimulus rAF', async () => {
@@ -566,41 +642,17 @@ describe('directional-processing plugin', () => {
     expect(gameMock.startGame).toHaveBeenCalled();
   });
 
-  it('replay tutorial button calls showTutorial with game container', async () => {
-    tutorialServiceMock.showTutorial.mockClear();
+  it('replay tutorial button runs the guided tutorial and then starts the game', async () => {
     document.querySelector('#dp-replay-tutorial-btn').click();
-    await Promise.resolve();
-    expect(tutorialServiceMock.showTutorial).toHaveBeenCalledWith(
-      'directional-processing',
-      expect.arrayContaining([
-        expect.objectContaining({ title: 'Welcome to Directional Processing' }),
-      ]),
-      expect.any(HTMLElement),
-      expect.any(Function),
-    );
-  });
-
-  it('replayTutorial starts a game session when the tutorial completes', async () => {
-    gameMock.startGame.mockClear();
-    document.querySelector('#dp-replay-tutorial-btn').click();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushMicrotasks();
+    expect(tutorialServiceMock.runGuidedTutorial).toHaveBeenCalledWith(expect.objectContaining({
+      gameId: 'directional-processing',
+      container: expect.any(HTMLElement),
+      playPracticeRound: expect.any(Function),
+    }));
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(document.querySelector('#dp-game-area').hidden).toBe(false);
-  });
-
-  it('start does nothing while a tutorial overlay is open', async () => {
-    const overlay = document.createElement('div');
-    overlay.className = 'tutorial-overlay';
-    document.querySelector('#dp-instructions').appendChild(overlay);
-
-    await plugin.start();
-    document.querySelector('#dp-replay-tutorial-btn').click();
-    await Promise.resolve();
-
-    expect(tutorialServiceMock.showTutorialIfNeeded).not.toHaveBeenCalled();
-    expect(tutorialServiceMock.showTutorial).not.toHaveBeenCalled();
-    expect(gameMock.startGame).not.toHaveBeenCalled();
   });
 
   it('ignores a second start while the first tutorial launch is in flight', async () => {
@@ -608,7 +660,8 @@ describe('directional-processing plugin', () => {
     const second = plugin.start();
     await Promise.all([first, second]);
     expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalledTimes(1);
-    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
+    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
   });
 
   it('start does nothing when init received no container', async () => {
@@ -622,7 +675,7 @@ describe('directional-processing plugin', () => {
     await expect(plugin.start()).rejects.toThrow('load failed');
 
     await plugin.start();
-    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledTimes(1);
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
   });
 
   it('return button dispatches bsx:return-to-main-menu event', async () => {
@@ -708,5 +761,224 @@ describe('directional-processing plugin', () => {
     plugin.stop();
 
     expect(document.querySelector('#dp-end-panel').hidden).toBe(false);
+  });
+  // ── guided tutorial ───────────────────────────────────────────────────────
+
+  describe('guided tutorial', () => {
+    it('does not start the game until the tutorial completes', async () => {
+      const { options } = await startPendingTutorial();
+      expect(gameMock.startGame).not.toHaveBeenCalled();
+      expect(document.querySelector('#dp-game-area').hidden).toBe(true);
+
+      options.onComplete();
+      expect(gameMock.startGame).toHaveBeenCalled();
+      expect(document.querySelector('#dp-game-area').hidden).toBe(false);
+    });
+
+    it('start and replay do nothing while a tutorial is in progress', async () => {
+      await startPendingTutorial();
+      jest.clearAllMocks();
+
+      await plugin.start();
+      document.querySelector('#dp-replay-tutorial-btn').click();
+      await flushMicrotasks();
+
+      expect(tutorialContentMock.getTutorialSteps).not.toHaveBeenCalled();
+      expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
+      expect(tutorialServiceMock.runGuidedTutorial).not.toHaveBeenCalled();
+    });
+
+    it('can launch again once the tutorial run finishes', async () => {
+      const { finish } = await startPendingTutorial();
+      finish();
+
+      await plugin.start();
+      expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(2);
+    });
+
+    it('reset() cancels a tutorial in progress', async () => {
+      const { run } = await startPendingTutorial();
+      plugin.reset();
+      expect(run.cancel).toHaveBeenCalledTimes(1);
+    });
+
+    it('stop() with no session ignores a tutorial that already finished', async () => {
+      const { finish } = await startPendingTutorial();
+      finish();
+      gameMock.isRunning.mockReturnValueOnce(false);
+      document.querySelector('#dp-end-panel').hidden = false;
+      gameMock.initGame.mockClear();
+
+      plugin.stop();
+      expect(gameMock.initGame).not.toHaveBeenCalled();
+      expect(document.querySelector('#dp-end-panel').hidden).toBe(false);
+    });
+  });
+
+  // ── practice trial ────────────────────────────────────────────────────────
+
+  describe('practice trial', () => {
+    let pending;
+
+    beforeEach(async () => {
+      // 125 ms per call, so 250 ms per animation frame (the rAF stub reads the clock too).
+      // The 500 ms practice stimulus then draws on its first frame and ends on its second.
+      let t = 0;
+      nowSpy.mockImplementation(() => {
+        t += 125;
+        return t;
+      });
+      gameMock.isRunning.mockReturnValue(false);
+      // jsdom does not implement scrollIntoView.
+      Element.prototype.scrollIntoView = jest.fn();
+      pending = await startPendingTutorial();
+    });
+
+    afterEach(() => {
+      gameMock.isRunning.mockReturnValue(true);
+      delete Element.prototype.scrollIntoView;
+    });
+
+    /**
+     * Start a practice trial.
+     * @param {boolean} [guided=true]
+     * @returns {{ context: object, done: Promise<void> }}
+     */
+    function playTrial(guided = true) {
+      const context = buildPracticeContext(pending.controller, guided);
+      const done = pending.options.playPracticeRound(context);
+      return { context, done };
+    }
+
+    /** @param {string} direction */
+    function button(direction) {
+      return document.querySelector(`#dp-btn-${direction}`);
+    }
+
+    it('shows the pattern at the easiest level without starting a session', () => {
+      const { context } = playTrial();
+
+      expect(document.querySelector('#dp-instructions').hidden).toBe(true);
+      expect(document.querySelector('#dp-game-area').hidden).toBe(false);
+      expect(gameMock.generatePracticeTrial).toHaveBeenCalledTimes(1);
+      expect(gameMock.pickDirection).not.toHaveBeenCalled();
+      expect(gameMock.startGame).not.toHaveBeenCalled();
+      expect(timerMock.startTimer).not.toHaveBeenCalled();
+      expect(context.setInstructions).toHaveBeenCalledWith('watch text');
+      expect(button('left').disabled).toBe(true);
+
+      jest.runOnlyPendingTimers();
+      expect(gaborMock.drawGabor).toHaveBeenCalledWith(
+        expect.any(HTMLCanvasElement),
+        expect.objectContaining({ contrast: 1 }),
+      );
+    });
+
+    it('a guided trial marks the correct button once the stimulus ends', () => {
+      const { context } = playTrial();
+      jest.runOnlyPendingTimers();
+      expect(context.showMarker).not.toHaveBeenCalled();
+
+      jest.runOnlyPendingTimers();
+      expect(gaborMock.drawMask).toHaveBeenCalled();
+      expect(button('left').scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+      expect(context.showMarker).toHaveBeenCalledWith({ anchor: button('left'), shape: 'box' });
+      expect(context.setInstructions).toHaveBeenLastCalledWith('guided answer text: left');
+
+      jest.runAllTimers();
+      expect(button('left').disabled).toBe(false);
+    });
+
+    it('an unguided trial shows no marker', () => {
+      const { context } = playTrial(false);
+      jest.runAllTimers();
+
+      expect(context.showMarker).not.toHaveBeenCalled();
+      expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+      expect(context.setInstructions).toHaveBeenLastCalledWith('answer text');
+    });
+
+    it('a correct answer gives feedback and ends the trial without scoring', async () => {
+      const { context, done } = playTrial();
+      jest.runAllTimers();
+      button('left').click();
+
+      await expect(done).resolves.toBeUndefined();
+      expect(context.hideMarker).toHaveBeenCalled();
+      expect(document.querySelector('#dp-feedback').textContent).toBe('Correct!');
+      expect(document.querySelector('#dp-stage').classList)
+        .toContain('dp-stage--flash-correct');
+      expect(gameMock.recordTrial).not.toHaveBeenCalled();
+
+      // The flash clears, no next trial starts, and nothing is saved.
+      jest.runAllTimers();
+      expect(document.querySelector('#dp-stage').classList)
+        .not.toContain('dp-stage--flash-correct');
+      expect(gameMock.generatePracticeTrial).toHaveBeenCalledTimes(1);
+      expect(gameMock.pickDirection).not.toHaveBeenCalled();
+      expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+    });
+
+    it('a wrong answer highlights the correct button without scoring', async () => {
+      const { done } = playTrial();
+      jest.runAllTimers();
+      button('up').click();
+
+      await done;
+      expect(button('left').classList).toContain('dp-dir-btn--correct');
+      expect(document.querySelector('#dp-feedback').textContent)
+        .toBe('Incorrect — direction was left.');
+      expect(gameMock.recordTrial).not.toHaveBeenCalled();
+    });
+
+    it('arrow keys answer and do not scroll the page', async () => {
+      const { done } = playTrial();
+      const early = { key: 'ArrowLeft', preventDefault: jest.fn() };
+      handleKeyDown(early);
+      expect(early.preventDefault).toHaveBeenCalled();
+
+      jest.runAllTimers();
+      const answer = { key: 'ArrowLeft', preventDefault: jest.fn() };
+      handleKeyDown(answer);
+      expect(answer.preventDefault).toHaveBeenCalled();
+      await expect(done).resolves.toBeUndefined();
+    });
+
+    it('ending the tutorial mid-trial cancels the trial', () => {
+      const { context } = playTrial();
+      jest.runOnlyPendingTimers();
+
+      pending.controller.abort();
+      jest.runAllTimers();
+      expect(context.showMarker).not.toHaveBeenCalled();
+      expect(button('left').disabled).toBe(true);
+      button('left').click();
+      expect(document.querySelector('#dp-feedback').textContent).toBe('');
+    });
+
+    it('ending the tutorial during the result flash removes the flash', async () => {
+      const { done } = playTrial();
+      jest.runAllTimers();
+      button('left').click();
+      await done;
+
+      pending.controller.abort();
+      expect(document.querySelector('#dp-stage').classList)
+        .not.toContain('dp-stage--flash-correct');
+    });
+
+    it('End Game during practice cancels the tutorial and shows the welcome screen', () => {
+      playTrial();
+      jest.runAllTimers();
+
+      document.querySelector('#dp-stop-btn').click();
+
+      expect(pending.run.cancel).toHaveBeenCalled();
+      expect(document.querySelector('#dp-instructions').hidden).toBe(false);
+      expect(document.querySelector('#dp-game-area').hidden).toBe(true);
+      expect(document.querySelector('#dp-end-panel').hidden).toBe(true);
+      expect(gameMock.stopGame).not.toHaveBeenCalled();
+      expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+    });
   });
 });
