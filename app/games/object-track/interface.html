@@ -24,11 +24,15 @@
   <!-- Active game area -->
   <div id="mot-play-area" class="mot-game__play-area" hidden>
 
-    <div class="mot-game__stats" aria-live="polite" aria-atomic="true">
-      <span>Score: <strong id="mot-score">0</strong></span>
-      <span>Level: <strong id="mot-level">1</strong></span>
-      <span>Round: <strong id="mot-round">1</strong></span>
-      <span>Time: <strong id="mot-session-timer" aria-live="polite">00:00</strong></span>
+    <!-- Only per-trial stats sit in the live region; the session timer stays
+         outside it so screen readers are not interrupted every second. -->
+    <div class="mot-game__stats">
+      <div class="mot-game__stats-live" aria-live="polite" aria-atomic="true">
+        <span>Score: <strong id="mot-score">0</strong></span>
+        <span>Level: <strong id="mot-level">1</strong></span>
+        <span>Round: <strong id="mot-round">1</strong></span>
+      </div>
+      <span>Time: <strong id="mot-session-timer">00:00</strong></span>
     </div>
 
     <p id="mot-phase-label" class="mot-game__phase-label" aria-live="polite" aria-atomic="true">
