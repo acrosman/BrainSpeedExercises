@@ -370,6 +370,19 @@ describe('start', () => {
     expect(gameMock.respondToCurrentCard).toHaveBeenCalled();
   });
 
+  test('one Space press on the focused reaction zone reacts once', async () => {
+    const container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    await plugin.start();
+
+    const zone = container.querySelector('#cr-reaction-zone');
+    zone.focus();
+    zone.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+
+    expect(gameMock.respondToCurrentCard).toHaveBeenCalledTimes(1);
+  });
+
   test('deal loop timer callback continues the loop', async () => {
     const container = buildContainer();
     plugin.init(container);
@@ -875,3 +888,4 @@ describe('practice round', () => {
     expect(saveScoreMock.saveScore).not.toHaveBeenCalled();
   });
 });
+
