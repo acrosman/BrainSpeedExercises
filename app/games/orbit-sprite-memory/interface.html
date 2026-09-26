@@ -18,14 +18,18 @@
   </div>
 
   <div id="osm-game-area" hidden>
-    <div class="osm-stats" aria-live="polite" aria-atomic="true">
-      <span>Level: <strong id="osm-level">1</strong></span>
-      <span>Score: <strong id="osm-score">0</strong></span>
-      <span>Streak: <strong id="osm-streak">0</strong> / 3</span>
-      <span>Display Time: <strong id="osm-display-time">1100</strong> ms</span>
-      <span>Best Level: <strong id="osm-best-level">1</strong></span>
-      <span>Best Score: <strong id="osm-best-score">0</strong></span>
-      <span class="osm-stat">Session: <strong id="osm-session-timer" aria-live="polite">00:00</strong></span>
+    <!-- Only per-trial stats sit in the live region; the session timer stays
+         outside it so screen readers are not interrupted every second. -->
+    <div class="osm-stats">
+      <div class="osm-stats-live" aria-live="polite" aria-atomic="true">
+        <span>Level: <strong id="osm-level">1</strong></span>
+        <span>Score: <strong id="osm-score">0</strong></span>
+        <span>Streak: <strong id="osm-streak">0</strong> / 3</span>
+        <span>Display Time: <strong id="osm-display-time">1100</strong> ms</span>
+        <span>Best Level: <strong id="osm-best-level">1</strong></span>
+        <span>Best Score: <strong id="osm-best-score">0</strong></span>
+      </div>
+      <span>Session: <strong id="osm-session-timer">00:00</strong></span>
     </div>
 
     <div class="osm-target-wrap">

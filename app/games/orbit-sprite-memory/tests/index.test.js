@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   jest,
   describe,
@@ -493,3 +494,20 @@ describe('session duration', () => {
   });
 });
 
+// ── interface.html accessibility ──────────────────────────────────────────────
+
+describe('interface.html live regions', () => {
+  const html = readFileSync(new URL('../interface.html', import.meta.url), 'utf8');
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('session timer is not inside a live region', () => {
+    document.body.innerHTML = html;
+
+    expect(document.querySelector('#osm-session-timer').closest('[aria-live]')).toBeNull();
+    expect(document.querySelector('#osm-score').closest('[aria-live]')).not.toBeNull();
+    expect(document.querySelector('#osm-level').closest('[aria-live]')).not.toBeNull();
+  });
+});

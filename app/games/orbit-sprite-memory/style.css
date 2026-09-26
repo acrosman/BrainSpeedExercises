@@ -31,10 +31,14 @@
 
 /* ── Stats bar ────────────────────────────────────────────────────────────── */
 
-.osm-stats {
+.osm-stats,
+.osm-stats-live {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.osm-stats {
   margin: 0.75rem 0;
 }
 
