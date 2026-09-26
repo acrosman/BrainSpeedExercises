@@ -132,8 +132,7 @@ their definitions to `loadTutorialSteps`, an annotated `images/tutorialScreensho
 "Replay Tutorial" button on the welcome panel, and an async `start()` that loads the steps and
 launches the tutorial with a function that begins the session. Guard against a second launch
 while one is loading or in progress. `fast-piggie` is the reference for guided tutorials with
-practice rounds, and `directional-processing` follows it. `card-rat` still uses the slides-only
-`showTutorialIfNeeded`.
+practice rounds, `card-rat` and `directional-processing` follows it. 
 
 ## Shared screen markup
 

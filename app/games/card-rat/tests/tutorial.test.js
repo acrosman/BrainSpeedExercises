@@ -2,145 +2,23 @@ import {
   describe,
   test,
   expect,
-  beforeEach,
-  afterEach,
   jest,
 } from '@jest/globals';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-jest.unstable_mockModule('../../../components/timerService.js', () => ({
-  startTimer: jest.fn(),
-  stopTimer: jest.fn(() => 1000),
-  resetTimer: jest.fn(),
-  formatDuration: jest.fn(() => '00:01'),
-}));
-
-jest.unstable_mockModule('../../../components/scoreService.js', () => ({
-  saveScore: jest.fn(() => Promise.resolve({})),
-}));
-
-jest.unstable_mockModule('../../../components/gameUtils.js', () => ({
-  returnToMainMenu: jest.fn(),
-}));
-
-jest.unstable_mockModule('../../../components/audioService.js', () => ({
-  playSuccessSound: jest.fn(),
-  playFailureSound: jest.fn(),
-  playCardFlickSound: jest.fn(),
-}));
-
-jest.unstable_mockModule('../../../components/trendChartService.js', () => ({
-  renderTrendChart: jest.fn(),
-}));
-
 jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
-  showTutorial: jest.fn((_gameId, _steps, _container, onComplete) => {
-    if (typeof onComplete === 'function') onComplete();
-    return document.createElement('div');
-  }),
-  showTutorialIfNeeded: jest.fn(async (_gameId, _steps, _container, onComplete) => {
-    if (typeof onComplete === 'function') onComplete();
-    return null;
-  }),
   // Echo the definitions so the test can inspect the paths getTutorialSteps passes in.
   loadTutorialSteps: jest.fn(async (definitions) => definitions.map(
     ({ title, contentPath }) => ({ title, content: contentPath }),
   )),
 }));
 
-jest.unstable_mockModule('../game.js', () => ({
-  RANKS: ['A', '2', '3'],
-  initGame: jest.fn(),
-  startGame: jest.fn(),
-  stopGame: jest.fn(() => ({
-    score: 3,
-    triggerHits: 2,
-    misses: 1,
-    falseAlarms: 1,
-    cardsShown: 10,
-    deckPasses: 0,
-    lowestDisplayTime: 900,
-    duration: 5000,
-  })),
-  dealNextCard: jest.fn(() => ({
-    card: { rank: 'A', suit: 'hearts', isJoker: false },
-    mustReact: false,
-    missedTrigger: false,
-    displayDurationMs: 1200,
-  })),
-  respondToCurrentCard: jest.fn(() => 'hit'),
-  getScore: jest.fn(() => 3),
-  getTriggerHits: jest.fn(() => 2),
-  getMisses: jest.fn(() => 1),
-  getFalseAlarms: jest.fn(() => 1),
-  getCardsShown: jest.fn(() => 10),
-  getDeckPasses: jest.fn(() => 0),
-  getDeckIndex: jest.fn(() => 1),
-  getDeckSize: jest.fn(() => 55),
-  getDisplayDurationMs: jest.fn(() => 900),
-  getLowestDisplayTimeMs: jest.fn(() => 900),
-  getSpeedHistory: jest.fn(() => [1200, 1100, 1000]),
-  isRunning: jest.fn(() => true),
-}));
-
-const tutorialServiceMock = await import('../../../components/tutorialService.js');
-const plugin = (await import('../index.js')).default;
 const tutorialModule = await import('../tutorial/tutorial.js');
 
 /** Absolute path of `app/`, which step and image paths are relative to. */
 const APP_DIR = fileURLToPath(new URL('../../../', import.meta.url));
-
-/**
- * Build a minimal game container with tutorial action controls.
- *
- * @returns {HTMLElement}
- */
-function buildContainer() {
-  const el = document.createElement('div');
-  el.innerHTML = `
-    <div id="cr-instructions"></div>
-    <div id="cr-game-area" hidden></div>
-    <div id="cr-end-panel" hidden></div>
-    <button id="cr-start-btn"></button>
-    <button id="cr-replay-tutorial-btn"></button>
-    <button id="cr-stop-btn"></button>
-    <button id="cr-play-again-btn"></button>
-    <button id="cr-return-btn"></button>
-    <button id="cr-reaction-zone"></button>
-    <input id="cr-card-sound-toggle" type="checkbox" checked>
-    <input id="cr-hint-toggle" type="checkbox" checked>
-    <div id="cr-deck-card"></div>
-    <div id="cr-card"></div>
-    <p id="cr-feedback"></p>
-    <strong id="cr-score">0</strong>
-    <strong id="cr-hits">0</strong>
-    <strong id="cr-misses">0</strong>
-    <strong id="cr-false-alarms">0</strong>
-    <strong id="cr-display-time">0</strong>
-    <strong id="cr-deck-progress">0 / 55</strong>
-    <strong id="cr-session-timer">00:00</strong>
-    <polyline id="cr-trend-line"></polyline>
-    <p id="cr-trend-empty"></p>
-    <strong id="cr-trend-latest"></strong>
-    <dd id="cr-final-score">0</dd>
-    <dd id="cr-final-hits">0</dd>
-    <dd id="cr-final-misses">0</dd>
-    <dd id="cr-final-false-alarms">0</dd>
-    <dd id="cr-final-speed">0 ms</dd>
-    <dd id="cr-final-deck-passes">0</dd>
-  `;
-  return el;
-}
-
-beforeEach(() => {
-  jest.clearAllMocks();
-});
-
-afterEach(() => {
-  document.body.innerHTML = '';
-});
 
 describe('Card Rat tutorial content', () => {
   test('lists the steps in order', async () => {
@@ -173,53 +51,16 @@ describe('Card Rat tutorial content', () => {
     expect(fs.existsSync(path.join(APP_DIR, 'games/card-rat/images/tutorialScreenshot.png')))
       .toBe(true);
   });
-});
 
-describe('Card Rat tutorial flow', () => {
-  test('start calls showTutorialIfNeeded before starting gameplay', async () => {
-    const container = buildContainer();
-    plugin.init(container);
-
-    await plugin.start();
-
-    expect(tutorialServiceMock.showTutorialIfNeeded).toHaveBeenCalledWith(
-      'card-rat',
-      expect.any(Array),
-      container,
-      expect.any(Function),
-    );
-    expect(container.querySelector('#cr-game-area').hidden).toBe(false);
-    expect(container.querySelector('#cr-instructions').hidden).toBe(true);
-  });
-
-  test('replay button calls showTutorial with current container', async () => {
-    const container = buildContainer();
-    plugin.init(container);
-
-    container.querySelector('#cr-replay-tutorial-btn').click();
-    await new Promise((resolve) => {
-      setTimeout(resolve, 0);
+  test('practice text covers each stage and always offers the keyboard option to slap', () => {
+    const { PRACTICE_TEXT } = tutorialModule;
+    expect(Object.keys(PRACTICE_TEXT)).toEqual(['watch', 'guidedSlap']);
+    expect(Object.keys(PRACTICE_TEXT.guidedSlap)).toEqual(['pair', 'sandwich', 'joker']);
+    [PRACTICE_TEXT.watch, ...Object.values(PRACTICE_TEXT.guidedSlap)].forEach((text) => {
+      expect(text).toMatch(/click/);
+      expect(text).toMatch(/Space/);
     });
-
-    expect(tutorialServiceMock.showTutorial).toHaveBeenCalledWith(
-      'card-rat',
-      expect.any(Array),
-      container,
-      expect.any(Function),
-    );
-  });
-
-  test('replay button does nothing when tutorial overlay is already open', () => {
-    const container = buildContainer();
-    plugin.init(container);
-
-    const overlay = document.createElement('div');
-    overlay.className = 'tutorial-overlay';
-    container.appendChild(overlay);
-    tutorialServiceMock.showTutorial.mockClear();
-
-    container.querySelector('#cr-replay-tutorial-btn').click();
-
-    expect(tutorialServiceMock.showTutorial).not.toHaveBeenCalled();
+    expect(Object.isFrozen(PRACTICE_TEXT)).toBe(true);
+    expect(Object.isFrozen(PRACTICE_TEXT.guidedSlap)).toBe(true);
   });
 });
