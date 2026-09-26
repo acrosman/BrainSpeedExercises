@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   jest,
   describe,
@@ -415,5 +416,23 @@ describe('field-of-view index', () => {
     plugin.start();
 
     expect(gameMock.createTrialLayout).not.toHaveBeenCalled();
+  });
+});
+
+// ── interface.html accessibility ──────────────────────────────────────────────
+
+describe('interface.html live regions', () => {
+  const html = readFileSync(new URL('../interface.html', import.meta.url), 'utf8');
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('session timer is not inside a live region', () => {
+    document.body.innerHTML = html;
+
+    expect(document.querySelector('#fov-session-timer').closest('[aria-live]')).toBeNull();
+    expect(document.querySelector('#fov-soa').closest('[aria-live]')).not.toBeNull();
+    expect(document.querySelector('#fov-accuracy').closest('[aria-live]')).not.toBeNull();
   });
 });
