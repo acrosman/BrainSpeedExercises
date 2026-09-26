@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   describe,
   test,
@@ -889,3 +890,16 @@ describe('practice round', () => {
   });
 });
 
+// ── interface.html accessibility ──────────────────────────────────────────────
+
+describe('interface.html live regions', () => {
+  const html = readFileSync(new URL('../interface.html', import.meta.url), 'utf8');
+
+  test('session timer is not inside a live region', () => {
+    document.body.innerHTML = html;
+
+    expect(document.querySelector('#cr-session-timer').closest('[aria-live]')).toBeNull();
+    expect(document.querySelector('#cr-score').closest('[aria-live]')).not.toBeNull();
+    expect(document.querySelector('#cr-false-alarms').closest('[aria-live]')).not.toBeNull();
+  });
+});
