@@ -34,12 +34,16 @@
 
   <!-- Main game area: shown while a session is active. -->
   <div id="dp-game-area" class="dp-panel" hidden>
-    <div class="dp-stats" aria-live="polite" aria-atomic="true">
-      <span>Level: <strong id="dp-level">1</strong></span>
-      <span>Score: <strong id="dp-score">0</strong></span>
-      <span>Round: <strong id="dp-trials">0</strong></span>
-      <span>Streak: <strong id="dp-streak">0</strong></span>
-      <span>Session: <strong id="dp-session-timer" aria-live="polite">00:00</strong></span>
+    <!-- Only per-trial stats sit in the live region; the session timer stays
+         outside it so screen readers are not interrupted every second. -->
+    <div class="dp-stats">
+      <div class="dp-stats-live" aria-live="polite" aria-atomic="true">
+        <span>Level: <strong id="dp-level">1</strong></span>
+        <span>Score: <strong id="dp-score">0</strong></span>
+        <span>Round: <strong id="dp-trials">0</strong></span>
+        <span>Streak: <strong id="dp-streak">0</strong></span>
+      </div>
+      <span>Session: <strong id="dp-session-timer">00:00</strong></span>
     </div>
 
     <div class="dp-stage" id="dp-stage">
