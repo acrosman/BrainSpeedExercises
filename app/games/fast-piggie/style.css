@@ -32,9 +32,13 @@
 }
 
 /* Stats bar */
-.fp-stats {
+.fp-stats,
+.fp-stats-live {
   display: flex;
   gap: 2rem;
+}
+
+.fp-stats {
   font-size: 1rem;
   font-weight: 500;
 }

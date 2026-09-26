@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   describe, it, expect, beforeEach, afterEach, jest,
 } from '@jest/globals';
@@ -1791,5 +1792,23 @@ describe('dailyTime accumulation', () => {
 
     // 30000 (existing) + 60000 (new) = 90000
     expect(savedPayloads[0].data.games['fast-piggie'].dailyTime['2024-01-15']).toBe(90000);
+  });
+});
+
+// ── interface.html accessibility ──────────────────────────────────────────────
+
+describe('interface.html live regions', () => {
+  const html = readFileSync(new URL('../interface.html', import.meta.url), 'utf8');
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('session timer is not inside a live region', () => {
+    document.body.innerHTML = html;
+
+    expect(document.querySelector('#fp-session-timer').closest('[aria-live]')).toBeNull();
+    expect(document.querySelector('#fp-score').closest('[aria-live]')).not.toBeNull();
+    expect(document.querySelector('#fp-round-count').closest('[aria-live]')).not.toBeNull();
   });
 });
