@@ -42,7 +42,8 @@ The welcome and end panels show the best score and best level. `level` is stored
 displayed +1.
 
 - `saveScore(...).then(updateBestStats)` refreshes them after each session.
-- `loadBestStatsFromProgress()` fills them in when the game is initialized.
+- `loadBestStatsFromProgress()` fills them in from `loadGameScore` when the game is initialized
+  and on reset.
 
 ## Saved fields
 

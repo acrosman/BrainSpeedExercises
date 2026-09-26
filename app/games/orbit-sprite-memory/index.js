@@ -9,7 +9,7 @@
 import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
-import { saveScore } from '../../components/scoreService.js';
+import { saveScore, loadGameScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 
@@ -216,23 +216,14 @@ export function updateBestStats(progressEntry) {
 }
 
 /**
- * Loads saved progress and refreshes the all-time best stats UI.
+ * Loads this game's saved record through the Score Service and refreshes the
+ * all-time best stats UI. The Score Service returns an empty record when the
+ * API is unavailable or the load fails, which shows the defaults.
  *
  * @returns {Promise<void>}
  */
 export async function loadBestStatsFromProgress() {
-  if (typeof window === 'undefined' || !window.api) {
-    updateBestStats(undefined);
-    return;
-  }
-
-  try {
-    const loaded = await window.api.invoke('progress:load', { playerId: 'default' });
-    const progressEntry = loaded?.games?.['orbit-sprite-memory'];
-    updateBestStats(progressEntry);
-  } catch {
-    updateBestStats(undefined);
-  }
+  updateBestStats(await loadGameScore('orbit-sprite-memory'));
 }
 
 /**
