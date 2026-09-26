@@ -41,20 +41,23 @@
   <!-- ── Active game area (hidden until Start is clicked) ── -->
   <div id="os-game-area" class="os-game-area" hidden>
 
-    <!-- Live stats bar -->
-    <div class="os-stats" aria-live="polite" aria-atomic="true">
-      <span class="os-stat">Level: <strong id="os-level">1</strong></span>
-      <span class="os-stat">Score: <strong id="os-score">0</strong></span>
-      <span class="os-stat">
-        No-Go Hits: <strong id="os-nogo-hits">0</strong>
-      </span>
-      <span class="os-stat">
-        Interval: <strong id="os-interval">1500</strong> ms
-      </span>
-      <span class="os-stat">
-        Avg Resp: <strong id="os-avg-response">--</strong> ms
-      </span>
-      <span class="os-stat">Session: <strong id="os-session-timer" aria-live="polite">00:00</strong></span>
+    <!-- Only per-trial stats sit in the live region; the session timer stays
+         outside it so screen readers are not interrupted every second. -->
+    <div class="os-stats">
+      <div class="os-stats-live" aria-live="polite" aria-atomic="true">
+        <span class="os-stat">Level: <strong id="os-level">1</strong></span>
+        <span class="os-stat">Score: <strong id="os-score">0</strong></span>
+        <span class="os-stat">
+          No-Go Hits: <strong id="os-nogo-hits">0</strong>
+        </span>
+        <span class="os-stat">
+          Interval: <strong id="os-interval">1500</strong> ms
+        </span>
+        <span class="os-stat">
+          Avg Resp: <strong id="os-avg-response">--</strong> ms
+        </span>
+      </div>
+      <span class="os-stat">Session: <strong id="os-session-timer">00:00</strong></span>
     </div>
 
     <!-- Image display area — click anywhere on the image to respond -->
