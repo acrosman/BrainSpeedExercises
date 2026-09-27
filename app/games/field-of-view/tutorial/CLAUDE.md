@@ -1,8 +1,8 @@
 # Field of View tutorial (`field-of-view/tutorial/`)
 
 The first-run guided tutorial: five slides, then up to two live practice trials. It runs on the
-shared framework in `components/tutorialService.js`; see the "Tutorials" section of
-[../../CLAUDE.md](../../CLAUDE.md) for the framework itself.
+shared framework in `components/tutorialService.js`; see
+[../../../components/CLAUDE.md](../../../components/CLAUDE.md) for the framework itself.
 
 ## Files
 
