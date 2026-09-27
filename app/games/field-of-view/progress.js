@@ -10,9 +10,6 @@
 import * as game from './game.js';
 import { saveScore } from '../../components/scoreService.js';
 
-/** Game identifier used for progress persistence. */
-export const GAME_ID = 'field-of-view';
-
 /**
  * Save game progress asynchronously via the score service.
  *
@@ -22,7 +19,7 @@ export const GAME_ID = 'field-of-view';
  * @param {number} [sessionDurationMs=0]
  */
 export function saveProgress(result, sessionDurationMs = 0) {
-  saveScore(GAME_ID, {
+  saveScore(game.GAME_ID, {
     score: Math.round(1000 / result.thresholdMs),
     sessionDurationMs,
     lowestDisplayTime: result.thresholdMs,
