@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 
 // Mock timerService before other mocks and imports.
@@ -941,5 +942,23 @@ describe('dailyTime accumulation', () => {
 
     // 30000 (existing) + 60000 (new) = 90000
     expect(savedPayloads[0].data.games['high-speed-memory'].dailyTime['2024-01-15']).toBe(90000);
+  });
+});
+
+// ── interface.html accessibility ──────────────────────────────────────────────
+
+describe('interface.html live regions', () => {
+  const html = readFileSync(new URL('../interface.html', import.meta.url), 'utf8');
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('session timer is not inside a live region', () => {
+    document.body.innerHTML = html;
+
+    expect(document.querySelector('#hsm-session-timer').closest('[aria-live]')).toBeNull();
+    expect(document.querySelector('#hsm-score').closest('[aria-live]')).not.toBeNull();
+    expect(document.querySelector('#hsm-level').closest('[aria-live]')).not.toBeNull();
   });
 });

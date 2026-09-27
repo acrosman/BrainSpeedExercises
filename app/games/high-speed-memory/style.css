@@ -56,13 +56,17 @@
 }
 
 /* ── Stats bar ───────────────────────────────────────────────── */
-.hsm-stats {
+.hsm-stats,
+.hsm-stats-live {
   display: flex;
   gap: 2rem;
-  font-size: 1rem;
-  font-weight: 500;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.hsm-stats {
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .hsm-stat strong {
