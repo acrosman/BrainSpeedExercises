@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   describe,
   test,
@@ -368,6 +369,19 @@ describe('start', () => {
     document.dispatchEvent(event);
 
     expect(gameMock.respondToCurrentCard).toHaveBeenCalled();
+  });
+
+  test('one Space press on the focused reaction zone reacts once', async () => {
+    const container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    await plugin.start();
+
+    const zone = container.querySelector('#cr-reaction-zone');
+    zone.focus();
+    zone.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+
+    expect(gameMock.respondToCurrentCard).toHaveBeenCalledTimes(1);
   });
 
   test('deal loop timer callback continues the loop', async () => {
@@ -873,5 +887,19 @@ describe('practice round', () => {
     expect(container.querySelector('#cr-end-panel').hidden).toBe(true);
     expect(gameMock.stopGame).not.toHaveBeenCalled();
     expect(saveScoreMock.saveScore).not.toHaveBeenCalled();
+  });
+});
+
+// ── interface.html accessibility ──────────────────────────────────────────────
+
+describe('interface.html live regions', () => {
+  const html = readFileSync(new URL('../interface.html', import.meta.url), 'utf8');
+
+  test('session timer is not inside a live region', () => {
+    document.body.innerHTML = html;
+
+    expect(document.querySelector('#cr-session-timer').closest('[aria-live]')).toBeNull();
+    expect(document.querySelector('#cr-score').closest('[aria-live]')).not.toBeNull();
+    expect(document.querySelector('#cr-false-alarms').closest('[aria-live]')).not.toBeNull();
   });
 });

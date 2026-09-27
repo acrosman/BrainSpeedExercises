@@ -589,10 +589,9 @@ function init(gameContainer) {
   if (_stopBtn) _stopBtn.addEventListener('click', stop);
   if (_playAgainBtn) _playAgainBtn.addEventListener('click', start);
   if (_returnBtn) _returnBtn.addEventListener('click', returnToMainMenu);
-  if (_reactionZoneBtn) {
-    _reactionZoneBtn.addEventListener('click', handleReaction);
-    _reactionZoneBtn.addEventListener('keydown', handleKeyDown);
-  }
+  // Space is handled only by the document-level listener; a second listener here would
+  // run handleKeyDown twice for one press while the zone has focus.
+  if (_reactionZoneBtn) _reactionZoneBtn.addEventListener('click', handleReaction);
   if (_hintToggleEl) _hintToggleEl.addEventListener('change', updateHintVisibility);
   updateHintVisibility();
 }
