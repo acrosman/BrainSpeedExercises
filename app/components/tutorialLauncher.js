@@ -9,7 +9,7 @@
  * A game creates one launcher in its `tutorial/tutorial.js`, next to its practice-round code:
  * ```js
  * export const tutorial = createTutorialLauncher({
- *   gameId: GAME_ID,
+ *   gameId: game.GAME_ID,
  *   loadSteps: getTutorialSteps,
  *   playPracticeRound,
  * });

@@ -78,8 +78,8 @@ the game's display and controls, and routes input to the tutorial while it is pr
 
 1. Put one HTML fragment per slide in `<id>/tutorial/`, with an annotated
    `images/tutorialScreenshot.png`, and add a "Replay Tutorial" button to the welcome panel.
-2. Export `GAME_ID` from a module other than `index.js` (usually `game.js`), so `tutorial.js`
-   can use it.
+2. Import `game.js` in `tutorial.js` for `GAME_ID`, which every game exports from there (see
+   [../games/CLAUDE.md](../games/CLAUDE.md)).
 3. In `tutorial/tutorial.js`:
    - `getTutorialSteps()` passes the slide definitions to `loadTutorialSteps`, and
      `PRACTICE_TEXT` holds the coach text.
@@ -90,7 +90,7 @@ the game's display and controls, and routes input to the tutorial while it is pr
      through them and runs its cleanup on `context.signal`'s `abort`.
    - Export `isPracticing()` and whatever hooks the game calls while practicing, such as
      `finishPracticeRound(result)`.
-   - `export const tutorial = createTutorialLauncher({ gameId: GAME_ID, loadSteps:
+   - `export const tutorial = createTutorialLauncher({ gameId: game.GAME_ID, loadSteps:
      getTutorialSteps, playPracticeRound })`.
    - `tutorial.js` must never import `index.js`.
 4. In `index.js`:

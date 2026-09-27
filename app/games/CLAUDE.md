@@ -28,14 +28,27 @@ the registry. Start new games by copying `_template/`.
 <id>/
 ├── manifest.json     id, name, description, version, entryPoint, thumbnail, author
 ├── index.js          Controller: DOM wiring, timers, events. Default export is the plugin API
-├── game.js           Game state and rules. No DOM access
+├── game.js           Game state and rules, plus GAME_ID from the manifest. No DOM access
 ├── interface.html    HTML fragment (no <html>/<body>); root is a <section>
 ├── style.css         Styles for this game only. Prefix every class with a short game prefix
 ├── images/           thumbnail + stimuli
 └── tests/            game.test.js, index.test.js (+ one test file per extra module)
 ```
 
-`manifest.id` must match the directory name and every `GAME_ID` / `saveScore` ID in the code.
+`manifest.id` must match the directory name. It is the only place a game's ID is written.
+`game.js` reads it and exports it as `GAME_ID`:
+
+```js
+import manifest from './manifest.json' with { type: 'json' };
+
+/** Game ID, read from manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = manifest.id;
+```
+
+Every `saveScore`, `loadGameScore`, `games:listImages`, and tutorial `gameId` uses
+`game.GAME_ID`. Never write the ID as a string literal in game code. `tests/game.test.js`
+checks that `GAME_ID` equals `manifest.id`. Tests that mock `game.js` supply `GAME_ID` in the
+mock.
 Paths to images at runtime are relative to `app/index.html`, for example
 `games/<id>/images/foo.png`.
 

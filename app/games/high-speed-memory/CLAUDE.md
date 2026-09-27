@@ -29,8 +29,8 @@ after `completeRound()`. If you change the staircase in `game.js`, update that c
 ## Saved fields
 
 `score`, `sessionDurationMs`, and `level`. `lowestDisplayTime` is the display time at the level
-reached. There are no extra fields. `GAME_ID` lives in `game.js`. `stop()` with no session
-returns an idle result, saves nothing, and leaves the screen alone.
+reached. There are no extra fields. `stop()` with no session returns an idle result, saves
+nothing, and leaves the screen alone.
 
 ## Tutorial
 
