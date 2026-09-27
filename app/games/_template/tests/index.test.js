@@ -21,6 +21,7 @@ jest.unstable_mockModule('../../../components/trendChartService.js', () => ({
 }));
 
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'game-id-slug',
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({ score: 4, level: 2, trialsCompleted: 7, duration: 5000 })),
