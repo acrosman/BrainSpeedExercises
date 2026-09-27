@@ -15,8 +15,7 @@ images disappear, the player picks the wedge where the outlier was.
   with a 2 px `SPRITE_INSET`, which stops the seam from bleeding into small draws.
   `drawBoard()`, `clearImages()`, `highlightWedge()`, and `wedgeMarkerRegion()` are exported
   for tests.
-- `tutorial/`: the first-run tutorial, both its content and the code that launches it and plays
-  practice rounds. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
+- `tutorial/`: the first-run tutorial. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Difficulty: two coupled levels
 
