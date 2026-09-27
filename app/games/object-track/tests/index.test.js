@@ -5,6 +5,7 @@
  * All mocks are set up and modules imported at the top level.
  */
 
+import { readFileSync } from 'node:fs';
 import {
   describe, it, expect, beforeEach, afterEach, jest,
 } from '@jest/globals';
@@ -969,5 +970,23 @@ describe('button wiring', () => {
     // reset calls initGame, start calls startGame
     expect(gameMock.initGame).toHaveBeenCalled();
     expect(gameMock.startGame).toHaveBeenCalled();
+  });
+});
+
+// ── interface.html accessibility ──────────────────────────────────────────────
+
+describe('interface.html live regions', () => {
+  const html = readFileSync(new URL('../interface.html', import.meta.url), 'utf8');
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('session timer is not inside a live region', () => {
+    document.body.innerHTML = html;
+
+    expect(document.querySelector('#mot-session-timer').closest('[aria-live]')).toBeNull();
+    expect(document.querySelector('#mot-score').closest('[aria-live]')).not.toBeNull();
+    expect(document.querySelector('#mot-level').closest('[aria-live]')).not.toBeNull();
   });
 });
