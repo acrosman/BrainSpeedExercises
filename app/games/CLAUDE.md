@@ -85,9 +85,12 @@ HTML.
 
 ## Tutorials (optional)
 
-Games add first-run tutorials with the shared framework in `components/tutorialService.js`.
-How it works, and how to add a tutorial to a game, is in
-[../components/CLAUDE.md](../components/CLAUDE.md). Each game documents its own tutorial.
+Games add first-run tutorials with the shared framework in `components/tutorialService.js`,
+launched through `createTutorialLauncher()` in `components/tutorialLauncher.js`. All of a
+game's tutorial code, including its launcher and practice rounds, lives in `<id>/tutorial/`;
+`index.js` only supplies practice controls and calls the launcher. How it works, and the steps
+to add a tutorial to a game, are in [../components/CLAUDE.md](../components/CLAUDE.md). Each
+game documents its own tutorial in `<id>/tutorial/CLAUDE.md`.
 
 ## Shared screen markup
 
