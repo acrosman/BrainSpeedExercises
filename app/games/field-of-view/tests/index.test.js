@@ -88,6 +88,9 @@ jest.unstable_mockModule('../progress.js', () => ({
 }));
 
 jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Field of View', content: '<p>Welcome</p>' },
+  ]),
   // Default replay: the player finishes the tutorial at once.
   runGuidedTutorial: jest.fn((options) => {
     options.onComplete();
@@ -100,28 +103,22 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   }),
 }));
 
-jest.unstable_mockModule('../tutorial/tutorial.js', () => ({
-  getTutorialSteps: jest.fn(async () => [
-    { title: 'Welcome to Field of View', content: '<p>Welcome</p>' },
-  ]),
-  PRACTICE_TEXT: {
-    watch: 'watch text',
-    guidedKitten: (kitten) => `guided kitten: ${kitten}`,
-    guidedLocation: (row, col) => `guided location: ${row},${col}`,
-    answer: 'answer text',
-    result: ({
-      success, kitten, row, col,
-    }) => `result ${success}: ${kitten} ${row},${col}`,
-  },
-}));
-
 const pluginModule = await import('../index.js');
 const plugin = pluginModule.default;
 const timerMock = await import('../../../components/timerService.js');
 const gameMock = await import('../game.js');
 const progressMock = await import('../progress.js');
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
-const tutorialContentMock = await import('../tutorial/tutorial.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
+
+/** Practice feedback for the default layout (sitting kitten, toy in row 1, column 2). */
+const CORRECT_RESULT = PRACTICE_TEXT.result({
+  success: true, kitten: 'sitting kitten', row: 1, col: 2,
+});
+const MISS_RESULT = PRACTICE_TEXT.result({
+  success: false, kitten: 'sitting kitten', row: 1, col: 2,
+});
 
 /** Let pending promise callbacks (such as a tutorial launch) run. */
 async function flushMicrotasks() {
@@ -510,7 +507,7 @@ describe('field-of-view index', () => {
   describe('guided tutorial', () => {
     test('start runs the guided tutorial if needed with the Field of View steps', async () => {
       await plugin.start();
-      expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalledTimes(1);
+      expect(tutorialServiceMock.loadTutorialSteps).toHaveBeenCalledTimes(1);
       expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith(
         expect.objectContaining({
           gameId: 'field-of-view',
@@ -539,7 +536,7 @@ describe('field-of-view index', () => {
       const first = plugin.start();
       const second = plugin.start();
       await Promise.all([first, second]);
-      expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalledTimes(1);
+      expect(tutorialServiceMock.loadTutorialSteps).toHaveBeenCalledTimes(1);
       expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
       expect(gameMock.startGame).toHaveBeenCalledTimes(1);
     });
@@ -547,11 +544,11 @@ describe('field-of-view index', () => {
     test('start does nothing when init received no container', async () => {
       plugin.init(null);
       await plugin.start();
-      expect(tutorialContentMock.getTutorialSteps).not.toHaveBeenCalled();
+      expect(tutorialServiceMock.loadTutorialSteps).not.toHaveBeenCalled();
     });
 
     test('clears the pending flag when loading tutorial steps fails', async () => {
-      tutorialContentMock.getTutorialSteps.mockRejectedValueOnce(new Error('load failed'));
+      tutorialServiceMock.loadTutorialSteps.mockRejectedValueOnce(new Error('load failed'));
       await expect(plugin.start()).rejects.toThrow('load failed');
 
       await plugin.start();
@@ -578,7 +575,7 @@ describe('field-of-view index', () => {
       document.querySelector('#fov-replay-tutorial-btn').click();
       await flushMicrotasks();
 
-      expect(tutorialContentMock.getTutorialSteps).not.toHaveBeenCalled();
+      expect(tutorialServiceMock.loadTutorialSteps).not.toHaveBeenCalled();
       expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
       expect(tutorialServiceMock.runGuidedTutorial).not.toHaveBeenCalled();
     });
@@ -668,7 +665,7 @@ describe('field-of-view index', () => {
       expect(gameMock.createTrialLayout).not.toHaveBeenCalled();
       expect(gameMock.startGame).not.toHaveBeenCalled();
       expect(timerMock.startTimer).not.toHaveBeenCalled();
-      expect(context.setInstructions).toHaveBeenCalledWith('watch text');
+      expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
     });
 
     test('a guided trial marks the center kitten once the field appears', () => {
@@ -679,7 +676,8 @@ describe('field-of-view index', () => {
       expect(document.querySelector('#fov-mask').hidden).toBe(false);
       expect(primaryBtn().scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
       expect(context.showMarker).toHaveBeenCalledWith({ anchor: primaryBtn(), shape: 'box' });
-      expect(context.setInstructions).toHaveBeenLastCalledWith('guided kitten: sitting kitten');
+      expect(context.setInstructions)
+        .toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedKitten('sitting kitten'));
     });
 
     test('a guided trial marks the leaping kitten when it was in the center', () => {
@@ -690,7 +688,8 @@ describe('field-of-view index', () => {
       jest.runAllTimers();
 
       expect(context.showMarker).toHaveBeenCalledWith({ anchor: secondaryBtn(), shape: 'box' });
-      expect(context.setInstructions).toHaveBeenLastCalledWith('guided kitten: leaping kitten');
+      expect(context.setInstructions)
+        .toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedKitten('leaping kitten'));
     });
 
     test('choosing a kitten moves the marker to the toy square', () => {
@@ -701,7 +700,7 @@ describe('field-of-view index', () => {
       expect(context.showMarker).toHaveBeenLastCalledWith({
         anchor: locationCell(1), shape: 'box',
       });
-      expect(context.setInstructions).toHaveBeenLastCalledWith('guided location: 1,2');
+      expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedLocation(1, 2));
 
       // Changing the kitten keeps the marker, and the announcement, where they are.
       const calls = context.setInstructions.mock.calls.length;
@@ -716,7 +715,8 @@ describe('field-of-view index', () => {
 
       locationCell(3).click();
       expect(context.showMarker).toHaveBeenCalledTimes(1);
-      expect(context.setInstructions).toHaveBeenLastCalledWith('guided kitten: sitting kitten');
+      expect(context.setInstructions)
+        .toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedKitten('sitting kitten'));
     });
 
     test('an unguided trial shows no marker', () => {
@@ -726,7 +726,7 @@ describe('field-of-view index', () => {
 
       expect(context.showMarker).not.toHaveBeenCalled();
       expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
-      expect(context.setInstructions).toHaveBeenLastCalledWith('answer text');
+      expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
     });
 
     test('a correct answer gives feedback and ends the trial without scoring', async () => {
@@ -736,10 +736,10 @@ describe('field-of-view index', () => {
       locationCell(1).click();
 
       await expect(done).resolves.toEqual({
-        correct: true, feedback: 'result true: sitting kitten 1,2',
+        correct: true, feedback: CORRECT_RESULT,
       });
       expect(context.hideMarker).toHaveBeenCalled();
-      expect(feedback()).toBe('result true: sitting kitten 1,2');
+      expect(feedback()).toBe(CORRECT_RESULT);
       expect(document.querySelector('#fov-stage').classList)
         .toContain('fov-stage--flash-correct');
       expect(gameMock.recordTrial).not.toHaveBeenCalled();
@@ -761,7 +761,7 @@ describe('field-of-view index', () => {
 
       // The coach banner shows the miss, so the feedback region stays quiet.
       await expect(done).resolves.toEqual({
-        correct: false, feedback: 'result false: sitting kitten 1,2',
+        correct: false, feedback: MISS_RESULT,
       });
       expect(feedback()).toBe('');
       expect(document.querySelector('#fov-stage').classList)
