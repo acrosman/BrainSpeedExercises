@@ -16,18 +16,16 @@ import {
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
-import {
-  runGuidedTutorial,
-  runGuidedTutorialIfNeeded,
-} from '../../components/tutorialService.js';
 import { getDeckBackImagePath, getJokerImagePath, getStandardCardSpriteStyle } from './cardSvg.js';
-import { getTutorialSteps, PRACTICE_TEXT } from './tutorial/tutorial.js';
+import {
+  handlePracticeSlap,
+  isPracticing,
+  setPracticeControls,
+  tutorial,
+} from './tutorial/tutorial.js';
 
 /** Human-readable plugin name. */
 const name = 'Card Rat';
-
-/** Game ID used for progress persistence. */
-const GAME_ID = 'card-rat';
 
 /** @type {HTMLElement|null} */
 let _container = null;
@@ -130,26 +128,6 @@ let _dealTimer = null;
  * @type {boolean}
  */
 let _isGlobalKeyListenerAttached = false;
-
-/**
- * Whether a tutorial launch call is currently in flight.
- * @type {boolean}
- */
-let _isTutorialLaunchPending = false;
-
-/**
- * The guided tutorial in progress, if any.
- * @type {import('../../components/tutorialService.js').GuidedTutorialRun|null}
- */
-let _tutorialRun = null;
-
-/**
- * The practice round in progress, if any: its scripted cards, the index of the card shown,
- * and why that card is one to slap (`null` when it is not).
- * @type {{ context: object, resolve: Function, cards: object[], index: number,
- *   slapReason: string|null }|null}
- */
-let _practice = null;
 
 /**
  * Apply a card image URL to a card element.
@@ -346,36 +324,11 @@ function showReactionFeedback(outcome) {
 }
 
 /**
- * End a practice round once the player slaps the right card: show the result without
- * scoring it, and hand control back to the tutorial.
- */
-function finishPracticeRound() {
-  const { context, resolve } = _practice;
-  _practice = null;
-  clearDealTimer();
-  context.hideMarker();
-  showReactionFeedback('hit');
-  resolve();
-}
-
-/**
- * Handle a slap during a practice round. A slap on the card to slap ends the round; any other
- * slap gets the usual too-soon feedback and the cards keep coming. Nothing is scored.
- */
-function handlePracticeReaction() {
-  if (_practice.slapReason !== null) {
-    finishPracticeRound();
-  } else {
-    showReactionFeedback('false-alarm');
-  }
-}
-
-/**
  * Handle a reaction input from keyboard or click.
  */
 export function handleReaction() {
-  if (_practice) {
-    handlePracticeReaction();
+  if (isPracticing()) {
+    handlePracticeSlap();
     return;
   }
 
@@ -391,7 +344,7 @@ export function handleReaction() {
  */
 export function handleKeyDown(event) {
   if (event.key !== ' ' && event.key !== 'Spacebar' && event.key !== 'Space') return;
-  if (!game.isRunning() && !_practice) return;
+  if (!game.isRunning() && !isPracticing()) return;
   event.preventDefault();
   handleReaction();
 }
@@ -448,96 +401,13 @@ function showGameArea() {
 }
 
 /**
- * Deal the next scripted practice card. Cards before the last are dealt at the easiest
- * pace. The last card, the one to slap, stays until the player slaps it; in a guided round
- * the cards are marked and the coach says why to slap.
- */
-function dealPracticeCard() {
-  const practice = _practice;
-  practice.index += 1;
-  const { cards, index, context } = practice;
-  const card = cards[index];
-  practice.slapReason = game.getSlapReason(
-    cards[index - 2] || null,
-    cards[index - 1] || null,
-    card,
-  );
-
-  playDealSound();
-  renderCard(card);
-  showDealHint(practice.slapReason !== null);
-
-  if (index < cards.length - 1) {
-    _dealTimer = setTimeout(dealPracticeCard, game.calculateDisplayDuration(0));
-    return;
-  }
-  if (context.guided) {
-    context.showMarker({ anchor: _reactionZoneBtn, shape: 'box' });
-    context.setInstructions(PRACTICE_TEXT.guidedSlap[practice.slapReason]);
-  }
-}
-
-/**
- * Drop any practice round and stop its cards. Runs when the tutorial's practice signal
- * aborts, which happens whenever the tutorial ends. The round's promise is left pending:
- * the tutorial no longer waits on it.
- */
-function endPractice() {
-  clearDealTimer();
-  detachGlobalKeyListener();
-  _practice = null;
-}
-
-/**
- * Play one tutorial practice round: a short scripted run of cards that ends on one to slap.
- * It uses the real card display and slap controls but never touches the score, speed, speed
- * history, session timer, or saved progress.
- *
- * @param {import('../../components/tutorialService.js').PracticeRoundContext} context
- * @returns {Promise<void>} Resolves once the player slaps the card to slap.
- */
-function playPracticeRound(context) {
-  showGameArea();
-  // Adding the same listener again in round 2 is a no-op, so this never stacks up.
-  context.signal.addEventListener('abort', endPractice, { once: true });
-  attachGlobalKeyListener();
-  updateHintVisibility();
-  renderDeckBack();
-
-  return new Promise((resolve) => {
-    _practice = {
-      context, resolve, cards: game.getPracticeSequence(context.round), index: -1, slapReason: null,
-    };
-    context.setInstructions(PRACTICE_TEXT.watch);
-    dealPracticeCard();
-  });
-}
-
-/**
- * Whether a guided tutorial is in progress.
- *
- * @returns {boolean}
- */
-function isTutorialActive() {
-  return !!_tutorialRun && _tutorialRun.isActive();
-}
-
-/**
- * Cancel the guided tutorial, if one is running. Its practice signal aborts, which clears
- * any practice round.
- */
-function cancelTutorial() {
-  if (_tutorialRun) _tutorialRun.cancel();
-  _tutorialRun = null;
-}
-
-/**
  * Initialize plugin DOM references and event listeners.
  *
  * @param {HTMLElement|null} gameContainer
  */
 function init(gameContainer) {
   _container = gameContainer;
+  setPracticeControls(PRACTICE_CONTROLS);
   if (!_container) return;
 
   _instructionsEl = _container.querySelector('#cr-instructions');
@@ -583,7 +453,7 @@ function init(gameContainer) {
   // Replay always shows the tutorial, then starts a session.
   if (_replayTutorialBtn) {
     _replayTutorialBtn.addEventListener('click', () => {
-      void launchTutorial(runGuidedTutorial);
+      void tutorial.replay(tutorialOptions());
     });
   }
   if (_stopBtn) _stopBtn.addEventListener('click', stop);
@@ -628,31 +498,34 @@ function beginGameSession() {
 }
 
 /**
- * Load the tutorial steps and hand them to a guided-tutorial launcher, guarding against
- * overlapping launches and a tutorial already in progress. When the tutorial finishes or
- * is skipped, the real session begins.
+ * Card display and slap controls the tutorial uses to play practice rounds.
  *
- * @param {typeof runGuidedTutorial | typeof runGuidedTutorialIfNeeded} launch - Which
- *   launcher to use.
- * @returns {Promise<void>}
+ * @type {import('./tutorial/tutorial.js').PracticeRoundControls}
  */
-async function launchTutorial(launch) {
-  if (!_container || _isTutorialLaunchPending || isTutorialActive()) return;
+const PRACTICE_CONTROLS = Object.freeze({
+  startRound() {
+    showGameArea();
+    attachGlobalKeyListener();
+    updateHintVisibility();
+    renderDeckBack();
+  },
+  dealCard(card, mustReact) {
+    playDealSound();
+    renderCard(card);
+    showDealHint(mustReact);
+  },
+  stopRound: detachGlobalKeyListener,
+  getSlapZone: () => _reactionZoneBtn,
+  showSlapResult: showReactionFeedback,
+});
 
-  _isTutorialLaunchPending = true;
-  try {
-    const introSteps = await getTutorialSteps();
-    // Null (after starting the session) when the tutorial was already seen.
-    _tutorialRun = await launch({
-      gameId: GAME_ID,
-      container: _container,
-      introSteps,
-      playPracticeRound,
-      onComplete: beginGameSession,
-    });
-  } finally {
-    _isTutorialLaunchPending = false;
-  }
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, onComplete: beginGameSession };
 }
 
 /**
@@ -661,7 +534,7 @@ async function launchTutorial(launch) {
  * @returns {Promise<void>}
  */
 function start() {
-  return launchTutorial(runGuidedTutorialIfNeeded);
+  return tutorial.startIfNeeded(tutorialOptions());
 }
 
 /**
@@ -687,7 +560,7 @@ function stop() {
   detachGlobalKeyListener();
 
   if (!game.isRunning()) {
-    if (isTutorialActive()) reset();
+    if (tutorial.isActive()) reset();
     return {
       score: game.getScore(),
       triggerHits: game.getTriggerHits(),
@@ -704,7 +577,7 @@ function stop() {
   const result = game.stopGame();
 
   void saveScore(
-    GAME_ID,
+    game.GAME_ID,
     {
       score: result.score,
       sessionDurationMs,
@@ -723,7 +596,7 @@ function stop() {
  * Reset game UI state to pre-start view.
  */
 function reset() {
-  cancelTutorial();
+  tutorial.cancel();
   clearDealTimer();
   detachGlobalKeyListener();
   timerService.resetTimer();
