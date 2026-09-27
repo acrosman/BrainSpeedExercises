@@ -1,7 +1,8 @@
 # app/
 
 The renderer shell, shared components, styles, and the preload and progress modules. Everything
-here except `preload.js` and `progress/` runs in the renderer. Game plugins are documented in
+here except `preload.js` and `progress/` runs in the renderer. Components are documented in
+[components/CLAUDE.md](components/CLAUDE.md) and game plugins in
 [games/CLAUDE.md](games/CLAUDE.md).
 
 ## Shell page (`index.html`)
@@ -18,8 +19,8 @@ Static structure that `interface.js` wires up by ID:
   every open, the close button, and the Clear History confirmation zone
   (`#clear-history-confirm`).
 
-The CSP meta tag is `default-src 'self'; script-src 'self'`, so no inline scripts or styles can
-be injected. Build DOM nodes instead, as `gameCard.js` and `historyView.js` do.
+The CSP meta tag is `default-src 'self'; script-src 'self'`, which blocks inline scripts and
+styles. Build DOM nodes instead, as `gameCard.js` and `historyView.js` do.
 
 ## Renderer shell (`interface.js`)
 
@@ -37,39 +38,15 @@ On `DOMContentLoaded` it:
    `#game-container`**, reloads progress and manifests, and refreshes the cards, play-time bar,
    and History button handler.
 
-When you change the menu, remember that the selector is created twice: once from
-`index.html` and again in the return-to-menu handler. Both paths must end up identical,
-including the `game:select` listener.
+The selector is built twice: once from `index.html` and again in the return-to-menu handler.
+Any menu change must keep both paths identical, including the `game:select` listener.
 
 Keep `interface.js` limited to connecting pieces together. Put rendering in `components/`.
 
 ## Components (`components/`)
 
-Each module is plain functions plus module state, with no classes. Tests live in
-`components/tests/`.
-
-| Module | Used by | Role |
-| --- | --- | --- |
-| `gameCard.js` | shell | `createGameCard(manifest, progress)` builds an `<article>` that dispatches `game:select`. It shows high score, level (+1), minimum display time, and time played today |
-| `historyView.js` | shell | `buildHistoryPanel(progress, manifests)`: a total play-time chart, a per-game bar chart (with a "show older days" toggle after `INITIAL_VISIBLE_DAYS`), and a data table |
-| `scoreService.js` | games, shell | Save and load game results; `clearHistory()` backs the Clear History button |
-| `timerService.js` | games, cards | Session timer, plus `formatDuration` and `getTodayDateString` (the `dailyTime` key) |
-| `logService.js` | everything | `logger.*`, which sends log lines to the main process |
-| `tutorialService.js` | games | Tutorial slides, the seen flag, and `runGuidedTutorial` (slides, then live practice rounds) |
-| `tutorialLauncher.js` | games | `createTutorialLauncher()`: the Start/Replay launch guard around `runGuidedTutorial`, one per game |
-| `tutorialCoach.js` | tutorialService | Practice-round coach banner, round prompt, and target marker |
-| `audioService.js` | games | One shared `AudioContext` and all sound effects, including sweep synthesis |
-| `adaptiveDifficultyService.js` | games | Staircase counter math |
-| `trendChartService.js` | games | In-game SVG trend line |
-| `gameUtils.js` | games | `returnToMainMenu()` |
-
-How games use these services is covered in [games/CLAUDE.md](games/CLAUDE.md), and the tutorial
-framework in [components/CLAUDE.md](components/CLAUDE.md). When a behavior is needed by more
-than one game, add it here as a service rather than copying it between games.
-
-Components must not call Electron or Node APIs. Anything persistent goes through
-`window.api.invoke`, usually via `scoreService`. Each component should also check for a missing
-`window.api` so it can be tested in jsdom.
+Shared renderer services and UI for the shell and the games. Every module, its API, and the
+rules for writing one are in [components/CLAUDE.md](components/CLAUDE.md).
 
 ## Modal pattern (History panel)
 
