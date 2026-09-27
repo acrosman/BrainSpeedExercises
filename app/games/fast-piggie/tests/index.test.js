@@ -21,6 +21,7 @@ const timerService = await import('../../../components/timerService.js');
 // 1 — Mock game.js (must be called before dynamic import of index.js)
 // ---------------------------------------------------------------------------
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'fast-piggie',
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({ score: 3, roundsPlayed: 5, duration: 12000 })),
@@ -61,6 +62,10 @@ jest.unstable_mockModule('../game.js', () => ({
 }));
 
 jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Fast Piggie', content: '<p>Welcome</p>' },
+    { title: 'What to Look For', content: '<p>Find the orange piggie.</p>' },
+  ]),
   // Default replay: the player finishes the tutorial at once.
   runGuidedTutorial: jest.fn((options) => {
     options.onComplete();
@@ -73,21 +78,10 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   }),
 }));
 
-jest.unstable_mockModule('../tutorial/tutorial.js', () => ({
-  getTutorialSteps: jest.fn(async () => [
-    { title: 'Welcome to Fast Piggie', content: '<p>Welcome</p>' },
-    { title: 'What to Look For', content: '<p>Find the orange piggie.</p>' },
-  ]),
-  PRACTICE_TEXT: {
-    watch: 'watch text',
-    guidedAnswer: 'guided answer text',
-    answer: 'answer text',
-  },
-}));
-
 const game = await import('../game.js');
 const tutorialService = await import('../../../components/tutorialService.js');
-const tutorialContent = await import('../tutorial/tutorial.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 const indexModule = await import('../index.js');
 const plugin = indexModule.default;
 const {
@@ -1269,7 +1263,7 @@ const HINT_COLOR = 'rgba(255, 193, 7, 0.65)';
 describe('tutorial', () => {
   it('start() runs the guided tutorial if needed with the Fast Piggie steps', async () => {
     await plugin.start();
-    expect(tutorialContent.getTutorialSteps).toHaveBeenCalled();
+    expect(tutorialService.loadTutorialSteps).toHaveBeenCalled();
     expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledWith({
       gameId: 'fast-piggie',
       container,
@@ -1303,27 +1297,6 @@ describe('tutorial', () => {
     expect(game.startGame).toHaveBeenCalled();
   });
 
-  it('start and replay do nothing while a tutorial is in progress', async () => {
-    await startPendingTutorial();
-    jest.clearAllMocks();
-
-    await plugin.start();
-    container.querySelector('#fp-replay-tutorial-btn').click();
-    await flushMicrotasks();
-
-    expect(tutorialContent.getTutorialSteps).not.toHaveBeenCalled();
-    expect(tutorialService.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
-    expect(tutorialService.runGuidedTutorial).not.toHaveBeenCalled();
-  });
-
-  it('can launch again once the tutorial run finishes', async () => {
-    const { finish } = await startPendingTutorial();
-    finish();
-
-    await plugin.start();
-    expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(2);
-  });
-
   it('stop() with no session ignores a tutorial that already finished', async () => {
     const { finish } = await startPendingTutorial();
     finish();
@@ -1333,30 +1306,6 @@ describe('tutorial', () => {
     await plugin.stop();
     expect(game.initGame).not.toHaveBeenCalled();
     expect(container.querySelector('#fp-end-panel').hidden).toBe(false);
-  });
-
-  it('ignores a second start while the first tutorial launch is in flight', async () => {
-    const first = plugin.start();
-    const second = plugin.start();
-    await Promise.all([first, second]);
-    expect(tutorialContent.getTutorialSteps).toHaveBeenCalledTimes(1);
-    expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
-    expect(game.startGame).toHaveBeenCalledTimes(1);
-  });
-
-  it('clears the pending flag when loading tutorial steps fails', async () => {
-    tutorialContent.getTutorialSteps.mockRejectedValueOnce(new Error('load failed'));
-    await expect(plugin.start()).rejects.toThrow('load failed');
-
-    await plugin.start();
-    expect(tutorialService.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
-    expect(game.startGame).toHaveBeenCalled();
-  });
-
-  it('reset() cancels a tutorial in progress', async () => {
-    const { run } = await startPendingTutorial();
-    plugin.reset();
-    expect(run.cancel).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1410,7 +1359,7 @@ describe('practice round', () => {
     expect(game.generateRound).not.toHaveBeenCalled();
     expect(game.startGame).not.toHaveBeenCalled();
     expect(timerService.startTimer).not.toHaveBeenCalled();
-    expect(context.setInstructions).toHaveBeenCalledWith('watch text');
+    expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
   });
 
   it('a guided round shades and rings the correct wedge once the piggies vanish', () => {
@@ -1424,7 +1373,7 @@ describe('practice round', () => {
       anchor: canvas,
       region: wedgeMarkerRegion(500, 500, 4, 6),
     });
-    expect(context.setInstructions).toHaveBeenLastCalledWith('guided answer text');
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedAnswer);
     expect(fills[fills.length - 1]).toBe(HINT_COLOR);
   });
 
@@ -1452,7 +1401,7 @@ describe('practice round', () => {
     hidePiggies();
 
     expect(context.showMarker).not.toHaveBeenCalled();
-    expect(context.setInstructions).toHaveBeenLastCalledWith('answer text');
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
     expect(fills).not.toContain(HINT_COLOR);
   });
 

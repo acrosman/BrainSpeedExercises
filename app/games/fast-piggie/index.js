@@ -14,13 +14,12 @@ import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
-  runGuidedTutorial,
-  runGuidedTutorialIfNeeded,
-} from '../../components/tutorialService.js';
-import { getTutorialSteps, PRACTICE_TEXT } from './tutorial/tutorial.js';
-
-/** Game identifier used for progress persistence (must match manifest.json id). */
-const GAME_ID = 'fast-piggie';
+  finishPracticeRound,
+  getPracticeHintWedge,
+  isPracticing,
+  setPracticeControls,
+  tutorial,
+} from './tutorial/tutorial.js';
 
 /** Number of pixels to trim from each side of the sprite-sheet centre seam. */
 const SPRITE_INSET = 2;
@@ -283,19 +282,6 @@ let _roundTimer = null; // setTimeout handle
 let _imageFlashTimer = null; // setTimeout handle before image flash
 // Give the board a small lead-in so previous wedge highlights clear before image flash starts.
 const ROUND_IMAGE_FLASH_DELAY_MS = 15;
-/** Whether a tutorial launch call is currently in flight. @type {boolean} */
-let _isTutorialLaunchPending = false;
-/**
- * The guided tutorial in progress, if any.
- * @type {import('../../components/tutorialService.js').GuidedTutorialRun|null}
- */
-let _tutorialRun = null;
-/**
- * The practice round in progress, if any. `hintWedge` is the correct wedge, kept shaded
- * during a guided round (-1 when there is no hint).
- * @type {{ context: object, resolve: Function, hintWedge: number }|null}
- */
-let _practice = null;
 
 /**
  * Updates the score, round count, and display time in the UI.
@@ -356,8 +342,9 @@ function _clearBoard() {
   const { wedgeCount } = _currentRound;
   const { width, height } = _canvas;
   clearImages(_ctx, width, height, wedgeCount);
-  if (_practice && _practice.hintWedge >= 0) {
-    highlightWedge(_ctx, width, height, _practice.hintWedge, wedgeCount, CORRECT_WEDGE_COLOR);
+  const hintWedge = getPracticeHintWedge();
+  if (hintWedge >= 0) {
+    highlightWedge(_ctx, width, height, hintWedge, wedgeCount, CORRECT_WEDGE_COLOR);
   }
 }
 
@@ -610,29 +597,14 @@ function _showAnswerFeedback(wedge) {
 }
 
 /**
- * End a practice round once the player answers: show the result without scoring it, and
- * hand control back to the tutorial.
- * @param {number} wedge - The wedge the player chose.
- */
-function _finishPracticeRound(wedge) {
-  const { context, resolve } = _practice;
-  _practice = null;
-  context.hideMarker();
-  // Drop the hint shading so the result colors are drawn on a clean wheel.
-  _clearBoard();
-  _showAnswerFeedback(wedge);
-  resolve();
-}
-
-/**
  * Resolves the round after a wedge is selected, updates state and feedback.
  * @param {number} wedge
  */
 function _resolveRound(wedge) {
   _clickEnabled = false;
 
-  if (_practice) {
-    _finishPracticeRound(wedge);
+  if (isPracticing()) {
+    finishPracticeRound(wedge);
     return;
   }
 
@@ -669,69 +641,6 @@ function _showGameArea() {
 }
 
 /**
- * Drop any practice round and cancel its timers. Runs when the tutorial's practice signal
- * aborts, which happens whenever the tutorial ends. The round's promise is left pending:
- * the tutorial no longer waits on it.
- */
-function _endPractice() {
-  _clearRoundTimers();
-  _clickEnabled = false;
-  _currentRound = null;
-  _practice = null;
-}
-
-/**
- * Play one tutorial practice round at the easiest setting. It uses the real round display
- * and controls but never touches the score, levels, speed history, session timer, or saved
- * progress. In a guided round the correct wedge is shaded and ringed once the images vanish.
- * @param {import('../../components/tutorialService.js').PracticeRoundContext} context
- * @returns {Promise<void>} Resolves once the player answers.
- */
-function _playPracticeRound(context) {
-  _showGameArea();
-  // Adding the same listener again in round 2 is a no-op, so this never stacks up.
-  context.signal.addEventListener('abort', _endPractice, { once: true });
-
-  return new Promise((resolve) => {
-    _practice = { context, resolve, hintWedge: -1 };
-    context.setInstructions(PRACTICE_TEXT.watch);
-
-    _playRound(game.generatePracticeRound(), () => {
-      if (!context.guided) {
-        context.setInstructions(PRACTICE_TEXT.answer);
-        return;
-      }
-      const { wedgeCount } = _currentRound;
-      const { width, height } = _canvas;
-      _practice.hintWedge = _getCorrectWedgeIndex(_currentRound);
-      _clearBoard();
-      context.showMarker({
-        anchor: _canvas,
-        region: wedgeMarkerRegion(width, height, _practice.hintWedge, wedgeCount),
-      });
-      context.setInstructions(PRACTICE_TEXT.guidedAnswer);
-    });
-  });
-}
-
-/**
- * Whether a guided tutorial is in progress.
- * @returns {boolean}
- */
-function _isTutorialActive() {
-  return !!_tutorialRun && _tutorialRun.isActive();
-}
-
-/**
- * Cancel the guided tutorial, if one is running. Its practice signal aborts, which clears
- * any practice round.
- */
-function _cancelTutorial() {
-  if (_tutorialRun) _tutorialRun.cancel();
-  _tutorialRun = null;
-}
-
-/**
  * Start a gameplay session immediately without tutorial gating.
  */
 function _beginGameSession() {
@@ -747,30 +656,35 @@ function _beginGameSession() {
 }
 
 /**
- * Load the tutorial steps and hand them to a guided-tutorial launcher, guarding against
- * overlapping launches and a tutorial already in progress. When the tutorial finishes or
- * is skipped, the real session begins.
- * @param {typeof runGuidedTutorial | typeof runGuidedTutorialIfNeeded} launch - Which
- *   launcher to use.
- * @returns {Promise<void>}
+ * Round display and wedge controls the tutorial uses to play practice rounds.
+ * @type {import('./tutorial/tutorial.js').PracticeRoundControls}
  */
-async function _launchTutorial(launch) {
-  if (!_container || _isTutorialLaunchPending || _isTutorialActive()) return;
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea: _showGameArea,
+  playRound: _playRound,
+  stopRound() {
+    _clearRoundTimers();
+    _clickEnabled = false;
+    _currentRound = null;
+  },
+  getCorrectWedge: () => _getCorrectWedgeIndex(_currentRound),
+  redrawBoard: _clearBoard,
+  getWedgeMarker: (wedge) => ({
+    anchor: _canvas,
+    region: wedgeMarkerRegion(_canvas.width, _canvas.height, wedge, _currentRound.wedgeCount),
+  }),
+  showAnswer(wedge) {
+    _clearBoard();
+    _showAnswerFeedback(wedge);
+  },
+});
 
-  _isTutorialLaunchPending = true;
-  try {
-    const introSteps = await getTutorialSteps();
-    // Null (after starting the session) when the tutorial was already seen.
-    _tutorialRun = await launch({
-      gameId: GAME_ID,
-      container: _container,
-      introSteps,
-      playPracticeRound: _playPracticeRound,
-      onComplete: _beginGameSession,
-    });
-  } finally {
-    _isTutorialLaunchPending = false;
-  }
+/**
+ * Options for launching the tutorial from this game.
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
+ */
+function _tutorialOptions() {
+  return { container: _container, onComplete: _beginGameSession };
 }
 
 /**
@@ -786,6 +700,7 @@ export default {
    */
   init(container) {
     _container = container;
+    setPracticeControls(PRACTICE_CONTROLS);
     _instructionsEl = container.querySelector('#fp-instructions');
     _gameAreaEl = container.querySelector('#fp-game-area');
     _endPanelEl = container.querySelector('#fp-end-panel');
@@ -826,7 +741,7 @@ export default {
     _startBtn.addEventListener('click', () => { void this.start(); });
     // Replay always shows the tutorial, then starts a session.
     _replayTutorialBtn.addEventListener('click', () => {
-      void _launchTutorial(runGuidedTutorial);
+      void tutorial.replay(_tutorialOptions());
     });
     _canvas.addEventListener('click', _handleClick);
     _canvas.addEventListener('mousemove', _handleMouseMove);
@@ -849,7 +764,7 @@ export default {
    * @returns {Promise<void>}
    */
   start() {
-    return _launchTutorial(runGuidedTutorialIfNeeded);
+    return tutorial.startIfNeeded(_tutorialOptions());
   },
 
   /**
@@ -864,7 +779,7 @@ export default {
     _clearRoundTimers();
     _clickEnabled = false;
     if (!game.isRunning()) {
-      if (_isTutorialActive()) this.reset();
+      if (tutorial.isActive()) this.reset();
       return {
         score: game.getScore(),
         roundsPlayed: game.getRoundsPlayed(),
@@ -878,7 +793,7 @@ export default {
     _stopBtn.hidden = true;
 
     const bestStats = game.getBestStats();
-    const savedRecord = await saveScore(GAME_ID, {
+    const savedRecord = await saveScore(game.GAME_ID, {
       score: result.score,
       sessionDurationMs,
       level: typeof bestStats.maxScore === 'number' ? bestStats.maxScore : undefined,
@@ -904,7 +819,7 @@ export default {
    * Reset the game to its initial state.
    */
   reset() {
-    _cancelTutorial();
+    tutorial.cancel();
     _clearRoundTimers();
     game.initGame();
     _clickEnabled = false;
