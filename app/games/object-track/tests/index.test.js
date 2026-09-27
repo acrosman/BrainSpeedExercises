@@ -49,6 +49,7 @@ const gameUtilsMock = await import('../../../components/gameUtils.js');
 // ── 2. Mock game.js ───────────────────────────────────────────────────────────
 
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'object-track',
   MIN_LEVEL: 0,
   CORRECT_TO_ADVANCE: 3,
   WRONG_TO_DROP: 3,

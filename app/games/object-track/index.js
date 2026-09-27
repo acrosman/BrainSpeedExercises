@@ -188,7 +188,7 @@ export async function loadBackgroundImages() {
   if (typeof window === 'undefined' || !window.api) return;
   try {
     const files = await window.api.invoke('games:listImages', {
-      gameId: 'object-track',
+      gameId: game.GAME_ID,
       subfolder: 'bg',
     });
     if (files && files.length > 0) {
@@ -558,7 +558,7 @@ async function stop() {
     _arenaEl.removeEventListener('click', handleCircleClick);
     _arenaEl.classList.remove('mot-arena--response');
   }
-  await saveScore('object-track', {
+  await saveScore(game.GAME_ID, {
     score: result.score,
     sessionDurationMs,
     level: result.level,

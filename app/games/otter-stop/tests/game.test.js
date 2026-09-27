@@ -3,6 +3,7 @@ import {
   describe, it, expect, beforeEach, afterEach, jest,
 } from '@jest/globals';
 import {
+  GAME_ID,
   initGame,
   startGame,
   stopGame,
@@ -29,6 +30,7 @@ import {
   recordGoResponseTime,
   getAverageResponseMs,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 /** Default go keys used by the test suite (matches built-in defaults). */
 const DEFAULT_GO_KEYS = ['go-1.png', 'go-2.png', 'go-3.png'];
@@ -811,5 +813,11 @@ describe('getCurrentSequenceLength()', () => {
     pickNextImage(); // fish — triggers generateSequenceLength: Math.floor(0 * 6) = 0
     expect(getCurrentSequenceLength()).toBe(0);
     spy.mockRestore();
+  });
+});
+
+describe('GAME_ID', () => {
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });

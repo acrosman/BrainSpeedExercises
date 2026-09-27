@@ -29,6 +29,7 @@ jest.unstable_mockModule('../../../components/scoreService.js', () => ({
 const scoreServiceMock = await import('../../../components/scoreService.js');
 
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'orbit-sprite-memory',
   TOTAL_SPRITES: 8,
   SPRITE_COLUMNS: 4,
   SPRITE_ROWS: 2,

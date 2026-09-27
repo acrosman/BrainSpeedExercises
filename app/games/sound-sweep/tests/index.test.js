@@ -25,6 +25,7 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
 await import('../../../components/timerService.js');
 
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'sound-sweep',
   initGame:              jest.fn(),
   startGame:             jest.fn(),
   stopGame:              jest.fn(() => ({

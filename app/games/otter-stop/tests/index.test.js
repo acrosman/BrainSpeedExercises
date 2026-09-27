@@ -19,6 +19,7 @@ await import('../../../components/timerService.js');
 // ── 1. Mock game.js ───────────────────────────────────────────────────────────
 
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'otter-stop',
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({

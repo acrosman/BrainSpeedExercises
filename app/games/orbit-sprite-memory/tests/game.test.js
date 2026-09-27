@@ -7,6 +7,7 @@ import {
 } from '@jest/globals';
 
 import {
+  GAME_ID,
   TOTAL_SPRITES,
   SPRITE_COLUMNS,
   SPRITE_ROWS,
@@ -39,6 +40,7 @@ import {
   isRunning,
   getSpeedHistory,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 beforeEach(() => {
   initGame();
@@ -294,5 +296,11 @@ describe('getSpeedHistory', () => {
     recordCorrectRound();
     initGame();
     expect(getSpeedHistory()).toEqual([]);
+  });
+});
+
+describe('GAME_ID', () => {
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });
