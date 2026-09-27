@@ -1,6 +1,7 @@
 /**
  * index.test.js — Integration tests for the Directional Processing plugin controller.
  */
+import { readFileSync } from 'node:fs';
 import {
   jest,
   describe,
@@ -980,5 +981,23 @@ describe('directional-processing plugin', () => {
       expect(gameMock.stopGame).not.toHaveBeenCalled();
       expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ── interface.html accessibility ──────────────────────────────────────────────
+
+describe('interface.html live regions', () => {
+  const html = readFileSync(new URL('../interface.html', import.meta.url), 'utf8');
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('session timer is not inside a live region', () => {
+    document.body.innerHTML = html;
+
+    expect(document.querySelector('#dp-session-timer').closest('[aria-live]')).toBeNull();
+    expect(document.querySelector('#dp-score').closest('[aria-live]')).not.toBeNull();
+    expect(document.querySelector('#dp-level').closest('[aria-live]')).not.toBeNull();
   });
 });
