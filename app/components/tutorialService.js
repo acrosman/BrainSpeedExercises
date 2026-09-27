@@ -534,13 +534,17 @@ export function runGuidedTutorial({
   }
 
   /**
-   * Play one practice round, replaying it after each miss until the player gets it right.
-   * Returns early, without settling, once the run has ended.
-   * @param {number} round - The round number, starting at 1.
+   * Play practice rounds. A missed round is replayed after a Try Again prompt; after any
+   * other round the player chooses between another round and the real game.
    * @returns {Promise<void>}
    */
-  async function playRoundUntilCorrect(round) {
-    for (let attempt = 1; ; attempt += 1) {
+  async function practice() {
+    coach = createTutorialCoach(() => { void end('skipped'); });
+    container.prepend(coach);
+
+    let round = 1;
+    let attempt = 1;
+    while (round <= maxRounds) {
       setCoachMessage(coach, { label: `Practice round ${round} of ${maxRounds}`, text: '' });
       // Focus the coach so its instructions are read, and so focus is not left on the
       // removed prompt button (or the closed overlay) when a round starts.
@@ -557,40 +561,31 @@ export function runGuidedTutorial({
       });
       if (ended) return;
       hideMarker();
-      if (!result || result.correct !== false) return;
 
-      await askCoachQuestion(
-        coach,
-        `${result.feedback || DEFAULT_MISS_FEEDBACK} Try this round again.`,
-        [TRY_AGAIN_CHOICE],
-      );
-    }
-  }
-
-  /**
-   * Play practice rounds, asking after each one whether to play another.
-   * @returns {Promise<void>}
-   */
-  async function practice() {
-    coach = createTutorialCoach(() => { void end('skipped'); });
-    container.prepend(coach);
-
-    for (let round = 1; round <= maxRounds; round += 1) {
-      await playRoundUntilCorrect(round);
-      if (ended) return;
-
-      const isLastRound = round === maxRounds;
-      const choice = await askCoachQuestion(
-        coach,
-        isLastRound
-          ? 'Practice complete. Start the game when you are ready.'
-          : `Round ${round} done. Play another practice round, or start the game?`,
-        isLastRound
-          ? [{ ...START_GAME_CHOICE, primary: true }]
-          : [{ ...ANOTHER_ROUND_CHOICE, primary: true }, START_GAME_CHOICE],
-      );
-      // No `ended` check needed: ending removes the coach, so the prompt can't be answered.
-      if (choice === START_GAME_CHOICE.value) break;
+      // No `ended` checks after the prompts: ending removes the coach, so they can't be
+      // answered.
+      if (result && result.correct === false) {
+        await askCoachQuestion(
+          coach,
+          `${result.feedback || DEFAULT_MISS_FEEDBACK} Try this round again.`,
+          [TRY_AGAIN_CHOICE],
+        );
+        attempt += 1;
+      } else {
+        const isLastRound = round === maxRounds;
+        const choice = await askCoachQuestion(
+          coach,
+          isLastRound
+            ? 'Practice complete. Start the game when you are ready.'
+            : `Round ${round} done. Play another practice round, or start the game?`,
+          isLastRound
+            ? [{ ...START_GAME_CHOICE, primary: true }]
+            : [{ ...ANOTHER_ROUND_CHOICE, primary: true }, START_GAME_CHOICE],
+        );
+        if (choice === START_GAME_CHOICE.value) break;
+        round += 1;
+        attempt = 1;
+      }
     }
     await end('completed');
   }
