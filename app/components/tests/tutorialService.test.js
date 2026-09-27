@@ -544,8 +544,9 @@ function finishSlides(container) {
 }
 
 /**
- * Build a playPracticeRound mock. Each round stays open until the test calls finishRound().
- * @returns {{ play: jest.Mock, contexts: object[], finishRound: () => void }}
+ * Build a playPracticeRound mock. Each round stays open until the test calls finishRound(),
+ * which resolves the round with the given result.
+ * @returns {{ play: jest.Mock, contexts: object[], finishRound: (result?: object) => void }}
  */
 function buildPracticeMock() {
   const contexts = [];
@@ -554,7 +555,7 @@ function buildPracticeMock() {
     contexts.push(context);
     finishCurrent = resolve;
   }));
-  return { play, contexts, finishRound: () => finishCurrent() };
+  return { play, contexts, finishRound: (result) => finishCurrent(result) };
 }
 
 /**
@@ -721,6 +722,70 @@ describe('runGuidedTutorial', () => {
     chooseInCoach(container, 'Start the Game');
 
     await expect(run.finished).resolves.toBe('completed');
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  test('a missed round says so, offers Try Again, and replays the same round', async () => {
+    const { play, contexts, finishRound } = buildPracticeMock();
+    runGuidedTutorial({
+      gameId: 'g', container, playPracticeRound: play,
+    });
+    expect(contexts[0]).toEqual(expect.objectContaining({ round: 1, attempt: 1 }));
+    contexts[0].showMarker({ anchor: container });
+    finishRound({ correct: false, feedback: 'The toy was in row 1, column 2.' });
+    await flush();
+
+    expect(container.querySelector('.tutorial-marker')).toBeNull();
+    expect(container.querySelector('.tutorial-coach__text').textContent)
+      .toBe('The toy was in row 1, column 2. Try this round again.');
+    expect(coachChoices(container)).toEqual(['Try Again']);
+    expect(document.activeElement.textContent).toBe('Try Again');
+    expect(play).toHaveBeenCalledTimes(1);
+
+    chooseInCoach(container, 'Try Again');
+    await flush();
+    expect(play).toHaveBeenCalledTimes(2);
+    expect(contexts[1]).toEqual(expect.objectContaining({
+      round: 1, attempt: 2, guided: true,
+    }));
+    expect(container.querySelector('.tutorial-coach__label').textContent)
+      .toBe('Practice round 1 of 2');
+    expect(document.activeElement).toBe(container.querySelector('.tutorial-coach'));
+
+    finishRound({ correct: true });
+    await flush();
+    expect(container.querySelector('.tutorial-coach__text').textContent)
+      .toBe('Round 1 done. Play another practice round, or start the game?');
+
+    chooseInCoach(container, 'Play Another Round');
+    await flush();
+    expect(contexts[2]).toEqual(expect.objectContaining({ round: 2, attempt: 1 }));
+  });
+
+  test('a missed round without feedback says "Not quite."', async () => {
+    const { play, finishRound } = buildPracticeMock();
+    runGuidedTutorial({
+      gameId: 'g', container, playPracticeRound: play,
+    });
+    finishRound({ correct: false });
+    await flush();
+
+    expect(container.querySelector('.tutorial-coach__text').textContent)
+      .toBe('Not quite. Try this round again.');
+  });
+
+  test('Skip Practice while Try Again is showing starts the game', async () => {
+    const onComplete = jest.fn();
+    const { play, finishRound } = buildPracticeMock();
+    const run = runGuidedTutorial({
+      gameId: 'g', container, playPracticeRound: play, onComplete,
+    });
+    finishRound({ correct: false });
+    await flush();
+    container.querySelector('.tutorial-coach__skip').click();
+
+    await expect(run.finished).resolves.toBe('skipped');
     expect(play).toHaveBeenCalledTimes(1);
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
