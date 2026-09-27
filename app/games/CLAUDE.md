@@ -126,13 +126,16 @@ guidedRounds = 1, onComplete }`.
   box so the marker stays put when CSS scales the canvas. Use `shape: 'box'` for wide targets
   such as buttons.
 
-`card-rat`, `directional-processing`, and `fast-piggie` use a tutorial. Copy their pattern:
-step HTML files in `<id>/tutorial/` plus a `tutorial.js` whose `getTutorialSteps()` passes
-their definitions to `loadTutorialSteps`, an annotated `images/tutorialScreenshot.png`, a
-"Replay Tutorial" button on the welcome panel, and an async `start()` that loads the steps and
-launches the tutorial with a function that begins the session. Guard against a second launch
+`card-rat`, `directional-processing`, `fast-piggie`, and `field-of-view` use a tutorial. Copy
+their pattern: step HTML files in `<id>/tutorial/` plus a `tutorial.js` whose
+`getTutorialSteps()` passes their definitions to `loadTutorialSteps`, an annotated
+`images/tutorialScreenshot.png`, a "Replay Tutorial" button on the welcome panel, and an async
+`start()` that loads the steps and launches the tutorial with a function that begins the
+session. Guard against a second launch
 while one is loading or in progress. `fast-piggie` is the reference for guided tutorials with
-practice rounds, `card-rat` and `directional-processing` follows it. 
+practice rounds, and `card-rat`, `directional-processing`, and `field-of-view` follow it.
+`field-of-view` shows how to guide a two-part answer: the marker moves from the first control
+to the second as the player answers.
 
 ## Shared screen markup
 
