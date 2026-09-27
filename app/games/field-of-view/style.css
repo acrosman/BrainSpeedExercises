@@ -312,6 +312,87 @@
   min-height: 1.25rem;
 }
 
+/* ── Tutorial slides ─────────────────────────────────────────────────────── */
+/* Content shown inside the shared tutorial overlay. Highlight boxes on the      */
+/* screenshot are positioned as percentages of tutorialScreenshot.png.           */
+
+.fov-tutorial-figure {
+  margin: 0.75rem 0 0;
+}
+
+.fov-tutorial-image-wrap {
+  position: relative;
+}
+
+.fov-tutorial-image {
+  display: block;
+  width: 100%;
+  max-width: 540px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.fov-tutorial-caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+.fov-tutorial-highlight {
+  position: absolute;
+  border-radius: 8px;
+  border: 3px solid currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.fov-tutorial-highlight--stats {
+  left: 0.6%;
+  top: 0.6%;
+  width: 98.6%;
+  height: 6.4%;
+  color: #1976d2;
+}
+
+.fov-tutorial-highlight--response {
+  left: 0.6%;
+  top: 12.8%;
+  width: 31.6%;
+  height: 76.6%;
+  color: #ed6c02;
+}
+
+.fov-tutorial-highlight--board {
+  left: 36.2%;
+  top: 12.8%;
+  width: 59.8%;
+  height: 86.4%;
+  color: #2e7d32;
+}
+
+/* The two center kittens, side by side, on the "What to Look For" step. */
+.fov-tutorial-kittens {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.fov-tutorial-kitten {
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
+.fov-tutorial-kitten__image {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  margin-bottom: 0.25rem;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
