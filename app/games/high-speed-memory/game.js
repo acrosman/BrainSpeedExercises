@@ -9,6 +9,9 @@
 
 import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
 
+/** Game ID, matching manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = 'high-speed-memory';
+
 /**
  * Filename of the target card that the player must find.
  * Appears exactly PRIMARY_COUNT times in every grid.
@@ -181,6 +184,16 @@ export function generateGrid(lvl) {
 
   // Assign sequential ids matching array position
   return cardImages.map((image, i) => ({ id: i, image, matched: false }));
+}
+
+/**
+ * Build a tutorial practice round at the starting difficulty: a level-0 grid and its display
+ * time. It does not change any game state.
+ *
+ * @returns {{ grid: ReturnType<typeof generateGrid>, displayMs: number }}
+ */
+export function createPracticeRound() {
+  return { grid: generateGrid(0), displayMs: getDisplayDurationMs(0) };
 }
 
 /**
