@@ -88,6 +88,13 @@
   flex-shrink: 0;
 }
 
+/* During tutorial practice the coach banner sits above the game. Shrink the grid so every
+   card stays on screen while the cards are face up. */
+.tutorial-coach ~ .high-speed-memory .hsm-grid {
+  width: min(70vmin, calc(100vh - 390px));
+  height: min(70vmin, calc(100vh - 390px));
+}
+
 /* ── Individual card ─────────────────────────────────────────── */
 .hsm-card {
   position: relative;
@@ -158,6 +165,94 @@
   gap: 1rem;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+/* ── Tutorial slides ─────────────────────────────────────────── */
+/* Content shown inside the shared tutorial overlay. Highlight boxes on the */
+/* screenshot are positioned as percentages of tutorialScreenshot.png.      */
+
+.hsm-tutorial-figure {
+  margin: 0.75rem 0 0;
+}
+
+.hsm-tutorial-image-wrap {
+  position: relative;
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.hsm-tutorial-image {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.hsm-tutorial-caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+.hsm-tutorial-highlight {
+  position: absolute;
+  border-radius: 8px;
+  border: 3px solid currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hsm-tutorial-highlight--stats {
+  left: 6.9%;
+  top: 0;
+  width: 86.2%;
+  height: 4%;
+  color: #1976d2;
+}
+
+.hsm-tutorial-highlight--grid {
+  left: 17.8%;
+  top: 4.1%;
+  width: 64.4%;
+  height: 63.4%;
+  color: #2e7d32;
+}
+
+.hsm-tutorial-highlight--trend {
+  left: 31.6%;
+  top: 69.2%;
+  width: 36.8%;
+  height: 30.6%;
+  color: #ed6c02;
+}
+
+/* The target greyhound and its look-alikes on the "What to Look For" step. */
+.hsm-tutorial-dogs {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.hsm-tutorial-dog {
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
+.hsm-tutorial-dog__image {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  margin: 0 auto 0.25rem;
+}
+
+.hsm-tutorial-dog--target .hsm-tutorial-dog__image {
+  width: 120px;
+  height: 120px;
+  border: 3px solid var(--color-success);
 }
 
 /* ── End-game panel ──────────────────────────────────────────── */
