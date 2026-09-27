@@ -1,60 +1,39 @@
 # High Speed Memory tutorial (`high-speed-memory/tutorial/`)
 
-The first-run guided tutorial: five slides, then up to two live practice rounds. It runs on the
-shared framework in `components/tutorialService.js` and `components/tutorialLauncher.js`; see
-[../../../components/CLAUDE.md](../../../components/CLAUDE.md) for the framework itself.
+Five slides, then up to two practice rounds, built the standard way (see "Adding a tutorial to a
+game" in [../../../components/CLAUDE.md](../../../components/CLAUDE.md)). This file covers only
+what is specific to High Speed Memory.
 
-## Files
+- `PRACTICE_TEXT` holds the coach and result text. Any text that describes a click also gives
+  the Tab and Enter alternative.
+- The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
+  percentage-positioned `.hsm-tutorial-highlight--*` boxes in `../style.css`. The screenshot is
+  the `#hsm-game-area` element during a level 1 reveal. If the layout changes, retake it and
+  move the boxes together.
 
-- `tutorial-*.html`: one HTML fragment per slide, listed in order in `TUTORIAL_STEP_DEFINITIONS`.
-- `tutorial.js`: everything else the tutorial does.
-  - `getTutorialSteps()` loads the slides, and `PRACTICE_TEXT` holds the coach and result text.
-    Any text that describes a click also gives the Tab and Enter alternative.
-  - `tutorial` is the game's shared launcher (`createTutorialLauncher`). `index.js` calls
-    `tutorial.startIfNeeded(...)` from Start and `tutorial.replay(...)` from Replay Tutorial,
-    passing `{ container, onComplete: beginGameSession }`, and `tutorial.isActive()` and
-    `tutorial.cancel()` from `stop()` and `reset()`.
-  - The practice round code: `playPracticeRound` plus the hooks below.
+## Practice controls and hooks
 
-The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-percentage-positioned `.hsm-tutorial-highlight--*` boxes in `../style.css`. Retake the
-screenshot (the `#hsm-game-area` element during a level 1 reveal) and update those boxes
-together if the game layout changes.
+`PRACTICE_CONTROLS` (`PracticeRoundControls`) lets the tutorial show the game area, play a grid
+with the real reveal and flip code (`playRound`), stop it (`stopRound`), find card buttons, and
+write to the feedback region. `index.js` marks found cards `matched` in the grid the tutorial
+handed it, which is how the tutorial knows which card to ring next.
 
-## How practice rounds reach the game
-
-`tutorial.js` never imports `index.js`. Instead, `index.js` hands `PRACTICE_CONTROLS` (a
-`PracticeRoundControls` object) to `setPracticeControls()` in `init()`. Through it the tutorial
-shows the game area, plays a grid with the real reveal and flip code (`playRound`), stops it
-(`stopRound`), finds card buttons, and writes to the feedback region. `index.js` marks found
-cards `matched` in the grid the tutorial handed it, which is how the tutorial knows which card
-to ring next.
-
-`index.js` calls back into the tutorial at three points, each only while `isPracticing()`:
+`index.js` calls into the tutorial at three points, each only while `isPracticing()`:
 
 - `hideAllCards` → `promptPracticeResponse()`: in a guided round, ring the first greyhound
-  card; otherwise show the answer prompt.
+  (Primary) card; otherwise show the answer prompt.
 - `onPrimaryFound`, before the last greyhound → `guidePracticeResponse()`: ring the next
-  greyhound card still face down. The player may find one other than the ringed card.
+  greyhound card still face down. The player may find a different one than the ringed card.
 - `onPrimaryFound` on the last greyhound, or `onWrongGuess` →
   `finishPracticeRound(success)`, in place of scoring, the staircase, the trend chart, and the
-  next round. A wrong guess shows the greyhound cards at once and locks the board.
+  next round. A wrong guess reveals the greyhound cards at once and locks the board.
 
 ## Practice rules
 
-- Rounds come from `game.createPracticeRound()` (3×3 grid, 1500 ms) and never start the
-  session, so `game.isRunning()` stays `false` and nothing is scored or saved.
-- `finishPracticeRound` resolves the round with `{ correct, feedback }`. A correct round is
-  announced in the feedback region. A miss is left to the coach banner, which offers Try Again.
-  The retry deals a new grid, as the real game does after a wrong guess.
-- The practice signal's `abort` runs `endPractice`, which stops the round. End Game during
-  practice (`stop()` with no session) cancels the tutorial and returns to the welcome panel
-  without saving.
+- Rounds come from `game.createPracticeRound()`: a 3×3 grid shown for 1500 ms.
+- `finishPracticeRound` resolves with `{ correct, feedback }`. A correct round is announced in
+  the feedback region. A miss is left to the coach banner, which offers Try Again. The retry
+  deals a new grid, as the real game does after a wrong guess.
+- `endPractice` (on abort) stops the round.
 - The coach banner sits above the game, so `style.css` shrinks the grid while
   `.tutorial-coach` is present. That keeps every card on screen during the reveal.
-
-## Tests
-
-`tests/tutorial.test.js` covers the slides, the text, and the controller against fake round
-controls. `tests/index.test.js` runs the real module wired to the game, with only
-`tutorialService` and `game.js` mocked.

@@ -218,8 +218,8 @@ controls, and routes input to the tutorial while it is practicing.
      without saving.
    - Where input is scored, send it to the tutorial's hook instead while `isPracticing()`.
 4. Test the controller in `tests/tutorial.test.js` against fake controls. Run the real
-   `tutorial.js` from `tests/index.test.js`, mocking only `tutorialService` (and `game.js` if
-   the game's tests already mock it).
+   `tutorial.js` from `tests/index.test.js`, mocking `tutorialService` and `game.js` but not
+   the tutorial itself.
 5. Add `<id>/tutorial/CLAUDE.md` covering only what differs from the steps above: the controls,
    the hooks `index.js` calls, and the practice rules. Link it from the game's `CLAUDE.md`.
 
