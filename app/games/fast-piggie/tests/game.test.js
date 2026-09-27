@@ -2,6 +2,7 @@ import {
   describe, it, expect, beforeEach, afterEach, jest,
 } from '@jest/globals';
 import {
+  GAME_ID,
   initGame,
   startGame,
   stopGame,
@@ -22,6 +23,7 @@ import {
   isRunning,
   getSpeedHistory,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 beforeEach(() => {
   initGame();
@@ -712,5 +714,11 @@ describe('getSpeedHistory()', () => {
     addScore(3, 0);
     initGame();
     expect(getSpeedHistory()).toEqual([]);
+  });
+});
+
+describe('GAME_ID', () => {
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });

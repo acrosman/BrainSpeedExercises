@@ -8,6 +8,7 @@ import {
   jest,
 } from '@jest/globals';
 import {
+  GAME_ID,
   RANKS,
   SUITS,
   BASE_DISPLAY_DURATION_MS,
@@ -47,6 +48,7 @@ import {
   shouldReactNow,
   isRunning,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 let randomSpy;
 
@@ -505,5 +507,11 @@ describe('practice sequences', () => {
     const before = snapshot();
     getPracticeSequence(1);
     expect(snapshot()).toEqual(before);
+  });
+});
+
+describe('GAME_ID', () => {
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });

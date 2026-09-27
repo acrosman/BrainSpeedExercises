@@ -31,6 +31,7 @@ import {
   isRunning,
   getSpeedHistory,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 beforeEach(() => {
   initGame();
@@ -279,8 +280,8 @@ describe('generateGrid', () => {
 // ── isPrimary ─────────────────────────────────────────────────────────────────
 
 describe('GAME_ID', () => {
-  test('matches the manifest ID', () => {
-    expect(GAME_ID).toBe('high-speed-memory');
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });
 
