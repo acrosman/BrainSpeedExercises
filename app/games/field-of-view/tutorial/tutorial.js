@@ -3,17 +3,14 @@
  * guided tutorial, and playing its practice trials.
  *
  * index.js owns the trial cycle. It hands this module a {@link PracticeTrialControls} object
- * when it launches the tutorial, and calls the practice hooks below from its response phase.
- * This module never imports index.js.
+ * from init(), launches the tutorial through {@link tutorial}, and calls the practice hooks
+ * below from its response phase. This module never imports index.js.
  *
  * @file Field of View tutorial content and controller.
  */
 
-import {
-  loadTutorialSteps,
-  runGuidedTutorial,
-  runGuidedTutorialIfNeeded,
-} from '../../../components/tutorialService.js';
+import { loadTutorialSteps } from '../../../components/tutorialService.js';
+import { createTutorialLauncher } from '../../../components/tutorialLauncher.js';
 import * as game from '../game.js';
 import { cellPosition, labelForIcon } from '../render.js';
 import { GAME_ID } from '../progress.js';
@@ -115,21 +112,7 @@ export function getTutorialSteps() {
  * @property {(message: string) => void} announce - Write to the game's feedback live region.
  */
 
-/**
- * @typedef {object} TutorialLaunchOptions
- * @property {HTMLElement|null} container - Game container; nothing launches without one.
- * @property {PracticeTrialControls} controls - How to play practice trials.
- * @property {Function} onComplete - Starts the real session once the tutorial ends.
- */
-
-/** Whether a tutorial launch call is currently in flight. @type {boolean} */
-let _isLaunchPending = false;
-/**
- * The guided tutorial in progress, if any.
- * @type {import('../../../components/tutorialService.js').GuidedTutorialRun|null}
- */
-let _run = null;
-/** Controls from the launch in progress or last run. @type {PracticeTrialControls|null} */
+/** Controls set by index.js in init(). @type {PracticeTrialControls|null} */
 let _controls = null;
 /**
  * The practice trial in progress, if any. `guideTarget` is the control the marker currently
@@ -145,71 +128,26 @@ let _practice = null;
 let _lastPracticeTrial = null;
 
 /**
- * Whether a guided tutorial is in progress.
+ * Hand the tutorial the controls it plays practice trials through. index.js calls this from
+ * init(), before any launch.
  *
- * @returns {boolean}
+ * @param {PracticeTrialControls} controls
  */
-export function isTutorialActive() {
-  return !!_run && _run.isActive();
+export function setPracticeControls(controls) {
+  _controls = controls;
 }
 
 /**
- * Cancel the guided tutorial, if one is running. Its practice signal aborts, which clears
- * any practice trial.
- */
-export function cancelTutorial() {
-  if (_run) _run.cancel();
-  _run = null;
-}
-
-/**
- * Load the steps and hand them to a guided-tutorial launcher, guarding against overlapping
- * launches and a tutorial already in progress.
+ * Launches the guided tutorial from Start (`startIfNeeded`) and Replay Tutorial (`replay`).
+ * index.js calls `isActive()` and `cancel()` from stop() and reset().
  *
- * @param {typeof runGuidedTutorial | typeof runGuidedTutorialIfNeeded} launch
- * @param {TutorialLaunchOptions} options
- * @returns {Promise<void>}
+ * @type {import('../../../components/tutorialLauncher.js').TutorialLauncher}
  */
-async function launchTutorial(launch, { container, controls, onComplete }) {
-  if (!container || _isLaunchPending || isTutorialActive()) return;
-
-  _isLaunchPending = true;
-  try {
-    const introSteps = await getTutorialSteps();
-    _controls = controls;
-    // Null (after starting the session) when the tutorial was already seen.
-    _run = await launch({
-      gameId: GAME_ID,
-      container,
-      introSteps,
-      playPracticeRound: playPracticeTrial,
-      onComplete,
-    });
-  } finally {
-    _isLaunchPending = false;
-  }
-}
-
-/**
- * Show the tutorial if the player has not seen it, then start the session. If it was seen,
- * start the session at once.
- *
- * @param {TutorialLaunchOptions} options
- * @returns {Promise<void>}
- */
-export function startTutorialIfNeeded(options) {
-  return launchTutorial(runGuidedTutorialIfNeeded, options);
-}
-
-/**
- * Always show the tutorial, then start the session.
- *
- * @param {TutorialLaunchOptions} options
- * @returns {Promise<void>}
- */
-export function replayTutorial(options) {
-  return launchTutorial(runGuidedTutorial, options);
-}
+export const tutorial = createTutorialLauncher({
+  gameId: GAME_ID,
+  loadSteps: getTutorialSteps,
+  playPracticeRound: playPracticeTrial,
+});
 
 // ── Practice trials ───────────────────────────────────────────────────────────
 

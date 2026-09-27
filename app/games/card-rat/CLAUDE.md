@@ -22,27 +22,8 @@ A joker never forms a pair or sandwich with a card next to it.
   cut cards out of `images/cards-sprite.png`, plus the paths for the joker and card-back PNGs.
   The sprite geometry constants must match that image exactly. Update them together if the
   sprite changes.
-- `tutorial/`: the first-run tutorial. `tutorial.js` lists steps as
-  `{ title, contentPath }` pointing to the `tutorial-step-*.html` fragments, plus the coach
-  text for practice rounds (`PRACTICE_TEXT`). `getTutorialSteps()` loads the steps with
-  `loadTutorialSteps` from the tutorial service. `start()` runs them through
-  `runGuidedTutorialIfNeeded`, and `#cr-replay-tutorial-btn` through `runGuidedTutorial`,
-  before the session begins.
-
-## Tutorial practice rounds
-
-Card Rat has no discrete rounds, so a practice round is a short scripted run of cards from
-`getPracticeSequence(round)` (round 1 ends on a pair, round 2 on a sandwich). `dealPracticeCard`
-deals them with the real card display at the easiest pace (`calculateDisplayDuration(0)`). The
-last card is the only one to slap, and it stays up until the player slaps it. `handleReaction`
-sends practice slaps to `handlePracticeReaction`: an early slap gets the usual too-soon
-feedback and the cards keep coming, and slapping the last card ends the round with the usual
-hit feedback. Nothing goes through `respondToCurrentCard`, so nothing is scored, and the session
-is never started (`game.isRunning()` stays `false`). In the guided first round the last card
-puts the marker on the reaction zone (`shape: 'box'`) and the coach explains why to slap. The
-Space listener is attached for practice and removed by `endPractice` when the practice signal
-aborts. End Game during practice (`stop()` with no session) cancels the tutorial and returns to
-the welcome panel without saving.
+- `tutorial/`: the first-run tutorial, both its content and the code that launches it and plays
+  practice rounds. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Difficulty
 

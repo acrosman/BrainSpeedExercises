@@ -36,6 +36,10 @@ jest.unstable_mockModule('../../../components/trendChartService.js', () => ({
 }));
 
 jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Card Rat', content: '<p>Welcome</p>' },
+    { title: 'Find the Main Play Area', content: '<p>Layout</p>' },
+  ]),
   // Default replay: the player finishes the tutorial at once.
   runGuidedTutorial: jest.fn((options) => {
     options.onComplete();
@@ -48,18 +52,8 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   }),
 }));
 
-jest.unstable_mockModule('../tutorial/tutorial.js', () => ({
-  getTutorialSteps: jest.fn(async () => [
-    { title: 'Welcome to Card Rat', content: '<p>Welcome</p>' },
-    { title: 'Find the Main Play Area', content: '<p>Layout</p>' },
-  ]),
-  PRACTICE_TEXT: {
-    watch: 'watch text',
-    guidedSlap: { pair: 'pair text', sandwich: 'sandwich text', joker: 'joker text' },
-  },
-}));
-
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'card-rat',
   RANKS: ['A', '2', '3'],
   SUITS: ['hearts', 'spades'],
   initGame: jest.fn(),
@@ -115,7 +109,8 @@ const saveScoreMock = await import('../../../components/scoreService.js');
 const audioMock = await import('../../../components/audioService.js');
 const trendChartServiceMock = await import('../../../components/trendChartService.js');
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
-const tutorialContentMock = await import('../tutorial/tutorial.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 
 const indexModule = await import('../index.js');
 const plugin = indexModule.default;
@@ -626,7 +621,7 @@ describe('tutorial', () => {
 
   test('start runs the guided tutorial if needed with the Card Rat steps', async () => {
     await plugin.start();
-    expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalled();
+    expect(tutorialServiceMock.loadTutorialSteps).toHaveBeenCalled();
     expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith({
       gameId: 'card-rat',
       container,
@@ -658,58 +653,6 @@ describe('tutorial', () => {
     }));
     expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
     expect(gameMock.startGame).toHaveBeenCalled();
-  });
-
-  test('start, replay, and play again do nothing while a tutorial is in progress', async () => {
-    await startPendingTutorial();
-    jest.clearAllMocks();
-
-    await plugin.start();
-    container.querySelector('#cr-replay-tutorial-btn').click();
-    container.querySelector('#cr-play-again-btn').click();
-    await flushMicrotasks();
-
-    expect(tutorialContentMock.getTutorialSteps).not.toHaveBeenCalled();
-    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
-    expect(tutorialServiceMock.runGuidedTutorial).not.toHaveBeenCalled();
-  });
-
-  test('can launch again once the tutorial run finishes', async () => {
-    const { finish } = await startPendingTutorial();
-    finish();
-
-    await plugin.start();
-    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(2);
-  });
-
-  test('ignores a second start while the first tutorial launch is in flight', async () => {
-    const first = plugin.start();
-    const second = plugin.start();
-    await Promise.all([first, second]);
-    expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalledTimes(1);
-    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
-    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
-  });
-
-  test('clears the pending flag when loading tutorial steps fails', async () => {
-    tutorialContentMock.getTutorialSteps.mockRejectedValueOnce(new Error('load failed'));
-    await expect(plugin.start()).rejects.toThrow('load failed');
-
-    await plugin.start();
-    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
-  });
-
-  test('start does nothing when init received no container', async () => {
-    plugin.init(null);
-    await plugin.start();
-    expect(tutorialContentMock.getTutorialSteps).not.toHaveBeenCalled();
-    plugin.init(container);
-  });
-
-  test('reset() cancels a tutorial in progress', async () => {
-    const { run } = await startPendingTutorial();
-    plugin.reset();
-    expect(run.cancel).toHaveBeenCalledTimes(1);
   });
 
   test('stop() with no session ignores a tutorial that already finished', async () => {
@@ -773,7 +716,7 @@ describe('practice round', () => {
     expect(container.querySelector('#cr-game-area').hidden).toBe(false);
     expect(gameMock.getPracticeSequence).toHaveBeenCalledWith(1);
     expect(gameMock.calculateDisplayDuration).toHaveBeenCalledWith(0);
-    expect(context.setInstructions).toHaveBeenCalledWith('watch text');
+    expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
     expect(cardLabel()).toBe('Current card: 4♥');
     expect(feedback()).toBe('Wait for a pair, sandwich, or joker.');
     expect(audioMock.playCardFlickSound).toHaveBeenCalledTimes(1);
@@ -800,7 +743,7 @@ describe('practice round', () => {
       anchor: container.querySelector('#cr-reaction-zone'),
       shape: 'box',
     });
-    expect(context.setInstructions).toHaveBeenLastCalledWith('pair text');
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedSlap.pair);
 
     // The card to slap waits for the player.
     jest.advanceTimersByTime(10000);

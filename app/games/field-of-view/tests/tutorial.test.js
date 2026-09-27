@@ -25,8 +25,8 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
 
 jest.unstable_mockModule('../progress.js', () => ({ GAME_ID: 'field-of-view' }));
 
-const tutorial = await import('../tutorial/tutorial.js');
-const { getTutorialSteps, PRACTICE_TEXT } = tutorial;
+const tutorialModule = await import('../tutorial/tutorial.js');
+const { getTutorialSteps, PRACTICE_TEXT, tutorial } = tutorialModule;
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
 
 /** Absolute path of `app/`, which step and image paths are relative to. */
@@ -164,14 +164,13 @@ describe('field-of-view tutorial controller', () => {
       ({ playPracticeRound } = options);
       return run;
     });
-    await tutorial.replayTutorial({
-      container: document.createElement('div'), controls, onComplete: jest.fn(),
-    });
+    tutorialModule.setPracticeControls(controls);
+    await tutorial.replay({ container: document.createElement('div'), onComplete: jest.fn() });
   });
 
   afterEach(() => {
     controller.abort();
-    tutorial.cancelTutorial();
+    tutorial.cancel();
     jest.clearAllMocks();
   });
 
@@ -192,14 +191,7 @@ describe('field-of-view tutorial controller', () => {
       gameId: 'field-of-view',
       playPracticeRound: expect.any(Function),
     }));
-    expect(tutorial.isTutorialActive()).toBe(true);
-  });
-
-  test('cancelTutorial cancels the run and is safe to repeat', () => {
-    tutorial.cancelTutorial();
-    tutorial.cancelTutorial();
-    expect(run.cancel).toHaveBeenCalledTimes(1);
-    expect(tutorial.isTutorialActive()).toBe(false);
+    expect(tutorial.isActive()).toBe(true);
   });
 
   test('plays a 3x3 trial at the starting SOA through the controls', () => {
@@ -208,23 +200,23 @@ describe('field-of-view tutorial controller', () => {
     const [layout, soaMs] = controls.playTrial.mock.calls[0];
     expect(layout.gridSize).toBe(3);
     expect(soaMs).toBe(500);
-    expect(tutorial.isPracticing()).toBe(true);
+    expect(tutorialModule.isPracticing()).toBe(true);
     expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
   });
 
   test('a guided trial rings the kitten, then the toy square', () => {
     const { context, layout } = play();
-    tutorial.promptPracticeResponse();
+    tutorialModule.promptPracticeResponse();
     const kitten = controls.kittens[layout.centerIcon.id];
     expect(kitten.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
     expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: kitten, shape: 'box' });
 
     // A square picked before the kitten leaves the marker where it is.
-    tutorial.guidePracticeResponse();
+    tutorialModule.guidePracticeResponse();
     expect(context.showMarker).toHaveBeenCalledTimes(1);
 
     controls.chooseKitten();
-    tutorial.guidePracticeResponse();
+    tutorialModule.guidePracticeResponse();
     expect(context.showMarker).toHaveBeenLastCalledWith({
       anchor: controls.cells[layout.peripheralIndex], shape: 'box',
     });
@@ -232,25 +224,25 @@ describe('field-of-view tutorial controller', () => {
 
   test('an unguided trial only prompts for the answer', () => {
     const { context } = play({ guided: false });
-    tutorial.promptPracticeResponse();
-    tutorial.guidePracticeResponse();
+    tutorialModule.promptPracticeResponse();
+    tutorialModule.guidePracticeResponse();
     expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
     expect(context.showMarker).not.toHaveBeenCalled();
   });
 
   test('a correct answer is announced and resolves as correct', async () => {
     const { context, done } = play();
-    tutorial.finishPracticeTrial(true);
+    tutorialModule.finishPracticeTrial(true);
     await expect(done).resolves.toEqual(expect.objectContaining({ correct: true }));
     expect(context.hideMarker).toHaveBeenCalled();
     expect(controls.announce)
       .toHaveBeenCalledWith('Correct! You got both the kitten and the toy.');
-    expect(tutorial.isPracticing()).toBe(false);
+    expect(tutorialModule.isPracticing()).toBe(false);
   });
 
   test('a miss is left to the coach, and a retry replays the same layout', async () => {
     const { layout, done } = play();
-    tutorial.finishPracticeTrial(false);
+    tutorialModule.finishPracticeTrial(false);
     const result = await done;
     expect(result.correct).toBe(false);
     expect(result.feedback).toMatch(/^Not quite\./);
@@ -264,7 +256,7 @@ describe('field-of-view tutorial controller', () => {
     const { layout } = play();
     controller.abort();
     expect(controls.stopTrial).toHaveBeenCalled();
-    expect(tutorial.isPracticing()).toBe(false);
+    expect(tutorialModule.isPracticing()).toBe(false);
 
     controller = new AbortController();
     expect(play({ attempt: 2 }).layout).not.toBe(layout);
@@ -272,15 +264,8 @@ describe('field-of-view tutorial controller', () => {
 
   test('the practice hooks do nothing when no trial is in progress', () => {
     expect(() => {
-      tutorial.promptPracticeResponse();
-      tutorial.guidePracticeResponse();
+      tutorialModule.promptPracticeResponse();
+      tutorialModule.guidePracticeResponse();
     }).not.toThrow();
-  });
-});
-
-describe('field-of-view tutorial launching', () => {
-  test('does nothing without a container', async () => {
-    await tutorial.startTutorialIfNeeded({ container: null, controls: {}, onComplete: jest.fn() });
-    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
   });
 });

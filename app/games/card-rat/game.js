@@ -20,6 +20,9 @@
 
 import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
 
+/** Game ID, matching manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = 'card-rat';
+
 /** Ordered card ranks used in a standard deck. */
 export const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 

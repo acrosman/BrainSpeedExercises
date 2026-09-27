@@ -25,6 +25,7 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
 const timerMock = await import('../../../components/timerService.js');
 
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID:             'directional-processing',
   initGame:            jest.fn(),
   startGame:           jest.fn(),
   stopGame:            jest.fn(() => ({ score: 5, level: 2, trialsCompleted: 8, duration: 5000 })),
@@ -60,6 +61,10 @@ jest.unstable_mockModule('../../../components/scoreService.js', () => ({
 }));
 
 jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Directional Processing', content: '<p>Welcome</p>' },
+    { title: 'What to Look For', content: '<p>Direction matters.</p>' },
+  ]),
   // Default replay: the player finishes the tutorial at once.
   runGuidedTutorial: jest.fn((options) => {
     options.onComplete();
@@ -72,25 +77,14 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   }),
 }));
 
-jest.unstable_mockModule('../tutorial/tutorial.js', () => ({
-  getTutorialSteps: jest.fn(async () => [
-    { title: 'Welcome to Directional Processing', content: '<p>Welcome</p>' },
-    { title: 'What to Look For', content: '<p>Direction matters.</p>' },
-  ]),
-  PRACTICE_TEXT: {
-    watch: 'watch text',
-    guidedAnswer: (direction) => `guided answer text: ${direction}`,
-    answer: 'answer text',
-  },
-}));
-
 const pluginModule = await import('../index.js');
 const plugin = pluginModule.default;
 const { announce, updateStats, handleKeyDown } = pluginModule;
 const gameMock        = await import('../game.js');
 const scoreServiceMock = await import('../../../components/scoreService.js');
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
-const tutorialContentMock = await import('../tutorial/tutorial.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 const gaborMock       = await import('../gabor.js');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -259,7 +253,7 @@ describe('directional-processing plugin', () => {
 
   it('start runs the guided tutorial if needed with the Directional Processing steps', async () => {
     await plugin.start();
-    expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalled();
+    expect(tutorialServiceMock.loadTutorialSteps).toHaveBeenCalled();
     expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith({
       gameId: 'directional-processing',
       container: expect.any(HTMLElement),
@@ -656,29 +650,6 @@ describe('directional-processing plugin', () => {
     expect(document.querySelector('#dp-game-area').hidden).toBe(false);
   });
 
-  it('ignores a second start while the first tutorial launch is in flight', async () => {
-    const first = plugin.start();
-    const second = plugin.start();
-    await Promise.all([first, second]);
-    expect(tutorialContentMock.getTutorialSteps).toHaveBeenCalledTimes(1);
-    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
-    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
-  });
-
-  it('start does nothing when init received no container', async () => {
-    plugin.init(null);
-    await plugin.start();
-    expect(tutorialContentMock.getTutorialSteps).not.toHaveBeenCalled();
-  });
-
-  it('clears the pending flag when loading tutorial steps fails', async () => {
-    tutorialContentMock.getTutorialSteps.mockRejectedValueOnce(new Error('load failed'));
-    await expect(plugin.start()).rejects.toThrow('load failed');
-
-    await plugin.start();
-    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
-  });
-
   it('return button dispatches bsx:return-to-main-menu event', async () => {
     let fired = false;
     window.addEventListener('bsx:return-to-main-menu', () => { fired = true; }, { once: true });
@@ -776,33 +747,6 @@ describe('directional-processing plugin', () => {
       expect(document.querySelector('#dp-game-area').hidden).toBe(false);
     });
 
-    it('start and replay do nothing while a tutorial is in progress', async () => {
-      await startPendingTutorial();
-      jest.clearAllMocks();
-
-      await plugin.start();
-      document.querySelector('#dp-replay-tutorial-btn').click();
-      await flushMicrotasks();
-
-      expect(tutorialContentMock.getTutorialSteps).not.toHaveBeenCalled();
-      expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
-      expect(tutorialServiceMock.runGuidedTutorial).not.toHaveBeenCalled();
-    });
-
-    it('can launch again once the tutorial run finishes', async () => {
-      const { finish } = await startPendingTutorial();
-      finish();
-
-      await plugin.start();
-      expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(2);
-    });
-
-    it('reset() cancels a tutorial in progress', async () => {
-      const { run } = await startPendingTutorial();
-      plugin.reset();
-      expect(run.cancel).toHaveBeenCalledTimes(1);
-    });
-
     it('stop() with no session ignores a tutorial that already finished', async () => {
       const { finish } = await startPendingTutorial();
       finish();
@@ -865,7 +809,7 @@ describe('directional-processing plugin', () => {
       expect(gameMock.pickDirection).not.toHaveBeenCalled();
       expect(gameMock.startGame).not.toHaveBeenCalled();
       expect(timerMock.startTimer).not.toHaveBeenCalled();
-      expect(context.setInstructions).toHaveBeenCalledWith('watch text');
+      expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
       expect(button('left').disabled).toBe(true);
 
       jest.runOnlyPendingTimers();
@@ -884,7 +828,7 @@ describe('directional-processing plugin', () => {
       expect(gaborMock.drawMask).toHaveBeenCalled();
       expect(button('left').scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
       expect(context.showMarker).toHaveBeenCalledWith({ anchor: button('left'), shape: 'box' });
-      expect(context.setInstructions).toHaveBeenLastCalledWith('guided answer text: left');
+      expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedAnswer('left'));
 
       jest.runAllTimers();
       expect(button('left').disabled).toBe(false);
@@ -896,7 +840,7 @@ describe('directional-processing plugin', () => {
 
       expect(context.showMarker).not.toHaveBeenCalled();
       expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
-      expect(context.setInstructions).toHaveBeenLastCalledWith('answer text');
+      expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
     });
 
     it('a correct answer gives feedback and ends the trial without scoring', async () => {

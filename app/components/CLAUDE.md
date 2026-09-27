@@ -3,11 +3,12 @@
 The module table and general rules for components are in [../CLAUDE.md](../CLAUDE.md). This
 file holds detail that only matters when you work with a specific component.
 
-## Tutorial framework (`tutorialService.js`, `tutorialCoach.js`)
+## Tutorial framework (`tutorialService.js`, `tutorialLauncher.js`, `tutorialCoach.js`)
 
 `tutorialService.js` shows tutorial slides and runs guided practice rounds. Whether the player
-has seen a game's tutorial is stored under `progress.tutorials[gameId]`. Games reach
-`tutorialCoach.js` only through the practice-round context described below.
+has seen a game's tutorial is stored under `progress.tutorials[gameId]`. `tutorialLauncher.js`
+wraps the guided runner in the launch guard every game needs. Games reach `tutorialCoach.js`
+only through the practice-round context described below.
 
 ### Slides
 
@@ -27,12 +28,12 @@ has seen a game's tutorial is stored under `progress.tutorials[gameId]`. Games r
 slides → practice round → "Play another round?" → optional second round → mark seen →
 `onComplete`. "Skip Tutorial" (slides) and "Skip Practice" (coach) both jump to mark seen →
 `onComplete`. Options are `{ gameId, container, introSteps, playPracticeRound, maxRounds = 2,
-guidedRounds = 1, onComplete }`.
+guidedRounds = 1, onComplete }`. Games do not call these directly; they go through a launcher
+(next section).
 
 - Both return a run handle `{ cancel, isActive, finished }` (`IfNeeded` returns `null` when
-  already seen). Store it, and guard against a second launch with `run.isActive()`. Call
-  `run.cancel()` from `stop()` and `reset()`; it is safe on a run that has already ended.
-  Cancelling removes the tutorial UI, and does not mark the tutorial seen or call `onComplete`.
+  already seen). `cancel()` is safe on a run that has already ended. Cancelling removes the
+  tutorial UI, and does not mark the tutorial seen or call `onComplete`.
 - `playPracticeRound(context)` plays one round at the game's easiest setting and resolves once
   the player answers. `context` holds `round`, `attempt`, `maxRounds`, `guided` (show the
   marker; only the first `guidedRounds` rounds are guided), `signal`, `setInstructions(text)`,
@@ -53,14 +54,58 @@ guidedRounds = 1, onComplete }`.
   box so the marker stays put when CSS scales the canvas. Use `shape: 'box'` for wide targets
   such as buttons.
 
+### Launching (`tutorialLauncher.js`)
+
+`createTutorialLauncher({ gameId, loadSteps, playPracticeRound, maxRounds?, guidedRounds? })`
+returns `{ startIfNeeded, replay, isActive, cancel }`. Create one per game, once, in the game's
+`tutorial/tutorial.js`. Do not copy the guard into a game.
+
+- `startIfNeeded({ container, onComplete })` (the Start button) and
+  `replay({ container, onComplete })` (Replay Tutorial) load the slides with `loadSteps()` and
+  run the tutorial. `onComplete` begins the real session. Both do nothing without a container,
+  while another launch is loading, or while a run is in progress.
+- `isActive()` is `true` while a run is in progress. `stop()` with no session uses it to decide
+  whether to `reset()`.
+- `cancel()` ends the run, and also abandons a launch that is still loading, so neither the
+  tutorial nor `onComplete` fires afterward. Call it from `reset()`. It is safe at any time.
+- The guard is tested once, in `tests/tutorialLauncher.test.js`. Game tests cover only their
+  own wiring (which launcher each button calls, and that the session waits for `onComplete`).
+
 ### Adding a tutorial to a game
 
-- Put one HTML fragment per slide in `<id>/tutorial/`, and a `tutorial.js` whose
-  `getTutorialSteps()` passes their definitions to `loadTutorialSteps`.
-- Add an annotated `images/tutorialScreenshot.png` and a "Replay Tutorial" button on the
-  welcome panel.
-- Make `start()` async: load the steps and launch the tutorial with a function that begins the
-  session. Guard against a second launch while one is loading or in progress.
-- Document the tutorial in the game's own `CLAUDE.md`, or in `<id>/tutorial/CLAUDE.md`.
-- For a worked example, see `fast-piggie` (a single answer, with launch code in `index.js`) or
-  `field-of-view` (a two-part answer, with launch and practice code in `tutorial/tutorial.js`).
+Keep every piece of tutorial code in `<id>/tutorial/`, not in `index.js`. `index.js` supplies
+the game's display and controls, and routes input to the tutorial while it is practicing.
+
+1. Put one HTML fragment per slide in `<id>/tutorial/`, with an annotated
+   `images/tutorialScreenshot.png`, and add a "Replay Tutorial" button to the welcome panel.
+2. Export `GAME_ID` from a module other than `index.js` (usually `game.js`), so `tutorial.js`
+   can use it.
+3. In `tutorial/tutorial.js`:
+   - `getTutorialSteps()` passes the slide definitions to `loadTutorialSteps`, and
+     `PRACTICE_TEXT` holds the coach text.
+   - Define a controls typedef (`PracticeRoundControls` or `PracticeTrialControls`) listing
+     what practice needs from the game: show the game area, play a round with the real
+     display, stop it, find the control to mark, and show the result.
+   - `setPracticeControls(controls)` stores them. `playPracticeRound(context)` plays a round
+     through them and runs its cleanup on `context.signal`'s `abort`.
+   - Export `isPracticing()` and whatever hooks the game calls while practicing, such as
+     `finishPracticeRound(result)`.
+   - `export const tutorial = createTutorialLauncher({ gameId: GAME_ID, loadSteps:
+     getTutorialSteps, playPracticeRound })`.
+   - `tutorial.js` must never import `index.js`.
+4. In `index.js`:
+   - Build a frozen `PRACTICE_CONTROLS` from existing display helpers, and call
+     `setPracticeControls(PRACTICE_CONTROLS)` in `init()`.
+   - `start()` returns `tutorial.startIfNeeded({ container, onComplete: beginGameSession })`,
+     and Replay Tutorial calls `tutorial.replay(...)` with the same options.
+   - `stop()` with no session calls `reset()` if `tutorial.isActive()`, and `reset()` calls
+     `tutorial.cancel()`.
+   - Where input is scored, send it to the tutorial's hook instead while `isPracticing()`.
+5. Test the controller in `tests/tutorial.test.js` against fake controls, and run the real
+   `tutorial.js` from `tests/index.test.js`, mocking only `tutorialService` (and `game.js` if
+   the game's tests already do).
+6. Document the tutorial in `<id>/tutorial/CLAUDE.md`, and link it from the game's `CLAUDE.md`.
+
+Worked examples: `fast-piggie` and `directional-processing` (one answer per round), `card-rat`
+(a timed run of cards with one to act on), `field-of-view` (a two-part answer, with retries),
+and `high-speed-memory` (several answers per round, with retries).

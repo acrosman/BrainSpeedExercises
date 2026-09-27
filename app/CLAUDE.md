@@ -56,6 +56,7 @@ Each module is plain functions plus module state, with no classes. Tests live in
 | `timerService.js` | games, cards | Session timer, plus `formatDuration` and `getTodayDateString` (the `dailyTime` key) |
 | `logService.js` | everything | `logger.*`, which sends log lines to the main process |
 | `tutorialService.js` | games | Tutorial slides, the seen flag, and `runGuidedTutorial` (slides, then live practice rounds) |
+| `tutorialLauncher.js` | games | `createTutorialLauncher()`: the Start/Replay launch guard around `runGuidedTutorial`, one per game |
 | `tutorialCoach.js` | tutorialService | Practice-round coach banner, round prompt, and target marker |
 | `audioService.js` | games | One shared `AudioContext` and all sound effects, including sweep synthesis |
 | `adaptiveDifficultyService.js` | games | Staircase counter math |

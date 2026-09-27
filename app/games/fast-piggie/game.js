@@ -10,6 +10,9 @@
 
 import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
 
+/** Game ID, matching manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = 'fast-piggie';
+
 // ── Difficulty constants ───────────────────────────────────────────────────
 /** Display duration (ms) at level 0. */
 const INITIAL_DISPLAY_MS = 800;

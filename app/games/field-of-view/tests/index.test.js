@@ -532,29 +532,6 @@ describe('field-of-view index', () => {
       expect(document.querySelector('#fov-game-area').hidden).toBe(false);
     });
 
-    test('ignores a second start while the first tutorial launch is in flight', async () => {
-      const first = plugin.start();
-      const second = plugin.start();
-      await Promise.all([first, second]);
-      expect(tutorialServiceMock.loadTutorialSteps).toHaveBeenCalledTimes(1);
-      expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
-      expect(gameMock.startGame).toHaveBeenCalledTimes(1);
-    });
-
-    test('start does nothing when init received no container', async () => {
-      plugin.init(null);
-      await plugin.start();
-      expect(tutorialServiceMock.loadTutorialSteps).not.toHaveBeenCalled();
-    });
-
-    test('clears the pending flag when loading tutorial steps fails', async () => {
-      tutorialServiceMock.loadTutorialSteps.mockRejectedValueOnce(new Error('load failed'));
-      await expect(plugin.start()).rejects.toThrow('load failed');
-
-      await plugin.start();
-      expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(1);
-    });
-
     test('does not start the game until the tutorial completes', async () => {
       const { options } = await startPendingTutorial();
       expect(gameMock.startGame).not.toHaveBeenCalled();
@@ -565,33 +542,6 @@ describe('field-of-view index', () => {
       expect(timerMock.startTimer).toHaveBeenCalled();
       expect(document.querySelector('#fov-game-area').hidden).toBe(false);
       expect(gameMock.createTrialLayout).toHaveBeenCalled();
-    });
-
-    test('start and replay do nothing while a tutorial is in progress', async () => {
-      await startPendingTutorial();
-      jest.clearAllMocks();
-
-      await plugin.start();
-      document.querySelector('#fov-replay-tutorial-btn').click();
-      await flushMicrotasks();
-
-      expect(tutorialServiceMock.loadTutorialSteps).not.toHaveBeenCalled();
-      expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
-      expect(tutorialServiceMock.runGuidedTutorial).not.toHaveBeenCalled();
-    });
-
-    test('can launch again once the tutorial run finishes', async () => {
-      const { finish } = await startPendingTutorial();
-      finish();
-
-      await plugin.start();
-      expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledTimes(2);
-    });
-
-    test('reset() cancels a tutorial in progress', async () => {
-      const { run } = await startPendingTutorial();
-      plugin.reset();
-      expect(run.cancel).toHaveBeenCalledTimes(1);
     });
 
     test('stop() with no session ignores a tutorial that already finished', async () => {
