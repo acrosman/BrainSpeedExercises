@@ -15,14 +15,12 @@ import { saveProgress } from './progress.js';
 import * as timerService from '../../components/timerService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import {
-  cancelTutorial,
   finishPracticeTrial,
   guidePracticeResponse,
   isPracticing,
-  isTutorialActive,
   promptPracticeResponse,
-  replayTutorial,
-  startTutorialIfNeeded,
+  setPracticeControls,
+  tutorial,
 } from './tutorial/tutorial.js';
 
 /** Mask display duration in ms. */
@@ -521,10 +519,10 @@ const PRACTICE_CONTROLS = Object.freeze({
 /**
  * Options for launching the tutorial from this game.
  *
- * @returns {import('./tutorial/tutorial.js').TutorialLaunchOptions}
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
  */
 function tutorialOptions() {
-  return { container: _container, controls: PRACTICE_CONTROLS, onComplete: beginGameSession };
+  return { container: _container, onComplete: beginGameSession };
 }
 
 /**
@@ -559,6 +557,7 @@ const name = 'Field of View';
 function init(gameContainer) {
   _container = gameContainer;
   game.initGame();
+  setPracticeControls(PRACTICE_CONTROLS);
 
   if (!_container) return;
 
@@ -594,7 +593,7 @@ function init(gameContainer) {
   // Replay always shows the tutorial, then starts a session.
   if (_replayTutorialBtn) {
     _replayTutorialBtn.addEventListener('click', () => {
-      void replayTutorial(tutorialOptions());
+      void tutorial.replay(tutorialOptions());
     });
   }
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
@@ -622,7 +621,7 @@ function init(gameContainer) {
  * @returns {Promise<void>}
  */
 function start() {
-  return startTutorialIfNeeded(tutorialOptions());
+  return tutorial.startIfNeeded(tutorialOptions());
 }
 
 /**
@@ -644,7 +643,7 @@ function stop() {
   clearAsyncHandles();
 
   if (!game.isRunning()) {
-    if (isTutorialActive()) reset();
+    if (tutorial.isActive()) reset();
     return buildIdleResult();
   }
 
@@ -670,7 +669,7 @@ function stop() {
  * Reset to pre-game state without leaving the game plugin.
  */
 function reset() {
-  cancelTutorial();
+  tutorial.cancel();
   clearAsyncHandles();
   game.initGame();
 
