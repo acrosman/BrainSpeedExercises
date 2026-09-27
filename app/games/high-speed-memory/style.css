@@ -227,7 +227,7 @@
   color: #ed6c02;
 }
 
-/* The target greyhound and its look-alikes on the "What to Look For" step. */
+/* The target greyhound and the other greyhounds on the "What to Look For" step. */
 .hsm-tutorial-dogs {
   display: flex;
   justify-content: center;
