@@ -20,13 +20,11 @@ import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
-  runGuidedTutorial,
-  runGuidedTutorialIfNeeded,
-} from '../../components/tutorialService.js';
-import { getTutorialSteps, PRACTICE_TEXT } from './tutorial/tutorial.js';
-
-/** Game identifier used for progress persistence (must match manifest.json id). */
-const GAME_ID = 'directional-processing';
+  finishPracticeTrial,
+  isPracticing,
+  setPracticeControls,
+  tutorial,
+} from './tutorial/tutorial.js';
 
 // ── Timing constants ──────────────────────────────────────────────────────────
 
@@ -123,21 +121,6 @@ let _nextTrialTimer = null;
 
 /** setTimeout handle for clearing the flash feedback class. @type {number|null} */
 let _flashTimer = null;
-
-/** Whether a tutorial launch call is currently in flight. @type {boolean} */
-let _isTutorialLaunchPending = false;
-
-/**
- * The guided tutorial in progress, if any.
- * @type {import('../../components/tutorialService.js').GuidedTutorialRun|null}
- */
-let _tutorialRun = null;
-
-/**
- * The tutorial practice trial in progress, if any.
- * @type {{ context: object, resolve: Function }|null}
- */
-let _practice = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -406,21 +389,6 @@ function showResponseFeedback(success) {
 }
 
 /**
- * End a practice trial once the player responds: show the result without scoring it, and
- * hand control back to the tutorial.
- *
- * @param {boolean} success - Whether the response was correct.
- */
-function finishPracticeTrial(success) {
-  const { context, resolve } = _practice;
-  _practice = null;
-  context.hideMarker();
-  showResponseFeedback(success);
-  flashStageFeedback(success);
-  resolve();
-}
-
-/**
  * Handle a direction response (from button click or keyboard).
  *
  * @param {string} direction - One of 'up', 'down', 'left', 'right'.
@@ -432,7 +400,7 @@ export function handleDirectionResponse(direction) {
   setDirectionButtonsEnabled(false);
 
   const success = direction === _currentDirection;
-  if (_practice) {
+  if (isPracticing()) {
     finishPracticeTrial(success);
     return;
   }
@@ -479,7 +447,7 @@ export function handleKeyDown(event) {
   if (!direction) return;
 
   // Block default scrolling during game play and practice.
-  if (game.isRunning() || _practice) {
+  if (game.isRunning() || isPracticing()) {
     event.preventDefault();
   }
 
@@ -510,75 +478,6 @@ function showGameArea() {
 }
 
 /**
- * Drop any practice trial and cancel its animation and timers. Runs when the tutorial's
- * practice signal aborts, which happens whenever the tutorial ends. The trial's promise is
- * left pending: the tutorial no longer waits on it.
- */
-function endPractice() {
-  clearAsyncHandles();
-  _responseEnabled = false;
-  setDirectionButtonsEnabled(false);
-  _currentDirection = null;
-  _practice = null;
-}
-
-/**
- * Play one tutorial practice trial at the easiest level. It uses the real stimulus, mask,
- * and response buttons but never touches the score, level, speed history, session timer,
- * or saved progress. In a guided trial the correct button is scrolled into view and marked
- * once the stimulus ends.
- *
- * @param {import('../../components/tutorialService.js').PracticeRoundContext} context
- * @returns {Promise<void>} Resolves once the player responds.
- */
-function playPracticeTrial(context) {
-  showGameArea();
-  // Adding the same listener again in round 2 is a no-op, so this never stacks up.
-  context.signal.addEventListener('abort', endPractice, { once: true });
-
-  return new Promise((resolve) => {
-    _practice = { context, resolve };
-    context.setInstructions(PRACTICE_TEXT.watch);
-
-    const { direction, contrast, displayDurationMs } = game.generatePracticeTrial();
-    clearDirectionHighlights();
-    _currentDirection = direction;
-    _colorFamily = pickColorFamily();
-
-    runStimulusPhase(direction, contrast, displayDurationMs, () => {
-      if (!context.guided) {
-        context.setInstructions(PRACTICE_TEXT.answer);
-        return;
-      }
-      const target = getDirectionButton(direction);
-      // On shorter windows the direction pad sits below the fold. The coach is sticky, so
-      // scrolling keeps it in view, and the marker follows the scroll.
-      target.scrollIntoView({ block: 'nearest' });
-      context.showMarker({ anchor: target, shape: 'box' });
-      context.setInstructions(PRACTICE_TEXT.guidedAnswer(direction));
-    });
-  });
-}
-
-/**
- * Whether a guided tutorial is in progress.
- *
- * @returns {boolean}
- */
-function isTutorialActive() {
-  return !!_tutorialRun && _tutorialRun.isActive();
-}
-
-/**
- * Cancel the guided tutorial, if one is running. Its practice signal aborts, which clears
- * any practice trial.
- */
-function cancelTutorial() {
-  if (_tutorialRun) _tutorialRun.cancel();
-  _tutorialRun = null;
-}
-
-/**
  * Start a gameplay session immediately without tutorial gating.
  */
 function beginGameSession() {
@@ -600,6 +499,42 @@ function beginGameSession() {
   startTrial();
 }
 
+/**
+ * Trial controls the tutorial uses to play practice trials with the real stimulus, mask, and
+ * response buttons.
+ *
+ * @type {import('./tutorial/tutorial.js').PracticeTrialControls}
+ */
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea,
+  playTrial({ direction, contrast, displayDurationMs }, onStimulusEnd) {
+    clearDirectionHighlights();
+    _currentDirection = direction;
+    _colorFamily = pickColorFamily();
+    runStimulusPhase(direction, contrast, displayDurationMs, onStimulusEnd);
+  },
+  stopTrial() {
+    clearAsyncHandles();
+    _responseEnabled = false;
+    setDirectionButtonsEnabled(false);
+    _currentDirection = null;
+  },
+  getDirectionButton,
+  showResult(success) {
+    showResponseFeedback(success);
+    flashStageFeedback(success);
+  },
+});
+
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, onComplete: beginGameSession };
+}
+
 // ── Plugin contract ───────────────────────────────────────────────────────────
 
 /** Human-readable plugin name. */
@@ -616,6 +551,7 @@ const name = 'Directional Processing';
 function init(gameContainer) {
   _container = gameContainer;
   game.initGame();
+  setPracticeControls(PRACTICE_CONTROLS);
 
   if (!_container) return;
 
@@ -650,7 +586,7 @@ function init(gameContainer) {
   // Replay always shows the tutorial, then starts a session.
   if (_replayTutorialBtn) {
     _replayTutorialBtn.addEventListener('click', () => {
-      void launchTutorial(runGuidedTutorial);
+      void tutorial.replay(tutorialOptions());
     });
   }
   if (_stopBtn)  _stopBtn.addEventListener('click', () => stop());
@@ -674,40 +610,12 @@ function init(gameContainer) {
 }
 
 /**
- * Load the tutorial steps and hand them to a guided-tutorial launcher, guarding against
- * overlapping launches and a tutorial already in progress. When the tutorial finishes or
- * is skipped, the real session begins.
- *
- * @param {typeof runGuidedTutorial | typeof runGuidedTutorialIfNeeded} launch - Which
- *   launcher to use.
- * @returns {Promise<void>}
- */
-async function launchTutorial(launch) {
-  if (!_container || _isTutorialLaunchPending || isTutorialActive()) return;
-
-  _isTutorialLaunchPending = true;
-  try {
-    const introSteps = await getTutorialSteps();
-    // Null (after starting the session) when the tutorial was already seen.
-    _tutorialRun = await launch({
-      gameId: GAME_ID,
-      container: _container,
-      introSteps,
-      playPracticeRound: playPracticeTrial,
-      onComplete: beginGameSession,
-    });
-  } finally {
-    _isTutorialLaunchPending = false;
-  }
-}
-
-/**
  * Start a gameplay session, showing the tutorial first if the player has not seen it.
  *
  * @returns {Promise<void>}
  */
 function start() {
-  return launchTutorial(runGuidedTutorialIfNeeded);
+  return tutorial.startIfNeeded(tutorialOptions());
 }
 
 /**
@@ -726,7 +634,7 @@ function stop() {
   clearDirectionHighlights();
 
   if (!game.isRunning()) {
-    if (isTutorialActive()) reset();
+    if (tutorial.isActive()) reset();
     return {
       score: game.getScore(),
       level: game.getCurrentLevel(),
@@ -742,7 +650,7 @@ function stop() {
   showEndPanel(result);
 
   if (result.trialsCompleted > 0) {
-    saveScore(GAME_ID, {
+    saveScore(game.GAME_ID, {
       score: result.score,
       level: result.level,
       sessionDurationMs,
@@ -758,7 +666,7 @@ function stop() {
  * Reset to the pre-game instructions state without reloading interface.html.
  */
 function reset() {
-  cancelTutorial();
+  tutorial.cancel();
   clearAsyncHandles();
   game.initGame();
   timerService.resetTimer();

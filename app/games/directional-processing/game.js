@@ -12,6 +12,9 @@
 
 import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
 
+/** Game ID, matching manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = 'directional-processing';
+
 /** All valid motion directions for trial generation. */
 export const DIRECTIONS = ['up', 'down', 'left', 'right'];
 

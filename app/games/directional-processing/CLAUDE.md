@@ -15,25 +15,8 @@ the speed-of-processing training used in the ACTIVE study.
   `generatePracticeTrial()` returns a random direction at `LEVELS[0]` without changing state.
 - `index.js`: runs the trial cycle: stimulus (rAF, animating phase at `PHASE_SPEED_RAD_PER_MS`)
   → mask (`MASK_DURATION_MS` 150) → short pause → response enabled → feedback flash.
-- `tutorial/`: the first-run tutorial. `tutorial.js` lists the step HTML files and the coach
-  text for practice rounds (`PRACTICE_TEXT`). `start()` runs them through
-  `runGuidedTutorialIfNeeded`, and Replay Tutorial through `runGuidedTutorial`, before the
-  session begins.
-
-## Tutorial practice rounds
-
-After the slides, `playPracticeTrial` plays up to two trials from `generatePracticeTrial()`
-through the same `runStimulusPhase` → mask → response code as the real game. The session is
-never started, so `game.isRunning()` stays `false`. `handleDirectionResponse` sends practice
-answers to `finishPracticeTrial`, which shows the usual feedback (sound, announcement, flash,
-and the correct-button highlight after a miss) but skips `recordTrial`, the stats, the trend
-chart, and the next trial. In the guided first round, `runStimulusPhase`'s `onStimulusEnd`
-callback scrolls the correct direction button into view (the pad can sit below the fold, and
-the coach is sticky) and rings it (`shape: 'box'`). The coach text names the direction and its
-arrow key, since the marker is not announced. The practice signal's `abort` runs
-`endPractice`, which cancels the animation frames and timers. End Game during practice
-(`stop()` with no session) cancels the tutorial and returns to the welcome panel without
-saving.
+- `tutorial/`: the first-run tutorial, both its content and the code that launches it and plays
+  practice trials. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Difficulty
 
