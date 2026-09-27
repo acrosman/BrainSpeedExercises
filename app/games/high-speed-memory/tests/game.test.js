@@ -4,6 +4,7 @@ import {
 } from '@jest/globals';
 
 import {
+  GAME_ID,
   PRIMARY_IMAGE,
   DISTRACTOR_IMAGES,
   PRIMARY_COUNT,
@@ -17,6 +18,7 @@ import {
   getGridSize,
   getDisplayDurationMs,
   generateGrid,
+  createPracticeRound,
   isPrimary,
   addCorrectGroup,
   completeRound,
@@ -275,6 +277,32 @@ describe('generateGrid', () => {
 });
 
 // ── isPrimary ─────────────────────────────────────────────────────────────────
+
+describe('GAME_ID', () => {
+  test('matches the manifest ID', () => {
+    expect(GAME_ID).toBe('high-speed-memory');
+  });
+});
+
+describe('createPracticeRound', () => {
+  test('returns a level-0 grid and the starting display time', () => {
+    const { grid, displayMs } = createPracticeRound();
+    expect(grid).toHaveLength(9);
+    expect(grid.filter((card) => card.image === PRIMARY_IMAGE)).toHaveLength(PRIMARY_COUNT);
+    expect(displayMs).toBe(BASE_DISPLAY_MS);
+  });
+
+  test('does not change game state, even mid-session at a higher level', () => {
+    startGame();
+    for (let i = 0; i < ROUNDS_TO_LEVEL_UP; i += 1) completeRound();
+    const before = { level: getLevel(), history: getSpeedHistory(), score: getScore() };
+
+    expect(createPracticeRound().grid).toHaveLength(9);
+    expect({ level: getLevel(), history: getSpeedHistory(), score: getScore() })
+      .toEqual(before);
+    expect(isRunning()).toBe(true);
+  });
+});
 
 describe('isPrimary', () => {
   test('returns true for PRIMARY_IMAGE', () => {
