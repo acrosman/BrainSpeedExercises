@@ -62,8 +62,9 @@ Each module is plain functions plus module state, with no classes. Tests live in
 | `trendChartService.js` | games | In-game SVG trend line |
 | `gameUtils.js` | games | `returnToMainMenu()` |
 
-How games use these services is covered in [games/CLAUDE.md](games/CLAUDE.md). When a behavior
-is needed by more than one game, add it here as a service rather than copying it between games.
+How games use these services is covered in [games/CLAUDE.md](games/CLAUDE.md), and the tutorial
+framework in [components/CLAUDE.md](components/CLAUDE.md). When a behavior is needed by more
+than one game, add it here as a service rather than copying it between games.
 
 Components must not call Electron or Node APIs. Anything persistent goes through
 `window.api.invoke`, usually via `scoreService`. Each component should also check for a missing

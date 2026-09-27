@@ -2,22 +2,26 @@
 
 A Useful Field of View (UFOV)-style task that trains divided attention. Each trial briefly shows
 a grid with a kitten in the center and a cat toy on the outer ring. A full-field mask follows.
-The player must then do two things: identify which kitten was in the center (primary or
-secondary), and click the grid cell where the toy appeared. A trial counts as correct only when
-**both** answers are right.
+The player must then do two things: identify which kitten was in the center (the sitting
+`primary-kitten` or the leaping `secondary-kitten`), and click the grid cell where the toy
+appeared. A trial counts as correct only when **both** answers are right.
 
 ## Files
 
 This is the only game whose controller is split across several modules:
 
 - `game.js`: SOA staircase, trial layout (`createTrialLayout()`), accuracy buffer, and threshold
-  history.
-- `render.js`: formatting helpers and DOM rendering. Every function takes its elements as
-  arguments, and the module has no state of its own. Add new rendering code here, not in
-  `index.js`.
+  history. `createPracticeTrial()` returns `{ layout, soaMs }` for a 3×3 layout at
+  `START_SOA_MS` without changing state.
+- `render.js`: formatting helpers and DOM rendering. `labelForIcon` names each stimulus the way
+  players see it ("Sitting kitten", "Yarn ball"), and `cellPosition` turns a cell index into
+  its one-based row and column. Every function takes its elements as arguments, and the
+  module has no state of its own. Add new rendering code here, not in `index.js`.
 - `progress.js`: wraps `saveScore` and owns `GAME_ID`.
 - `index.js`: the trial cycle and lifecycle. Audio feedback comes from the shared
   `audioService`.
+- `tutorial/`: the first-run tutorial, both its content and the code that launches it and plays
+  practice trials. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Trial timing
 
@@ -38,7 +42,8 @@ Timing values are fractional. Round them only for display, with `render.formatMs
 `score` is `round(1000 / thresholdMs)`. `lowestDisplayTime` is the threshold in milliseconds.
 Through `extraFields`: `bestThresholdMs` (kept for older saves), `lastThresholdMs`,
 `lastRecentAccuracy`, the full `thresholdHistory`, and `trialsCompleted`. The game saves only
-when `trialsCompleted > 0`, and does not save `level`.
+when a session is running and `trialsCompleted > 0`, and does not save `level`. `stop()` with
+no session returns an idle result and leaves the screen alone.
 
 ## Controls
 

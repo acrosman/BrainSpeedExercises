@@ -381,6 +381,8 @@ export async function showTutorialIfNeeded(
  *
  * @typedef {object} PracticeRoundContext
  * @property {number}  round     - This round's number, starting at 1.
+ * @property {number}  attempt   - Which try at this round, starting at 1. It goes up each time
+ *   a missed round is replayed.
  * @property {number}  maxRounds - Most practice rounds the player can be offered.
  * @property {boolean} guided    - Whether to show the marker this round. Rounds after
  *   `guidedRounds` leave the player on their own.
@@ -395,14 +397,24 @@ export async function showTutorialIfNeeded(
  */
 
 /**
+ * What a practice round may resolve with. Resolving with nothing counts as done. Resolving
+ * with `correct: false` makes the runner say so in the coach banner and replay the round.
+ *
+ * @typedef {object} PracticeRoundResult
+ * @property {boolean} correct    - Whether the player answered correctly.
+ * @property {string}  [feedback] - What went wrong, shown before "Try this round again."
+ *   Defaults to "Not quite."
+ */
+
+/**
  * @typedef {object} GuidedTutorialOptions
  * @property {string}         gameId    - Game ID (must match manifest.json `id`).
  * @property {HTMLElement}    container - Game container; the overlay and coach go inside it.
  * @property {TutorialStep[]} [introSteps=[]] - Slides shown before practice. Empty skips them.
- * @property {(context: PracticeRoundContext) => Promise<void>} [playPracticeRound] - Play one
- *   round at the game's easiest setting without scoring, saving, timing the session, or
- *   changing difficulty. Resolve once the player has answered. Omit it for a slides-only
- *   tutorial.
+ * @property {(context: PracticeRoundContext) => Promise<PracticeRoundResult|void>}
+ *   [playPracticeRound] - Play one round at the game's easiest setting without scoring,
+ *   saving, timing the session, or changing difficulty. Resolve once the player has answered,
+ *   with `{ correct: false }` to replay a missed round. Omit it for a slides-only tutorial.
  * @property {number}   [maxRounds=2]    - Most practice rounds to offer.
  * @property {number}   [guidedRounds=1] - How many rounds, counting from the first, are guided.
  * @property {Function} [onComplete]     - Called after the tutorial is finished or skipped and
@@ -427,14 +439,19 @@ export async function showTutorialIfNeeded(
 const START_GAME_CHOICE = { label: 'Start the Game', value: 'start' };
 /** Coach button that plays another practice round. */
 const ANOTHER_ROUND_CHOICE = { label: 'Play Another Round', value: 'again' };
+/** Coach button that replays a missed practice round. */
+const TRY_AGAIN_CHOICE = { label: 'Try Again', value: 'retry', primary: true };
+/** Coach text before "Try this round again." when a missed round gives no feedback. */
+const DEFAULT_MISS_FEEDBACK = 'Not quite.';
 
 /**
  * Run a guided tutorial: intro slides, then live practice rounds with a coach banner and a
  * marker, then the real game.
  *
  * Flow: slides → `playPracticeRound` → "Play another round?" → (repeat up to `maxRounds`)
- * → mark seen → `onComplete`. "Skip Tutorial" on the slides and "Skip Practice" on the coach
- * both jump to mark seen → `onComplete`.
+ * → mark seen → `onComplete`. A round that resolves with `correct: false` is replayed, after
+ * a "Try Again" prompt, until the player gets it right or skips. "Skip Tutorial" on the
+ * slides and "Skip Practice" on the coach both jump to mark seen → `onComplete`.
  *
  * @param {GuidedTutorialOptions} options - What to show and how to play a practice round.
  * @returns {GuidedTutorialRun} Handle for cancelling the run.
@@ -517,20 +534,24 @@ export function runGuidedTutorial({
   }
 
   /**
-   * Play practice rounds, asking after each one whether to play another.
+   * Play practice rounds. A missed round is replayed after a Try Again prompt; after any
+   * other round the player chooses between another round and the real game.
    * @returns {Promise<void>}
    */
   async function practice() {
     coach = createTutorialCoach(() => { void end('skipped'); });
     container.prepend(coach);
 
-    for (let round = 1; round <= maxRounds; round += 1) {
+    let round = 1;
+    let attempt = 1;
+    while (round <= maxRounds) {
       setCoachMessage(coach, { label: `Practice round ${round} of ${maxRounds}`, text: '' });
       // Focus the coach so its instructions are read, and so focus is not left on the
       // removed prompt button (or the closed overlay) when a round starts.
       coach.focus();
-      await playPracticeRound({
+      const result = await playPracticeRound({
         round,
+        attempt,
         maxRounds,
         guided: round <= guidedRounds,
         signal: controller.signal,
@@ -541,18 +562,30 @@ export function runGuidedTutorial({
       if (ended) return;
       hideMarker();
 
-      const isLastRound = round === maxRounds;
-      const choice = await askCoachQuestion(
-        coach,
-        isLastRound
-          ? 'Practice complete. Start the game when you are ready.'
-          : `Round ${round} done. Play another practice round, or start the game?`,
-        isLastRound
-          ? [{ ...START_GAME_CHOICE, primary: true }]
-          : [{ ...ANOTHER_ROUND_CHOICE, primary: true }, START_GAME_CHOICE],
-      );
-      // No `ended` check needed: ending removes the coach, so the prompt can't be answered.
-      if (choice === START_GAME_CHOICE.value) break;
+      // No `ended` checks after the prompts: ending removes the coach, so they can't be
+      // answered.
+      if (result && result.correct === false) {
+        await askCoachQuestion(
+          coach,
+          `${result.feedback || DEFAULT_MISS_FEEDBACK} Try this round again.`,
+          [TRY_AGAIN_CHOICE],
+        );
+        attempt += 1;
+      } else {
+        const isLastRound = round === maxRounds;
+        const choice = await askCoachQuestion(
+          coach,
+          isLastRound
+            ? 'Practice complete. Start the game when you are ready.'
+            : `Round ${round} done. Play another practice round, or start the game?`,
+          isLastRound
+            ? [{ ...START_GAME_CHOICE, primary: true }]
+            : [{ ...ANOTHER_ROUND_CHOICE, primary: true }, START_GAME_CHOICE],
+        );
+        if (choice === START_GAME_CHOICE.value) break;
+        round += 1;
+        attempt = 1;
+      }
     }
     await end('completed');
   }

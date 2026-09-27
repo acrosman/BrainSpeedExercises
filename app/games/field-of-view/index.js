@@ -14,6 +14,16 @@ import { playFeedbackSound } from '../../components/audioService.js';
 import { saveProgress } from './progress.js';
 import * as timerService from '../../components/timerService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import {
+  cancelTutorial,
+  finishPracticeTrial,
+  guidePracticeResponse,
+  isPracticing,
+  isTutorialActive,
+  promptPracticeResponse,
+  replayTutorial,
+  startTutorialIfNeeded,
+} from './tutorial/tutorial.js';
 
 /** Mask display duration in ms. */
 const MASK_DURATION_MS = 120;
@@ -64,6 +74,8 @@ let _trendLatestEl = null;
 let _finalBestThresholdEl = null;
 /** @type {HTMLButtonElement|null} */
 let _startBtn = null;
+/** @type {HTMLButtonElement|null} */
+let _replayTutorialBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _stopBtn = null;
 /** @type {HTMLButtonElement|null} */
@@ -195,7 +207,15 @@ function clearAsyncHandles() {
   if (_flashTimer !== null) {
     clearTimeout(_flashTimer);
     _flashTimer = null;
+    clearStageFlash();
   }
+}
+
+/**
+ * Remove the green/red feedback tint from the stage.
+ */
+function clearStageFlash() {
+  if (_stageEl) _stageEl.classList.remove('fov-stage--flash-correct', 'fov-stage--flash-wrong');
 }
 
 /**
@@ -206,7 +226,7 @@ function clearAsyncHandles() {
 function flashStageFeedback(isSuccess) {
   if (!_stageEl) return;
 
-  _stageEl.classList.remove('fov-stage--flash-correct', 'fov-stage--flash-wrong');
+  clearStageFlash();
   _stageEl.classList.add(isSuccess ? 'fov-stage--flash-correct' : 'fov-stage--flash-wrong');
 
   if (_flashTimer !== null) {
@@ -214,7 +234,7 @@ function flashStageFeedback(isSuccess) {
   }
 
   _flashTimer = setTimeout(() => {
-    _stageEl.classList.remove('fov-stage--flash-correct', 'fov-stage--flash-wrong');
+    clearStageFlash();
     _flashTimer = null;
   }, FEEDBACK_FLASH_MS);
 }
@@ -237,8 +257,7 @@ function renderBoard(revealStimulus) {
     btn.className = 'fov-cell';
     btn.dataset.index = String(cell.index);
 
-    const row = Math.floor(cell.index / _currentTrial.gridSize) + 1;
-    const col = (cell.index % _currentTrial.gridSize) + 1;
+    const { row, col } = render.cellPosition(cell.index, _currentTrial.gridSize);
     btn.setAttribute('aria-label', `Row ${row}, column ${col}`);
 
     if (cell.role === 'center') {
@@ -290,6 +309,8 @@ function attemptAutoSubmit() {
     && _selectedPeripheralIndex !== null;
   if (canSubmit) {
     submitResponse();
+  } else if (isPracticing()) {
+    guidePracticeResponse();
   }
 }
 
@@ -336,6 +357,7 @@ function enterResponsePhase() {
   }
 
   resetResponseSelection();
+  if (isPracticing()) promptPracticeResponse();
 }
 
 /**
@@ -364,8 +386,10 @@ function runMaskPhase() {
 
 /**
  * Show stimulus board for SOA duration using requestAnimationFrame timing.
+ *
+ * @param {number} targetSoa - How long to show the stimulus, in ms.
  */
-function runStimulusPhase() {
+function runStimulusPhase(targetSoa) {
   _responseEnabled = false;
 
   render.setStageMode(_stageEl, 'stimulus');
@@ -376,7 +400,6 @@ function runStimulusPhase() {
   renderBoard(true);
 
   const start = nowMs();
-  const targetSoa = game.getCurrentSoaMs();
 
   const tick = () => {
     const elapsed = nowMs() - start;
@@ -398,7 +421,7 @@ function startTrial() {
   if (!game.isRunning()) return;
   _currentTrial = game.createTrialLayout();
   updateStats();
-  runStimulusPhase();
+  runStimulusPhase(game.getCurrentSoaMs());
 }
 
 /**
@@ -412,14 +435,19 @@ function submitResponse() {
   const success = centerCorrect && peripheralCorrect;
 
   _responseEnabled = false;
+  playFeedbackSound(success);
+  flashStageFeedback(success);
+
+  if (isPracticing()) {
+    finishPracticeTrial(success);
+    return;
+  }
 
   const reactionTimeMs = nowMs() - _responseStartMs;
   const trialUpdate = game.recordTrial({ success, reactionTimeMs });
 
   updateStats();
   updateThresholdTrend();
-  playFeedbackSound(success);
-  flashStageFeedback(success);
 
   if (success) {
     announce('Correct. SOA may decrease after the success streak target is met.');
@@ -438,6 +466,65 @@ function submitResponse() {
       startTrial();
     }, INTER_TRIAL_DELAY_MS);
   }
+}
+
+/**
+ * Show the game area, with no leftover feedback, in place of the welcome and end panels.
+ */
+function showGameArea() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+  if (_gameAreaEl) _gameAreaEl.hidden = false;
+  if (_responseEl) _responseEl.hidden = false;
+  announce('');
+}
+
+/**
+ * Start a gameplay session immediately without tutorial gating.
+ */
+function beginGameSession() {
+  game.startGame();
+
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
+  showGameArea();
+  startTrial();
+}
+
+/**
+ * Trial controls the tutorial uses to play practice trials with the real stimulus, mask, and
+ * response controls.
+ *
+ * @type {import('./tutorial/tutorial.js').PracticeTrialControls}
+ */
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea,
+  playTrial(layout, soaMs) {
+    _currentTrial = layout;
+    runStimulusPhase(soaMs);
+  },
+  stopTrial() {
+    clearAsyncHandles();
+    _responseEnabled = false;
+    _currentTrial = null;
+  },
+  isKittenChosen: () => _selectedCenterId !== null,
+  getKittenButton: (id) => (id === 'primary-kitten' ? _centerPrimaryBtn : _centerSecondaryBtn),
+  getLocationCell: (index) => _locationSelectorEl.querySelector(`[data-index="${index}"]`),
+  announce,
+});
+
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('./tutorial/tutorial.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, controls: PRACTICE_CONTROLS, onComplete: beginGameSession };
 }
 
 /**
@@ -494,6 +581,7 @@ function init(gameContainer) {
   _trendLatestEl = _container.querySelector('#fov-trend-latest');
   _finalBestThresholdEl = _container.querySelector('#fov-final-best-threshold');
   _startBtn = _container.querySelector('#fov-start-btn');
+  _replayTutorialBtn = _container.querySelector('#fov-replay-tutorial-btn');
   _stopBtn = _container.querySelector('#fov-stop-btn');
   _playAgainBtn = _container.querySelector('#fov-play-again-btn');
   _returnBtn = _container.querySelector('#fov-return-btn');
@@ -502,12 +590,18 @@ function init(gameContainer) {
   _locationSelectorEl = _container.querySelector('#fov-location-selector');
   _sessionTimerEl = _container.querySelector('#fov-session-timer');
 
-  if (_startBtn) _startBtn.addEventListener('click', () => start());
+  if (_startBtn) _startBtn.addEventListener('click', () => { void start(); });
+  // Replay always shows the tutorial, then starts a session.
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => {
+      void replayTutorial(tutorialOptions());
+    });
+  }
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
-      start();
+      void start();
     });
   }
   if (_returnBtn) _returnBtn.addEventListener('click', () => returnToMainMenu());
@@ -523,27 +617,20 @@ function init(gameContainer) {
 }
 
 /**
- * Start gameplay session.
+ * Start a gameplay session, showing the tutorial first if the player has not seen it.
+ *
+ * @returns {Promise<void>}
  */
 function start() {
-  game.startGame();
-
-  timerService.startTimer((elapsedMs) => {
-    if (_sessionTimerEl) {
-      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
-    }
-  });
-
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_endPanelEl) _endPanelEl.hidden = true;
-  if (_gameAreaEl) _gameAreaEl.hidden = false;
-  if (_responseEl) _responseEl.hidden = false;
-
-  startTrial();
+  return startTutorialIfNeeded(tutorialOptions());
 }
 
 /**
- * Stop gameplay and show end panel.
+ * Stop gameplay, save progress, and show the end panel.
+ *
+ * With no session running (on the welcome screen, during the tutorial, or when the app
+ * quits after a session ended) there is nothing to save and the screen is left alone,
+ * except that leaving a tutorial this way cancels it and returns to the welcome screen.
  *
  * @returns {{
  *   score: number,
@@ -556,7 +643,12 @@ function start() {
 function stop() {
   clearAsyncHandles();
 
-  const result = game.isRunning() ? game.stopGame() : buildIdleResult();
+  if (!game.isRunning()) {
+    if (isTutorialActive()) reset();
+    return buildIdleResult();
+  }
+
+  const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
@@ -578,6 +670,7 @@ function stop() {
  * Reset to pre-game state without leaving the game plugin.
  */
 function reset() {
+  cancelTutorial();
   clearAsyncHandles();
   game.initGame();
 
