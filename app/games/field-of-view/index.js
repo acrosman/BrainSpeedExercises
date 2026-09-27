@@ -11,9 +11,14 @@
 import * as game from './game.js';
 import * as render from './render.js';
 import { playFeedbackSound } from '../../components/audioService.js';
-import { saveProgress } from './progress.js';
+import { GAME_ID, saveProgress } from './progress.js';
 import * as timerService from '../../components/timerService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
+import {
+  runGuidedTutorial,
+  runGuidedTutorialIfNeeded,
+} from '../../components/tutorialService.js';
+import { getTutorialSteps, PRACTICE_TEXT } from './tutorial/tutorial.js';
 
 /** Mask display duration in ms. */
 const MASK_DURATION_MS = 120;
@@ -65,6 +70,8 @@ let _finalBestThresholdEl = null;
 /** @type {HTMLButtonElement|null} */
 let _startBtn = null;
 /** @type {HTMLButtonElement|null} */
+let _replayTutorialBtn = null;
+/** @type {HTMLButtonElement|null} */
 let _stopBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _playAgainBtn = null;
@@ -113,6 +120,20 @@ let _selectedPeripheralIndex = null;
 let _responseEnabled = false;
 /** @type {number} */
 let _responseStartMs = 0;
+
+/** Whether a tutorial launch call is currently in flight. @type {boolean} */
+let _isTutorialLaunchPending = false;
+/**
+ * The guided tutorial in progress, if any.
+ * @type {import('../../components/tutorialService.js').GuidedTutorialRun|null}
+ */
+let _tutorialRun = null;
+/**
+ * The tutorial practice trial in progress, if any. `guideTarget` is the control the marker
+ * currently rings in a guided trial.
+ * @type {{ context: object, resolve: Function, guideTarget: HTMLElement|null }|null}
+ */
+let _practice = null;
 
 /**
  * Get a high-precision current timestamp.
@@ -195,7 +216,15 @@ function clearAsyncHandles() {
   if (_flashTimer !== null) {
     clearTimeout(_flashTimer);
     _flashTimer = null;
+    clearStageFlash();
   }
+}
+
+/**
+ * Remove the green/red feedback tint from the stage.
+ */
+function clearStageFlash() {
+  if (_stageEl) _stageEl.classList.remove('fov-stage--flash-correct', 'fov-stage--flash-wrong');
 }
 
 /**
@@ -206,7 +235,7 @@ function clearAsyncHandles() {
 function flashStageFeedback(isSuccess) {
   if (!_stageEl) return;
 
-  _stageEl.classList.remove('fov-stage--flash-correct', 'fov-stage--flash-wrong');
+  clearStageFlash();
   _stageEl.classList.add(isSuccess ? 'fov-stage--flash-correct' : 'fov-stage--flash-wrong');
 
   if (_flashTimer !== null) {
@@ -214,7 +243,7 @@ function flashStageFeedback(isSuccess) {
   }
 
   _flashTimer = setTimeout(() => {
-    _stageEl.classList.remove('fov-stage--flash-correct', 'fov-stage--flash-wrong');
+    clearStageFlash();
     _flashTimer = null;
   }, FEEDBACK_FLASH_MS);
 }
@@ -237,8 +266,7 @@ function renderBoard(revealStimulus) {
     btn.className = 'fov-cell';
     btn.dataset.index = String(cell.index);
 
-    const row = Math.floor(cell.index / _currentTrial.gridSize) + 1;
-    const col = (cell.index % _currentTrial.gridSize) + 1;
+    const { row, col } = render.cellPosition(cell.index, _currentTrial.gridSize);
     btn.setAttribute('aria-label', `Row ${row}, column ${col}`);
 
     if (cell.role === 'center') {
@@ -290,6 +318,8 @@ function attemptAutoSubmit() {
     && _selectedPeripheralIndex !== null;
   if (canSubmit) {
     submitResponse();
+  } else if (_practice && _practice.context.guided) {
+    guidePracticeResponse();
   }
 }
 
@@ -336,6 +366,7 @@ function enterResponsePhase() {
   }
 
   resetResponseSelection();
+  if (_practice) promptPracticeResponse();
 }
 
 /**
@@ -364,8 +395,10 @@ function runMaskPhase() {
 
 /**
  * Show stimulus board for SOA duration using requestAnimationFrame timing.
+ *
+ * @param {number} targetSoa - How long to show the stimulus, in ms.
  */
-function runStimulusPhase() {
+function runStimulusPhase(targetSoa) {
   _responseEnabled = false;
 
   render.setStageMode(_stageEl, 'stimulus');
@@ -376,7 +409,6 @@ function runStimulusPhase() {
   renderBoard(true);
 
   const start = nowMs();
-  const targetSoa = game.getCurrentSoaMs();
 
   const tick = () => {
     const elapsed = nowMs() - start;
@@ -398,7 +430,7 @@ function startTrial() {
   if (!game.isRunning()) return;
   _currentTrial = game.createTrialLayout();
   updateStats();
-  runStimulusPhase();
+  runStimulusPhase(game.getCurrentSoaMs());
 }
 
 /**
@@ -412,14 +444,19 @@ function submitResponse() {
   const success = centerCorrect && peripheralCorrect;
 
   _responseEnabled = false;
+  playFeedbackSound(success);
+  flashStageFeedback(success);
+
+  if (_practice) {
+    finishPracticeTrial(success);
+    return;
+  }
 
   const reactionTimeMs = nowMs() - _responseStartMs;
   const trialUpdate = game.recordTrial({ success, reactionTimeMs });
 
   updateStats();
   updateThresholdTrend();
-  playFeedbackSound(success);
-  flashStageFeedback(success);
 
   if (success) {
     announce('Correct. SOA may decrease after the success streak target is met.');
@@ -437,6 +474,179 @@ function submitResponse() {
       _nextTrialTimer = null;
       startTrial();
     }, INTER_TRIAL_DELAY_MS);
+  }
+}
+
+/**
+ * Show the game area, with no leftover feedback, in place of the welcome and end panels.
+ */
+function showGameArea() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+  if (_gameAreaEl) _gameAreaEl.hidden = false;
+  if (_responseEl) _responseEl.hidden = false;
+  announce('');
+}
+
+/**
+ * The current trial's answers, in the words the practice text uses.
+ *
+ * @returns {{ kitten: string, row: number, col: number }}
+ */
+function describeCorrectAnswer() {
+  const { centerIcon, peripheralIndex, gridSize } = _currentTrial;
+  return {
+    kitten: render.labelForIcon(centerIcon).toLowerCase(),
+    ...render.cellPosition(peripheralIndex, gridSize),
+  };
+}
+
+/**
+ * In a guided practice trial, ring the next control to use: the correct kitten until one is
+ * chosen, then the correct location square. The coach text only changes with the target, so
+ * repeated picks do not repeat the announcement.
+ */
+function guidePracticeResponse() {
+  const kittenPending = _selectedCenterId === null;
+  const { centerIcon, peripheralIndex } = _currentTrial;
+  const target = kittenPending
+    ? (centerIcon.id === 'primary-kitten' ? _centerPrimaryBtn : _centerSecondaryBtn)
+    : _locationSelectorEl.querySelector(`[data-index="${peripheralIndex}"]`);
+  if (target === _practice.guideTarget) return;
+  _practice.guideTarget = target;
+
+  const { context } = _practice;
+  const { kitten, row, col } = describeCorrectAnswer();
+  // On shorter windows the response panel can sit partly below the fold. The coach is
+  // sticky, so scrolling keeps it in view, and the marker follows the scroll.
+  target.scrollIntoView({ block: 'nearest' });
+  context.showMarker({ anchor: target, shape: 'box' });
+  context.setInstructions(kittenPending
+    ? PRACTICE_TEXT.guidedKitten(kitten)
+    : PRACTICE_TEXT.guidedLocation(row, col));
+}
+
+/**
+ * Once the field covers the board in a practice trial, tell the player what to answer.
+ * A guided trial also marks the control to use.
+ */
+function promptPracticeResponse() {
+  if (_practice.context.guided) {
+    guidePracticeResponse();
+  } else {
+    _practice.context.setInstructions(PRACTICE_TEXT.answer);
+  }
+}
+
+/**
+ * End a practice trial once the player answers: say whether it was right without scoring
+ * it, and hand control back to the tutorial.
+ *
+ * @param {boolean} success - Whether both answers were right.
+ */
+function finishPracticeTrial(success) {
+  const { context, resolve } = _practice;
+  _practice = null;
+  context.hideMarker();
+  announce(PRACTICE_TEXT.result({ success, ...describeCorrectAnswer() }));
+  resolve();
+}
+
+/**
+ * Drop any practice trial and cancel its animation frames and timers. Runs when the
+ * tutorial's practice signal aborts, which happens whenever the tutorial ends. The trial's
+ * promise is left pending: the tutorial no longer waits on it.
+ */
+function endPractice() {
+  clearAsyncHandles();
+  _responseEnabled = false;
+  _currentTrial = null;
+  _practice = null;
+}
+
+/**
+ * Play one tutorial practice trial at the starting difficulty. It uses the real stimulus,
+ * mask, and response controls but never touches the SOA, accuracy, threshold history,
+ * session timer, or saved progress. In a guided trial the correct kitten, then the correct
+ * square, is marked once the field appears.
+ *
+ * @param {import('../../components/tutorialService.js').PracticeRoundContext} context
+ * @returns {Promise<void>} Resolves once the player answers.
+ */
+function playPracticeTrial(context) {
+  showGameArea();
+  // Adding the same listener again in round 2 is a no-op, so this never stacks up.
+  context.signal.addEventListener('abort', endPractice, { once: true });
+
+  return new Promise((resolve) => {
+    _practice = { context, resolve, guideTarget: null };
+    context.setInstructions(PRACTICE_TEXT.watch);
+
+    const { layout, soaMs } = game.createPracticeTrial();
+    _currentTrial = layout;
+    runStimulusPhase(soaMs);
+  });
+}
+
+/**
+ * Whether a guided tutorial is in progress.
+ *
+ * @returns {boolean}
+ */
+function isTutorialActive() {
+  return !!_tutorialRun && _tutorialRun.isActive();
+}
+
+/**
+ * Cancel the guided tutorial, if one is running. Its practice signal aborts, which clears
+ * any practice trial.
+ */
+function cancelTutorial() {
+  if (_tutorialRun) _tutorialRun.cancel();
+  _tutorialRun = null;
+}
+
+/**
+ * Start a gameplay session immediately without tutorial gating.
+ */
+function beginGameSession() {
+  game.startGame();
+
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
+  showGameArea();
+  startTrial();
+}
+
+/**
+ * Load the tutorial steps and hand them to a guided-tutorial launcher, guarding against
+ * overlapping launches and a tutorial already in progress. When the tutorial finishes or
+ * is skipped, the real session begins.
+ *
+ * @param {typeof runGuidedTutorial | typeof runGuidedTutorialIfNeeded} launch - Which
+ *   launcher to use.
+ * @returns {Promise<void>}
+ */
+async function launchTutorial(launch) {
+  if (!_container || _isTutorialLaunchPending || isTutorialActive()) return;
+
+  _isTutorialLaunchPending = true;
+  try {
+    const introSteps = await getTutorialSteps();
+    // Null (after starting the session) when the tutorial was already seen.
+    _tutorialRun = await launch({
+      gameId: GAME_ID,
+      container: _container,
+      introSteps,
+      playPracticeRound: playPracticeTrial,
+      onComplete: beginGameSession,
+    });
+  } finally {
+    _isTutorialLaunchPending = false;
   }
 }
 
@@ -494,6 +704,7 @@ function init(gameContainer) {
   _trendLatestEl = _container.querySelector('#fov-trend-latest');
   _finalBestThresholdEl = _container.querySelector('#fov-final-best-threshold');
   _startBtn = _container.querySelector('#fov-start-btn');
+  _replayTutorialBtn = _container.querySelector('#fov-replay-tutorial-btn');
   _stopBtn = _container.querySelector('#fov-stop-btn');
   _playAgainBtn = _container.querySelector('#fov-play-again-btn');
   _returnBtn = _container.querySelector('#fov-return-btn');
@@ -502,12 +713,18 @@ function init(gameContainer) {
   _locationSelectorEl = _container.querySelector('#fov-location-selector');
   _sessionTimerEl = _container.querySelector('#fov-session-timer');
 
-  if (_startBtn) _startBtn.addEventListener('click', () => start());
+  if (_startBtn) _startBtn.addEventListener('click', () => { void start(); });
+  // Replay always shows the tutorial, then starts a session.
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => {
+      void launchTutorial(runGuidedTutorial);
+    });
+  }
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
-      start();
+      void start();
     });
   }
   if (_returnBtn) _returnBtn.addEventListener('click', () => returnToMainMenu());
@@ -523,27 +740,20 @@ function init(gameContainer) {
 }
 
 /**
- * Start gameplay session.
+ * Start a gameplay session, showing the tutorial first if the player has not seen it.
+ *
+ * @returns {Promise<void>}
  */
 function start() {
-  game.startGame();
-
-  timerService.startTimer((elapsedMs) => {
-    if (_sessionTimerEl) {
-      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
-    }
-  });
-
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_endPanelEl) _endPanelEl.hidden = true;
-  if (_gameAreaEl) _gameAreaEl.hidden = false;
-  if (_responseEl) _responseEl.hidden = false;
-
-  startTrial();
+  return launchTutorial(runGuidedTutorialIfNeeded);
 }
 
 /**
- * Stop gameplay and show end panel.
+ * Stop gameplay, save progress, and show the end panel.
+ *
+ * With no session running (on the welcome screen, during the tutorial, or when the app
+ * quits after a session ended) there is nothing to save and the screen is left alone,
+ * except that leaving a tutorial this way cancels it and returns to the welcome screen.
  *
  * @returns {{
  *   score: number,
@@ -556,7 +766,12 @@ function start() {
 function stop() {
   clearAsyncHandles();
 
-  const result = game.isRunning() ? game.stopGame() : buildIdleResult();
+  if (!game.isRunning()) {
+    if (isTutorialActive()) reset();
+    return buildIdleResult();
+  }
+
+  const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
@@ -578,6 +793,7 @@ function stop() {
  * Reset to pre-game state without leaving the game plugin.
  */
 function reset() {
+  cancelTutorial();
   clearAsyncHandles();
   game.initGame();
 
