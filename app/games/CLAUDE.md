@@ -136,11 +136,12 @@ their pattern: step HTML files in `<id>/tutorial/` plus a `tutorial.js` whose
 `getTutorialSteps()` passes their definitions to `loadTutorialSteps`, an annotated
 `images/tutorialScreenshot.png`, a "Replay Tutorial" button on the welcome panel, and an async
 `start()` that loads the steps and launches the tutorial with a function that begins the
-session. Guard against a second launch
-while one is loading or in progress. `fast-piggie` is the reference for guided tutorials with
-practice rounds, and `card-rat`, `directional-processing`, and `field-of-view` follow it.
-`field-of-view` shows how to guide a two-part answer: the marker moves from the first control
-to the second as the player answers.
+session. Guard against a second launch while one is loading or in progress. `fast-piggie` is
+the reference for guided tutorials with practice rounds, and `card-rat`,
+`directional-processing`, and `field-of-view` follow it. `field-of-view` differs in two ways:
+it guides a two-part answer (the marker moves from the first control to the second), and it
+keeps the launch and practice code in `tutorial/tutorial.js`, reaching the game through a
+controls object, instead of in `index.js`. See `field-of-view/tutorial/CLAUDE.md`.
 
 ## Shared screen markup
 

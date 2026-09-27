@@ -20,29 +20,8 @@ This is the only game whose controller is split across several modules:
 - `progress.js`: wraps `saveScore` and owns `GAME_ID`.
 - `index.js`: the trial cycle and lifecycle. Audio feedback comes from the shared
   `audioService`.
-- `tutorial/`: the first-run tutorial. `tutorial.js` lists the step HTML files and the text for
-  practice rounds (`PRACTICE_TEXT`). `start()` runs them through `runGuidedTutorialIfNeeded`,
-  and Replay Tutorial through `runGuidedTutorial`, before the session begins. The screenshot
-  step highlights regions of `images/tutorialScreenshot.png` with the percentage-positioned
-  `.fov-tutorial-highlight--*` boxes in `style.css`. Retake the screenshot and update those
-  boxes together if the game layout changes.
-
-## Tutorial practice rounds
-
-After the slides, `playPracticeTrial` plays up to two trials from `createPracticeTrial()`
-through the same `runStimulusPhase` → mask → response code as the real game. The session is
-never started, so `game.isRunning()` stays `false`. `submitResponse` sends practice answers to
-`finishPracticeTrial`, which plays the usual sound and flash but skips `recordTrial`, the
-stats, the trend chart, and the next trial. It resolves the round with `{ correct, feedback }`.
-A correct answer is announced in the feedback region. A miss is left to the coach banner, which
-names both correct answers and offers Try Again. The retry (`context.attempt > 1`) replays the
-same layout from `_lastPracticeTrial`. In the guided first round, `guidePracticeResponse`
-rings the correct kitten button once the field appears, then moves the marker to the correct
-location square after a kitten is chosen. The coach text names the kitten or the row and
-column, since the marker is not announced, and changes only when the target does. The practice
-signal's `abort` runs `endPractice`, which cancels the animation frames and timers. End Game
-during practice (`stop()` with no session) cancels the tutorial and returns to the welcome
-panel without saving.
+- `tutorial/`: the first-run tutorial, both its content and the code that launches it and plays
+  practice trials. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Trial timing
 
