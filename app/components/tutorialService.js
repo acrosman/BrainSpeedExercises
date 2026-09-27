@@ -10,20 +10,9 @@
  * All persistence calls go through the window.api IPC bridge; never import
  * Electron APIs directly in this module.
  *
- * Typical usage inside a game plugin's start():
- * ```js
- * import { runGuidedTutorialIfNeeded } from '../../components/tutorialService.js';
- *
- * if (_tutorialRun && _tutorialRun.isActive()) return;
- * _tutorialRun = await runGuidedTutorialIfNeeded({
- *   gameId: 'my-game-id',
- *   container,
- *   introSteps: await getTutorialSteps(),
- *   playPracticeRound, // (context) => Promise that resolves once the player answers
- *   onComplete: beginGameSession,
- * });
- * // In stop() and reset(): if (_tutorialRun) _tutorialRun.cancel();
- * ```
+ * Games do not call the guided runners directly. They launch them through
+ * `createTutorialLauncher` in tutorialLauncher.js, which adds the guard against overlapping
+ * launches and the cancel used by `stop()` and `reset()`.
  *
  * @file Shared tutorial overlay service.
  */
