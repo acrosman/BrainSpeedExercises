@@ -223,7 +223,7 @@ export function updateBestStats(progressEntry) {
  * @returns {Promise<void>}
  */
 export async function loadBestStatsFromProgress() {
-  updateBestStats(await loadGameScore('orbit-sprite-memory'));
+  updateBestStats(await loadGameScore(game.GAME_ID));
 }
 
 /**
@@ -534,7 +534,7 @@ function stop() {
   const sessionDurationMs = timerService.stopTimer();
 
   // Persist progress — fire and forget (never blocks the UI).
-  saveScore('orbit-sprite-memory', {
+  saveScore(game.GAME_ID, {
     score: result.score,
     sessionDurationMs,
     level: result.level,

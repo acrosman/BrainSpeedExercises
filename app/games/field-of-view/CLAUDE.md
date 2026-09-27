@@ -17,7 +17,7 @@ This is the only game whose controller is split across several modules:
   players see it ("Sitting kitten", "Yarn ball"), and `cellPosition` turns a cell index into
   its one-based row and column. Every function takes its elements as arguments, and the
   module has no state of its own. Add new rendering code here, not in `index.js`.
-- `progress.js`: wraps `saveScore` and owns `GAME_ID`.
+- `progress.js`: wraps `saveScore`, saving under `game.GAME_ID`.
 - `index.js`: the trial cycle and lifecycle. Audio feedback comes from the shared
   `audioService`.
 - `tutorial/`: the first-run tutorial, both its content and the code that launches it and plays

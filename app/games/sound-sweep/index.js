@@ -17,9 +17,6 @@ import { returnToMainMenu } from '../../components/gameUtils.js';
 import * as timerService from '../../components/timerService.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 
-/** Game identifier used for progress persistence (must match manifest.json id). */
-const GAME_ID = 'sound-sweep';
-
 // ── Timing constants ──────────────────────────────────────────────────────────
 
 /**
@@ -429,7 +426,7 @@ function stop() {
   showEndPanel(result);
 
   if (result.trialsCompleted > 0) {
-    saveScore(GAME_ID, {
+    saveScore(game.GAME_ID, {
       score: result.score,
       level: result.level,
       sessionDurationMs,

@@ -8,6 +8,10 @@
  */
 
 import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+import manifest from './manifest.json' with { type: 'json' };
+
+/** Game ID, read from manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = manifest.id;
 
 /** Number of sprites in the provided 4x2 sheet. */
 export const TOTAL_SPRITES = 8;

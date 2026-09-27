@@ -20,17 +20,14 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
   getTodayDateString: jest.fn(() => '2024-01-15'),
 }));
 
+const GAME_ID = 'field-of-view';
+
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID,
   getThresholdHistory: jest.fn(() => []),
 }));
 
-const { saveProgress, GAME_ID } = await import('../progress.js');
-
-describe('GAME_ID', () => {
-  test('is field-of-view', () => {
-    expect(GAME_ID).toBe('field-of-view');
-  });
-});
+const { saveProgress } = await import('../progress.js');
 
 describe('saveProgress', () => {
   beforeEach(() => {

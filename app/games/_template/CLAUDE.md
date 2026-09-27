@@ -9,7 +9,8 @@ and it is excluded from coverage.
    directory name). Add `images/thumbnail.png`.
 2. Rename the `game-template-*` element IDs in `interface.html` and `index.js` to a short
    prefix for the game (for example `ss-`), and rename the root `.game-template` class.
-3. Set `GAME_ID` in `index.js` to the manifest `id`.
+3. Leave `GAME_ID` alone. `game.js` reads it from `manifest.json`, so the `id` set in step 1
+   is the only place the ID is written.
 4. Replace `LEVELS` and the placeholder play area with the real game. Call
    `handleResponse(success)` from the game's input handlers after each trial.
 5. Add a `CLAUDE.md` for the new game that covers only what is specific to it.

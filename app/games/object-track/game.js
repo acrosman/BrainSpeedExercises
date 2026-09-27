@@ -8,6 +8,10 @@
  */
 
 import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+import manifest from './manifest.json' with { type: 'json' };
+
+/** Game ID, read from manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = manifest.id;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

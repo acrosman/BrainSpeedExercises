@@ -13,7 +13,6 @@ import { loadTutorialSteps } from '../../../components/tutorialService.js';
 import { createTutorialLauncher } from '../../../components/tutorialLauncher.js';
 import * as game from '../game.js';
 import { cellPosition, labelForIcon } from '../render.js';
-import { GAME_ID } from '../progress.js';
 
 /**
  * Ordered Field of View tutorial steps.
@@ -144,7 +143,7 @@ export function setPracticeControls(controls) {
  * @type {import('../../../components/tutorialLauncher.js').TutorialLauncher}
  */
 export const tutorial = createTutorialLauncher({
-  gameId: GAME_ID,
+  gameId: game.GAME_ID,
   loadSteps: getTutorialSteps,
   playPracticeRound: playPracticeTrial,
 });

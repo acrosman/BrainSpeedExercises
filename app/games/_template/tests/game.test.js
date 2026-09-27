@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import {
+  GAME_ID,
   CORRECT_STREAK_TO_ADVANCE,
   WRONG_STREAK_TO_DROP,
   LEVEL_DROP,
@@ -15,6 +16,7 @@ import {
   isRunning,
   getSpeedHistory,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 /**
  * Record the same outcome several times.
@@ -119,5 +121,11 @@ describe('getSpeedHistory', () => {
     recordTrial({ success: true });
     getSpeedHistory().push(999);
     expect(getSpeedHistory()).toHaveLength(1);
+  });
+});
+
+describe('GAME_ID', () => {
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });

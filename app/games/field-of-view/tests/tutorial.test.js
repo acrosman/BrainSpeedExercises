@@ -23,8 +23,6 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   runGuidedTutorialIfNeeded: jest.fn(),
 }));
 
-jest.unstable_mockModule('../progress.js', () => ({ GAME_ID: 'field-of-view' }));
-
 const tutorialModule = await import('../tutorial/tutorial.js');
 const { getTutorialSteps, PRACTICE_TEXT, tutorial } = tutorialModule;
 const tutorialServiceMock = await import('../../../components/tutorialService.js');

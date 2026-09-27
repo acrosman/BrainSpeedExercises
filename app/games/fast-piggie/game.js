@@ -9,9 +9,10 @@
  */
 
 import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+import manifest from './manifest.json' with { type: 'json' };
 
-/** Game ID, matching manifest.json, used for saved progress and the tutorial flag. */
-export const GAME_ID = 'fast-piggie';
+/** Game ID, read from manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = manifest.id;
 
 // ── Difficulty constants ───────────────────────────────────────────────────
 /** Display duration (ms) at level 0. */

@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import {
+  GAME_ID,
   START_SOA_MS,
   MIN_SOA_MS,
   MAX_SOA_MS,
@@ -27,6 +28,7 @@ import {
   getTrialsCompleted,
   getSuccessCount,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 beforeEach(() => {
   initGame();
@@ -302,5 +304,11 @@ describe('recordTrial staircase behavior', () => {
     expect(history.length).toBe(2);
     expect(history[0]).toMatchObject({ trial: 1, success: true });
     expect(history[1]).toMatchObject({ trial: 2, success: false });
+  });
+});
+
+describe('GAME_ID', () => {
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });

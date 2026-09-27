@@ -10,6 +10,7 @@ import {
 } from '@jest/globals';
 
 import {
+  GAME_ID,
   MIN_LEVEL,
   CORRECT_TO_ADVANCE,
   WRONG_TO_DROP,
@@ -41,6 +42,7 @@ import {
   getRoundsPlayed,
   getSpeedHistory,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 beforeEach(() => {
   initGame();
@@ -585,5 +587,11 @@ describe('getSpeedHistory', () => {
     recordRoundResult(true);
     initGame();
     expect(getSpeedHistory()).toEqual([]);
+  });
+});
+
+describe('GAME_ID', () => {
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });

@@ -153,7 +153,7 @@ export async function loadGoImages() {
   if (typeof window === 'undefined' || !window.api) return;
   try {
     const files = await window.api.invoke('games:listImages', {
-      gameId: 'otter-stop',
+      gameId: game.GAME_ID,
       subfolder: 'go',
     });
     if (files && files.length > 0) {
@@ -550,7 +550,7 @@ function stop() {
   showEndPanel(result);
 
   // Persist progress — fire and forget (never blocks the UI).
-  saveScore('otter-stop', {
+  saveScore(game.GAME_ID, {
     score: result.score,
     sessionDurationMs,
     level: result.level,

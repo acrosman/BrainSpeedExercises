@@ -59,6 +59,7 @@ function buildLayout(centerId = 'primary-kitten') {
 }
 
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'field-of-view',
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({
@@ -83,7 +84,6 @@ jest.unstable_mockModule('../../../components/audioService.js', () => ({
 }));
 
 jest.unstable_mockModule('../progress.js', () => ({
-  GAME_ID: 'field-of-view',
   saveProgress: jest.fn(),
 }));
 

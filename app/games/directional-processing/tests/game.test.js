@@ -11,6 +11,7 @@ import {
 } from '@jest/globals';
 
 import {
+  GAME_ID,
   DIRECTIONS,
   CORRECT_STREAK_TO_ADVANCE,
   WRONG_STREAK_TO_DROP,
@@ -31,6 +32,7 @@ import {
   isRunning,
   getSpeedHistory,
 } from '../game.js';
+import manifest from '../manifest.json' with { type: 'json' };
 
 beforeEach(() => {
   initGame();
@@ -331,5 +333,11 @@ describe('getSpeedHistory', () => {
     recordTrial({ success: true });
     initGame();
     expect(getSpeedHistory()).toEqual([]);
+  });
+});
+
+describe('GAME_ID', () => {
+  test('is the id from manifest.json', () => {
+    expect(GAME_ID).toBe(manifest.id);
   });
 });

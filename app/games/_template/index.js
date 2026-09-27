@@ -15,9 +15,6 @@ import { returnToMainMenu } from '../../components/gameUtils.js';
 import * as timerService from '../../components/timerService.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 
-/** Game identifier used for progress persistence (must match manifest.json id). */
-const GAME_ID = 'game-id-slug';
-
 /** Human-readable name returned as part of the plugin contract. */
 const name = 'Template Game';
 
@@ -175,7 +172,7 @@ function stop() {
   if (_finalLevelEl) _finalLevelEl.textContent = String(result.level + 1);
 
   if (result.trialsCompleted > 0) {
-    saveScore(GAME_ID, {
+    saveScore(game.GAME_ID, {
       score: result.score,
       level: result.level,
       sessionDurationMs,

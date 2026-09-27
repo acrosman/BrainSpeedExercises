@@ -11,6 +11,10 @@
  */
 
 import { updateAdaptiveDifficultyState } from '../../components/adaptiveDifficultyService.js';
+import manifest from './manifest.json' with { type: 'json' };
+
+/** Game ID, read from manifest.json, used for saved progress and the tutorial flag. */
+export const GAME_ID = manifest.id;
 
 /** Consecutive correct responses needed to advance one level. */
 export const CORRECT_STREAK_TO_ADVANCE = 3;
