@@ -15,6 +15,7 @@ await import('../../../components/timerService.js');
 
 // Mock game.js so index.js can be tested in isolation.
 jest.unstable_mockModule('../game.js', () => ({
+  GAME_ID: 'high-speed-memory',
   PRIMARY_IMAGE: 'Primary.jpg',
   DISTRACTOR_IMAGES: ['Distractor1.jpg', 'Distractor2.jpg'],
   PRIMARY_COUNT: 3,
@@ -39,6 +40,13 @@ jest.unstable_mockModule('../game.js', () => ({
     { id: 7, image: 'Distractor2.jpg', matched: false },
     { id: 8, image: 'Primary.jpg', matched: false },
   ]),
+  // Practice grid: cards 1, 3, 5 are Primary, so it differs from the session grid.
+  createPracticeRound: jest.fn(() => ({
+    grid: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((id) => ({
+      id, image: id % 2 === 1 && id < 6 ? 'Primary.jpg' : 'Distractor1.jpg', matched: false,
+    })),
+    displayMs: 1500,
+  })),
   isPrimary: jest.fn((img) => img === 'Primary.jpg'),
   addCorrectGroup: jest.fn(),
   completeRound: jest.fn(),
@@ -49,6 +57,22 @@ jest.unstable_mockModule('../game.js', () => ({
   getConsecutiveCorrectRounds: jest.fn(() => 1),
   isRunning: jest.fn(() => true),
   getSpeedHistory: jest.fn(() => []),
+}));
+
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to High Speed Memory', content: '<p>Welcome</p>' },
+  ]),
+  // Default replay: the player finishes the tutorial at once.
+  runGuidedTutorial: jest.fn((options) => {
+    options.onComplete();
+    return { cancel: jest.fn(), isActive: () => false };
+  }),
+  // Default first start: the tutorial was already seen.
+  runGuidedTutorialIfNeeded: jest.fn(async (options) => {
+    options.onComplete();
+    return null;
+  }),
 }));
 
 const pluginModule = await import('../index.js');
@@ -70,6 +94,9 @@ const {
 } = pluginModule;
 
 const gameMock = await import('../game.js');
+const tutorialServiceMock = await import('../../../components/tutorialService.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 
 // ── Audio context mock (enables testing sound calls) ──────────────────────────
 
@@ -99,6 +126,13 @@ globalThis.AudioContext = jest.fn(() => mockAudioCtx);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Let pending promise callbacks (such as a tutorial launch) run. */
+async function flushMicrotasks() {
+  for (let i = 0; i < 5; i += 1) {
+    await Promise.resolve();
+  }
+}
+
 /** Build a minimal DOM matching interface.html. */
 function buildContainer() {
   const el = document.createElement('div');
@@ -107,6 +141,7 @@ function buildContainer() {
     <div id="hsm-game-area" hidden></div>
     <div id="hsm-end-panel" hidden></div>
     <button id="hsm-start-btn" type="button"></button>
+    <button id="hsm-replay-tutorial-btn" type="button"></button>
     <button id="hsm-stop-btn" type="button"></button>
     <button id="hsm-play-again-btn" type="button"></button>
     <button id="hsm-return-btn" type="button"></button>
@@ -165,20 +200,23 @@ describe('start', () => {
     jest.useRealTimers();
   });
 
-  test('shows the game area and hides instructions', () => {
-    plugin.start();
+  test('shows the game area and hides instructions', async () => {
+    await plugin.start();
     expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
     expect(container.querySelector('#hsm-instructions').hidden).toBe(true);
   });
 
-  test('does not throw when called without a container', () => {
+  test('does nothing when called without a container', async () => {
     plugin.init(null);
-    expect(() => plugin.start()).not.toThrow();
+    gameMock.startGame.mockClear();
+    await expect(plugin.start()).resolves.toBeUndefined();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
   });
 
-  test('start button click triggers start', () => {
+  test('start button click triggers start', async () => {
     const startBtn = container.querySelector('#hsm-start-btn');
     startBtn.click();
+    await flushMicrotasks();
     expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
   });
 });
@@ -188,11 +226,11 @@ describe('start', () => {
 describe('stop', () => {
   let container;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.useFakeTimers();
     container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
   });
 
   afterEach(() => {
@@ -279,11 +317,11 @@ describe('stop', () => {
 describe('reset', () => {
   let container;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.useFakeTimers();
     container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
   });
 
   afterEach(() => {
@@ -319,15 +357,16 @@ describe('reset', () => {
 // ── play-again button ─────────────────────────────────────────────────────────
 
 describe('play again button', () => {
-  test('resets and restarts the game', () => {
+  test('resets and restarts the game', async () => {
     jest.useFakeTimers();
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.stop();
 
     const playAgainBtn = container.querySelector('#hsm-play-again-btn');
     playAgainBtn.click();
+    await flushMicrotasks();
 
     expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
     jest.useRealTimers();
@@ -337,11 +376,11 @@ describe('play again button', () => {
 // ── return-to-menu button ─────────────────────────────────────────────────────
 
 describe('return to menu button', () => {
-  test('dispatches bsx:return-to-main-menu event when clicked', () => {
+  test('dispatches bsx:return-to-main-menu event when clicked', async () => {
     jest.useFakeTimers();
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.stop();
 
     let eventFired = false;
@@ -850,10 +889,10 @@ describe('handleCardClick', () => {
     expect(mockAudioCtx.createOscillator).toHaveBeenCalled();
   });
 
-  test('stopping during the inter-round pause cancels the next round', () => {
+  test('stopping during the inter-round pause cancels the next round', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     jest.runAllTimers(); // release flip lock
 
     handleCardClick(0);
@@ -878,7 +917,7 @@ describe('dailyTime accumulation', () => {
     timerMod = await import('../../../components/timerService.js');
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
   });
 
   afterEach(() => {
@@ -942,6 +981,269 @@ describe('dailyTime accumulation', () => {
 
     // 30000 (existing) + 60000 (new) = 90000
     expect(savedPayloads[0].data.games['high-speed-memory'].dailyTime['2024-01-15']).toBe(90000);
+  });
+});
+
+// ── Guided tutorial ───────────────────────────────────────────────────────────
+
+/**
+ * Make the next start() open a guided tutorial that stays in progress until the test
+ * calls finish(). Like the real runner, cancel() aborts the practice signal and ends the run.
+ * @returns {Promise<{ options: object, run: object, controller: AbortController,
+ *   finish: () => void }>}
+ */
+async function startPendingTutorial() {
+  let options = null;
+  let active = true;
+  const controller = new AbortController();
+  const finish = () => { active = false; };
+  const run = {
+    cancel: jest.fn(() => {
+      controller.abort();
+      finish();
+    }),
+    isActive: jest.fn(() => active),
+  };
+  tutorialServiceMock.runGuidedTutorialIfNeeded.mockImplementationOnce(async (opts) => {
+    options = opts;
+    return run;
+  });
+  await plugin.start();
+  return {
+    options, run, controller, finish,
+  };
+}
+
+describe('guided tutorial', () => {
+  let container;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+    container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+  });
+
+  afterEach(() => {
+    plugin.reset();
+    container.remove();
+    jest.useRealTimers();
+  });
+
+  test('start runs the guided tutorial if needed with the High Speed Memory steps', async () => {
+    await plugin.start();
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gameId: 'high-speed-memory',
+        container,
+        introSteps: [{ title: 'Welcome to High Speed Memory', content: '<p>Welcome</p>' }],
+        playPracticeRound: expect.any(Function),
+        onComplete: expect.any(Function),
+      }),
+    );
+    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
+  });
+
+  test('replay tutorial button runs the guided tutorial and then starts the game', async () => {
+    container.querySelector('#hsm-replay-tutorial-btn').click();
+    await flushMicrotasks();
+    expect(tutorialServiceMock.runGuidedTutorial).toHaveBeenCalledWith(expect.objectContaining({
+      gameId: 'high-speed-memory',
+      playPracticeRound: expect.any(Function),
+    }));
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
+  });
+
+  test('ignores a second start while the first tutorial launch is in flight', async () => {
+    await Promise.all([plugin.start(), plugin.start()]);
+    expect(tutorialServiceMock.loadTutorialSteps).toHaveBeenCalledTimes(1);
+    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
+  });
+
+  test('does not start the game until the tutorial completes', async () => {
+    const { options } = await startPendingTutorial();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#hsm-game-area').hidden).toBe(true);
+
+    options.onComplete();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
+    expect(gameMock.generateGrid).toHaveBeenCalled();
+  });
+
+  test('start and replay do nothing while a tutorial is in progress', async () => {
+    await startPendingTutorial();
+    jest.clearAllMocks();
+
+    await plugin.start();
+    container.querySelector('#hsm-replay-tutorial-btn').click();
+    await flushMicrotasks();
+
+    expect(tutorialServiceMock.loadTutorialSteps).not.toHaveBeenCalled();
+    expect(tutorialServiceMock.runGuidedTutorial).not.toHaveBeenCalled();
+  });
+
+  test('reset() cancels a tutorial in progress', async () => {
+    const { run } = await startPendingTutorial();
+    plugin.reset();
+    expect(run.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  test('stop() with no session returns an idle result without saving or changing screens',
+    () => {
+      gameMock.isRunning.mockReturnValueOnce(false);
+      const result = plugin.stop();
+      expect(result).toEqual({
+        score: 5, level: 2, roundsCompleted: 6, duration: 0,
+      });
+      expect(gameMock.stopGame).not.toHaveBeenCalled();
+      expect(container.querySelector('#hsm-end-panel').hidden).toBe(true);
+    });
+});
+
+// ── Practice rounds ───────────────────────────────────────────────────────────
+
+describe('practice round', () => {
+  let container;
+  let pending;
+
+  beforeEach(async () => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+    gameMock.isRunning.mockReturnValue(false);
+    // jsdom does not implement scrollIntoView.
+    Element.prototype.scrollIntoView = jest.fn();
+    container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    pending = await startPendingTutorial();
+  });
+
+  afterEach(() => {
+    plugin.reset();
+    container.remove();
+    gameMock.isRunning.mockReturnValue(true);
+    delete Element.prototype.scrollIntoView;
+    jest.useRealTimers();
+  });
+
+  /**
+   * Start a practice round, like the tutorial runner does.
+   * @param {boolean} [guided=true]
+   * @returns {{ context: object, done: Promise<object> }}
+   */
+  function playRound(guided = true) {
+    const context = {
+      round: guided ? 1 : 2,
+      attempt: 1,
+      maxRounds: 2,
+      guided,
+      signal: pending.controller.signal,
+      setInstructions: jest.fn(),
+      showMarker: jest.fn(),
+      hideMarker: jest.fn(),
+    };
+    const done = pending.options.playPracticeRound(context);
+    return { context, done };
+  }
+
+  /** @param {number} id */
+  const card = (id) => container.querySelector(`[data-id="${id}"]`);
+
+  test('shows the starting grid without starting a session', () => {
+    const { context } = playRound();
+
+    expect(container.querySelector('#hsm-instructions').hidden).toBe(true);
+    expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
+    expect(container.querySelectorAll('#hsm-grid .hsm-card--revealed')).toHaveLength(9);
+    expect(container.querySelector('#hsm-grid').style.gridTemplateColumns)
+      .toBe('repeat(3, 1fr)');
+    expect(gameMock.createPracticeRound).toHaveBeenCalledTimes(1);
+    expect(gameMock.generateGrid).not.toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
+
+    // Clicks are ignored while the cards are face up.
+    handleCardClick(1);
+    expect(card(1).classList.contains('hsm-card--matched')).toBe(false);
+  });
+
+  test('a guided round rings each greyhound in turn without scoring', () => {
+    const { context } = playRound();
+    expect(context.showMarker).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(1500);
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: card(1), shape: 'box' });
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(0));
+
+    card(1).click();
+    expect(card(1).classList.contains('hsm-card--matched')).toBe(true);
+    expect(container.querySelector('#hsm-found').textContent).toBe('1');
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: card(3), shape: 'box' });
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(1));
+    expect(gameMock.addCorrectGroup).not.toHaveBeenCalled();
+  });
+
+  test('finding every greyhound resolves the round as correct', async () => {
+    const { done } = playRound();
+    jest.advanceTimersByTime(1500);
+    [1, 3, 5].forEach((id) => handleCardClick(id));
+
+    await expect(done).resolves.toEqual({ correct: true, feedback: PRACTICE_TEXT.result(true) });
+    expect(container.querySelector('#hsm-feedback').textContent)
+      .toBe(PRACTICE_TEXT.result(true));
+    expect(gameMock.completeRound).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test('a wrong card shows the greyhounds and resolves as a miss', async () => {
+    const { done } = playRound();
+    jest.advanceTimersByTime(1500);
+    handleCardClick(0);
+
+    await expect(done).resolves.toEqual({
+      correct: false, feedback: PRACTICE_TEXT.result(false),
+    });
+    expect(card(0).classList.contains('hsm-card--wrong')).toBe(true);
+    [1, 3, 5].forEach((id) => {
+      expect(card(id).classList.contains('hsm-card--revealed')).toBe(true);
+    });
+    expect(gameMock.resetConsecutiveRounds).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+
+    // The board stays locked until the tutorial replays the round.
+    handleCardClick(1);
+    expect(card(1).classList.contains('hsm-card--matched')).toBe(false);
+  });
+
+  test('an unguided round only prompts for the answer', () => {
+    const { context } = playRound(false);
+    jest.advanceTimersByTime(1500);
+    handleCardClick(1);
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
+    expect(context.showMarker).not.toHaveBeenCalled();
+  });
+
+  test('ending the tutorial stops the round', () => {
+    playRound();
+    pending.controller.abort();
+    expect(jest.getTimerCount()).toBe(0);
+    handleCardClick(1);
+    expect(card(1).classList.contains('hsm-card--matched')).toBe(false);
+  });
+
+  test('End Game during practice cancels the tutorial and returns to the welcome panel', () => {
+    playRound();
+    container.querySelector('#hsm-stop-btn').click();
+
+    expect(pending.run.cancel).toHaveBeenCalled();
+    expect(gameMock.stopGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#hsm-instructions').hidden).toBe(false);
+    expect(container.querySelector('#hsm-game-area').hidden).toBe(true);
+    expect(container.querySelector('#hsm-end-panel').hidden).toBe(true);
   });
 });
 

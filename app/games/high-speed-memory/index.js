@@ -13,6 +13,16 @@ import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import {
+  cancelTutorial,
+  finishPracticeRound,
+  guidePracticeResponse,
+  isPracticing,
+  isTutorialActive,
+  promptPracticeResponse,
+  replayTutorial,
+  startTutorialIfNeeded,
+} from './tutorial/tutorial.js';
 
 /**
  * Delay in ms before a wrongly-clicked Distractor card flips back face-down.
@@ -48,6 +58,9 @@ let _endPanelEl = null;
 
 /** @type {HTMLElement|null} */
 let _startBtn = null;
+
+/** @type {HTMLElement|null} */
+let _replayTutorialBtn = null;
 
 /** @type {HTMLElement|null} */
 let _stopBtn = null;
@@ -190,10 +203,10 @@ export function renderGrid() {
   if (!_gridEl) return;
   _gridEl.innerHTML = '';
 
-  const { rows, cols } = game.getGridSize(game.getLevel());
-
-  _gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  _gridEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  // Grids are always square, so the size follows from the card count.
+  const size = Math.sqrt(_roundGrid.length);
+  _gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+  _gridEl.style.gridTemplateRows = `repeat(${size}, 1fr)`;
 
   _roundGrid.forEach((card) => {
     const btn = document.createElement('button');
@@ -222,12 +235,21 @@ export function renderGrid() {
 }
 
 /**
+ * Find the button for a card in the current grid.
+ * @param {number} cardId - The id of the card.
+ * @returns {HTMLButtonElement|null}
+ */
+function getCardEl(cardId) {
+  return _gridEl && _gridEl.querySelector(`[data-id="${cardId}"]`);
+}
+
+/**
  * Flip a single card face-down in the DOM (does not modify _roundGrid state).
  * Hides the card image and removes the revealed styling.
  * @param {number} cardId - The id of the card to hide.
  */
 export function hideCardEl(cardId) {
-  const btn = _gridEl && _gridEl.querySelector(`[data-id="${cardId}"]`);
+  const btn = getCardEl(cardId);
   if (!btn) return;
   btn.classList.remove('hsm-card--revealed', 'hsm-card--wrong');
   btn.setAttribute('aria-label', `Card ${cardId + 1}: face down`);
@@ -241,7 +263,7 @@ export function hideCardEl(cardId) {
  * @param {string} imageName - The image filename to display.
  */
 export function revealCardEl(cardId, imageName) {
-  const btn = _gridEl && _gridEl.querySelector(`[data-id="${cardId}"]`);
+  const btn = getCardEl(cardId);
   if (!btn) return;
   btn.classList.add('hsm-card--revealed');
   btn.classList.remove('hsm-card--wrong');
@@ -258,7 +280,7 @@ export function revealCardEl(cardId, imageName) {
  * @param {number} cardId - The id of the card to mark as matched.
  */
 export function markCardMatched(cardId) {
-  const btn = _gridEl && _gridEl.querySelector(`[data-id="${cardId}"]`);
+  const btn = getCardEl(cardId);
   if (!btn) return;
   btn.classList.add('hsm-card--matched');
   btn.classList.remove('hsm-card--revealed', 'hsm-card--wrong');
@@ -273,7 +295,7 @@ export function markCardMatched(cardId) {
  * @param {number} cardId - The id of the card to mark as wrong.
  */
 export function markCardWrong(cardId) {
-  const btn = _gridEl && _gridEl.querySelector(`[data-id="${cardId}"]`);
+  const btn = getCardEl(cardId);
   if (!btn) return;
   btn.classList.add('hsm-card--wrong');
 }
@@ -290,6 +312,7 @@ export function hideAllCards() {
   });
   _flipLock = false;
   announce(`Cards hidden — find the ${game.PRIMARY_COUNT} matching cards!`);
+  if (isPracticing()) promptPracticeResponse();
 }
 
 /**
@@ -305,27 +328,32 @@ export function revealPrimaryCards() {
 }
 
 /**
+ * Show `grid` face up, then flip it face down after `displayMs`. Card clicks are ignored
+ * until then.
+ *
+ * @param {Array<{ id: number, image: string, matched: boolean }>} grid - The round's cards.
+ * @param {number} displayMs - How long the cards stay face up, in ms.
+ */
+function playRound(grid, displayMs) {
+  _primaryFound = 0;
+  _flipLock = true;
+  _roundGrid = grid;
+  renderGrid();
+  updateFoundDisplay();
+  _hideTimer = setTimeout(hideAllCards, displayMs);
+}
+
+/**
  * Start a new round: generate a fresh grid, render it revealed, then hide after delay.
  * Does nothing if the game is no longer running.
  */
 export function startRound() {
   if (!game.isRunning()) return;
 
-  _primaryFound = 0;
-  _flipLock = true;
-
-  _roundGrid = game.generateGrid(game.getLevel());
-  renderGrid();
+  const level = game.getLevel();
+  playRound(game.generateGrid(level), game.getDisplayDurationMs(level));
   updateStats();
-  updateFoundDisplay();
-
-  const displayMs = game.getDisplayDurationMs(game.getLevel());
-
-  announce(
-    `Level ${game.getLevel() + 1}. Find the ${game.PRIMARY_COUNT} matching cards.`,
-  );
-
-  _hideTimer = setTimeout(hideAllCards, displayMs);
+  announce(`Level ${level + 1}. Find the ${game.PRIMARY_COUNT} matching cards.`);
 }
 
 /**
@@ -347,37 +375,72 @@ export function handleCardClick(cardId) {
   revealCardEl(cardId, card.image);
 
   if (game.isPrimary(card.image)) {
-    // Correct — mark this Primary card as found
-    card.matched = true;
-    markCardMatched(cardId);
-    game.addCorrectGroup();
-    _primaryFound += 1;
-    updateStats();
-    updateFoundDisplay();
-    announce(`Found one! ${_primaryFound} of ${game.PRIMARY_COUNT} found.`);
-
-    if (_primaryFound >= game.PRIMARY_COUNT) {
-      onRoundComplete();
-    }
+    onPrimaryFound(card);
   } else {
-    // Wrong — reset streak, play sound, briefly reveal the target positions, then restart
-    game.resetConsecutiveRounds();
-    markCardWrong(cardId);
-    playFailureSound();
-    updateStats();
-    updateTrendChart();
-    announce('Wrong guess! The round will restart.');
-
-    _flipLock = true;
-    clearTimers();
-    _roundRestartTimer = setTimeout(() => {
-      revealPrimaryCards();
-      announce('Here are the target card positions.');
-      _answerRevealTimer = setTimeout(() => {
-        startRound();
-      }, REVEAL_ANSWER_MS);
-    }, WRONG_FLIP_DELAY_MS);
+    onWrongGuess(cardId);
   }
+}
+
+/**
+ * Keep a correctly found Primary card face up. In a session it scores, and finding the last
+ * one completes the round. In a practice round nothing is scored: the tutorial rings the next
+ * card, or takes the result once all are found.
+ *
+ * @param {{ id: number, matched: boolean }} card - The Primary card that was clicked.
+ */
+function onPrimaryFound(card) {
+  const practicing = isPracticing();
+  card.matched = true;
+  markCardMatched(card.id);
+  _primaryFound += 1;
+  if (!practicing) {
+    game.addCorrectGroup();
+    updateStats();
+  }
+  updateFoundDisplay();
+  announce(`Found one! ${_primaryFound} of ${game.PRIMARY_COUNT} found.`);
+
+  if (_primaryFound < game.PRIMARY_COUNT) {
+    if (practicing) guidePracticeResponse();
+  } else if (practicing) {
+    playSuccessSound();
+    finishPracticeRound(true);
+  } else {
+    onRoundComplete();
+  }
+}
+
+/**
+ * Mark a wrong guess and lock the board. In a session this breaks the streak, then shows
+ * where the Primary cards were and replays the round with a new grid. In a practice round
+ * the Primary cards are shown at once and the tutorial offers the retry.
+ *
+ * @param {number} cardId - The id of the Distractor card that was clicked.
+ */
+function onWrongGuess(cardId) {
+  markCardWrong(cardId);
+  playFailureSound();
+  _flipLock = true;
+  clearTimers();
+
+  if (isPracticing()) {
+    revealPrimaryCards();
+    finishPracticeRound(false);
+    return;
+  }
+
+  game.resetConsecutiveRounds();
+  updateStats();
+  updateTrendChart();
+  announce('Wrong guess! The round will restart.');
+
+  _roundRestartTimer = setTimeout(() => {
+    revealPrimaryCards();
+    announce('Here are the target card positions.');
+    _answerRevealTimer = setTimeout(() => {
+      startRound();
+    }, REVEAL_ANSWER_MS);
+  }, WRONG_FLIP_DELAY_MS);
 }
 
 /**
@@ -411,7 +474,6 @@ function onRoundComplete() {
 }
 
 /**
-/**
  * Clear any pending timers (used during stop/reset).
  */
 function clearTimers() {
@@ -444,6 +506,72 @@ function showEndPanel(result) {
   if (_finalLevelEl) _finalLevelEl.textContent = String(result.level + 1);
 }
 
+/**
+ * Show the game area, with no leftover feedback, in place of the welcome and end panels.
+ */
+function showGameArea() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+  if (_gameAreaEl) _gameAreaEl.hidden = false;
+  announce('');
+}
+
+/**
+ * Start a gameplay session immediately without tutorial gating.
+ */
+function beginGameSession() {
+  game.startGame();
+
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
+  showGameArea();
+  startRound();
+}
+
+/**
+ * Round controls the tutorial uses to play practice rounds with the real grid, reveal timing,
+ * and card controls.
+ *
+ * @type {import('./tutorial/tutorial.js').PracticeRoundControls}
+ */
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea,
+  playRound,
+  stopRound() {
+    clearTimers();
+    _flipLock = true;
+  },
+  getCard: getCardEl,
+  announce,
+});
+
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('./tutorial/tutorial.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, controls: PRACTICE_CONTROLS, onComplete: beginGameSession };
+}
+
+/**
+ * Build the result returned by stop() when no session is running.
+ *
+ * @returns {{ score: number, level: number, roundsCompleted: number, duration: number }}
+ */
+function buildIdleResult() {
+  return {
+    score: game.getScore(),
+    level: game.getLevel(),
+    roundsCompleted: game.getRoundsCompleted(),
+    duration: 0,
+  };
+}
+
 // ── Plugin contract ────────────────────────────────────────────────────────────
 
 /** Human-readable name returned as part of the plugin contract. */
@@ -466,6 +594,7 @@ function init(gameContainer) {
   _gameAreaEl = _container.querySelector('#hsm-game-area');
   _endPanelEl = _container.querySelector('#hsm-end-panel');
   _startBtn = _container.querySelector('#hsm-start-btn');
+  _replayTutorialBtn = _container.querySelector('#hsm-replay-tutorial-btn');
   _stopBtn = _container.querySelector('#hsm-stop-btn');
   _playAgainBtn = _container.querySelector('#hsm-play-again-btn');
   _returnToMenuBtn = _container.querySelector('#hsm-return-btn');
@@ -484,7 +613,13 @@ function init(gameContainer) {
   _trendLatestEl = _container.querySelector('#hsm-trend-latest');
 
   if (_startBtn) {
-    _startBtn.addEventListener('click', () => start());
+    _startBtn.addEventListener('click', () => { void start(); });
+  }
+  // Replay always shows the tutorial, then starts a session.
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => {
+      void replayTutorial(tutorialOptions());
+    });
   }
   if (_stopBtn) {
     _stopBtn.addEventListener('click', () => stop());
@@ -492,7 +627,7 @@ function init(gameContainer) {
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
-      start();
+      void start();
     });
   }
   if (_returnToMenuBtn) {
@@ -501,38 +636,37 @@ function init(gameContainer) {
 }
 
 /**
- * Start the game.
- * Hides the instructions panel, shows the game area, and begins the first round.
+ * Start a gameplay session, showing the tutorial first if the player has not seen it.
+ *
+ * @returns {Promise<void>}
  */
 function start() {
-  game.startGame();
-
-  timerService.startTimer((elapsedMs) => {
-    if (_sessionTimerEl) {
-      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
-    }
-  });
-
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_endPanelEl) _endPanelEl.hidden = true;
-  if (_gameAreaEl) _gameAreaEl.hidden = false;
-
-  startRound();
+  return startTutorialIfNeeded(tutorialOptions());
 }
 
 /**
  * Stop the game, persist progress, and show the end-game panel.
  * Progress is saved asynchronously (fire-and-forget); the game result is returned synchronously.
  *
+ * With no session running (on the welcome screen, during the tutorial, or when the app
+ * quits after a session ended) there is nothing to save and the screen is left alone,
+ * except that leaving a tutorial this way cancels it and returns to the welcome screen.
+ *
  * @returns {{ score: number, level: number, roundsCompleted: number, duration: number }}
  */
 function stop() {
   clearTimers();
+
+  if (!game.isRunning()) {
+    if (isTutorialActive()) reset();
+    return buildIdleResult();
+  }
+
   const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
 
   // Persist progress — fire and forget (never blocks the UI).
-  saveScore('high-speed-memory', {
+  saveScore(game.GAME_ID, {
     score: result.score,
     sessionDurationMs,
     level: result.level,
@@ -547,6 +681,7 @@ function stop() {
  * Reset the game to its initial state without reloading interface.html.
  */
 function reset() {
+  cancelTutorial();
   clearTimers();
   game.initGame();
 
