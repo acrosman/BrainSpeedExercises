@@ -201,24 +201,13 @@ export function getGridSizeForCurrentSoa() {
 }
 
 /**
- * Build a randomized trial layout with one central kitten and one toy target
- * on the outer edge of the grid.
+ * Build a randomized layout for a grid of the given size, with one central kitten and one
+ * toy target on the outer edge.
  *
- * @returns {{
- *   gridSize: number,
- *   centerIndex: number,
- *   centerIcon: { id: string, file: string, width: number, height: number },
- *   peripheralIndex: number,
- *   peripheralIcon: { id: string, file: string, width: number, height: number },
- *   cells: Array<{
- *     index: number,
- *     role: string,
- *     icon: { id: string, file: string, width: number, height: number }|null
- *   }>,
- * }}
+ * @param {number} gridSize - Number of rows and columns.
+ * @returns {ReturnType<typeof createTrialLayout>}
  */
-export function createTrialLayout() {
-  const gridSize = getGridSizeForCurrentSoa();
+function buildTrialLayout(gridSize) {
   const totalCells = gridSize * gridSize;
   const centerIndex = Math.floor(totalCells / 2);
   const centerIcon = CENTRAL_TARGET_SET[Math.floor(Math.random() * CENTRAL_TARGET_SET.length)];
@@ -255,6 +244,37 @@ export function createTrialLayout() {
     peripheralIcon,
     cells,
   };
+}
+
+/**
+ * Build a randomized trial layout with one central kitten and one toy target
+ * on the outer edge of the grid, sized for the current SOA.
+ *
+ * @returns {{
+ *   gridSize: number,
+ *   centerIndex: number,
+ *   centerIcon: { id: string, file: string, width: number, height: number },
+ *   peripheralIndex: number,
+ *   peripheralIcon: { id: string, file: string, width: number, height: number },
+ *   cells: Array<{
+ *     index: number,
+ *     role: string,
+ *     icon: { id: string, file: string, width: number, height: number }|null
+ *   }>,
+ * }}
+ */
+export function createTrialLayout() {
+  return buildTrialLayout(getGridSizeForCurrentSoa());
+}
+
+/**
+ * Build a tutorial practice trial at the starting difficulty: a 3×3 layout shown for
+ * `START_SOA_MS`. It does not change any game state.
+ *
+ * @returns {{ layout: ReturnType<typeof createTrialLayout>, soaMs: number }}
+ */
+export function createPracticeTrial() {
+  return { layout: buildTrialLayout(GRID_SIZES[0]), soaMs: START_SOA_MS };
 }
 
 /**

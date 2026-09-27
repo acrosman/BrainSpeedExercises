@@ -42,11 +42,22 @@ export function formatMs(value) {
  */
 export function labelForIcon(icon) {
   if (!icon) return 'Empty';
-  if (icon.id === 'primary-kitten') return 'Primary kitten';
-  if (icon.id === 'secondary-kitten') return 'Secondary kitten';
-  if (icon.id === 'toy-1') return 'Toy 1';
-  if (icon.id === 'toy-2') return 'Toy 2';
+  if (icon.id === 'primary-kitten') return 'Sitting kitten';
+  if (icon.id === 'secondary-kitten') return 'Leaping kitten';
+  if (icon.id === 'toy-1') return 'Yarn ball';
+  if (icon.id === 'toy-2') return 'Toy mouse';
   return 'Stimulus';
+}
+
+/**
+ * Convert a cell index into its one-based row and column.
+ *
+ * @param {number} index - Zero-based cell index, counted row by row.
+ * @param {number} gridSize - Number of rows and columns.
+ * @returns {{ row: number, col: number }}
+ */
+export function cellPosition(index, gridSize) {
+  return { row: Math.floor(index / gridSize) + 1, col: (index % gridSize) + 1 };
 }
 
 /**
@@ -212,15 +223,13 @@ export function renderLocationGrid(containerEl, gridSize, centerIndex, onCellCli
     btn.className = 'fov-loc-cell';
     btn.dataset.index = String(i);
 
-    const row = Math.floor(i / gridSize) + 1;
-    const col = (i % gridSize) + 1;
-    btn.setAttribute('aria-label', `Row ${row}, column ${col}`);
-
     if (i === centerIndex) {
       btn.classList.add('fov-loc-cell--center');
       btn.disabled = true;
       btn.setAttribute('aria-label', 'Center (not selectable)');
     } else {
+      const { row, col } = cellPosition(i, gridSize);
+      btn.setAttribute('aria-label', `Row ${row}, column ${col}`);
       btn.addEventListener('click', () => onCellClick(i));
     }
 

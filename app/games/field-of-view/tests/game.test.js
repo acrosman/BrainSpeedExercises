@@ -16,6 +16,7 @@ import {
   stopGame,
   getGridSizeForCurrentSoa,
   createTrialLayout,
+  createPracticeTrial,
   recordTrial,
   getCurrentSoaMs,
   getRecentAccuracy,
@@ -186,6 +187,41 @@ describe('createTrialLayout', () => {
         expect(cell.icon).toBeNull();
       }
     });
+  });
+});
+
+describe('createPracticeTrial', () => {
+  test('builds a 3x3 layout shown for the starting SOA', () => {
+    const { layout, soaMs } = createPracticeTrial();
+
+    expect(soaMs).toBe(START_SOA_MS);
+    expect(layout.gridSize).toBe(GRID_SIZES[0]);
+    expect(layout.cells).toHaveLength(9);
+    expect(layout.cells[layout.centerIndex].role).toBe('center');
+    expect(layout.cells[layout.peripheralIndex].role).toBe('peripheral-target');
+  });
+
+  test('stays at the starting difficulty after the SOA drops, and changes no state', () => {
+    for (let i = 0; i < 36; i += 1) recordTrial({ success: true });
+    expect(getGridSizeForCurrentSoa()).toBe(GRID_SIZES[1]);
+    const before = {
+      soa: getCurrentSoaMs(),
+      trials: getTrialsCompleted(),
+      history: getThresholdHistory(),
+      accuracy: getAccuracyBuffer(),
+    };
+
+    const { layout, soaMs } = createPracticeTrial();
+
+    expect(layout.gridSize).toBe(GRID_SIZES[0]);
+    expect(soaMs).toBe(START_SOA_MS);
+    expect({
+      soa: getCurrentSoaMs(),
+      trials: getTrialsCompleted(),
+      history: getThresholdHistory(),
+      accuracy: getAccuracyBuffer(),
+    }).toEqual(before);
+    expect(isRunning()).toBe(false);
   });
 });
 

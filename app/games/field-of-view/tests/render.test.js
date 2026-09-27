@@ -13,6 +13,7 @@ import {
   percent,
   formatMs,
   labelForIcon,
+  cellPosition,
   createStimulusImage,
   buildTrendPolylinePoints,
   announce,
@@ -39,16 +40,28 @@ describe('formatMs', () => {
 
 describe('labelForIcon', () => {
   test('returns Empty for null icon', () => expect(labelForIcon(null)).toBe('Empty'));
-  test('returns Primary kitten', () => {
-    expect(labelForIcon({ id: 'primary-kitten' })).toBe('Primary kitten');
+  test.each([
+    ['primary-kitten', 'Sitting kitten'],
+    ['secondary-kitten', 'Leaping kitten'],
+    ['toy-1', 'Yarn ball'],
+    ['toy-2', 'Toy mouse'],
+  ])('describes %s as %s', (id, label) => {
+    expect(labelForIcon({ id })).toBe(label);
   });
-  test('returns Secondary kitten', () => {
-    expect(labelForIcon({ id: 'secondary-kitten' })).toBe('Secondary kitten');
-  });
-  test('returns Toy 1', () => expect(labelForIcon({ id: 'toy-1' })).toBe('Toy 1'));
-  test('returns Toy 2', () => expect(labelForIcon({ id: 'toy-2' })).toBe('Toy 2'));
   test('returns Stimulus for unknown id', () => {
     expect(labelForIcon({ id: 'unknown' })).toBe('Stimulus');
+  });
+});
+
+describe('cellPosition', () => {
+  test.each([
+    [0, 3, { row: 1, col: 1 }],
+    [5, 3, { row: 2, col: 3 }],
+    [8, 3, { row: 3, col: 3 }],
+    [12, 5, { row: 3, col: 3 }],
+    [21, 5, { row: 5, col: 2 }],
+  ])('index %i in a %i-wide grid is %o', (index, gridSize, expected) => {
+    expect(cellPosition(index, gridSize)).toEqual(expected);
   });
 });
 
@@ -58,7 +71,7 @@ describe('createStimulusImage', () => {
     const img = createStimulusImage(icon);
     expect(img.tagName).toBe('IMG');
     expect(img.src).toContain('primaryKitten.png');
-    expect(img.alt).toBe('Primary kitten');
+    expect(img.alt).toBe('Sitting kitten');
     expect(img.src).toContain(IMAGES_BASE_PATH);
   });
 });
