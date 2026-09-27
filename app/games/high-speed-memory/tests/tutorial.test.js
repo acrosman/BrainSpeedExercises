@@ -23,8 +23,8 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
   runGuidedTutorialIfNeeded: jest.fn(),
 }));
 
-const tutorial = await import('../tutorial/tutorial.js');
-const { getTutorialSteps, PRACTICE_TEXT } = tutorial;
+const tutorialModule = await import('../tutorial/tutorial.js');
+const { getTutorialSteps, PRACTICE_TEXT, tutorial } = tutorialModule;
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const { PRIMARY_IMAGE } = await import('../game.js');
 
@@ -150,14 +150,13 @@ describe('high-speed-memory tutorial controller', () => {
       ({ playPracticeRound } = options);
       return run;
     });
-    await tutorial.replayTutorial({
-      container: document.createElement('div'), controls, onComplete: jest.fn(),
-    });
+    tutorialModule.setPracticeControls(controls);
+    await tutorial.replay({ container: document.createElement('div'), onComplete: jest.fn() });
   });
 
   afterEach(() => {
     controller.abort();
-    tutorial.cancelTutorial();
+    tutorial.cancel();
     jest.clearAllMocks();
   });
 
@@ -182,14 +181,7 @@ describe('high-speed-memory tutorial controller', () => {
       gameId: 'high-speed-memory',
       playPracticeRound: expect.any(Function),
     }));
-    expect(tutorial.isTutorialActive()).toBe(true);
-  });
-
-  test('cancelTutorial cancels the run and is safe to repeat', () => {
-    tutorial.cancelTutorial();
-    tutorial.cancelTutorial();
-    expect(run.cancel).toHaveBeenCalledTimes(1);
-    expect(tutorial.isTutorialActive()).toBe(false);
+    expect(tutorial.isActive()).toBe(true);
   });
 
   test('plays a 3x3 grid at the starting display time through the controls', () => {
@@ -197,13 +189,13 @@ describe('high-speed-memory tutorial controller', () => {
     expect(controls.showGameArea).toHaveBeenCalled();
     expect(grid).toHaveLength(9);
     expect(controls.playRound.mock.calls[0][1]).toBe(1500);
-    expect(tutorial.isPracticing()).toBe(true);
+    expect(tutorialModule.isPracticing()).toBe(true);
     expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
   });
 
   test('a guided round rings each greyhound card in turn', () => {
     const { context, primaries } = play();
-    tutorial.promptPracticeResponse();
+    tutorialModule.promptPracticeResponse();
     const first = controls.getCard(primaries[0].id);
     expect(first.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
     expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: first, shape: 'box' });
@@ -211,12 +203,12 @@ describe('high-speed-memory tutorial controller', () => {
 
     // The player finds a greyhound other than the ringed one; the ring stays on the first.
     primaries[2].matched = true;
-    tutorial.guidePracticeResponse();
+    tutorialModule.guidePracticeResponse();
     expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: first, shape: 'box' });
     expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(1));
 
     primaries[0].matched = true;
-    tutorial.guidePracticeResponse();
+    tutorialModule.guidePracticeResponse();
     expect(context.showMarker).toHaveBeenLastCalledWith({
       anchor: controls.getCard(primaries[1].id), shape: 'box',
     });
@@ -225,30 +217,30 @@ describe('high-speed-memory tutorial controller', () => {
   test('a guided round with every greyhound found leaves the marker alone', () => {
     const { context, primaries } = play();
     primaries.forEach((card) => { card.matched = true; });
-    tutorial.guidePracticeResponse();
+    tutorialModule.guidePracticeResponse();
     expect(context.showMarker).not.toHaveBeenCalled();
   });
 
   test('an unguided round only prompts for the answer', () => {
     const { context } = play({ guided: false });
-    tutorial.promptPracticeResponse();
-    tutorial.guidePracticeResponse();
+    tutorialModule.promptPracticeResponse();
+    tutorialModule.guidePracticeResponse();
     expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
     expect(context.showMarker).not.toHaveBeenCalled();
   });
 
   test('a correct round is announced and resolves as correct', async () => {
     const { context, done } = play();
-    tutorial.finishPracticeRound(true);
+    tutorialModule.finishPracticeRound(true);
     await expect(done).resolves.toEqual({ correct: true, feedback: PRACTICE_TEXT.result(true) });
     expect(context.hideMarker).toHaveBeenCalled();
     expect(controls.announce).toHaveBeenCalledWith(PRACTICE_TEXT.result(true));
-    expect(tutorial.isPracticing()).toBe(false);
+    expect(tutorialModule.isPracticing()).toBe(false);
   });
 
   test('a miss is left to the coach banner', async () => {
     const { done } = play();
-    tutorial.finishPracticeRound(false);
+    tutorialModule.finishPracticeRound(false);
     await expect(done).resolves.toEqual({
       correct: false, feedback: PRACTICE_TEXT.result(false),
     });
@@ -259,20 +251,13 @@ describe('high-speed-memory tutorial controller', () => {
     play();
     controller.abort();
     expect(controls.stopRound).toHaveBeenCalled();
-    expect(tutorial.isPracticing()).toBe(false);
+    expect(tutorialModule.isPracticing()).toBe(false);
   });
 
   test('the practice hooks do nothing when no round is in progress', () => {
     expect(() => {
-      tutorial.promptPracticeResponse();
-      tutorial.guidePracticeResponse();
+      tutorialModule.promptPracticeResponse();
+      tutorialModule.guidePracticeResponse();
     }).not.toThrow();
-  });
-});
-
-describe('high-speed-memory tutorial launching', () => {
-  test('does nothing without a container', async () => {
-    await tutorial.startTutorialIfNeeded({ container: null, controls: {}, onComplete: jest.fn() });
-    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
   });
 });

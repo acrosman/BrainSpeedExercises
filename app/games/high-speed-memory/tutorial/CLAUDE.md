@@ -1,7 +1,7 @@
 # High Speed Memory tutorial (`high-speed-memory/tutorial/`)
 
 The first-run guided tutorial: five slides, then up to two live practice rounds. It runs on the
-shared framework in `components/tutorialService.js`; see
+shared framework in `components/tutorialService.js` and `components/tutorialLauncher.js`; see
 [../../../components/CLAUDE.md](../../../components/CLAUDE.md) for the framework itself.
 
 ## Files
@@ -10,10 +10,10 @@ shared framework in `components/tutorialService.js`; see
 - `tutorial.js`: everything else the tutorial does.
   - `getTutorialSteps()` loads the slides, and `PRACTICE_TEXT` holds the coach and result text.
     Any text that describes a click also gives the Tab and Enter alternative.
-  - `startTutorialIfNeeded(options)` (the Start button) and `replayTutorial(options)` (Replay
-    Tutorial) launch the tutorial, then call `options.onComplete` to begin the session. They
-    ignore a second launch while one is loading or running. `isTutorialActive()` and
-    `cancelTutorial()` let `index.js` end it from `stop()` and `reset()`.
+  - `tutorial` is the game's shared launcher (`createTutorialLauncher`). `index.js` calls
+    `tutorial.startIfNeeded(...)` from Start and `tutorial.replay(...)` from Replay Tutorial,
+    passing `{ container, onComplete: beginGameSession }`, and `tutorial.isActive()` and
+    `tutorial.cancel()` from `stop()` and `reset()`.
   - The practice round code: `playPracticeRound` plus the hooks below.
 
 The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
@@ -23,11 +23,12 @@ together if the game layout changes.
 
 ## How practice rounds reach the game
 
-`tutorial.js` never imports `index.js`. Instead, `index.js` passes `PRACTICE_CONTROLS` (a
-`PracticeRoundControls` object) in the launch options. Through it the tutorial shows the game
-area, plays a grid with the real reveal and flip code (`playRound`), stops it (`stopRound`),
-finds card buttons, and writes to the feedback region. `index.js` marks found cards `matched`
-in the grid the tutorial handed it, which is how the tutorial knows which card to ring next.
+`tutorial.js` never imports `index.js`. Instead, `index.js` hands `PRACTICE_CONTROLS` (a
+`PracticeRoundControls` object) to `setPracticeControls()` in `init()`. Through it the tutorial
+shows the game area, plays a grid with the real reveal and flip code (`playRound`), stops it
+(`stopRound`), finds card buttons, and writes to the feedback region. `index.js` marks found
+cards `matched` in the grid the tutorial handed it, which is how the tutorial knows which card
+to ring next.
 
 `index.js` calls back into the tutorial at three points, each only while `isPracticing()`:
 

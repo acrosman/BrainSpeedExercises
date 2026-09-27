@@ -1057,12 +1057,6 @@ describe('guided tutorial', () => {
     expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
   });
 
-  test('ignores a second start while the first tutorial launch is in flight', async () => {
-    await Promise.all([plugin.start(), plugin.start()]);
-    expect(tutorialServiceMock.loadTutorialSteps).toHaveBeenCalledTimes(1);
-    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
-  });
-
   test('does not start the game until the tutorial completes', async () => {
     const { options } = await startPendingTutorial();
     expect(gameMock.startGame).not.toHaveBeenCalled();
@@ -1072,24 +1066,6 @@ describe('guided tutorial', () => {
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
     expect(gameMock.generateGrid).toHaveBeenCalled();
-  });
-
-  test('start and replay do nothing while a tutorial is in progress', async () => {
-    await startPendingTutorial();
-    jest.clearAllMocks();
-
-    await plugin.start();
-    container.querySelector('#hsm-replay-tutorial-btn').click();
-    await flushMicrotasks();
-
-    expect(tutorialServiceMock.loadTutorialSteps).not.toHaveBeenCalled();
-    expect(tutorialServiceMock.runGuidedTutorial).not.toHaveBeenCalled();
-  });
-
-  test('reset() cancels a tutorial in progress', async () => {
-    const { run } = await startPendingTutorial();
-    plugin.reset();
-    expect(run.cancel).toHaveBeenCalledTimes(1);
   });
 
   test('stop() with no session returns an idle result without saving or changing screens',
