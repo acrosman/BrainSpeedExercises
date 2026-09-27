@@ -134,6 +134,11 @@ let _tutorialRun = null;
  * @type {{ context: object, resolve: Function, guideTarget: HTMLElement|null }|null}
  */
 let _practice = null;
+/**
+ * The last practice trial shown, kept so a missed round replays the same layout.
+ * @type {{ layout: object, soaMs: number }|null}
+ */
+let _lastPracticeTrial = null;
 
 /**
  * Get a high-precision current timestamp.
@@ -539,8 +544,9 @@ function promptPracticeResponse() {
 }
 
 /**
- * End a practice trial once the player answers: say whether it was right without scoring
- * it, and hand control back to the tutorial.
+ * End a practice trial once the player answers, without scoring it, and hand the result back
+ * to the tutorial. A correct answer is announced here. A miss goes to the coach banner, which
+ * names the right answers and offers to replay the round.
  *
  * @param {boolean} success - Whether both answers were right.
  */
@@ -548,8 +554,9 @@ function finishPracticeTrial(success) {
   const { context, resolve } = _practice;
   _practice = null;
   context.hideMarker();
-  announce(PRACTICE_TEXT.result({ success, ...describeCorrectAnswer() }));
-  resolve();
+  const feedback = PRACTICE_TEXT.result({ success, ...describeCorrectAnswer() });
+  if (success) announce(feedback);
+  resolve({ correct: success, feedback });
 }
 
 /**
@@ -562,16 +569,18 @@ function endPractice() {
   _responseEnabled = false;
   _currentTrial = null;
   _practice = null;
+  _lastPracticeTrial = null;
 }
 
 /**
  * Play one tutorial practice trial at the starting difficulty. It uses the real stimulus,
  * mask, and response controls but never touches the SOA, accuracy, threshold history,
  * session timer, or saved progress. In a guided trial the correct kitten, then the correct
- * square, is marked once the field appears.
+ * square, is marked once the field appears. A retry after a miss shows the same layout again.
  *
  * @param {import('../../components/tutorialService.js').PracticeRoundContext} context
- * @returns {Promise<void>} Resolves once the player answers.
+ * @returns {Promise<import('../../components/tutorialService.js').PracticeRoundResult>}
+ *   Resolves once the player answers.
  */
 function playPracticeTrial(context) {
   showGameArea();
@@ -582,7 +591,10 @@ function playPracticeTrial(context) {
     _practice = { context, resolve, guideTarget: null };
     context.setInstructions(PRACTICE_TEXT.watch);
 
-    const { layout, soaMs } = game.createPracticeTrial();
+    if (context.attempt === 1 || !_lastPracticeTrial) {
+      _lastPracticeTrial = game.createPracticeTrial();
+    }
+    const { layout, soaMs } = _lastPracticeTrial;
     _currentTrial = layout;
     runStimulusPhase(soaMs);
   });

@@ -111,9 +111,14 @@ guidedRounds = 1, onComplete }`.
   `run.cancel()` from `stop()` and `reset()`; it is safe on a run that has already ended.
   Cancelling removes the tutorial UI, and does not mark the tutorial seen or call `onComplete`.
 - `playPracticeRound(context)` plays one round at the game's easiest setting and resolves once
-  the player answers. `context` holds `round`, `maxRounds`, `guided` (show the marker; only
-  the first `guidedRounds` rounds are guided), `signal`, `setInstructions(text)`,
+  the player answers. `context` holds `round`, `attempt`, `maxRounds`, `guided` (show the
+  marker; only the first `guidedRounds` rounds are guided), `signal`, `setInstructions(text)`,
   `showMarker({ anchor, region?, shape? })`, and `hideMarker()`.
+- To replay missed rounds, resolve with `{ correct: false, feedback? }`. The coach then shows
+  `feedback` (default "Not quite.") followed by "Try this round again." with a Try Again
+  button, and calls `playPracticeRound` again for the same round with `attempt` increased.
+  Resolving with nothing, or with `correct: true`, moves on as usual. Only `field-of-view`
+  reports misses so far.
 - `signal` aborts when the tutorial ends for any reason. Listen for it to cancel practice
   timers and clear practice state in one place.
 - A practice round must not score, change difficulty, add speed history, start the session

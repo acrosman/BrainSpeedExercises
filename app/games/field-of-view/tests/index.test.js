@@ -630,11 +630,13 @@ describe('field-of-view index', () => {
     /**
      * Start a practice trial, like the tutorial runner does.
      * @param {boolean} [guided=true]
-     * @returns {{ context: object, done: Promise<void> }}
+     * @param {number} [attempt=1] - Which try at the round; above 1 replays a miss.
+     * @returns {{ context: object, done: Promise<object> }}
      */
-    function playTrial(guided = true) {
+    function playTrial(guided = true, attempt = 1) {
       const context = {
         round: guided ? 1 : 2,
+        attempt,
         maxRounds: 2,
         guided,
         signal: pending.controller.signal,
@@ -733,7 +735,9 @@ describe('field-of-view index', () => {
       primaryBtn().click();
       locationCell(1).click();
 
-      await expect(done).resolves.toBeUndefined();
+      await expect(done).resolves.toEqual({
+        correct: true, feedback: 'result true: sitting kitten 1,2',
+      });
       expect(context.hideMarker).toHaveBeenCalled();
       expect(feedback()).toBe('result true: sitting kitten 1,2');
       expect(document.querySelector('#fov-stage').classList)
@@ -749,17 +753,49 @@ describe('field-of-view index', () => {
       expect(progressMock.saveProgress).not.toHaveBeenCalled();
     });
 
-    test('a wrong answer names the correct answers without scoring', async () => {
+    test('a wrong answer reports a miss naming the correct answers, without scoring', async () => {
       const { done } = playTrial();
       jest.runAllTimers();
       primaryBtn().click();
       locationCell(0).click();
 
-      await done;
-      expect(feedback()).toBe('result false: sitting kitten 1,2');
+      // The coach banner shows the miss, so the feedback region stays quiet.
+      await expect(done).resolves.toEqual({
+        correct: false, feedback: 'result false: sitting kitten 1,2',
+      });
+      expect(feedback()).toBe('');
       expect(document.querySelector('#fov-stage').classList)
         .toContain('fov-stage--flash-wrong');
       expect(gameMock.recordTrial).not.toHaveBeenCalled();
+    });
+
+    test('a retry replays the same layout, and the next round gets a new one', async () => {
+      const { done } = playTrial();
+      jest.runAllTimers();
+      primaryBtn().click();
+      locationCell(0).click();
+      await done;
+
+      const retry = playTrial(true, 2);
+      expect(gameMock.createPracticeTrial).toHaveBeenCalledTimes(1);
+      expect(document.querySelector('#fov-board [data-index="1"] img').getAttribute('src'))
+        .toContain('toy1.png');
+      jest.runAllTimers();
+      primaryBtn().click();
+      locationCell(1).click();
+      await expect(retry.done).resolves.toEqual(expect.objectContaining({ correct: true }));
+
+      playTrial(false, 1);
+      expect(gameMock.createPracticeTrial).toHaveBeenCalledTimes(2);
+    });
+
+    test('a retry after the tutorial restarts builds a fresh layout', () => {
+      playTrial();
+      pending.controller.abort();
+      gameMock.createPracticeTrial.mockClear();
+
+      playTrial(true, 2);
+      expect(gameMock.createPracticeTrial).toHaveBeenCalledTimes(1);
     });
 
     test('the next round clears the previous result', async () => {

@@ -65,7 +65,8 @@ export const PRACTICE_TEXT = Object.freeze({
   answer: 'Which kitten was in the center, and where was the toy? Click the kitten and the '
     + 'square, or press Tab to move to each one and Enter to choose it.',
   /**
-   * Feedback after a practice answer. A miss names both correct answers.
+   * Feedback after a practice answer. A miss names both correct answers; the coach banner
+   * shows it, followed by "Try this round again.".
    * @param {{ success: boolean, kitten: string, row: number, col: number }} answer
    * @returns {string}
    */
