@@ -19,12 +19,16 @@
   </div>
 
   <div id="fov-game-area" class="fov-panel" hidden>
-    <div class="fov-stats" aria-live="polite" aria-atomic="true">
-      <span>SOA: <strong id="fov-soa">500</strong> ms</span>
-      <span>Threshold: <strong id="fov-threshold">500</strong> ms</span>
-      <span>Recent Accuracy: <strong id="fov-accuracy">0%</strong></span>
-      <span>Trials: <strong id="fov-trials">0</strong></span>
-      <span class="fov-stat">Session: <strong id="fov-session-timer" aria-live="polite">00:00</strong></span>
+    <!-- Only per-trial stats sit in the live region; the session timer stays
+         outside it so screen readers are not interrupted every second. -->
+    <div class="fov-stats">
+      <div class="fov-stats-live" aria-live="polite" aria-atomic="true">
+        <span>SOA: <strong id="fov-soa">500</strong> ms</span>
+        <span>Threshold: <strong id="fov-threshold">500</strong> ms</span>
+        <span>Recent Accuracy: <strong id="fov-accuracy">0%</strong></span>
+        <span>Trials: <strong id="fov-trials">0</strong></span>
+      </div>
+      <span class="fov-stat">Session: <strong id="fov-session-timer">00:00</strong></span>
     </div>
     <p class="fov-stats-help">
       Lower threshold is better. Response auto-submits once kitten choice and toy location are both selected.
