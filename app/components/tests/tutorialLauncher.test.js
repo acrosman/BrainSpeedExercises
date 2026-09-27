@@ -205,6 +205,25 @@ describe('createTutorialLauncher', () => {
     expect(launcher.isActive()).toBe(false);
   });
 
+  test('cancel while checking the seen flag skips the session start when already seen',
+    async () => {
+      const seen = deferred();
+      tutorialServiceMock.runGuidedTutorialIfNeeded.mockImplementation(async (options) => {
+        await seen.promise;
+        options.onComplete();
+        return null;
+      });
+      const launching = launcher.startIfNeeded({ container, onComplete });
+      await Promise.resolve();
+
+      launcher.cancel();
+      seen.resolve();
+      await launching;
+
+      expect(onComplete).not.toHaveBeenCalled();
+      expect(launcher.isActive()).toBe(false);
+    });
+
   test('a new launch after cancel is not blocked by the abandoned one', async () => {
     const steps = deferred();
     loadSteps.mockReturnValueOnce(steps.promise);
