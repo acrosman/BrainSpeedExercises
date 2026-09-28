@@ -8,6 +8,7 @@ import {
   startGame,
   stopGame,
   pickNextImage,
+  isCorrectResponse,
   recordResponse,
   getCurrentIntervalMs,
   getScore,
@@ -357,6 +358,24 @@ describe('pickNextImage()', () => {
 });
 
 // ── recordResponse ────────────────────────────────────────────────────────────
+
+describe('isCorrectResponse()', () => {
+  it('is correct to press for a go image and to hold for the no-go image', () => {
+    expect(isCorrectResponse(false, true)).toBe(true);
+    expect(isCorrectResponse(true, false)).toBe(true);
+  });
+
+  it('is wrong to miss a go image or to press for the no-go image', () => {
+    expect(isCorrectResponse(false, false)).toBe(false);
+    expect(isCorrectResponse(true, true)).toBe(false);
+  });
+
+  it('changes no game state', () => {
+    isCorrectResponse(true, true);
+    expect(getTrialsCompleted()).toBe(0);
+    expect(getScore()).toBe(0);
+  });
+});
 
 describe('recordResponse()', () => {
   describe('go + Space pressed (correct)', () => {

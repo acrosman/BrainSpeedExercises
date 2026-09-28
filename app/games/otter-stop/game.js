@@ -228,6 +228,16 @@ export function stopGame() {
 // ── Trial helpers ─────────────────────────────────────────────────────────────
 
 /**
+ * Pick one go image at random.
+ *
+ * @returns {{ imageKey: string, isNoGo: boolean }}
+ */
+function pickGoImage() {
+  const idx = Math.floor(Math.random() * GO_KEYS.length);
+  return { imageKey: GO_KEYS[idx], isNoGo: false };
+}
+
+/**
  * Pick the next image to display.
  *
  * Images are presented as sequences: a run of go (otter) images followed by
@@ -246,37 +256,44 @@ export function stopGame() {
  * @returns {{ imageKey: string, isNoGo: boolean }}
  */
 export function pickNextImage() {
-  if (forceGoNext) {
-    forceGoNext = false;
-    sequencePosition += 1;
-    const idx = Math.floor(Math.random() * GO_KEYS.length);
-    return { imageKey: GO_KEYS[idx], isNoGo: false };
-  }
-  if (sequencePosition >= currentSequenceLength) {
+  if (!forceGoNext && sequencePosition >= currentSequenceLength) {
     sequencePosition = 0;
     currentSequenceLength = generateSequenceLength();
     return { imageKey: NO_GO_KEY, isNoGo: true };
   }
+  forceGoNext = false;
   sequencePosition += 1;
-  const idx = Math.floor(Math.random() * GO_KEYS.length);
-  return { imageKey: GO_KEYS[idx], isNoGo: false };
+  return pickGoImage();
+}
+
+/**
+ * Whether a response to a stimulus is correct: a press for a go image, or no press for the
+ * no-go image. Changes no game state.
+ *
+ * @param {boolean} isNoGo - Whether the stimulus was the no-go image.
+ * @param {boolean} pressed - Whether the player pressed Space or clicked.
+ * @returns {boolean}
+ */
+export function isCorrectResponse(isNoGo, pressed) {
+  return isNoGo ? !pressed : pressed;
 }
 
 /**
  * Record the outcome of a completed trial and apply the adaptive staircase.
  *
- * Correct responses:
- *   - Go image + Space pressed  → score +1, wrong streak reset
- *   - No-go image + no press   → score +1, streak +1 (only no-go inhibitions
- *                                 count toward level advancement)
+ * Correct responses (score +1):
+ *   - Go image + Space pressed  → streaks unchanged
+ *   - No-go image + no press    → correct streak +1, wrong streak reset (only no-go
+ *                                 inhibitions count toward advancement)
  *
- * Wrong responses:
- *   - Go image + no press      → miss +1, streak broken, forceGoNext set
- *   - No-go image + Space pressed → noGoHit +1, streak broken, forceGoNext set
+ * Wrong responses (correct streak reset, wrong streak +1, forceGoNext set):
+ *   - Go image + no press          → miss +1
+ *   - No-go image + Space pressed  → noGoHit +1
  *
  * Staircase rules:
  *   - 3 consecutive correct no-go inhibitions → level +1, streak reset
- *   - 3 consecutive wrong responses   → level −2 (min 0), streak reset
+ *   - 3 wrong responses with no correct no-go inhibition between them → level −2 (min 0),
+ *     streak reset
  *
  * After any wrong outcome, `forceGoNext` is set so that `pickNextImage()` will
  * guarantee a go stimulus on the very next trial.
@@ -288,32 +305,10 @@ export function pickNextImage() {
 export function recordResponse(isNoGo, spacePressed) {
   trialsCompleted += 1;
 
-  const correct = isNoGo ? !spacePressed : spacePressed;
-
-  let staircaseState;
+  const correct = isCorrectResponse(isNoGo, spacePressed);
 
   if (correct) {
     score += 1;
-    if (isNoGo) {
-      staircaseState = updateAdaptiveDifficultyState({
-        value: level,
-        wasCorrect: true,
-        consecutiveCorrect,
-        consecutiveWrong,
-        increaseAfter: CORRECT_STREAK_TO_ADVANCE,
-        decreaseAfter: WRONG_STREAK_TO_DROP,
-        harderStep: 1,
-        easierStep: -LEVEL_DROP,
-        minValue: 0,
-        maxValue: Number.POSITIVE_INFINITY,
-      });
-    } else {
-      staircaseState = {
-        value: level,
-        consecutiveCorrect,
-        consecutiveWrong,
-      };
-    }
   } else {
     if (isNoGo) {
       noGoHits += 1;
@@ -321,9 +316,13 @@ export function recordResponse(isNoGo, spacePressed) {
       misses += 1;
     }
     forceGoNext = true;
-    staircaseState = updateAdaptiveDifficultyState({
+  }
+
+  // A correct go press leaves the staircase alone; every other outcome moves it.
+  if (isNoGo || !correct) {
+    const staircaseState = updateAdaptiveDifficultyState({
       value: level,
-      wasCorrect: false,
+      wasCorrect: correct,
       consecutiveCorrect,
       consecutiveWrong,
       increaseAfter: CORRECT_STREAK_TO_ADVANCE,
@@ -333,11 +332,10 @@ export function recordResponse(isNoGo, spacePressed) {
       minValue: 0,
       maxValue: Number.POSITIVE_INFINITY,
     });
+    level = staircaseState.value;
+    consecutiveCorrect = staircaseState.consecutiveCorrect;
+    consecutiveWrong = staircaseState.consecutiveWrong;
   }
-
-  level = staircaseState.value;
-  consecutiveCorrect = staircaseState.consecutiveCorrect;
-  consecutiveWrong = staircaseState.consecutiveWrong;
 
   // If the level dropped, cap the in-flight sequence length to the new maximum
   // so the player is not exposed to sequences that are too long for their level.

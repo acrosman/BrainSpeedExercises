@@ -28,7 +28,7 @@ const ISI_MS = 120;
 const IMAGE_BASE = './games/otter-stop/images/';
 
 /** Path to the go-stimulus image subfolder. */
-const IMAGE_BASE_GO = './games/otter-stop/images/go/';
+const IMAGE_BASE_GO = `${IMAGE_BASE}go/`;
 
 // ── DOM references — populated by init() ─────────────────────────────────────
 
@@ -107,31 +107,44 @@ let _finalMissesEl = null;
 /** @type {HTMLElement|null} */
 let _finalTrialsEl = null;
 
-// ── Per-trial state ───────────────────────────────────────────────────────────
-
-/** Key of the image currently being displayed (null between trials). */
-let _currentImageKey = null;
-
-/** Whether the current stimulus is the no-go image. */
-let _currentIsNoGo = false;
-
-/** Whether Space was pressed during the current trial window. */
-let _spacePressedThisTrial = false;
+// ── Trial state ───────────────────────────────────────────────────────────────
 
 /**
- * Timestamp (ms) when the current go stimulus was shown.
- * Null when no trial is active or the current stimulus is a no-go image.
+ * One stimulus to show.
+ *
+ * @typedef {object} Stimulus
+ * @property {string} imageKey - A go filename (e.g. 'go-1.png') or the no-go key.
+ * @property {boolean} isNoGo - Whether this is the no-go image.
+ * @property {number|null} displayMs - How long it stays up with no press. `null` waits for
+ *   a press.
  */
-let _goTrialStartMs = null;
 
-/** setTimeout handle for the trial display window. */
-let _trialTimer = null;
+/**
+ * A run of trials: where its stimuli come from and how each response is scored. A session
+ * plays {@link SESSION_TRIALS}.
+ *
+ * @typedef {object} TrialRun
+ * @property {() => (Stimulus|null)} next - The next stimulus, or `null` to end the run.
+ * @property {(stimulus: Stimulus, pressed: boolean, responseMs: number) => ('correct'|'wrong')}
+ *   record - Score a finished trial. `responseMs` is the time from the stimulus appearing to
+ *   the end of the trial.
+ */
 
-/** setTimeout handle for the feedback period. */
-let _feedbackTimer = null;
+/** The run being played, or null when none is. @type {TrialRun|null} */
+let _run = null;
 
-/** setTimeout handle for the inter-stimulus interval. */
-let _isiTimer = null;
+/** The stimulus on screen, or null between trials. @type {Stimulus|null} */
+let _stimulus = null;
+
+/** When the current stimulus appeared (`Date.now()`). */
+let _stimulusShownAt = 0;
+
+/**
+ * The one pending timeout: the stimulus display window, the feedback period, or the gap
+ * before the next trial. They run one after another, never together.
+ * @type {ReturnType<typeof setTimeout>|null}
+ */
+let _timer = null;
 
 /** Whether handleKeyDown is currently attached to document. */
 let _isGlobalKeyListenerAttached = false;
@@ -274,48 +287,106 @@ export function showEndPanel(result) {
   if (_endPanelEl) _endPanelEl.hidden = false;
 }
 
-// ── Game loop ─────────────────────────────────────────────────────────────────
+/**
+ * Show the average go response time. It is refreshed only after a no-go trial, so it
+ * reflects the whole run of otters before the fish.
+ */
+function updateAverageResponse() {
+  if (!_avgResponseEl) return;
+  const avgMs = game.getAverageResponseMs();
+  _avgResponseEl.textContent = avgMs !== null ? avgMs : '--';
+}
+
+// ── Trial loop ────────────────────────────────────────────────────────────────
 
 /**
- * End the current trial, record the response, handle feedback, then schedule
- * the next trial (or end the game if it has been stopped).
+ * The run a session plays: the game picks each stimulus and scores each response.
  *
- * Feedback is shown for:
- *  - All no-go trials (correct inhibition or false alarm).
- *  - Go images the player failed to respond to in time (miss).
- * Go images responded to correctly proceed immediately to keep the pace fast.
+ * @type {TrialRun}
  */
-export function endTrial() {
-  if (!game.isRunning()) return;
+const SESSION_TRIALS = Object.freeze({
+  next: () => ({ ...game.pickNextImage(), displayMs: game.getCurrentIntervalMs() }),
+  record(stimulus, pressed, responseMs) {
+    if (pressed && !stimulus.isNoGo) game.recordGoResponseTime(responseMs);
+    const outcome = game.recordResponse(stimulus.isNoGo, pressed);
+    updateStats();
+    updateTrendChart();
+    if (stimulus.isNoGo) updateAverageResponse();
+    return outcome;
+  },
+});
 
-  // Record response time for go trials where the player actually responded.
-  if (!_currentIsNoGo && _spacePressedThisTrial && _goTrialStartMs !== null) {
-    game.recordGoResponseTime(Date.now() - _goTrialStartMs);
+/** Cancel the pending timeout, if any. */
+function clearTimer() {
+  clearTimeout(_timer);
+  _timer = null;
+}
+
+/**
+ * Stop the run in progress, if any: cancel its timer, stop listening for Space, and clear the
+ * stimulus and feedback.
+ */
+export function stopTrials() {
+  clearTimer();
+  detachGlobalKeyListener();
+  hideImage();
+  hideFeedback();
+  _run = null;
+  _stimulus = null;
+}
+
+/**
+ * Play a run of trials, replacing any run in progress. Each trial shows a stimulus until the
+ * player presses or its display time ends; feedback follows a no-go trial or a missed go.
+ *
+ * @param {TrialRun} run
+ */
+export function playTrials(run) {
+  stopTrials();
+  _run = run;
+  attachGlobalKeyListener();
+  scheduleNextTrial();
+}
+
+/** Begin the next trial after the inter-stimulus interval. */
+function scheduleNextTrial() {
+  _timer = setTimeout(beginTrial, ISI_MS);
+}
+
+/**
+ * Begin a new trial: show the run's next stimulus and start its display window. Ends the run
+ * when it has no more stimuli.
+ */
+export function beginTrial() {
+  const stimulus = _run.next();
+  if (!stimulus) {
+    stopTrials();
+    return;
   }
-  _goTrialStartMs = null;
-
-  const outcome = game.recordResponse(_currentIsNoGo, _spacePressedThisTrial);
-  updateStats();
-  updateTrendChart();
-
-  const wasNoGo = _currentIsNoGo;
-  _currentImageKey = null;
-  _currentIsNoGo = false;
-
-  // Update the average response stat only at the end of a complete sequence
-  // (i.e., after the no-go stimulus), so it reflects the whole go-run.
-  if (wasNoGo && _avgResponseEl) {
-    const avgMs = game.getAverageResponseMs();
-    _avgResponseEl.textContent = avgMs !== null ? avgMs : '--';
+  _stimulus = stimulus;
+  _stimulusShownAt = Date.now();
+  showImage(stimulus.imageKey);
+  if (stimulus.displayMs !== null) {
+    _timer = setTimeout(endTrial, stimulus.displayMs);
   }
+}
 
+/**
+ * End the current trial: record the response, then show feedback for a no-go trial or a
+ * missed go, or go straight on to the next trial to keep the pace fast.
+ *
+ * @param {boolean} [pressed=false] - Whether the player pressed during the trial.
+ */
+export function endTrial(pressed = false) {
+  clearTimer();
+  const stimulus = _stimulus;
+  _stimulus = null;
   hideImage();
 
-  // Show feedback for no-go trials and for go images the player missed.
-  const needsFeedback = wasNoGo || outcome === 'wrong';
-  if (needsFeedback) {
-    showFeedback(outcome, wasNoGo);
-    _feedbackTimer = setTimeout(() => {
+  const outcome = _run.record(stimulus, pressed, Date.now() - _stimulusShownAt);
+  if (stimulus.isNoGo || outcome === 'wrong') {
+    showFeedback(outcome, stimulus.isNoGo);
+    _timer = setTimeout(() => {
       hideFeedback();
       scheduleNextTrial();
     }, FEEDBACK_DURATION_MS);
@@ -324,99 +395,31 @@ export function endTrial() {
   }
 }
 
+// ── Input ─────────────────────────────────────────────────────────────────────
+
 /**
- * Schedule the next trial after the inter-stimulus interval.
- * If the game is no longer running, this is a no-op.
+ * Respond to the stimulus on screen (Space or a click on the stimulus area), ending its
+ * trial early. Presses between trials are ignored.
  */
-export function scheduleNextTrial() {
-  if (!game.isRunning()) return;
-  _isiTimer = setTimeout(beginTrial, ISI_MS);
+export function respond() {
+  if (_stimulus) endTrial(true);
 }
 
 /**
- * Begin a new trial: pick a stimulus, display it, and start the response window.
- */
-export function beginTrial() {
-  if (!game.isRunning()) return;
-
-  _spacePressedThisTrial = false;
-  const { imageKey, isNoGo } = game.pickNextImage();
-  _currentImageKey = imageKey;
-  _currentIsNoGo = isNoGo;
-
-  // Record when the go stimulus appears so we can measure reaction time.
-  _goTrialStartMs = isNoGo ? null : Date.now();
-
-  showImage(imageKey);
-
-  const intervalMs = game.getCurrentIntervalMs();
-  _trialTimer = setTimeout(endTrial, intervalMs);
-}
-
-/**
- * Clear all pending timers (trial, feedback, ISI).
- */
-export function clearAllTimers() {
-  if (_trialTimer !== null) {
-    clearTimeout(_trialTimer);
-    _trialTimer = null;
-  }
-  if (_feedbackTimer !== null) {
-    clearTimeout(_feedbackTimer);
-    _feedbackTimer = null;
-  }
-  if (_isiTimer !== null) {
-    clearTimeout(_isiTimer);
-    _isiTimer = null;
-  }
-}
-
-// ── Keyboard handler ──────────────────────────────────────────────────────────
-
-/**
- * Handle a keydown event. Only Space is relevant during an active trial.
+ * Handle a keydown event. Only Space is used, and only while a run is playing.
  * @param {KeyboardEvent} event
  */
 export function handleKeyDown(event) {
-  if (event.code !== 'Space') return;
-  if (!game.isRunning()) return;
+  if (event.code !== 'Space' || !_run) return;
 
   // Prevent Space from scrolling the page or activating a focused button
-  // while a session is running, even between trials.
+  // while a run is playing, even between trials.
   event.preventDefault();
-
-  if (_currentImageKey === null) return;
-
-  _spacePressedThisTrial = true;
-
-  // Respond immediately: clear the trial timer and process the trial end.
-  if (_trialTimer !== null) {
-    clearTimeout(_trialTimer);
-    _trialTimer = null;
-  }
-  endTrial();
+  respond();
 }
 
 /**
- * Handle a click on the stimulus area. Equivalent to pressing Space.
- * Allows mouse/touch users to respond to go images without using the keyboard.
- */
-export function handleClick() {
-  if (!game.isRunning()) return;
-  if (_currentImageKey === null) return;
-
-  _spacePressedThisTrial = true;
-
-  // Respond immediately: clear the trial timer and process the trial end.
-  if (_trialTimer !== null) {
-    clearTimeout(_trialTimer);
-    _trialTimer = null;
-  }
-  endTrial();
-}
-
-/**
- * Attach the document-level Space key handler for the active session.
+ * Attach the document-level Space key handler for the run being played.
  */
 export function attachGlobalKeyListener() {
   if (_isGlobalKeyListenerAttached) return;
@@ -501,9 +504,9 @@ function init(container) {
     _returnBtn.addEventListener('click', () => returnToMainMenu());
   }
 
-  detachGlobalKeyListener();
+  stopTrials();
   if (_stimulusEl) {
-    _stimulusEl.addEventListener('click', handleClick);
+    _stimulusEl.addEventListener('click', respond);
   }
 }
 
@@ -513,7 +516,6 @@ function init(container) {
 function start() {
   game.initGame();
   game.startGame();
-  attachGlobalKeyListener();
 
   timerService.startTimer((elapsedMs) => {
     if (_sessionTimerEl) {
@@ -525,9 +527,8 @@ function start() {
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_gameAreaEl) _gameAreaEl.hidden = false;
 
-  hideFeedback();
   updateStats();
-  scheduleNextTrial();
+  playTrials(SESSION_TRIALS);
 }
 
 /**
@@ -538,10 +539,7 @@ function start() {
  *             bestScore: number }}
  */
 function stop() {
-  clearAllTimers();
-  detachGlobalKeyListener();
-  hideImage();
-  hideFeedback();
+  stopTrials();
 
   const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
@@ -570,10 +568,7 @@ function stop() {
  * Returns to the instructions screen.
  */
 function reset() {
-  clearAllTimers();
-  detachGlobalKeyListener();
-  hideImage();
-  hideFeedback();
+  stopTrials();
   game.initGame();
 
   timerService.resetTimer();
@@ -585,6 +580,7 @@ function reset() {
 
   updateStats();
   updateTrendChart();
+  updateAverageResponse();
 }
 
 export default {

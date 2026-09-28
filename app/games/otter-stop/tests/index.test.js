@@ -89,12 +89,10 @@ const {
   showFeedback,
   hideFeedback,
   showEndPanel,
-  endTrial,
-  scheduleNextTrial,
-  beginTrial,
-  clearAllTimers,
+  playTrials,
+  stopTrials,
+  respond,
   handleKeyDown,
-  handleClick,
   loadGoImages,
   attachGlobalKeyListener,
   detachGlobalKeyListener,
@@ -143,6 +141,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   // Default: game is running for most tests
   gameMock.isRunning.mockReturnValue(true);
+  gameMock.getCurrentIntervalMs.mockReturnValue(1500);
 });
 
 afterEach(() => {
@@ -540,43 +539,6 @@ describe('showEndPanel()', () => {
   });
 });
 
-// ── handleKeyDown ─────────────────────────────────────────────────────────────
-
-describe('handleKeyDown()', () => {
-  it('ignores non-Space keys', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    const event = new KeyboardEvent('keydown', { code: 'ArrowLeft', bubbles: true });
-    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
-    handleKeyDown(event);
-    expect(preventDefaultSpy).not.toHaveBeenCalled();
-  });
-
-  it('does not call preventDefault on Space when no session is running', () => {
-    const container = buildContainer();
-    gameMock.isRunning.mockReturnValue(false);
-    plugin.init(container);
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
-    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
-    handleKeyDown(event);
-    expect(preventDefaultSpy).not.toHaveBeenCalled();
-    expect(gameMock.recordResponse).not.toHaveBeenCalled();
-  });
-
-  it('calls preventDefault on Space when running with no active stimulus', () => {
-    const container = buildContainer();
-    gameMock.isRunning.mockReturnValue(true);
-    plugin.init(container);
-    // game is running but no active stimulus (_currentImageKey is null) — does not trigger trial
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
-    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
-    handleKeyDown(event);
-    expect(preventDefaultSpy).toHaveBeenCalled();
-    expect(gameMock.recordResponse).not.toHaveBeenCalled();
-  });
-});
-
 // ── Global key listener lifecycle ─────────────────────────────────────────────
 
 describe('global Space key listener', () => {
@@ -649,351 +611,250 @@ describe('global Space key listener', () => {
   });
 });
 
-// ── beginTrial / endTrial / scheduleNextTrial ─────────────────────────────────
+// ── Trial loop ────────────────────────────────────────────────────────────────
 
-describe('beginTrial()', () => {
-  it('calls pickNextImage() when game is running', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    beginTrial();
-    expect(gameMock.pickNextImage).toHaveBeenCalled();
-  });
+/** Gap before each trial, from index.js. */
+const ISI_MS = 120;
+/** How long feedback stays up, from index.js. */
+const FEEDBACK_MS = 800;
+/** Display time the mocked game reports. */
+const INTERVAL_MS = 1500;
 
-  it('does not call pickNextImage() when game is not running', () => {
-    gameMock.isRunning.mockReturnValue(false);
-    const container = buildContainer();
-    plugin.init(container);
-    gameMock.pickNextImage.mockClear();
-    beginTrial();
-    expect(gameMock.pickNextImage).not.toHaveBeenCalled();
-  });
-});
+/**
+ * Start a session and advance to its first stimulus.
+ * @param {{ imageKey: string, isNoGo: boolean }} [stimulus] - The game's first pick.
+ * @returns {HTMLElement} The container.
+ */
+function startFirstTrial(stimulus = { imageKey: 'go-1.png', isNoGo: false }) {
+  const container = buildContainer();
+  plugin.init(container);
+  gameMock.pickNextImage.mockReturnValueOnce(stimulus);
+  plugin.start();
+  jest.advanceTimersByTime(ISI_MS);
+  return container;
+}
 
-describe('endTrial()', () => {
-  it('calls game.recordResponse() when game is running and a trial is active', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    beginTrial(); // sets up _currentImageKey
-    clearAllTimers(); // prevent timer from auto-firing
-    endTrial();
-    expect(gameMock.recordResponse).toHaveBeenCalled();
-  });
+/** @returns {KeyboardEvent} A cancelable Space keydown. */
+function spaceEvent() {
+  return new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
+}
 
-  it('does not call recordResponse() when game is not running', () => {
-    gameMock.isRunning.mockReturnValue(false);
-    const container = buildContainer();
-    plugin.init(container);
-    gameMock.recordResponse.mockClear();
-    endTrial();
+describe('handleKeyDown()', () => {
+  afterEach(() => stopTrials());
+
+  it('ignores non-Space keys', () => {
+    startFirstTrial();
+    const event = new KeyboardEvent('keydown', { code: 'ArrowLeft', cancelable: true });
+    handleKeyDown(event);
+    expect(event.defaultPrevented).toBe(false);
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
   });
 
-  it('shows feedback when the trial was a no-go', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    // Force a no-go trial
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true });
-    beginTrial();
-    clearAllTimers();
-    endTrial();
-    const fb = container.querySelector('#os-feedback');
-    expect(fb.hidden).toBe(false);
+  it('leaves Space alone when no run is playing', () => {
+    plugin.init(buildContainer());
+    const event = spaceEvent();
+    handleKeyDown(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
   });
 
-  it('shows feedback when a go image was missed (wrong outcome)', () => {
+  it('prevents the default between trials without recording anything', () => {
+    plugin.init(buildContainer());
+    plugin.start();
+    const event = spaceEvent();
+    handleKeyDown(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
+  });
+
+  it('responds to the stimulus on screen', () => {
+    startFirstTrial();
+    const event = spaceEvent();
+    handleKeyDown(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(gameMock.recordResponse).toHaveBeenCalledWith(false, true);
+  });
+});
+
+describe('session trials', () => {
+  afterEach(() => stopTrials());
+
+  it('shows the game\'s pick after the gap between trials', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-2.png', isNoGo: false });
+    plugin.start();
+
+    jest.advanceTimersByTime(ISI_MS - 1);
+    expect(gameMock.pickNextImage).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    const img = container.querySelector('#os-stimulus-img');
+    expect(img.src).toContain('go/go-2.png');
+    expect(img.classList.contains('os-hidden')).toBe(false);
+  });
+
+  it('a press ends the trial early, records the response time, and moves straight on', () => {
+    const container = startFirstTrial();
+    jest.advanceTimersByTime(300);
+    respond();
+
+    expect(gameMock.recordGoResponseTime).toHaveBeenCalledWith(300);
+    expect(gameMock.recordResponse).toHaveBeenCalledWith(false, true);
+    expect(container.querySelector('#os-stimulus-img').classList.contains('os-hidden')).toBe(true);
+    expect(container.querySelector('#os-feedback').hidden).toBe(true);
+
+    jest.advanceTimersByTime(ISI_MS);
+    expect(gameMock.pickNextImage).toHaveBeenCalledTimes(2);
+    expect(gameMock.recordResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it('a click on the stimulus area responds', () => {
+    const container = startFirstTrial();
+    container.querySelector('#os-stimulus').click();
+    expect(gameMock.recordResponse).toHaveBeenCalledWith(false, true);
+  });
+
+  it('ignores presses between trials', () => {
     const container = buildContainer();
     plugin.init(container);
     plugin.start();
-    // Force a wrong outcome on a go trial (player didn't press Space)
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1', isNoGo: false });
+    respond();
+    container.querySelector('#os-stimulus').click();
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
+  });
+
+  it('a go image that times out is a miss, followed by feedback and then the next trial', () => {
     gameMock.recordResponse.mockReturnValueOnce('wrong');
-    beginTrial();
-    clearAllTimers();
-    endTrial();
-    const fb = container.querySelector('#os-feedback');
-    expect(fb.hidden).toBe(false);
+    const container = startFirstTrial();
+
+    jest.advanceTimersByTime(INTERVAL_MS - 1);
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    expect(gameMock.recordResponse).toHaveBeenCalledWith(false, false);
+    expect(gameMock.recordGoResponseTime).not.toHaveBeenCalled();
+    expect(container.querySelector('#os-feedback').hidden).toBe(false);
+    expect(container.querySelector('#os-feedback-text').textContent).toBe('Too slow!');
+
+    jest.advanceTimersByTime(FEEDBACK_MS);
+    expect(container.querySelector('#os-feedback').hidden).toBe(true);
+    expect(gameMock.pickNextImage).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(ISI_MS);
+    expect(gameMock.pickNextImage).toHaveBeenCalledTimes(2);
   });
 
-  it('does NOT show feedback when a go image was responded to correctly', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    // Force a correct outcome on a go trial
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1', isNoGo: false });
-    gameMock.recordResponse.mockReturnValueOnce('correct');
-    beginTrial();
-    clearAllTimers();
-    endTrial();
-    const fb = container.querySelector('#os-feedback');
-    expect(fb.hidden).toBe(true);
-  });
-
-  it('does not update avg response stat after a go trial', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    gameMock.getAverageResponseMs.mockReturnValue(250);
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1', isNoGo: false });
-    gameMock.recordResponse.mockReturnValueOnce('correct');
-    beginTrial();
-    clearAllTimers();
-    endTrial();
-    // Stat should remain at its initial value — not updated on a go trial.
-    expect(container.querySelector('#os-avg-response').textContent).toBe('--');
-  });
-
-  it('updates avg response stat to a number after a no-go trial', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
+  it('a no-go trial shows feedback and refreshes the average response time', () => {
     gameMock.getAverageResponseMs.mockReturnValue(320);
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true });
-    gameMock.recordResponse.mockReturnValueOnce('correct');
-    beginTrial();
-    clearAllTimers();
-    endTrial();
+    const container = startFirstTrial({ imageKey: 'no-go', isNoGo: true });
+    jest.advanceTimersByTime(INTERVAL_MS);
+
+    expect(gameMock.recordResponse).toHaveBeenCalledWith(true, false);
+    expect(container.querySelector('#os-feedback-text').textContent).toBe('Great stop!');
     expect(container.querySelector('#os-avg-response').textContent).toBe('320');
   });
 
-  it('updates avg response stat to "--" after a no-go trial when no go response recorded', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
+  it('shows "--" for the average after a no-go trial when there is no go response yet', () => {
     gameMock.getAverageResponseMs.mockReturnValue(null);
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true });
-    gameMock.recordResponse.mockReturnValueOnce('correct');
-    beginTrial();
-    clearAllTimers();
-    endTrial();
+    const container = startFirstTrial({ imageKey: 'no-go', isNoGo: true });
+    container.querySelector('#os-avg-response').textContent = '999';
+    jest.advanceTimersByTime(INTERVAL_MS);
+    expect(container.querySelector('#os-avg-response').textContent).toBe('--');
+  });
+
+  it('pressing on the no-go image records a no-go hit without a response time', () => {
+    gameMock.recordResponse.mockReturnValueOnce('wrong');
+    const container = startFirstTrial({ imageKey: 'no-go', isNoGo: true });
+    respond();
+
+    expect(gameMock.recordResponse).toHaveBeenCalledWith(true, true);
+    expect(gameMock.recordGoResponseTime).not.toHaveBeenCalled();
+    expect(container.querySelector('#os-feedback-text').textContent).toBe('Oops \u2014 too fast!');
+  });
+
+  it('a go trial updates the stats but not the average response time', () => {
+    gameMock.getAverageResponseMs.mockReturnValue(250);
+    const container = startFirstTrial();
+    gameMock.getScore.mockReturnValue(7);
+    respond();
+
+    expect(container.querySelector('#os-score').textContent).toBe('7');
     expect(container.querySelector('#os-avg-response').textContent).toBe('--');
   });
 });
 
-describe('scheduleNextTrial()', () => {
-  it('does not throw when game is running', () => {
+describe('playTrials()', () => {
+  afterEach(() => stopTrials());
+
+  it('plays any run, and ends when the run has no more stimuli', () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
-    expect(() => scheduleNextTrial()).not.toThrow();
-  });
+    const run = {
+      next: jest.fn()
+        .mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true, displayMs: 500 })
+        .mockReturnValue(null),
+      record: jest.fn(() => 'correct'),
+    };
+    playTrials(run);
+    jest.advanceTimersByTime(ISI_MS + 500);
 
-  it('is a no-op when game is not running', () => {
-    gameMock.isRunning.mockReturnValue(false);
-    const container = buildContainer();
-    plugin.init(container);
-    expect(() => scheduleNextTrial()).not.toThrow();
-  });
-});
-
-// ── clearAllTimers ────────────────────────────────────────────────────────────
-
-describe('clearAllTimers()', () => {
-  it('does not throw when called with no active timers', () => {
-    expect(() => clearAllTimers()).not.toThrow();
-  });
-
-  it('does not throw when called after beginTrial()', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    beginTrial();
-    expect(() => clearAllTimers()).not.toThrow();
-  });
-});
-
-// ── handleKeyDown — full Space press path ────────────────────────────────────
-
-describe('handleKeyDown() — Space with active stimulus', () => {
-  it('calls preventDefault and triggers endTrial when stimulus is active', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    beginTrial(); // activate a trial so _currentImageKey !== null
-    clearAllTimers(); // prevent automatic trial end
-
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
-    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
-    handleKeyDown(event);
-
-    expect(preventDefaultSpy).toHaveBeenCalled();
-    expect(gameMock.recordResponse).toHaveBeenCalled();
-  });
-
-  it('clears the active trial timer when Space is pressed mid-trial', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    // beginTrial sets _trialTimer; do NOT clear it before pressing Space
-    beginTrial();
-
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
-    // Should not throw even though the timer is still running
-    expect(() => handleKeyDown(event)).not.toThrow();
-    expect(gameMock.recordResponse).toHaveBeenCalled();
-  });
-});
-
-// ── handleClick ───────────────────────────────────────────────────────────────
-
-describe('handleClick()', () => {
-  it('records the response when game is running and a stimulus is active', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    beginTrial(); // activate a trial so _currentImageKey !== null
-    clearAllTimers();
-
-    handleClick();
-
-    expect(gameMock.recordResponse).toHaveBeenCalled();
-  });
-
-  it('is a no-op when game is not running', () => {
-    gameMock.isRunning.mockReturnValue(false);
-    const container = buildContainer();
-    plugin.init(container);
-    gameMock.recordResponse.mockClear();
-    handleClick();
+    expect(run.record).toHaveBeenCalledWith(expect.objectContaining({ isNoGo: true }), false, 500);
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
-  });
-
-  it('is a no-op when no stimulus is active (_currentImageKey is null)', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start(); // _currentImageKey is null until beginTrial()
-    gameMock.recordResponse.mockClear();
-    handleClick();
-    expect(gameMock.recordResponse).not.toHaveBeenCalled();
-  });
-
-  it('clears the active trial timer when clicked mid-trial', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    beginTrial(); // sets _trialTimer
-    // Should not throw
-    expect(() => handleClick()).not.toThrow();
-    expect(gameMock.recordResponse).toHaveBeenCalled();
-  });
-
-  it('is wired to the stimulus element click event', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    beginTrial();
-    clearAllTimers();
-
-    // Clicking the stimulus element should trigger handleClick
-    const stimulusEl = container.querySelector('#os-stimulus');
-    gameMock.recordResponse.mockClear();
-    stimulusEl.click();
-
-    expect(gameMock.recordResponse).toHaveBeenCalled();
-  });
-});
-
-// ── endTrial — feedback timer callback ───────────────────────────────────────
-
-describe('endTrial() — feedback timer fires after no-go trial', () => {
-  it('hides feedback and schedules next trial after FEEDBACK_DURATION_MS', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true });
-    beginTrial();
-    clearAllTimers();
-    endTrial(); // starts the feedback timer
-
-    // Feedback should be visible
     expect(container.querySelector('#os-feedback').hidden).toBe(false);
 
-    // Advance fake timers past FEEDBACK_DURATION_MS (800 ms)
-    jest.advanceTimersByTime(900);
+    jest.advanceTimersByTime(FEEDBACK_MS + ISI_MS);
+    expect(run.next).toHaveBeenCalledTimes(2);
+    // The run is over, so Space is left alone.
+    const event = spaceEvent();
+    document.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
 
-    // Feedback should now be hidden and next trial scheduled
-    expect(container.querySelector('#os-feedback').hidden).toBe(true);
+  it('a stimulus with no display time waits for a press', () => {
+    plugin.init(buildContainer());
+    const run = {
+      next: jest.fn(() => ({ imageKey: 'go-1.png', isNoGo: false, displayMs: null })),
+      record: jest.fn(() => 'correct'),
+    };
+    playTrials(run);
+    jest.advanceTimersByTime(ISI_MS + 10000);
+    expect(run.record).not.toHaveBeenCalled();
+
+    respond();
+    expect(run.record).toHaveBeenCalledWith(
+      expect.objectContaining({ imageKey: 'go-1.png' }),
+      true,
+      10000,
+    );
+  });
+
+  it('replaces a run in progress', () => {
+    plugin.init(buildContainer());
+    const first = { next: jest.fn(() => null), record: jest.fn() };
+    const second = { next: jest.fn(() => null), record: jest.fn() };
+    playTrials(first);
+    playTrials(second);
+    jest.advanceTimersByTime(ISI_MS);
+    expect(first.next).not.toHaveBeenCalled();
+    expect(second.next).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('endTrial() — feedback timer fires after go miss', () => {
-  it('hides feedback and schedules next trial after FEEDBACK_DURATION_MS', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
+describe('stopTrials()', () => {
+  it('cancels the pending trial and clears the stimulus, feedback, and Space listener', () => {
+    const container = startFirstTrial();
+    showFeedback('correct', true);
+    stopTrials();
 
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1', isNoGo: false });
-    gameMock.recordResponse.mockReturnValueOnce('wrong'); // missed go image
-    beginTrial();
-    clearAllTimers();
-    endTrial(); // starts the feedback timer
-
-    expect(container.querySelector('#os-feedback').hidden).toBe(false);
-
-    jest.advanceTimersByTime(900);
-
+    expect(container.querySelector('#os-stimulus-img').classList.contains('os-hidden')).toBe(true);
     expect(container.querySelector('#os-feedback').hidden).toBe(true);
-  });
-});
-
-// ── response time recording ───────────────────────────────────────────────────
-
-describe('response time recording', () => {
-  it('calls recordGoResponseTime when Space is pressed on a go trial', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1.png', isNoGo: false });
-    beginTrial();
-    clearAllTimers();
-
-    const event = new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true });
-    handleKeyDown(event);
-
-    expect(gameMock.recordGoResponseTime).toHaveBeenCalledWith(expect.any(Number));
+    jest.advanceTimersByTime(5000);
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
+    const event = spaceEvent();
+    document.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
   });
 
-  it('does not call recordGoResponseTime for a no-go trial', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'no-go', isNoGo: true });
-    beginTrial();
-    clearAllTimers();
-    gameMock.recordGoResponseTime.mockClear();
-    endTrial();
-
-    expect(gameMock.recordGoResponseTime).not.toHaveBeenCalled();
-  });
-
-  it('does not call recordGoResponseTime when player misses a go image (no Space press)', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1.png', isNoGo: false });
-    beginTrial();
-    clearAllTimers();
-    gameMock.recordGoResponseTime.mockClear();
-    // endTrial without pressing Space — simulates a miss
-    endTrial();
-
-    expect(gameMock.recordGoResponseTime).not.toHaveBeenCalled();
-  });
-
-  it('calls recordGoResponseTime when stimulus area is clicked on a go trial', () => {
-    const container = buildContainer();
-    plugin.init(container);
-    plugin.start();
-    gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-1.png', isNoGo: false });
-    beginTrial();
-    clearAllTimers();
-
-    handleClick();
-
-    expect(gameMock.recordGoResponseTime).toHaveBeenCalledWith(expect.any(Number));
+  it('is safe with no run playing', () => {
+    expect(() => stopTrials()).not.toThrow();
   });
 });
 
