@@ -100,6 +100,8 @@ const {
   showPlaybackStep,
   startPlayback,
   startRound,
+  playRound,
+  stopRound,
   submitSelection,
   loadBestStatsFromProgress,
   returnToMainMenu,
@@ -222,6 +224,46 @@ describe('exported helper utilities', () => {
     startRound();
     expect(gameMock.createRound).toHaveBeenCalled();
     expect(document.querySelector('#osm-target-preview').style.backgroundPosition).toContain('%');
+  });
+
+  test('playRound plays the round it is given without a session', () => {
+    const round = { ...gameMock.createRound(), primarySpriteId: 5 };
+    gameMock.createRound.mockClear();
+    gameMock.startGame.mockClear();
+
+    playRound(round);
+    expect(gameMock.createRound).not.toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(document.querySelector('#osm-target-preview').style.backgroundPosition)
+      .toBe(getSpriteBackgroundPosition(5));
+
+    jest.advanceTimersByTime(200);
+    const buttons = document.querySelectorAll('.osm-choice-btn');
+    expect(buttons).toHaveLength(5);
+    [0, 2, 4].forEach((index) => buttons[index].click());
+    expect(gameMock.evaluateSelection).toHaveBeenLastCalledWith(round, [0, 3, 7]);
+  });
+
+  test('stopRound cancels playback and clears the board', () => {
+    playRound(gameMock.createRound());
+    jest.advanceTimersByTime(40);
+    expect(document.querySelector('#osm-active-sprite').hidden).toBe(false);
+
+    stopRound();
+    expect(document.querySelector('#osm-active-sprite').hidden).toBe(true);
+    expect(jest.getTimerCount()).toBe(0);
+    jest.advanceTimersByTime(200);
+    expect(document.querySelectorAll('.osm-choice-btn')).toHaveLength(0);
+  });
+
+  test('stopRound ignores choices on buttons still on the board', () => {
+    playRound(gameMock.createRound());
+    jest.advanceTimersByTime(200);
+    const button = document.querySelector('.osm-choice-btn');
+
+    stopRound();
+    togglePosition(Number(button.dataset.position), button);
+    expect(button.classList.contains('osm-choice-btn--selected')).toBe(false);
   });
 
   test('auto review records correct answers on third selection', () => {

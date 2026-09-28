@@ -379,20 +379,45 @@ export function startPlayback(round) {
 }
 
 /**
- * Starts a fresh round at the current level.
+ * Plays one round: shows its target in the preview, flashes its sprites around the circle,
+ * then takes position choices. It never reads or changes session state, so it can play a
+ * round with no session running.
+ *
+ * @param {ReturnType<typeof game.createRound>} round - Round to play.
  */
-export function startRound() {
-  resetBoardVisualState();
-  _currentRound = game.createRound(game.getLevel());
+export function playRound(round) {
+  _currentRound = round;
 
   if (_targetPreviewEl) {
     _targetPreviewEl.style.backgroundPosition = getSpriteBackgroundPosition(
-      _currentRound.primarySpriteId,
+      round.primarySpriteId,
     );
   }
 
   announce('Watch the circle. The target image appears three times.');
-  startPlayback(_currentRound);
+  startPlayback(round);
+}
+
+/**
+ * Starts a fresh round at the current level.
+ */
+export function startRound() {
+  playRound(game.createRound(game.getLevel()));
+}
+
+/**
+ * Cancels the round in progress at any phase: stops its timers, ignores further choices, and
+ * clears the board.
+ */
+export function stopRound() {
+  clearTimers();
+  resetBoardVisualState();
+  _currentRound = null;
+  _inputEnabled = false;
+  _selectedPositions = new Set();
+  if (_activeSpriteEl) _activeSpriteEl.hidden = true;
+  clearChoiceButtons();
+  clearRevealSprites();
 }
 
 /**
@@ -528,8 +553,7 @@ function start() {
  * @returns {{ score: number, level: number, roundsPlayed: number, duration: number }}
  */
 function stop() {
-  clearTimers();
-  resetBoardVisualState();
+  stopRound();
   const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
 
@@ -551,25 +575,17 @@ function stop() {
  * Resets UI and logic state to pre-start mode.
  */
 function reset() {
-  clearTimers();
-  resetBoardVisualState();
+  stopRound();
   game.initGame();
 
   timerService.resetTimer();
   if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
 
-  _currentRound = null;
-  _inputEnabled = false;
-  _selectedPositions = new Set();
-
-  if (_activeSpriteEl) _activeSpriteEl.hidden = true;
   if (_instructionsEl) _instructionsEl.hidden = false;
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_feedbackEl) _feedbackEl.textContent = '';
 
-  clearChoiceButtons();
-  clearRevealSprites();
   loadBestStatsFromProgress();
   updateStats();
   updateTrendChart();
