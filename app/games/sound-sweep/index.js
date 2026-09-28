@@ -16,6 +16,12 @@ import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import * as timerService from '../../components/timerService.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import {
+  finishPracticeTrial,
+  isPracticing,
+  setPracticeControls,
+  tutorial,
+} from './tutorial/tutorial.js';
 
 // ── Timing constants ──────────────────────────────────────────────────────────
 
@@ -75,6 +81,8 @@ let _ddBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _startBtn = null;
 /** @type {HTMLButtonElement|null} */
+let _replayTutorialBtn = null;
+/** @type {HTMLButtonElement|null} */
 let _stopBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _playAgainBtn = null;
@@ -121,6 +129,19 @@ function setResponsesEnabled(enabled) {
   [_uuBtn, _udBtn, _duBtn, _ddBtn, _replayBtn].forEach((btn) => {
     if (btn) btn.disabled = !enabled;
   });
+}
+
+/**
+ * Get the answer button for a sequence.
+ *
+ * @param {string} sequence - One of game.SEQUENCES.
+ * @returns {HTMLButtonElement|null}
+ */
+function getSequenceButton(sequence) {
+  const map = {
+    'up-up': _uuBtn, 'up-down': _udBtn, 'down-up': _duBtn, 'down-down': _ddBtn,
+  };
+  return map[sequence] || null;
 }
 
 /**
@@ -267,6 +288,11 @@ export function handleSequenceResponse(response) {
   setResponsesEnabled(false);
 
   const success = response === _currentTrial.sequence;
+  if (isPracticing()) {
+    finishPracticeTrial(success);
+    return;
+  }
+
   game.recordTrial({ success });
 
   updateStats();
@@ -318,6 +344,59 @@ function showEndPanel(result) {
   if (_endPanelEl) _endPanelEl.hidden = false;
 }
 
+/**
+ * Show the game area in place of the welcome and end panels.
+ */
+function showGameArea() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_endPanelEl)     _endPanelEl.hidden = true;
+  if (_gameAreaEl)     _gameAreaEl.hidden = false;
+}
+
+/**
+ * Start a gameplay session immediately without tutorial gating.
+ */
+function beginGameSession() {
+  game.startGame();
+
+  timerService.startTimer((elapsedMs) => {
+    if (_sessionTimerEl) {
+      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
+    }
+  });
+
+  showGameArea();
+
+  // Move focus to the status element so keyboard users land in the game area
+  // rather than remaining on the now-hidden Start button (WCAG 2.4.3).
+  if (_statusEl) _statusEl.focus();
+
+  startTrial();
+}
+
+/**
+ * Trial controls the tutorial uses to play practice trials with the real sweeps, Replay
+ * button, and answer buttons.
+ *
+ * @type {import('./tutorial/tutorial.js').PracticeTrialControls}
+ */
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea,
+  playTrial,
+  stopTrial,
+  getSequenceButton,
+  showResult: showResponseFeedback,
+});
+
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, onComplete: beginGameSession };
+}
+
 // ── Plugin contract ───────────────────────────────────────────────────────────
 
 /** Human-readable plugin name. */
@@ -334,6 +413,7 @@ const name = 'Sound Sweep';
 function init(gameContainer) {
   _container = gameContainer;
   game.initGame();
+  setPracticeControls(PRACTICE_CONTROLS);
 
   if (!_container) return;
 
@@ -358,26 +438,33 @@ function init(gameContainer) {
   _duBtn           = _container.querySelector('#ss-btn-du');
   _ddBtn           = _container.querySelector('#ss-btn-dd');
   _startBtn        = _container.querySelector('#ss-start-btn');
+  _replayTutorialBtn = _container.querySelector('#ss-replay-tutorial-btn');
   _stopBtn         = _container.querySelector('#ss-stop-btn');
   _playAgainBtn    = _container.querySelector('#ss-play-again-btn');
   _returnBtn       = _container.querySelector('#ss-return-btn');
   _replayBtn       = _container.querySelector('#ss-replay-btn');
 
-  if (_startBtn)     _startBtn.addEventListener('click', () => start());
+  if (_startBtn)     _startBtn.addEventListener('click', () => { void start(); });
+  // Replay always shows the tutorial, then starts a session.
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => {
+      void tutorial.replay(tutorialOptions());
+    });
+  }
   if (_stopBtn)      _stopBtn.addEventListener('click', () => stop());
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
-      start();
+      void start();
     });
   }
   if (_returnBtn)  _returnBtn.addEventListener('click', () => returnToMainMenu());
   if (_replayBtn)  _replayBtn.addEventListener('click', () => replayCurrentSweep());
 
-  if (_uuBtn) _uuBtn.addEventListener('click', () => handleSequenceResponse('up-up'));
-  if (_udBtn) _udBtn.addEventListener('click', () => handleSequenceResponse('up-down'));
-  if (_duBtn) _duBtn.addEventListener('click', () => handleSequenceResponse('down-up'));
-  if (_ddBtn) _ddBtn.addEventListener('click', () => handleSequenceResponse('down-down'));
+  game.SEQUENCES.forEach((sequence) => {
+    const btn = getSequenceButton(sequence);
+    if (btn) btn.addEventListener('click', () => handleSequenceResponse(sequence));
+  });
 
   // Remove any existing handler before registering to guarantee exactly one
   // keydown listener regardless of how many times init() is called.
@@ -389,43 +476,37 @@ function init(gameContainer) {
 }
 
 /**
- * Start a gameplay session.
+ * Start a gameplay session, showing the tutorial first if the player has not seen it.
+ *
+ * @returns {Promise<void>}
  */
 function start() {
-  game.startGame();
-
-  timerService.startTimer((elapsedMs) => {
-    if (_sessionTimerEl) {
-      _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
-    }
-  });
-
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_endPanelEl)     _endPanelEl.hidden = true;
-  if (_gameAreaEl)     _gameAreaEl.hidden = false;
-  if (_feedbackEl)     _feedbackEl.textContent = '';
-
-  // Move focus to the status element so keyboard users land in the game area
-  // rather than remaining on the now-hidden Start button (WCAG 2.4.3).
-  if (_statusEl) _statusEl.focus();
-
-  startTrial();
+  return tutorial.startIfNeeded(tutorialOptions());
 }
 
 /**
  * Stop the gameplay session, save progress, and show the end panel.
+ *
+ * With no session running (on the welcome screen, during the tutorial, or when the app
+ * quits after a session ended) there is nothing to save and the screen is left alone,
+ * except that leaving a tutorial this way cancels it and returns to the welcome screen.
  *
  * @returns {{ score: number, level: number, trialsCompleted: number, duration: number }}
  */
 function stop() {
   stopTrial();
 
-  const result = game.isRunning() ? game.stopGame() : {
-    score: game.getScore(),
-    level: game.getCurrentLevel(),
-    trialsCompleted: game.getTrialsCompleted(),
-    duration: 0,
-  };
+  if (!game.isRunning()) {
+    if (tutorial.isActive()) reset();
+    return {
+      score: game.getScore(),
+      level: game.getCurrentLevel(),
+      trialsCompleted: game.getTrialsCompleted(),
+      duration: 0,
+    };
+  }
+
+  const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
@@ -446,6 +527,7 @@ function stop() {
  * Reset to the pre-game instructions state without reloading interface.html.
  */
 function reset() {
+  tutorial.cancel();
   stopTrial();
   game.initGame();
   timerService.resetTimer();

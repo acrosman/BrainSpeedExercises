@@ -152,6 +152,16 @@ export function pickSequence() {
 }
 
 /**
+ * Build a tutorial practice trial: a random sequence at the easiest level. It ignores the
+ * current level and changes no game state.
+ *
+ * @returns {{ sequence: string, sweepDurationMs: number, isiMs: number }}
+ */
+export function generatePracticeTrial() {
+  return { sequence: pickSequence(), ...LEVELS[0] };
+}
+
+/**
  * Convert a sequence to the label the player sees, e.g. 'up-down' → 'Up-Down'.
  *
  * @param {string} sequence - One of SEQUENCES.

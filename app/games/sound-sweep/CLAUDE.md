@@ -4,6 +4,13 @@ An auditory processing-speed task. Two rapid frequency sweeps play back to back,
 falling. The player identifies the sequence: Up-Up, Up-Down, Down-Up, or Down-Down. It is the
 auditory counterpart of `directional-processing`, and the two have the same structure.
 
+## Files
+
+- `game.js`: the level table, the staircase, and `generatePracticeTrial()`, which returns a
+  random sequence at `LEVELS[0]` without changing state.
+- `index.js`: the trial cycle, controls, and plugin lifecycle.
+- `tutorial/`: the first-run tutorial. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
+
 ## Audio
 
 This game creates no audio of its own. `playSweepPair(['up','down'], { sweepDurationMs, isiMs })`
