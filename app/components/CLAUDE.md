@@ -225,4 +225,5 @@ controls, and routes input to the tutorial while it is practicing.
 
 Worked examples: `fast-piggie` and `directional-processing` (one answer per round), `card-rat`
 (a timed run of cards with one to act on), `field-of-view` (a two-part answer, with retries),
-and `high-speed-memory` (several answers per round, with retries).
+`high-speed-memory` (several answers per round, with retries), and `object-track` (several
+answers per round after an animation, with retries).

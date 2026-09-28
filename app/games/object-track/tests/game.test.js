@@ -28,9 +28,9 @@ import {
   resolveCircleCollisions,
   evaluateResponse,
   recordRoundResult,
-  initRound,
-  tickPhysics,
-  getCurrentCircles,
+  createRoundCircles,
+  createPracticeRound,
+  stepCircles,
   initGame,
   startGame,
   stopGame,
@@ -402,59 +402,80 @@ describe('recordRoundResult', () => {
   });
 });
 
-// ── initRound ─────────────────────────────────────────────────────────────────
+// ── createRoundCircles ────────────────────────────────────────────────────────
 
-describe('initRound', () => {
-  it('returns array with some isTarget=true circles', () => {
-    startGame();
-    const circles = initRound(600, 400);
-    const targets = circles.filter((c) => c.isTarget);
-    expect(targets.length).toBeGreaterThan(0);
+describe('createRoundCircles', () => {
+  it.each([0, 5, 30])('uses the circle and target counts for level %i', (lvl) => {
+    const { numCircles, numTargets } = getLevelConfig(lvl);
+    const circles = createRoundCircles(lvl, 600, 400);
+    expect(circles).toHaveLength(numCircles);
+    expect(circles.filter((c) => c.isTarget)).toHaveLength(numTargets);
   });
 
-  it('stores result in module state (getCurrentCircles matches)', () => {
-    startGame();
-    const fromInit = initRound(600, 400);
-    const fromGet = getCurrentCircles();
-    expect(fromGet).toHaveLength(fromInit.length);
-    fromGet.forEach((c, i) => {
-      expect(c.id).toBe(fromInit[i].id);
-      expect(c.isTarget).toBe(fromInit[i].isTarget);
-    });
+  it('moves circles at the level speed', () => {
+    const [circle] = createRoundCircles(4, 600, 400);
+    const pxPerMs = Math.hypot(circle.vx, circle.vy);
+    expect(pxPerMs * 1000).toBeCloseTo(getLevelConfig(4).speedPxPerSec);
   });
-});
 
-// ── tickPhysics ───────────────────────────────────────────────────────────────
-
-describe('tickPhysics', () => {
-  it('returns updated positions and stores them in module state', () => {
-    startGame();
-    initRound(600, 400);
-    const before = getCurrentCircles();
-    tickPhysics(100, { width: 600, height: 400 });
-    const after = getCurrentCircles();
-    // At least some circles should have moved
-    const moved = after.some(
-      (c, i) => c.x !== before[i].x || c.y !== before[i].y,
-    );
-    expect(moved).toBe(true);
+  it('does not change game state', () => {
+    createRoundCircles(3, 600, 400);
+    expect(getLevel()).toBe(0);
+    expect(getRoundsPlayed()).toBe(0);
+    expect(getSpeedHistory()).toEqual([]);
   });
 });
 
-// ── getCurrentCircles ─────────────────────────────────────────────────────────
+// ── createPracticeRound ───────────────────────────────────────────────────────
 
-describe('getCurrentCircles', () => {
-  it('returns a shallow copy, not the same reference', () => {
-    startGame();
-    initRound(600, 400);
-    const a = getCurrentCircles();
-    const b = getCurrentCircles();
-    expect(a).not.toBe(b);
-    expect(a).toEqual(b);
+describe('createPracticeRound', () => {
+  it('builds a round at the easiest level', () => {
+    const { circles, trackingDurationMs } = createPracticeRound(600, 400);
+    const config = getLevelConfig(MIN_LEVEL);
+    expect(circles).toHaveLength(config.numCircles);
+    expect(circles.filter((c) => c.isTarget)).toHaveLength(config.numTargets);
+    expect(trackingDurationMs).toBe(config.trackingDurationMs);
   });
 
-  it('returns empty array after initGame', () => {
-    expect(getCurrentCircles()).toHaveLength(0);
+  it('ignores the current level and leaves game state alone', () => {
+    startGame();
+    for (let i = 0; i < CORRECT_TO_ADVANCE * 4; i += 1) recordRoundResult(true);
+    const before = { level: getLevel(), score: getScore(), rounds: getRoundsPlayed() };
+    const { circles } = createPracticeRound(600, 400);
+    expect(before.level).toBe(4);
+    expect(circles).toHaveLength(getLevelConfig(MIN_LEVEL).numCircles);
+    expect({ level: getLevel(), score: getScore(), rounds: getRoundsPlayed() }).toEqual(before);
+  });
+});
+
+// ── stepCircles ───────────────────────────────────────────────────────────────
+
+describe('stepCircles', () => {
+  const bounds = { width: 600, height: 400 };
+
+  it('moves circles by velocity × delta without mutating the input', () => {
+    const input = [{ id: 0, x: 100, y: 100, vx: 0.1, vy: -0.05, radius: 30, isTarget: true }];
+    const result = stepCircles(input, 100, bounds);
+    expect(result[0]).toMatchObject({ x: 110, y: 95, isTarget: true });
+    expect(input[0].x).toBe(100);
+  });
+
+  it('bounces off the walls', () => {
+    const input = [{ id: 0, x: 575, y: 200, vx: 0.1, vy: 0, radius: 30, isTarget: false }];
+    const [circle] = stepCircles(input, 100, bounds);
+    expect(circle.x).toBe(570);
+    expect(circle.vx).toBeLessThan(0);
+  });
+
+  it('separates circles that collide', () => {
+    const input = [
+      { id: 0, x: 200, y: 200, vx: 0.1, vy: 0, radius: 30, isTarget: false },
+      { id: 1, x: 250, y: 200, vx: -0.1, vy: 0, radius: 30, isTarget: false },
+    ];
+    const [a, b] = stepCircles(input, 0, bounds);
+    expect(b.x - a.x).toBeCloseTo(60);
+    expect(a.vx).toBeLessThan(0);
+    expect(b.vx).toBeGreaterThan(0);
   });
 });
 
@@ -463,7 +484,6 @@ describe('getCurrentCircles', () => {
 describe('initGame', () => {
   it('resets score to 0', () => {
     startGame();
-    initRound(600, 400);
     recordRoundResult(true);
     initGame();
     expect(getScore()).toBe(0);

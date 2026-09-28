@@ -9,10 +9,15 @@ CSS classes and element IDs use the `mot-` prefix. The root class is `.mot-game`
 
 ## Round phases (`index.js`)
 
-`beginRound()` → **marking** (targets highlighted for `MARKING_DURATION_MS`, 2000) →
-`endMarkingPhase()` → **tracking** (a rAF loop that calls `game.tickPhysics(delta, bounds)`,
-running for the level's `trackingDurationMs`) → **response** (`enterResponsePhase()`) →
-**feedback** (`FEEDBACK_DURATION_MS`, 1500) → next round.
+`beginRound()` builds the level's circles with `game.createRoundCircles` and hands them to
+`playRound(roundCircles, trackingDurationMs)`, which runs the phases: **marking** (targets
+highlighted for `MARKING_DURATION_MS`, 2000) → `endMarkingPhase()` → **tracking** (a rAF loop
+that replaces `_roundCircles` with `game.stepCircles(...)` each frame, for
+`trackingDurationMs`) → **response** (`enterResponsePhase()`) → **feedback**
+(`FEEDBACK_DURATION_MS`, 1500) → next round. `stopRound()` cancels a round at any phase.
+
+`index.js` owns the circles of the round in progress (`_roundCircles`), so `playRound` can play
+any set of circles without touching session state.
 
 In the response phase, clicking circles toggles them on and off. The answer is **submitted
 automatically** once the number selected equals the number of targets, so there is no Submit
@@ -26,8 +31,10 @@ than `div role="button"`, which would need its own key handling.
 
 All physics is pure: `createCircles` (no overlap at spawn, up to `MAX_SPAWN_ATTEMPTS`),
 `updateCirclePositions` (move and bounce off walls), and `resolveCircleCollisions` (elastic
-collisions between circles). Each takes an array of circles and returns a new one. Only
-`initRound` and `tickPhysics` change the module-level `circles`. Circle radius is 30 px.
+collisions between circles). Each takes an array of circles and returns a new one.
+`createRoundCircles(level, width, height)` combines `createCircles` and `selectTargets` for a
+level, and `stepCircles(circles, deltaMs, bounds)` runs one frame of motion and collisions.
+`game.js` keeps no circles in its own state. Circle radius is 30 px.
 
 ## Difficulty
 
@@ -47,6 +54,11 @@ The speed history and trend chart track px/s. Unlike other games, higher values 
 Arena backgrounds come from `images/bg/`, which is read at init through `games:listImages` into
 `ARENA_BACKGROUNDS`. One is picked at random for each round. To add a background, drop a
 PNG/JPEG into that folder; no code change is needed. Circle colors come from `CIRCLE_PALETTES`.
+
+## Tutorial
+
+See [tutorial/CLAUDE.md](tutorial/CLAUDE.md). `game.createPracticeRound(width, height)` returns
+`{ circles, trackingDurationMs }` for a level 0 round without changing state.
 
 ## Saved fields
 

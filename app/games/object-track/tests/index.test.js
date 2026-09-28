@@ -71,18 +71,19 @@ jest.unstable_mockModule('../game.js', () => ({
   resolveCircleCollisions: jest.fn((cs) => cs),
   evaluateResponse: jest.fn(() => ({ correct: true, correctCount: 3, totalTargets: 3 })),
   recordRoundResult: jest.fn(() => ({ levelDelta: 0, newLevel: 0 })),
-  initRound: jest.fn(() => [
+  createRoundCircles: jest.fn(() => [
     { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
     { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
   ]),
-  tickPhysics: jest.fn(() => [
-    { id: 0, x: 105, y: 100, radius: 30, isTarget: true },
-    { id: 1, x: 205, y: 200, radius: 30, isTarget: false },
-  ]),
-  getCurrentCircles: jest.fn(() => [
-    { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
-    { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
-  ]),
+  // Each frame moves every circle 5 px to the right.
+  stepCircles: jest.fn((cs) => cs.map((c) => ({ ...c, x: c.x + 5 }))),
+  // Practice circles: 1, 3, and 5 are targets, so they differ from the session round.
+  createPracticeRound: jest.fn(() => ({
+    circles: [0, 1, 2, 3, 4, 5].map((id) => ({
+      id, x: 50 + id * 80, y: 100, vx: 0, vy: 0, radius: 30, isTarget: id % 2 === 1,
+    })),
+    trackingDurationMs: 5000,
+  })),
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({ score: 5, level: 2, roundsPlayed: 10, duration: 8000 })),
@@ -95,12 +96,33 @@ jest.unstable_mockModule('../game.js', () => ({
   getSpeedHistory: jest.fn(() => []),
 }));
 
+// ── 2b. Mock tutorialService ──────────────────────────────────────────────────
+
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Object Track', content: '<p>Welcome</p>' },
+  ]),
+  // Default replay: the player finishes the tutorial at once.
+  runGuidedTutorial: jest.fn((options) => {
+    options.onComplete();
+    return { cancel: jest.fn(), isActive: () => false };
+  }),
+  // Default first start: the tutorial was already seen.
+  runGuidedTutorialIfNeeded: jest.fn(async (options) => {
+    options.onComplete();
+    return null;
+  }),
+}));
+
 // ── 3. Dynamic imports ────────────────────────────────────────────────────────
 
 const gameMock = await import('../game.js');
 const scoreServiceMock = await import('../../../components/scoreService.js');
 const timerServiceMock = await import('../../../components/timerService.js');
+const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const indexModule = await import('../index.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 const plugin = indexModule.default;
 const {
   clearAllTimers,
@@ -119,7 +141,11 @@ const {
   submitResponse,
   showEndPanel,
   beginRound,
+  playRound,
   endMarkingPhase,
+  stopRound,
+  getArenaBounds,
+  getCircleEl,
   MARKING_DURATION_MS,
   FEEDBACK_DURATION_MS,
   ARENA_BACKGROUNDS,
@@ -131,7 +157,14 @@ const {
 global.requestAnimationFrame = jest.fn(() => 1);
 global.cancelAnimationFrame = jest.fn();
 
-// ── 5. DOM helper ─────────────────────────────────────────────────────────────
+// ── 5. DOM helpers ────────────────────────────────────────────────────────────
+
+/** Let pending promise callbacks (such as a tutorial launch) run. */
+async function flushMicrotasks() {
+  for (let i = 0; i < 5; i += 1) {
+    await Promise.resolve();
+  }
+}
 
 /**
  * Build a minimal DOM container matching interface.html structure.
@@ -153,6 +186,7 @@ function buildContainer() {
     <div id="mot-feedback"></div>
     <button id="mot-stop"></button>
     <button id="mot-start"></button>
+    <button id="mot-replay-tutorial"></button>
     <button id="mot-play-again"></button>
     <button id="mot-return"></button>
     <dd id="mot-final-score">0</dd>
@@ -232,37 +266,38 @@ describe('init()', () => {
     expect(() => plugin.init(null)).not.toThrow();
   });
 
-  it('wires Start button click to start()', () => {
+  it('wires Start button click to start()', async () => {
     const container = buildContainer();
     plugin.init(container);
     const startBtn = container.querySelector('#mot-start');
     startBtn.click();
+    await flushMicrotasks();
     expect(gameMock.startGame).toHaveBeenCalled();
   });
 });
 
 describe('start()', () => {
-  it('calls game.startGame and timerService.startTimer', () => {
+  it('calls game.startGame and timerService.startTimer', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(timerServiceMock.startTimer).toHaveBeenCalled();
   });
 
-  it('shows play area and hides instructions', () => {
+  it('shows play area and hides instructions', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(container.querySelector('#mot-instructions').hidden).toBe(true);
     expect(container.querySelector('#mot-play-area').hidden).toBe(false);
   });
 
-  it('calls game.initRound (via beginRound)', () => {
+  it('creates the first round at the current level (via beginRound)', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
-    expect(gameMock.initRound).toHaveBeenCalled();
+    await plugin.start();
+    expect(gameMock.createRoundCircles).toHaveBeenCalledWith(2, 600, 400);
   });
 });
 
@@ -307,9 +342,12 @@ describe('stop() when NOT running', () => {
     const container = buildContainer();
     plugin.init(container);
     const result = await plugin.stop();
-    // stopGame should NOT have been called
+    expect(result).toEqual({
+      score: 5, level: 2, roundsPlayed: 10, duration: 0,
+    });
     expect(gameMock.stopGame).not.toHaveBeenCalled();
-    expect(result.score).toBe(5); // from getScore mock
+    expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+    expect(container.querySelector('#mot-end-panel').hidden).toBe(true);
   });
 });
 
@@ -505,14 +543,16 @@ describe('highlightTargets()', () => {
   it('adds mot-circle--target-reveal to target circles', () => {
     const container = buildContainer();
     plugin.init(container);
-    renderCircles([
+    playRound([
       { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
       { id: 1, x: 200, y: 200, radius: 30, isTarget: false },
-    ]);
+    ], 5000);
+    unhighlightTargets();
     highlightTargets();
-    // getCurrentCircles mock returns id:0 as target
-    const el = container.querySelector('#mot-circle-0');
-    expect(el.classList.contains('mot-circle--target-reveal')).toBe(true);
+    expect(container.querySelector('#mot-circle-0').classList
+      .contains('mot-circle--target-reveal')).toBe(true);
+    expect(container.querySelector('#mot-circle-1').classList
+      .contains('mot-circle--target-reveal')).toBe(false);
   });
 
   it('does not throw when arenaEl is null', () => {
@@ -587,18 +627,15 @@ describe('enterResponsePhase()', () => {
 describe('handleCircleClick(event)', () => {
   it('selects a .mot-circle element on click (distractor — no auto-submit)', () => {
     // 3 targets, only 1 click → threshold not reached
-    gameMock.getCurrentCircles.mockReturnValue([
+    const roundCircles = [
       { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
       { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
       { id: 2, x: 300, y: 300, radius: 30, isTarget: true },
       { id: 3, x: 400, y: 400, radius: 30, isTarget: true },
-    ]);
+    ];
     const container = buildContainer();
     plugin.init(container);
-    renderCircles([
-      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
-      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
-    ]);
+    playRound(roundCircles, 5000);
     enterResponsePhase(); // caches _numTargets = 3
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
@@ -609,18 +646,15 @@ describe('handleCircleClick(event)', () => {
 
   it('deselects a circle on second click', () => {
     // 3 targets → clicking circle 0 twice ends at 0 selected, no auto-submit
-    gameMock.getCurrentCircles.mockReturnValue([
+    const roundCircles = [
       { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
       { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
       { id: 2, x: 300, y: 300, radius: 30, isTarget: true },
       { id: 3, x: 400, y: 400, radius: 30, isTarget: true },
-    ]);
+    ];
     const container = buildContainer();
     plugin.init(container);
-    renderCircles([
-      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
-      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
-    ]);
+    playRound(roundCircles, 5000);
     enterResponsePhase(); // caches _numTargets = 3
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
@@ -632,12 +666,9 @@ describe('handleCircleClick(event)', () => {
 
   it('auto-submits when selected count reaches numTargets', async () => {
     // 1 target circle: clicking it should trigger submitResponse automatically
-    gameMock.getCurrentCircles.mockReturnValue([
-      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
-    ]);
     const container = buildContainer();
     plugin.init(container);
-    renderCircles([{ id: 0, x: 100, y: 100, radius: 30, isTarget: true }]);
+    playRound([{ id: 0, x: 100, y: 100, radius: 30, isTarget: true }], 5000);
     enterResponsePhase(); // caches _numTargets = 1
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.closest = (sel) => circleEl.matches(sel) ? circleEl : null;
@@ -649,16 +680,13 @@ describe('handleCircleClick(event)', () => {
     // Browsers turn Enter/Space on a focused <button> into a click event.
     // jsdom does not simulate that key mapping, so activate the button with
     // click() and check that the event reaches the delegated arena handler.
-    gameMock.getCurrentCircles.mockReturnValue([
+    const roundCircles = [
       { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
       { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
-    ]);
+    ];
     const container = buildContainer();
     plugin.init(container);
-    renderCircles([
-      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
-      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
-    ]);
+    playRound(roundCircles, 5000);
     enterResponsePhase(); // caches _numTargets = 2
     const circleEl = container.querySelector('#mot-circle-0');
     circleEl.click();
@@ -669,16 +697,13 @@ describe('handleCircleClick(event)', () => {
   });
 
   it('submits once every target has been selected through button activation', () => {
-    gameMock.getCurrentCircles.mockReturnValue([
+    const roundCircles = [
       { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
       { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
-    ]);
+    ];
     const container = buildContainer();
     plugin.init(container);
-    renderCircles([
-      { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
-      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
-    ]);
+    playRound(roundCircles, 5000);
     enterResponsePhase(); // caches _numTargets = 2
     container.querySelector('#mot-circle-0').click();
     container.querySelector('#mot-circle-1').click();
@@ -738,7 +763,7 @@ describe('submitResponse()', () => {
 
   it('adds mot-circle--correct to correctly selected target circles', async () => {
     // Use 3 targets so 1 click won't auto-submit (_numTargets = 3)
-    gameMock.getCurrentCircles.mockReturnValue([
+    gameMock.createRoundCircles.mockReturnValueOnce([
       { id: 0, x: 100, y: 100, radius: 30, isTarget: true },
       { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
       { id: 2, x: 300, y: 300, radius: 30, isTarget: true },
@@ -804,13 +829,29 @@ describe('showEndPanel(result)', () => {
 });
 
 describe('beginRound()', () => {
-  it('calls game.initRound and renders circles in arena', () => {
+  it('creates circles for the current level and renders them in the arena', () => {
     const container = buildContainer();
     plugin.init(container);
     beginRound();
-    expect(gameMock.initRound).toHaveBeenCalled();
+    expect(gameMock.createRoundCircles).toHaveBeenCalledWith(2, 600, 400);
     const arena = container.querySelector('#mot-arena');
-    expect(arena.querySelectorAll('.mot-circle').length).toBeGreaterThanOrEqual(0);
+    expect(arena.querySelectorAll('.mot-circle')).toHaveLength(2);
+    expect(container.querySelector('#mot-circle-0').classList
+      .contains('mot-circle--target-reveal')).toBe(true);
+  });
+
+  it('tracks for the level\'s tracking time', () => {
+    gameMock.getLevelConfig.mockReturnValueOnce({
+      numCircles: 2, numTargets: 1, speedPxPerSec: 250, trackingDurationMs: 6000,
+    });
+    const container = buildContainer();
+    plugin.init(container);
+    beginRound();
+    const arena = container.querySelector('#mot-arena');
+    jest.advanceTimersByTime(MARKING_DURATION_MS + 5999);
+    expect(arena.classList.contains('mot-arena--response')).toBe(false);
+    jest.advanceTimersByTime(1);
+    expect(arena.classList.contains('mot-arena--response')).toBe(true);
   });
 
   it('sets phase label text', () => {
@@ -829,12 +870,17 @@ describe('beginRound()', () => {
 });
 
 describe('endMarkingPhase()', () => {
-  it('calls game.getLevelConfig and startTrackingAnimation (requestAnimationFrame)', () => {
+  it('starts the tracking animation for the round\'s tracking time', () => {
     const container = buildContainer();
     plugin.init(container);
+    playRound([{ id: 0, x: 100, y: 100, radius: 30, isTarget: true }], 3000);
     endMarkingPhase();
-    expect(gameMock.getLevelConfig).toHaveBeenCalled();
     expect(global.requestAnimationFrame).toHaveBeenCalled();
+    const arena = container.querySelector('#mot-arena');
+    jest.advanceTimersByTime(2999);
+    expect(arena.classList.contains('mot-arena--response')).toBe(false);
+    jest.advanceTimersByTime(1);
+    expect(arena.classList.contains('mot-arena--response')).toBe(true);
   });
 
   it('calls unhighlightTargets and updates phase label', () => {
@@ -851,13 +897,67 @@ describe('endMarkingPhase()', () => {
   });
 });
 
+describe('playRound(roundCircles, trackingDurationMs)', () => {
+  it('renders the given circles with their targets highlighted, then tracks them', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    playRound([
+      { id: 0, x: 100, y: 100, radius: 30, isTarget: false },
+      { id: 1, x: 200, y: 200, radius: 30, isTarget: true },
+      { id: 2, x: 300, y: 300, radius: 30, isTarget: false },
+    ], 4000);
+    expect(container.querySelectorAll('#mot-arena .mot-circle')).toHaveLength(3);
+    expect(container.querySelector('#mot-circle-1').classList
+      .contains('mot-circle--target-reveal')).toBe(true);
+    expect(gameMock.createRoundCircles).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(MARKING_DURATION_MS + 4000);
+    expect(container.querySelector('#mot-arena').classList.contains('mot-arena--response'))
+      .toBe(true);
+  });
+});
+
+describe('stopRound()', () => {
+  it('cancels the round\'s timers and stops taking circle clicks', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    playRound([{ id: 0, x: 100, y: 100, radius: 30, isTarget: true }], 5000);
+    jest.advanceTimersByTime(MARKING_DURATION_MS + 5000);
+    stopRound();
+
+    const arena = container.querySelector('#mot-arena');
+    expect(arena.classList.contains('mot-arena--response')).toBe(false);
+    expect(jest.getTimerCount()).toBe(0);
+    container.querySelector('#mot-circle-0').click();
+    expect(gameMock.evaluateResponse).not.toHaveBeenCalled();
+  });
+});
+
+describe('getArenaBounds()', () => {
+  it('measures the arena', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    const arena = container.querySelector('#mot-arena');
+    Object.defineProperty(arena, 'offsetWidth', { value: 780 });
+    Object.defineProperty(arena, 'offsetHeight', { value: 300 });
+    expect(getArenaBounds()).toEqual({ width: 780, height: 300 });
+  });
+
+  it('falls back to 600×400 when the arena has no layout', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    expect(getArenaBounds()).toEqual({ width: 600, height: 400 });
+  });
+});
+
 // ── Extra coverage: RAF tick callback ─────────────────────────────────────────
 
 describe('startTrackingAnimation — tick callback coverage', () => {
-  it('invokes game.tickPhysics and repositions circles when RAF fires', () => {
+  it('steps the round\'s circles and repositions them when RAF fires', () => {
     const container = buildContainer();
     plugin.init(container);
-    renderCircles([{ id: 0, x: 100, y: 100, radius: 30, isTarget: false }]);
+    const roundCircles = [{ id: 0, x: 100, y: 100, radius: 30, isTarget: false }];
+    playRound(roundCircles, 5000);
 
     // Capture the RAF callback so we can invoke it manually.
     let capturedTick;
@@ -866,20 +966,20 @@ describe('startTrackingAnimation — tick callback coverage', () => {
       return 1;
     });
 
-    // isRunning returns true so the tick body executes (not early-return).
-    gameMock.isRunning.mockReturnValue(true);
     startTrackingAnimation(5000);
 
     // Invoke tick with timestamp=100: _lastFrameMs is null → delta = 0.
     // The recursive requestAnimationFrame call just captures but doesn't invoke.
     capturedTick(100);
-    expect(gameMock.tickPhysics).toHaveBeenCalledWith(0, expect.any(Object));
+    expect(gameMock.stepCircles)
+      .toHaveBeenCalledWith(roundCircles, 0, { width: 600, height: 400 });
+    expect(container.querySelector('#mot-circle-0').style.left).toBe('75px');
   });
 
   it('computes non-zero delta on the second tick frame', () => {
     const container = buildContainer();
     plugin.init(container);
-    renderCircles([{ id: 0, x: 100, y: 100, radius: 30, isTarget: false }]);
+    playRound([{ id: 0, x: 100, y: 100, radius: 30, isTarget: false }], 5000);
 
     const ticks = [];
     global.requestAnimationFrame = jest.fn((cb) => {
@@ -887,8 +987,6 @@ describe('startTrackingAnimation — tick callback coverage', () => {
       return ticks.length;
     });
 
-    // Keep isRunning true so tick body executes on both calls.
-    gameMock.isRunning.mockReturnValue(true);
     startTrackingAnimation(5000);
 
     // First tick: _lastFrameMs is null → delta = 0. RAF re-captures into ticks[1].
@@ -896,7 +994,9 @@ describe('startTrackingAnimation — tick callback coverage', () => {
 
     // Second tick: delta = 116 - 100 = 16. RAF re-captures into ticks[2] (not invoked).
     ticks[1](116);
-    expect(gameMock.tickPhysics).toHaveBeenCalledWith(16, expect.any(Object));
+    expect(gameMock.stepCircles).toHaveBeenLastCalledWith(
+      [expect.objectContaining({ x: 105 })], 16, expect.any(Object),
+    );
   });
 
   it('tracking timeout triggers stopTrackingAnimation and enterResponsePhase', () => {
@@ -921,9 +1021,9 @@ describe('submitResponse — feedback timer callback', () => {
     renderCircles([]);
     await submitResponse();
 
-    const roundsBefore = gameMock.initRound.mock.calls.length;
-    jest.runAllTimers();
-    expect(gameMock.initRound.mock.calls.length).toBeGreaterThan(roundsBefore);
+    const roundsBefore = gameMock.createRoundCircles.mock.calls.length;
+    jest.advanceTimersByTime(FEEDBACK_DURATION_MS);
+    expect(gameMock.createRoundCircles.mock.calls.length).toBeGreaterThan(roundsBefore);
   });
 });
 
@@ -941,13 +1041,13 @@ describe('returnToMainMenu via Return to Menu button', () => {
 // ── Extra coverage: timerService callback in start() ─────────────────────────
 
 describe('start() — session timer callback', () => {
-  it('updates session timer element when timerService fires the callback', () => {
+  it('updates session timer element when timerService fires the callback', async () => {
     // Make startTimer immediately invoke its callback with a duration value.
     timerServiceMock.startTimer.mockImplementationOnce((cb) => cb(5000));
     timerServiceMock.formatDuration.mockReturnValue('01:23');
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(container.querySelector('#mot-session-timer').textContent).toBe('01:23');
   });
 });
@@ -963,15 +1063,270 @@ describe('button wiring', () => {
     expect(gameMock.stopGame).toHaveBeenCalled();
   });
 
-  it('play-again button calls reset() then start()', () => {
+  it('play-again button calls reset() then start()', async () => {
     const container = buildContainer();
     plugin.init(container);
     const btn = container.querySelector('#mot-play-again');
     btn.click();
+    await flushMicrotasks();
     // reset calls initGame, start calls startGame
     expect(gameMock.initGame).toHaveBeenCalled();
     expect(gameMock.startGame).toHaveBeenCalled();
   });
+});
+
+// ── getCircleEl ───────────────────────────────────────────────────────────────
+
+describe('getCircleEl(id)', () => {
+  it('finds a rendered circle button by ID', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([{ id: 4, x: 100, y: 100, radius: 30, isTarget: false }]);
+    expect(getCircleEl(4)).toBe(container.querySelector('#mot-circle-4'));
+    expect(getCircleEl(5)).toBeNull();
+  });
+});
+
+// ── Guided tutorial ───────────────────────────────────────────────────────────
+
+/**
+ * Make the next start() open a guided tutorial that stays in progress until the test
+ * calls finish(). Like the real runner, cancel() aborts the practice signal and ends the run.
+ * @returns {Promise<{ options: object, run: object, controller: AbortController,
+ *   finish: () => void }>}
+ */
+async function startPendingTutorial() {
+  let options = null;
+  let active = true;
+  const controller = new AbortController();
+  const finish = () => { active = false; };
+  const run = {
+    cancel: jest.fn(() => {
+      controller.abort();
+      finish();
+    }),
+    isActive: jest.fn(() => active),
+  };
+  tutorialServiceMock.runGuidedTutorialIfNeeded.mockImplementationOnce(async (opts) => {
+    options = opts;
+    return run;
+  });
+  await plugin.start();
+  return {
+    options, run, controller, finish,
+  };
+}
+
+describe('guided tutorial', () => {
+  let container;
+
+  beforeEach(() => {
+    container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+  });
+
+  afterEach(() => {
+    plugin.reset();
+  });
+
+  it('start runs the guided tutorial if needed with the Object Track steps', async () => {
+    await plugin.start();
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gameId: 'object-track',
+        container,
+        introSteps: [{ title: 'Welcome to Object Track', content: '<p>Welcome</p>' }],
+        playPracticeRound: expect.any(Function),
+        onComplete: expect.any(Function),
+      }),
+    );
+    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('replay tutorial button runs the guided tutorial and then starts the game', async () => {
+    container.querySelector('#mot-replay-tutorial').click();
+    await flushMicrotasks();
+    expect(tutorialServiceMock.runGuidedTutorial).toHaveBeenCalledWith(expect.objectContaining({
+      gameId: 'object-track',
+      playPracticeRound: expect.any(Function),
+    }));
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#mot-play-area').hidden).toBe(false);
+  });
+
+  it('does not start the game until the tutorial completes', async () => {
+    const { options } = await startPendingTutorial();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#mot-play-area').hidden).toBe(true);
+
+    options.onComplete();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#mot-play-area').hidden).toBe(false);
+    expect(gameMock.createRoundCircles).toHaveBeenCalled();
+  });
+});
+
+// ── Practice rounds ───────────────────────────────────────────────────────────
+
+describe('practice round', () => {
+  let container;
+  let pending;
+
+  beforeEach(async () => {
+    gameMock.isRunning.mockReturnValue(false);
+    // jsdom does not implement scrollIntoView.
+    Element.prototype.scrollIntoView = jest.fn();
+    container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    pending = await startPendingTutorial();
+  });
+
+  afterEach(() => {
+    plugin.reset();
+    delete Element.prototype.scrollIntoView;
+  });
+
+  /**
+   * Start a practice round, like the tutorial runner does.
+   * @param {boolean} [guided=true]
+   * @returns {{ context: object, done: Promise<object> }}
+   */
+  function playPractice(guided = true) {
+    const context = {
+      round: guided ? 1 : 2,
+      attempt: 1,
+      maxRounds: 2,
+      guided,
+      signal: pending.controller.signal,
+      setInstructions: jest.fn(),
+      showMarker: jest.fn(),
+      hideMarker: jest.fn(),
+    };
+    const done = pending.options.playPracticeRound(context);
+    return { context, done };
+  }
+
+  /** Run the marking and tracking phases so the circles take clicks. */
+  const stopTheBalls = () => jest.advanceTimersByTime(MARKING_DURATION_MS + 5000);
+
+  /** @param {number} id */
+  const circle = (id) => container.querySelector(`#mot-circle-${id}`);
+
+  it('shows the practice circles without starting a session', () => {
+    const { context } = playPractice();
+
+    expect(container.querySelector('#mot-instructions').hidden).toBe(true);
+    expect(container.querySelector('#mot-play-area').hidden).toBe(false);
+    expect(gameMock.createPracticeRound).toHaveBeenCalledWith(600, 400);
+    expect(gameMock.createRoundCircles).not.toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(container.querySelectorAll('#mot-arena .mot-circle')).toHaveLength(6);
+    expect(container.querySelectorAll('.mot-circle--target-reveal')).toHaveLength(3);
+    expect(circle(1).classList.contains('mot-circle--target-reveal')).toBe(true);
+    expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
+  });
+
+  it('moves the circles while no session is running', () => {
+    let tick;
+    global.requestAnimationFrame = jest.fn((cb) => { tick = cb; return 1; });
+    playPractice();
+    jest.advanceTimersByTime(MARKING_DURATION_MS);
+    tick(100);
+    tick(116);
+    expect(gameMock.stepCircles).toHaveBeenLastCalledWith(
+      expect.any(Array), 16, { width: 600, height: 400 },
+    );
+    expect(circle(0).style.left).toBe('30px');
+  });
+
+  it('a guided round rings each target in turn without scoring', () => {
+    const { context } = playPractice();
+    stopTheBalls();
+    expect(circle(1).scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: circle(1) });
+    expect(context.setInstructions)
+      .toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(0, 'Circle 2'));
+
+    circle(1).click();
+    expect(circle(1).getAttribute('aria-pressed')).toBe('true');
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: circle(3) });
+    expect(context.setInstructions)
+      .toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(1, 'Circle 4'));
+    expect(gameMock.recordRoundResult).not.toHaveBeenCalled();
+  });
+
+  it('choosing every target resolves the round as correct', async () => {
+    const { context, done } = playPractice();
+    stopTheBalls();
+    [1, 3, 5].forEach((id) => circle(id).click());
+
+    const evaluation = { correct: true, correctCount: 3, totalTargets: 3 };
+    await expect(done).resolves.toEqual({
+      correct: true, feedback: PRACTICE_TEXT.result(evaluation),
+    });
+    expect(context.hideMarker).toHaveBeenCalled();
+    expect(container.querySelector('#mot-feedback').textContent)
+      .toBe(PRACTICE_TEXT.result(evaluation));
+    [1, 3, 5].forEach((id) => {
+      expect(circle(id).classList.contains('mot-circle--correct')).toBe(true);
+    });
+    expect(audioServiceMock.playSuccessSound).toHaveBeenCalled();
+    expect(gameMock.recordRoundResult).not.toHaveBeenCalled();
+    expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('a miss marks the missed target and resolves with feedback', async () => {
+    const evaluation = { correct: false, correctCount: 2, totalTargets: 3 };
+    gameMock.evaluateResponse.mockReturnValueOnce(evaluation);
+    const { done } = playPractice();
+    stopTheBalls();
+    [0, 1, 3].forEach((id) => circle(id).click());
+
+    await expect(done).resolves.toEqual({
+      correct: false, feedback: PRACTICE_TEXT.result(evaluation),
+    });
+    expect(circle(5).classList.contains('mot-circle--missed')).toBe(true);
+    expect(audioServiceMock.playFailureSound).toHaveBeenCalled();
+    expect(container.querySelector('#mot-feedback').textContent)
+      .not.toBe(PRACTICE_TEXT.result(evaluation));
+    expect(gameMock.recordRoundResult).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('an unguided round only prompts for the answer', () => {
+    const { context } = playPractice(false);
+    stopTheBalls();
+    circle(0).click();
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
+    expect(context.showMarker).not.toHaveBeenCalled();
+  });
+
+  it('ending the tutorial stops the round', () => {
+    playPractice();
+    pending.controller.abort();
+    expect(jest.getTimerCount()).toBe(0);
+    jest.advanceTimersByTime(MARKING_DURATION_MS + 5000);
+    expect(container.querySelector('#mot-arena').classList.contains('mot-arena--response'))
+      .toBe(false);
+  });
+
+  it('End Game during practice cancels the tutorial and returns to the welcome panel',
+    async () => {
+      playPractice();
+      container.querySelector('#mot-stop').click();
+      await flushMicrotasks();
+
+      expect(pending.run.cancel).toHaveBeenCalled();
+      expect(gameMock.stopGame).not.toHaveBeenCalled();
+      expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+      expect(container.querySelector('#mot-instructions').hidden).toBe(false);
+      expect(container.querySelector('#mot-play-area').hidden).toBe(true);
+      expect(container.querySelector('#mot-end-panel').hidden).toBe(true);
+    });
 });
 
 // ── interface.html accessibility ──────────────────────────────────────────────

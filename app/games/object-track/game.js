@@ -2,7 +2,9 @@
  * game.js — Pure game logic for the Object Track game.
  *
  * All functions are pure (no DOM access). Module-level state is managed via
- * exported lifecycle functions (initGame, startGame, stopGame).
+ * exported lifecycle functions (initGame, startGame, stopGame). The circles of the
+ * round in progress belong to the controller, which builds them with createRoundCircles
+ * and moves them with stepCircles.
  *
  * @file Object Track core game logic.
  */
@@ -64,9 +66,6 @@ let startTimeMs = 0;
 
 /** @type {number} Total rounds played this session. */
 let roundsPlayed = 0;
-
-/** @type {Array<object>} Current circle state array. */
-let circles = [];
 
 /**
  * Session history of speed values (px/sec) at the end of each round.
@@ -315,17 +314,18 @@ export function recordRoundResult(correct) {
   return { levelDelta, newLevel: level };
 }
 
-// ── Round initialization ──────────────────────────────────────────────────────
+// ── Round setup and motion ────────────────────────────────────────────────────
 
 /**
- * Initialize a new round by creating and configuring circles for the current level.
+ * Create the circles for one round at a difficulty level, with its targets chosen.
  *
+ * @param {number} lvl - Zero-based level index.
  * @param {number} areaWidth - Arena width in pixels.
  * @param {number} areaHeight - Arena height in pixels.
- * @returns {Array<object>} Shallow copy of the initialized circles array.
+ * @returns {Array<object>} New circle array with getLevelConfig(lvl).numTargets targets.
  */
-export function initRound(areaWidth, areaHeight) {
-  const config = getLevelConfig(level);
+export function createRoundCircles(lvl, areaWidth, areaHeight) {
+  const config = getLevelConfig(lvl);
   const created = createCircles(
     config.numCircles,
     areaWidth,
@@ -333,35 +333,35 @@ export function initRound(areaWidth, areaHeight) {
     CIRCLE_RADIUS,
     config.speedPxPerSec,
   );
-  circles = selectTargets(created, config.numTargets);
-  return [...circles];
+  return selectTargets(created, config.numTargets);
 }
 
-// ── Physics tick ──────────────────────────────────────────────────────────────
+/**
+ * Build a tutorial practice round at the easiest level without changing any game state.
+ *
+ * @param {number} areaWidth - Arena width in pixels.
+ * @param {number} areaHeight - Arena height in pixels.
+ * @returns {{ circles: Array<object>, trackingDurationMs: number }} The round's circles and
+ *   how long they move.
+ */
+export function createPracticeRound(areaWidth, areaHeight) {
+  return {
+    circles: createRoundCircles(MIN_LEVEL, areaWidth, areaHeight),
+    trackingDurationMs: getLevelConfig(MIN_LEVEL).trackingDurationMs,
+  };
+}
 
 /**
- * Advance physics by one frame and store the result in module state.
+ * Advance circles by one animation frame: move them, bounce them off the walls, then
+ * resolve collisions between them.
  *
- * @param {number} deltaMs - Elapsed time in milliseconds since the last tick.
+ * @param {Array<object>} inputCircles - Current circle array (not mutated).
+ * @param {number} deltaMs - Elapsed time in milliseconds since the last frame.
  * @param {{ width: number, height: number }} bounds - Arena dimensions.
- * @returns {Array<object>} Shallow copy of the updated circles array.
+ * @returns {Array<object>} New circle array for the next frame.
  */
-export function tickPhysics(deltaMs, bounds) {
-  let updated = updateCirclePositions(circles, deltaMs, bounds);
-  updated = resolveCircleCollisions(updated);
-  circles = updated;
-  return [...circles];
-}
-
-// ── State accessors ───────────────────────────────────────────────────────────
-
-/**
- * Return a shallow copy of the current circles array.
- *
- * @returns {Array<object>} Copy of the circles array.
- */
-export function getCurrentCircles() {
-  return [...circles];
+export function stepCircles(inputCircles, deltaMs, bounds) {
+  return resolveCircleCollisions(updateCirclePositions(inputCircles, deltaMs, bounds));
 }
 
 // ── Game lifecycle ────────────────────────────────────────────────────────────
@@ -379,7 +379,6 @@ export function initGame() {
   consecutiveWrong = 0;
   startTimeMs = 0;
   roundsPlayed = 0;
-  circles = [];
   speedHistory = [];
 }
 
