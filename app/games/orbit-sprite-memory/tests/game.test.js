@@ -29,6 +29,7 @@ import {
   buildPlaybackSequence,
   assignPositions,
   createRound,
+  createPracticeRound,
   evaluateSelection,
   recordCorrectRound,
   recordIncorrectRound,
@@ -188,6 +189,24 @@ describe('round generation', () => {
     expect(round.displayMs).toBe(getDisplayDurationMs(1));
     expect(round.primaryPositions).toHaveLength(PRIMARY_SHOW_COUNT);
     expect(round.steps.length).toBeGreaterThan(round.distractorSpriteIds.length);
+  });
+
+  test('createPracticeRound returns a level 0 round', () => {
+    const round = createPracticeRound();
+
+    expect(round.steps).toHaveLength(PRIMARY_SHOW_COUNT + BASE_DISTRACTOR_COUNT);
+    expect(round.primaryPositions).toHaveLength(PRIMARY_SHOW_COUNT);
+    expect(round.displayMs).toBe(BASE_DISPLAY_MS);
+  });
+
+  test('createPracticeRound does not change game state, even mid-session', () => {
+    startGame();
+    for (let i = 0; i < STREAK_TO_LEVEL_UP; i += 1) recordCorrectRound();
+    const before = { level: getLevel(), score: getScore(), history: getSpeedHistory() };
+
+    createPracticeRound();
+    expect({ level: getLevel(), score: getScore(), history: getSpeedHistory() }).toEqual(before);
+    expect(isRunning()).toBe(true);
   });
 });
 

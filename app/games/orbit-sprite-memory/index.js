@@ -7,11 +7,19 @@
  */
 
 import * as game from './game.js';
-import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
+import { playFeedbackSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore, loadGameScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import {
+  finishPracticeRound,
+  guidePracticeResponse,
+  isPracticing,
+  promptPracticeResponse,
+  setPracticeControls,
+  tutorial,
+} from './tutorial/tutorial.js';
 
 /** Delay before automatically starting the next round after answer submit. */
 const NEXT_ROUND_DELAY_MS = 900;
@@ -33,6 +41,9 @@ let _endPanelEl = null;
 
 /** @type {HTMLElement|null} */
 let _startBtn = null;
+
+/** @type {HTMLElement|null} */
+let _replayTutorialBtn = null;
 
 /** @type {HTMLElement|null} */
 let _stopBtn = null;
@@ -253,6 +264,18 @@ export function clearRevealSprites() {
 }
 
 /**
+ * Finds the choice button for a position on the board.
+ *
+ * @param {number} positionIndex - Board position.
+ * @returns {HTMLElement|null} The position's button, or null if it is not rendered.
+ */
+export function getPositionButton(positionIndex) {
+  return _boardEl
+    ? _boardEl.querySelector(`.osm-choice-btn[data-position="${positionIndex}"]`)
+    : null;
+}
+
+/**
  * Renders selectable circles for recall mode.
  *
  * @param {ReturnType<typeof game.createRound>} round - Round metadata.
@@ -297,6 +320,8 @@ export function togglePosition(positionIndex, buttonEl) {
 
   if (_selectedPositions.size === game.PRIMARY_SHOW_COUNT) {
     submitSelection();
+  } else if (isPracticing()) {
+    guidePracticeResponse(_selectedPositions);
   }
 }
 
@@ -375,28 +400,55 @@ export function startPlayback(round) {
     _inputEnabled = true;
     renderChoiceButtons(round);
     announce('Select the three positions where the target appeared.');
+    if (isPracticing()) promptPracticeResponse();
   }, endDelay));
+}
+
+/**
+ * Plays one round: shows its target in the preview, flashes its sprites around the circle,
+ * then takes position choices. It never reads or changes session state, so it can play a
+ * round with no session running.
+ *
+ * @param {ReturnType<typeof game.createRound>} round - Round to play.
+ */
+export function playRound(round) {
+  _currentRound = round;
+
+  if (_targetPreviewEl) {
+    _targetPreviewEl.style.backgroundPosition = getSpriteBackgroundPosition(
+      round.primarySpriteId,
+    );
+  }
+
+  announce('Watch the circle. The target image appears three times.');
+  startPlayback(round);
 }
 
 /**
  * Starts a fresh round at the current level.
  */
 export function startRound() {
-  resetBoardVisualState();
-  _currentRound = game.createRound(game.getLevel());
-
-  if (_targetPreviewEl) {
-    _targetPreviewEl.style.backgroundPosition = getSpriteBackgroundPosition(
-      _currentRound.primarySpriteId,
-    );
-  }
-
-  announce('Watch the circle. The target image appears three times.');
-  startPlayback(_currentRound);
+  playRound(game.createRound(game.getLevel()));
 }
 
 /**
- * Handles answer submission for the current round.
+ * Cancels the round in progress at any phase: stops its timers, ignores further choices, and
+ * clears the board.
+ */
+export function stopRound() {
+  clearTimers();
+  resetBoardVisualState();
+  _currentRound = null;
+  _inputEnabled = false;
+  _selectedPositions = new Set();
+  if (_activeSpriteEl) _activeSpriteEl.hidden = true;
+  clearChoiceButtons();
+  clearRevealSprites();
+}
+
+/**
+ * Handles answer submission for the current round. A practice round is not scored: its
+ * rabbits stay in their spots until the next round, and the tutorial takes the result.
  */
 export function submitSelection() {
   if (!_currentRound || !_inputEnabled) return;
@@ -405,22 +457,25 @@ export function submitSelection() {
   const isCorrect = game.evaluateSelection(_currentRound, selected);
 
   _inputEnabled = false;
+  flashBoard(isCorrect ? 'success' : 'failure');
+  playFeedbackSound(isCorrect);
+
+  if (isPracticing()) {
+    showRoundReveal(_currentRound);
+    finishPracticeRound(isCorrect);
+    return;
+  }
 
   if (isCorrect) {
     game.recordCorrectRound();
-    updateStats();
-    updateTrendChart();
-    flashBoard('success');
-    playSuccessSound();
-    announce('Correct. Reviewing positions before the next round.');
   } else {
     game.recordIncorrectRound();
-    updateStats();
-    updateTrendChart();
-    flashBoard('failure');
-    playFailureSound();
-    announce('Incorrect. Reviewing positions before the next round.');
   }
+  updateStats();
+  updateTrendChart();
+  announce(isCorrect
+    ? 'Correct. Reviewing positions before the next round.'
+    : 'Incorrect. Reviewing positions before the next round.');
 
   clearTimers();
   showRoundReveal(_currentRound);
@@ -459,6 +514,7 @@ function init(gameContainer) {
   _container = gameContainer;
   game.initGame();
   clearTimers();
+  setPracticeControls(PRACTICE_CONTROLS);
 
   if (!_container) return;
 
@@ -466,6 +522,7 @@ function init(gameContainer) {
   _gameAreaEl = _container.querySelector('#osm-game-area');
   _endPanelEl = _container.querySelector('#osm-end-panel');
   _startBtn = _container.querySelector('#osm-start-btn');
+  _replayTutorialBtn = _container.querySelector('#osm-replay-tutorial-btn');
   _stopBtn = _container.querySelector('#osm-stop-btn');
   _playAgainBtn = _container.querySelector('#osm-play-again-btn');
   _returnBtn = _container.querySelector('#osm-return-btn');
@@ -488,12 +545,18 @@ function init(gameContainer) {
   _trendEmptyEl = _container.querySelector('#osm-trend-empty');
   _trendLatestEl = _container.querySelector('#osm-trend-latest');
 
-  if (_startBtn) _startBtn.addEventListener('click', () => start());
+  if (_startBtn) _startBtn.addEventListener('click', () => { void start(); });
+  // Replay always shows the tutorial, then starts a session.
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => {
+      void tutorial.replay(tutorialOptions());
+    });
+  }
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
-      start();
+      void start();
     });
   }
   if (_returnBtn) _returnBtn.addEventListener('click', () => returnToMainMenu());
@@ -503,11 +566,20 @@ function init(gameContainer) {
 }
 
 /**
- * Starts gameplay and first round playback.
+ * Shows the game area, with no leftover feedback, in place of the welcome and end panels.
  */
-function start() {
+function showGameArea() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+  if (_gameAreaEl) _gameAreaEl.hidden = false;
+  announce('');
+}
+
+/**
+ * Starts a gameplay session and its first round, without the tutorial check.
+ */
+function beginGameSession() {
   game.startGame();
-  resetBoardVisualState();
 
   timerService.startTimer((elapsedMs) => {
     if (_sessionTimerEl) {
@@ -515,21 +587,63 @@ function start() {
     }
   });
 
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_endPanelEl) _endPanelEl.hidden = true;
-  if (_gameAreaEl) _gameAreaEl.hidden = false;
-
+  showGameArea();
   startRound();
+}
+
+/**
+ * Round controls the tutorial uses to play practice rounds with the real playback and choice
+ * buttons.
+ *
+ * @type {import('./tutorial/tutorial.js').PracticeRoundControls}
+ */
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea,
+  getBoard: () => _boardEl,
+  playRound,
+  stopRound,
+  getPositionButton,
+  announce,
+});
+
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, onComplete: beginGameSession };
+}
+
+/**
+ * Starts a gameplay session, showing the tutorial first if the player has not seen it.
+ *
+ * @returns {Promise<void>}
+ */
+function start() {
+  return tutorial.startIfNeeded(tutorialOptions());
 }
 
 /**
  * Stops gameplay, saves progress, and displays end panel.
  *
+ * With no session running (on the welcome screen, during the tutorial, or when the app quits
+ * after a session ended) there is nothing to save and the screen is left alone, except that
+ * leaving a tutorial this way cancels it and returns to the welcome screen.
+ *
  * @returns {{ score: number, level: number, roundsPlayed: number, duration: number }}
  */
 function stop() {
-  clearTimers();
-  resetBoardVisualState();
+  stopRound();
+  if (!game.isRunning()) {
+    if (tutorial.isActive()) reset();
+    return {
+      score: game.getScore(),
+      level: game.getLevel(),
+      roundsPlayed: game.getRoundsPlayed(),
+      duration: 0,
+    };
+  }
   const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
 
@@ -551,25 +665,18 @@ function stop() {
  * Resets UI and logic state to pre-start mode.
  */
 function reset() {
-  clearTimers();
-  resetBoardVisualState();
+  tutorial.cancel();
+  stopRound();
   game.initGame();
 
   timerService.resetTimer();
   if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
 
-  _currentRound = null;
-  _inputEnabled = false;
-  _selectedPositions = new Set();
-
-  if (_activeSpriteEl) _activeSpriteEl.hidden = true;
   if (_instructionsEl) _instructionsEl.hidden = false;
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = true;
   if (_feedbackEl) _feedbackEl.textContent = '';
 
-  clearChoiceButtons();
-  clearRevealSprites();
   loadBestStatsFromProgress();
   updateStats();
   updateTrendChart();

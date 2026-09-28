@@ -30,6 +30,9 @@ sheet layout, update those constants and `TOTAL_SPRITES` together.
 
 - Each sprite shows for `1100 − 90 × level` ms, with a floor of 250 ms. The standard 3-up
   (+1) / 3-down (−2) staircase applies.
+- `startRound()` hands the level's round to `playRound(round)`, which sets the target preview
+  and plays any round without touching session state. `stopRound()` cancels a round at any
+  phase and clears the board.
 - Playback (`startPlayback`) is followed by the choice buttons (`renderChoiceButtons`, placed
   with `getCircleCoordinates`). The answer is **submitted automatically** when the third
   position is chosen, and the player cannot select more than 3.
@@ -44,6 +47,11 @@ displayed +1.
 - `saveScore(...).then(updateBestStats)` refreshes them after each session.
 - `loadBestStatsFromProgress()` fills them in from `loadGameScore` when the game is initialized
   and on reset.
+
+## Tutorial
+
+See [tutorial/CLAUDE.md](tutorial/CLAUDE.md). `game.createPracticeRound()` returns a level 0
+round without changing state.
 
 ## Saved fields
 

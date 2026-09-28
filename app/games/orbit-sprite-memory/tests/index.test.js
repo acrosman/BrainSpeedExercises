@@ -1,3 +1,10 @@
+/**
+ * index.test.js — Tests for the Orbit Sprite Memory controller, including the tutorial
+ * wiring and practice rounds.
+ *
+ * @file Tests for app/games/orbit-sprite-memory/index.js
+ */
+
 import { readFileSync } from 'node:fs';
 import {
   jest,
@@ -28,6 +35,31 @@ jest.unstable_mockModule('../../../components/scoreService.js', () => ({
 }));
 const scoreServiceMock = await import('../../../components/scoreService.js');
 
+jest.unstable_mockModule('../../../components/audioService.js', () => ({
+  playFeedbackSound: jest.fn(),
+}));
+const audioServiceMock = await import('../../../components/audioService.js');
+
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Orbit Sprite Memory', content: '<p>Welcome</p>' },
+  ]),
+  // Default replay: the player finishes the tutorial at once.
+  runGuidedTutorial: jest.fn((options) => {
+    options.onComplete();
+    return { cancel: jest.fn(), isActive: () => false };
+  }),
+  // Default first start: the tutorial was already seen.
+  runGuidedTutorialIfNeeded: jest.fn(async (options) => {
+    options.onComplete();
+    return null;
+  }),
+}));
+const tutorialServiceMock = await import('../../../components/tutorialService.js');
+
+/** Whether the mocked game has a session running, so stop() takes the real path. */
+let mockRunning = false;
+
 jest.unstable_mockModule('../game.js', () => ({
   GAME_ID: 'orbit-sprite-memory',
   TOTAL_SPRITES: 8,
@@ -41,20 +73,38 @@ jest.unstable_mockModule('../game.js', () => ({
   DISPLAY_DECREMENT_MS: 90,
   MIN_DISPLAY_MS: 250,
   BASE_DISTRACTOR_COUNT: 2,
-  initGame: jest.fn(),
-  startGame: jest.fn(),
-  stopGame: jest.fn(() => ({
-    score: 4,
-    level: 1,
-    roundsPlayed: 6,
-    duration: 5000,
-  })),
+  initGame: jest.fn(() => { mockRunning = false; }),
+  startGame: jest.fn(() => { mockRunning = true; }),
+  stopGame: jest.fn(() => {
+    mockRunning = false;
+    return {
+      score: 4,
+      level: 1,
+      roundsPlayed: 6,
+      duration: 5000,
+    };
+  }),
   getDisplayDurationMs: jest.fn(() => 900),
   getDistractorCount: jest.fn(() => 3),
   shuffle: jest.fn((value) => value),
   pickUnique: jest.fn((values, count) => values.slice(0, count)),
   buildPlaybackSequence: jest.fn(),
   assignPositions: jest.fn(),
+  // Practice round: the target (sprite 6) is at positions 1, 4, and 5, unlike createRound.
+  createPracticeRound: jest.fn(() => ({
+    primarySpriteId: 6,
+    distractorSpriteIds: [0, 7],
+    steps: [
+      { spriteId: 6, positionIndex: 4, isPrimary: true },
+      { spriteId: 0, positionIndex: 0, isPrimary: false },
+      { spriteId: 6, positionIndex: 1, isPrimary: true },
+      { spriteId: 7, positionIndex: 3, isPrimary: false },
+      { spriteId: 6, positionIndex: 5, isPrimary: true },
+    ],
+    primaryPositions: [4, 1, 5],
+    shownPositions: [4, 0, 1, 3, 5],
+    displayMs: 40,
+  })),
   createRound: jest.fn(() => ({
     primarySpriteId: 2,
     distractorSpriteIds: [1, 3],
@@ -79,13 +129,15 @@ jest.unstable_mockModule('../game.js', () => ({
   getLevel: jest.fn(() => 1),
   getRoundsPlayed: jest.fn(() => 6),
   getConsecutiveCorrect: jest.fn(() => 2),
-  isRunning: jest.fn(() => false),
+  isRunning: jest.fn(() => mockRunning),
   getSpeedHistory: jest.fn(() => []),
 }));
 
 const pluginModule = await import('../index.js');
 const plugin = pluginModule.default;
 const gameMock = await import('../game.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 
 const {
   flashBoard,
@@ -100,12 +152,27 @@ const {
   showPlaybackStep,
   startPlayback,
   startRound,
+  playRound,
+  stopRound,
+  getPositionButton,
   submitSelection,
   loadBestStatsFromProgress,
   returnToMainMenu,
   showEndPanel,
 } = pluginModule;
 
+/** Let pending promise callbacks (such as a tutorial launch) run. */
+async function flushMicrotasks() {
+  for (let i = 0; i < 5; i += 1) {
+    await Promise.resolve();
+  }
+}
+
+/**
+ * Build a minimal DOM container matching interface.html, attached to the document.
+ *
+ * @returns {HTMLElement}
+ */
 function buildContainer() {
   const el = document.createElement('div');
   el.innerHTML = `
@@ -113,6 +180,7 @@ function buildContainer() {
     <div id="osm-game-area" hidden></div>
     <div id="osm-end-panel" hidden></div>
     <button id="osm-start-btn" type="button"></button>
+    <button id="osm-replay-tutorial-btn" type="button"></button>
     <button id="osm-stop-btn" type="button"></button>
     <button id="osm-play-again-btn" type="button"></button>
     <button id="osm-return-btn" type="button"></button>
@@ -197,8 +265,8 @@ describe('exported helper utilities', () => {
     expect(document.querySelectorAll('.osm-choice-btn')).toHaveLength(3);
   });
 
-  test('togglePosition marks and unmarks button once input is enabled', () => {
-    plugin.start();
+  test('togglePosition marks and unmarks button once input is enabled', async () => {
+    await plugin.start();
     jest.advanceTimersByTime(400);
 
     const btn = document.querySelector('.osm-choice-btn');
@@ -224,8 +292,48 @@ describe('exported helper utilities', () => {
     expect(document.querySelector('#osm-target-preview').style.backgroundPosition).toContain('%');
   });
 
-  test('auto review records correct answers on third selection', () => {
-    plugin.start();
+  test('playRound plays the round it is given without a session', () => {
+    const round = { ...gameMock.createRound(), primarySpriteId: 5 };
+    gameMock.createRound.mockClear();
+    gameMock.startGame.mockClear();
+
+    playRound(round);
+    expect(gameMock.createRound).not.toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(document.querySelector('#osm-target-preview').style.backgroundPosition)
+      .toBe(getSpriteBackgroundPosition(5));
+
+    jest.advanceTimersByTime(200);
+    const buttons = document.querySelectorAll('.osm-choice-btn');
+    expect(buttons).toHaveLength(5);
+    [0, 2, 4].forEach((index) => buttons[index].click());
+    expect(gameMock.evaluateSelection).toHaveBeenLastCalledWith(round, [0, 3, 7]);
+  });
+
+  test('stopRound cancels playback and clears the board', () => {
+    playRound(gameMock.createRound());
+    jest.advanceTimersByTime(40);
+    expect(document.querySelector('#osm-active-sprite').hidden).toBe(false);
+
+    stopRound();
+    expect(document.querySelector('#osm-active-sprite').hidden).toBe(true);
+    expect(jest.getTimerCount()).toBe(0);
+    jest.advanceTimersByTime(200);
+    expect(document.querySelectorAll('.osm-choice-btn')).toHaveLength(0);
+  });
+
+  test('stopRound ignores choices on buttons still on the board', () => {
+    playRound(gameMock.createRound());
+    jest.advanceTimersByTime(200);
+    const button = document.querySelector('.osm-choice-btn');
+
+    stopRound();
+    togglePosition(Number(button.dataset.position), button);
+    expect(button.classList.contains('osm-choice-btn--selected')).toBe(false);
+  });
+
+  test('auto review records correct answers on third selection', async () => {
+    await plugin.start();
     jest.advanceTimersByTime(400);
 
     const buttons = document.querySelectorAll('.osm-choice-btn');
@@ -236,8 +344,8 @@ describe('exported helper utilities', () => {
     expect(gameMock.recordCorrectRound).toHaveBeenCalled();
   });
 
-  test('auto review records incorrect answers on third selection', () => {
-    plugin.start();
+  test('auto review records incorrect answers on third selection', async () => {
+    await plugin.start();
     jest.advanceTimersByTime(400);
 
     const buttons = document.querySelectorAll('.osm-choice-btn');
@@ -248,8 +356,8 @@ describe('exported helper utilities', () => {
     expect(gameMock.recordIncorrectRound).toHaveBeenCalled();
   });
 
-  test('manual submitSelection still works when invoked directly', () => {
-    plugin.start();
+  test('manual submitSelection still works when invoked directly', async () => {
+    await plugin.start();
     jest.advanceTimersByTime(400);
 
     const buttons = document.querySelectorAll('.osm-choice-btn');
@@ -287,8 +395,8 @@ describe('exported helper utilities', () => {
     expect(board.classList.contains('osm-board--success')).toBe(false);
   });
 
-  test('submitSelection runs reveal and nested next-round callbacks', () => {
-    plugin.start();
+  test('submitSelection runs reveal and nested next-round callbacks', async () => {
+    await plugin.start();
     jest.advanceTimersByTime(400);
 
     gameMock.createRound.mockClear();
@@ -347,41 +455,42 @@ describe('plugin contract and lifecycle', () => {
     expect(() => plugin.init(null)).not.toThrow();
   });
 
-  test('start toggles panels and starts game logic', () => {
+  test('start toggles panels and starts game logic', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(container.querySelector('#osm-game-area').hidden).toBe(false);
     expect(container.querySelector('#osm-instructions').hidden).toBe(true);
   });
 
-  test('start button click is wired to start gameplay', () => {
+  test('start button click is wired to start gameplay', async () => {
     const container = buildContainer();
     plugin.init(container);
     gameMock.startGame.mockClear();
 
     container.querySelector('#osm-start-btn').click();
+    await flushMicrotasks();
 
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(container.querySelector('#osm-game-area').hidden).toBe(false);
   });
 
-  test('stop returns result and shows end panel', () => {
+  test('stop returns result and shows end panel', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     const result = plugin.stop();
     expect(result.score).toBe(4);
     expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
   });
 
-  test('stop saves the session through saveScore', () => {
+  test('stop saves the session through saveScore', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     scoreServiceMock.saveScore.mockClear();
 
     plugin.stop();
@@ -397,7 +506,7 @@ describe('plugin contract and lifecycle', () => {
   test('stop refreshes best stats from the record saveScore returns', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     scoreServiceMock.saveScore.mockResolvedValueOnce({ highScore: 10, highestLevel: 3 });
 
     plugin.stop();
@@ -408,20 +517,20 @@ describe('plugin contract and lifecycle', () => {
     expect(container.querySelector('#osm-final-best-level').textContent).toBe('4');
   });
 
-  test('reset returns to pre-game state', () => {
+  test('reset returns to pre-game state', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     plugin.reset();
     expect(container.querySelector('#osm-game-area').hidden).toBe(true);
     expect(container.querySelector('#osm-instructions').hidden).toBe(false);
   });
 
-  test('play-again and return buttons invoke handlers', () => {
+  test('play-again and return buttons invoke handlers', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.stop();
 
     let fired = false;
@@ -430,16 +539,17 @@ describe('plugin contract and lifecycle', () => {
     }, { once: true });
 
     container.querySelector('#osm-play-again-btn').click();
+    await flushMicrotasks();
     expect(container.querySelector('#osm-game-area').hidden).toBe(false);
 
     container.querySelector('#osm-return-btn').click();
     expect(fired).toBe(true);
   });
 
-  test('stop button and auto-review flow are wired', () => {
+  test('stop button and auto-review flow are wired', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     jest.advanceTimersByTime(400);
     const buttons = container.querySelectorAll('.osm-choice-btn');
@@ -455,7 +565,7 @@ describe('plugin contract and lifecycle', () => {
   test('stop keeps the end panel when saveScore resolves null', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     scoreServiceMock.saveScore.mockResolvedValueOnce(null);
 
     plugin.stop();
@@ -464,6 +574,296 @@ describe('plugin contract and lifecycle', () => {
 
     expect(container.querySelector('#osm-end-panel').hidden).toBe(false);
   });
+});
+
+// ── Idle stop ─────────────────────────────────────────────────────────────────
+
+describe('stop with no session running', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  test('returns the idle result without saving or showing the end panel', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.stopGame.mockClear();
+    scoreServiceMock.saveScore.mockClear();
+
+    expect(plugin.stop()).toEqual({
+      score: 4, level: 1, roundsPlayed: 6, duration: 0,
+    });
+    expect(gameMock.stopGame).not.toHaveBeenCalled();
+    expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+    expect(container.querySelector('#osm-end-panel').hidden).toBe(true);
+    expect(container.querySelector('#osm-instructions').hidden).toBe(false);
+  });
+});
+
+describe('getPositionButton', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('finds a rendered position button, or null', () => {
+    plugin.init(buildContainer());
+    renderChoiceButtons({ shownPositions: [1, 4] });
+    expect(getPositionButton(4).getAttribute('aria-label')).toBe('Position 5');
+    expect(getPositionButton(2)).toBeNull();
+  });
+
+  test('returns null without a board', () => {
+    plugin.init(null);
+    expect(getPositionButton(0)).toBeNull();
+  });
+});
+
+// ── Guided tutorial ───────────────────────────────────────────────────────────
+
+/**
+ * Make the next start() open a guided tutorial that stays in progress until the test
+ * calls finish(). Like the real runner, cancel() aborts the practice signal and ends the run.
+ * @returns {Promise<{ options: object, run: object, controller: AbortController,
+ *   finish: () => void }>}
+ */
+async function startPendingTutorial() {
+  let options = null;
+  let active = true;
+  const controller = new AbortController();
+  const finish = () => { active = false; };
+  const run = {
+    cancel: jest.fn(() => {
+      controller.abort();
+      finish();
+    }),
+    isActive: jest.fn(() => active),
+  };
+  tutorialServiceMock.runGuidedTutorialIfNeeded.mockImplementationOnce(async (opts) => {
+    options = opts;
+    return run;
+  });
+  await plugin.start();
+  return {
+    options, run, controller, finish,
+  };
+}
+
+describe('guided tutorial', () => {
+  let container;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+    container = buildContainer();
+    plugin.init(container);
+  });
+
+  afterEach(() => {
+    plugin.reset();
+    jest.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  test('start runs the guided tutorial if needed with the Orbit Sprite steps', async () => {
+    await plugin.start();
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gameId: 'orbit-sprite-memory',
+        container,
+        introSteps: [{ title: 'Welcome to Orbit Sprite Memory', content: '<p>Welcome</p>' }],
+        playPracticeRound: expect.any(Function),
+        onComplete: expect.any(Function),
+      }),
+    );
+    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
+  });
+
+  test('replay tutorial button runs the guided tutorial and then starts the game', async () => {
+    container.querySelector('#osm-replay-tutorial-btn').click();
+    await flushMicrotasks();
+    expect(tutorialServiceMock.runGuidedTutorial).toHaveBeenCalledWith(expect.objectContaining({
+      gameId: 'orbit-sprite-memory',
+      playPracticeRound: expect.any(Function),
+    }));
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#osm-game-area').hidden).toBe(false);
+  });
+
+  test('does not start the game until the tutorial completes', async () => {
+    const { options } = await startPendingTutorial();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#osm-game-area').hidden).toBe(true);
+
+    options.onComplete();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#osm-game-area').hidden).toBe(false);
+    expect(gameMock.createRound).toHaveBeenCalled();
+  });
+});
+
+// ── Practice rounds ───────────────────────────────────────────────────────────
+
+describe('practice round', () => {
+  let container;
+  let pending;
+
+  beforeEach(async () => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+    // jsdom does not implement scrollIntoView.
+    Element.prototype.scrollIntoView = jest.fn();
+    container = buildContainer();
+    plugin.init(container);
+    pending = await startPendingTutorial();
+  });
+
+  afterEach(() => {
+    plugin.reset();
+    jest.useRealTimers();
+    delete Element.prototype.scrollIntoView;
+    document.body.innerHTML = '';
+  });
+
+  /**
+   * Start a practice round, like the tutorial runner does.
+   * @param {boolean} [guided=true]
+   * @returns {{ context: object, done: Promise<object> }}
+   */
+  function playPractice(guided = true) {
+    const context = {
+      round: guided ? 1 : 2,
+      attempt: 1,
+      maxRounds: 2,
+      guided,
+      signal: pending.controller.signal,
+      setInstructions: jest.fn(),
+      showMarker: jest.fn(),
+      hideMarker: jest.fn(),
+    };
+    const done = pending.options.playPracticeRound(context);
+    return { context, done };
+  }
+
+  /** Run the playback (5 steps of 40 ms) so the position buttons take clicks. */
+  const endPlayback = () => jest.advanceTimersByTime(200);
+
+  /** @param {number} position */
+  const spot = (position) => container.querySelector(`.osm-choice-btn[data-position="${position}"]`);
+
+  test('plays the practice round without starting a session', () => {
+    const { context } = playPractice();
+
+    expect(container.querySelector('#osm-instructions').hidden).toBe(true);
+    expect(container.querySelector('#osm-game-area').hidden).toBe(false);
+    expect(container.querySelector('#osm-board').scrollIntoView)
+      .toHaveBeenCalledWith({ block: 'nearest' });
+    expect(gameMock.createPracticeRound).toHaveBeenCalled();
+    expect(gameMock.createRound).not.toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#osm-target-preview').style.backgroundPosition)
+      .toBe(getSpriteBackgroundPosition(6));
+    expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
+
+    endPlayback();
+    expect(container.querySelectorAll('.osm-choice-btn')).toHaveLength(5);
+  });
+
+  test('a guided round rings each target spot in turn without scoring', () => {
+    const { context } = playPractice();
+    endPlayback();
+    expect(spot(4).scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: spot(4) });
+    expect(context.setInstructions)
+      .toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(0, 'Position 5'));
+
+    // A spot the target never used does not move the ring.
+    spot(0).click();
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: spot(4) });
+    expect(context.setInstructions)
+      .toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(0, 'Position 5'));
+
+    // Clearing it and choosing the ringed spot moves the ring on.
+    spot(0).click();
+    spot(4).click();
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: spot(1) });
+    expect(context.setInstructions)
+      .toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(1, 'Position 2'));
+    expect(gameMock.recordCorrectRound).not.toHaveBeenCalled();
+    expect(gameMock.recordIncorrectRound).not.toHaveBeenCalled();
+  });
+
+  test('choosing every target spot resolves the round as correct', async () => {
+    gameMock.evaluateSelection.mockReturnValueOnce(true);
+    const { context, done } = playPractice();
+    endPlayback();
+    [4, 1, 5].forEach((position) => spot(position).click());
+
+    await expect(done).resolves.toEqual({
+      correct: true, feedback: PRACTICE_TEXT.result(true),
+    });
+    expect(gameMock.evaluateSelection).toHaveBeenLastCalledWith(
+      gameMock.createPracticeRound.mock.results[0].value, [4, 1, 5],
+    );
+    expect(context.hideMarker).toHaveBeenCalled();
+    expect(container.querySelector('#osm-feedback').textContent)
+      .toBe(PRACTICE_TEXT.result(true));
+    expect(audioServiceMock.playFeedbackSound).toHaveBeenCalledWith(true);
+    expect(gameMock.recordCorrectRound).not.toHaveBeenCalled();
+    expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+
+    // The rabbits stay in their spots, and no next round starts.
+    jest.advanceTimersByTime(5000);
+    expect(container.querySelectorAll('.osm-reveal-sprite')).toHaveLength(5);
+    expect(gameMock.createRound).not.toHaveBeenCalled();
+  });
+
+  test('a miss reveals the rabbits and resolves with feedback', async () => {
+    const { done } = playPractice();
+    endPlayback();
+    [0, 1, 3].forEach((position) => spot(position).click());
+
+    await expect(done).resolves.toEqual({
+      correct: false, feedback: PRACTICE_TEXT.result(false),
+    });
+    expect(container.querySelectorAll('.osm-reveal-sprite')).toHaveLength(5);
+    expect(container.querySelector('#osm-board').classList.contains('osm-board--failure'))
+      .toBe(true);
+    expect(audioServiceMock.playFeedbackSound).toHaveBeenCalledWith(false);
+    expect(container.querySelector('#osm-feedback').textContent)
+      .not.toBe(PRACTICE_TEXT.result(false));
+    expect(gameMock.recordIncorrectRound).not.toHaveBeenCalled();
+  });
+
+  test('an unguided round only prompts for the answer', () => {
+    const { context } = playPractice(false);
+    endPlayback();
+    spot(0).click();
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
+    expect(context.showMarker).not.toHaveBeenCalled();
+  });
+
+  test('ending the tutorial stops the round', () => {
+    playPractice();
+    pending.controller.abort();
+    expect(jest.getTimerCount()).toBe(0);
+    endPlayback();
+    expect(container.querySelectorAll('.osm-choice-btn')).toHaveLength(0);
+  });
+
+  test('End Game during practice cancels the tutorial and returns to the welcome panel',
+    async () => {
+      playPractice();
+      container.querySelector('#osm-stop-btn').click();
+      await flushMicrotasks();
+
+      expect(pending.run.cancel).toHaveBeenCalled();
+      expect(gameMock.stopGame).not.toHaveBeenCalled();
+      expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+      expect(container.querySelector('#osm-instructions').hidden).toBe(false);
+      expect(container.querySelector('#osm-game-area').hidden).toBe(true);
+      expect(container.querySelector('#osm-end-panel').hidden).toBe(true);
+    });
 });
 
 // ── session duration ──────────────────────────────────────────────────────────
@@ -475,7 +875,7 @@ describe('session duration', () => {
     timerMod = await import('../../../components/timerService.js');
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
   });
 
   afterEach(() => {

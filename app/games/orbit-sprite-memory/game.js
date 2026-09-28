@@ -260,6 +260,15 @@ export function createRound(lvl) {
 }
 
 /**
+ * Creates a tutorial practice round at the easiest level (0) without changing any game state.
+ *
+ * @returns {ReturnType<typeof createRound>}
+ */
+export function createPracticeRound() {
+  return createRound(0);
+}
+
+/**
  * Evaluates whether player selections match this round's primary positions exactly.
  *
  * @param {{ primaryPositions: number[] }} round - Round metadata.
