@@ -48,6 +48,11 @@ displayed +1.
 - `loadBestStatsFromProgress()` fills them in from `loadGameScore` when the game is initialized
   and on reset.
 
+## Tutorial
+
+See [tutorial/CLAUDE.md](tutorial/CLAUDE.md). `game.createPracticeRound()` returns a level 0
+round without changing state.
+
 ## Saved fields
 
 `score` (rounds correct), `sessionDurationMs`, and `level`. `lowestDisplayTime` is the display
