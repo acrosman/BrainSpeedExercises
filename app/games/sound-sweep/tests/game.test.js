@@ -21,6 +21,8 @@ import {
   startGame,
   stopGame,
   pickSequence,
+  generatePracticeTrial,
+  formatSequence,
   recordTrial,
   getCurrentLevel,
   getCurrentLevelConfig,
@@ -147,6 +149,43 @@ describe('pickSequence', () => {
 });
 
 // ── recordTrial staircase behavior ────────────────────────────────────────────
+
+describe('generatePracticeTrial', () => {
+  test('uses the easiest level: 600 ms sweeps with a 600 ms gap', () => {
+    const trial = generatePracticeTrial();
+    expect(trial).toEqual(expect.objectContaining({ sweepDurationMs: 600, isiMs: 600 }));
+    expect(SEQUENCES).toContain(trial.sequence);
+  });
+
+  test('ignores the current level and changes no game state', () => {
+    startGame();
+    for (let i = 0; i < CORRECT_STREAK_TO_ADVANCE * 2; i += 1) recordTrial({ success: true });
+    const snapshot = () => ({
+      level: getCurrentLevel(),
+      score: getScore(),
+      trials: getTrialsCompleted(),
+      streak: getConsecutiveCorrect(),
+      history: getSpeedHistory(),
+    });
+    const before = snapshot();
+    expect(before.level).toBeGreaterThan(0);
+
+    expect(generatePracticeTrial().sweepDurationMs).toBe(LEVELS[0].sweepDurationMs);
+    expect(snapshot()).toEqual(before);
+    stopGame();
+  });
+});
+
+describe('formatSequence', () => {
+  test.each([
+    ['up-up', 'Up-Up'],
+    ['up-down', 'Up-Down'],
+    ['down-up', 'Down-Up'],
+    ['down-down', 'Down-Down'],
+  ])('%s reads as %s', (sequence, label) => {
+    expect(formatSequence(sequence)).toBe(label);
+  });
+});
 
 describe('recordTrial — staircase advancement', () => {
   test('3 consecutive correct responses advance the level by 1', () => {

@@ -21,6 +21,8 @@ export const GAME_ID = manifest.id;
  * The first character before the dash is the direction of the first sweep;
  * the character after the dash is the direction of the second sweep.
  *
+ * The order matches the answer buttons and their number keys: `SEQUENCES[0]` is key 1.
+ *
  * @type {string[]}
  */
 export const SEQUENCES = ['up-up', 'up-down', 'down-up', 'down-down'];
@@ -147,6 +149,29 @@ export function stopGame() {
  */
 export function pickSequence() {
   return SEQUENCES[Math.floor(Math.random() * SEQUENCES.length)];
+}
+
+/**
+ * Build a tutorial practice trial: a random sequence at the easiest level. It ignores the
+ * current level and changes no game state.
+ *
+ * @returns {{ sequence: string, sweepDurationMs: number, isiMs: number }}
+ */
+export function generatePracticeTrial() {
+  return { sequence: pickSequence(), ...LEVELS[0] };
+}
+
+/**
+ * Convert a sequence to the label the player sees, e.g. 'up-down' → 'Up-Down'.
+ *
+ * @param {string} sequence - One of SEQUENCES.
+ * @returns {string}
+ */
+export function formatSequence(sequence) {
+  return sequence
+    .split('-')
+    .map((d) => d.charAt(0).toUpperCase() + d.slice(1))
+    .join('-');
 }
 
 /**
