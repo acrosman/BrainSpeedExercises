@@ -248,10 +248,10 @@ controls, and routes input to the tutorial while it is practicing.
 5. Add `<id>/tutorial/CLAUDE.md` covering only what differs from the steps above: the controls,
    the hooks `index.js` calls, and the practice rules. Link it from the game's `CLAUDE.md`.
 
-Worked examples: `fast-piggie`, `directional-processing`, and `sound-sweep` (one answer per
-round), `card-rat` (a timed run of cards with one to act on), `field-of-view` (a two-part
-answer, with retries), `high-speed-memory` (several answers per round, with retries),
-`object-track` (several answers per round after an animation, with retries),
+Worked examples: `fast-piggie`, `directional-processing`, `sound-sweep`, and `fine-tuning`
+(one answer per round), `card-rat` (a timed run of cards with one to act on), `field-of-view`
+(a two-part answer, with retries), `high-speed-memory` (several answers per round, with
+retries), `object-track` (several answers per round after an animation, with retries),
 `orbit-sprite-memory` (several answers per round after a timed sequence, with retries), and
 `otter-stop` (a steady stream of responses, played through the game's own trial loop with no
 practice hooks, with retries).

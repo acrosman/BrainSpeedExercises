@@ -20,6 +20,12 @@ import { loadGameScore, saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import * as timerService from '../../components/timerService.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import {
+  finishPracticeTrial,
+  isPracticing,
+  setPracticeControls,
+  tutorial,
+} from './tutorial/tutorial.js';
 
 // ── Timing constants ──────────────────────────────────────────────────────────
 
@@ -74,6 +80,8 @@ let _firstBtn = null;
 let _secondBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _startBtn = null;
+/** @type {HTMLButtonElement|null} */
+let _replayTutorialBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _stopBtn = null;
 /** @type {HTMLButtonElement|null} */
@@ -315,6 +323,10 @@ export function handleResponse(response) {
   setResponsesEnabled(false);
 
   const success = response === _currentTrial.answer;
+  if (isPracticing()) {
+    finishPracticeTrial(success);
+    return;
+  }
 
   game.recordTrial({ success });
 
@@ -377,7 +389,7 @@ function showGameArea() {
 }
 
 /**
- * Start a gameplay session.
+ * Start a gameplay session immediately without tutorial gating.
  */
 function beginGameSession() {
   game.startGame();
@@ -397,6 +409,29 @@ function beginGameSession() {
   startTrial();
 }
 
+/**
+ * Trial controls the tutorial uses to play practice trials with the real sounds, Replay
+ * button, and answer buttons.
+ *
+ * @type {import('./tutorial/tutorial.js').PracticeTrialControls}
+ */
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea,
+  playTrial,
+  stopTrial,
+  getAnswerButton,
+  showResult: showResponseFeedback,
+});
+
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, onComplete: beginGameSession };
+}
+
 // ── Plugin contract ───────────────────────────────────────────────────────────
 
 /** Human-readable plugin name. */
@@ -413,6 +448,7 @@ const name = 'Fine Tuning';
 function init(gameContainer) {
   _container = gameContainer;
   game.initGame();
+  setPracticeControls(PRACTICE_CONTROLS);
 
   if (!_container) return;
 
@@ -435,18 +471,25 @@ function init(gameContainer) {
   _firstBtn        = _container.querySelector('#ft-btn-first');
   _secondBtn       = _container.querySelector('#ft-btn-second');
   _startBtn        = _container.querySelector('#ft-start-btn');
+  _replayTutorialBtn = _container.querySelector('#ft-replay-tutorial-btn');
   _stopBtn         = _container.querySelector('#ft-stop-btn');
   _playAgainBtn    = _container.querySelector('#ft-play-again-btn');
   _returnBtn       = _container.querySelector('#ft-return-btn');
   _replayBtn       = _container.querySelector('#ft-replay-btn');
   _voiceInputs     = [..._container.querySelectorAll('input[name="ft-voice"]')];
 
-  if (_startBtn)     _startBtn.addEventListener('click', () => start());
+  if (_startBtn)     _startBtn.addEventListener('click', () => { void start(); });
+  // Replay always shows the tutorial, then starts a session.
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => {
+      void tutorial.replay(tutorialOptions());
+    });
+  }
   if (_stopBtn)      _stopBtn.addEventListener('click', () => stop());
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
-      start();
+      void start();
     });
   }
   if (_returnBtn)  _returnBtn.addEventListener('click', () => returnToMainMenu());
@@ -475,17 +518,20 @@ function init(gameContainer) {
 }
 
 /**
- * Start a gameplay session.
+ * Start a gameplay session, showing the tutorial first if the player has not seen it.
+ *
+ * @returns {Promise<void>}
  */
 function start() {
-  beginGameSession();
+  return tutorial.startIfNeeded(tutorialOptions());
 }
 
 /**
  * Stop the gameplay session, save progress, and show the end panel.
  *
- * With no session running (on the welcome screen, or when the app quits after a session
- * ended) there is nothing to save and the screen is left alone.
+ * With no session running (on the welcome screen, during the tutorial, or when the app
+ * quits after a session ended) there is nothing to save and the screen is left alone,
+ * except that leaving a tutorial this way cancels it and returns to the welcome screen.
  *
  * @returns {{ score: number, level: number, trialsCompleted: number, duration: number }}
  */
@@ -493,6 +539,7 @@ function stop() {
   stopTrial();
 
   if (!game.isRunning()) {
+    if (tutorial.isActive()) reset();
     return {
       score: game.getScore(),
       level: game.getCurrentLevel(),
@@ -522,6 +569,7 @@ function stop() {
  * Reset to the pre-game instructions state without reloading interface.html.
  */
 function reset() {
+  tutorial.cancel();
   stopTrial();
   game.initGame();
   timerService.resetTimer();

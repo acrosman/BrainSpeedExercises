@@ -210,3 +210,71 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ── Tutorial slides ─────────────────────────────────────────────────────── */
+/* Content shown inside the shared tutorial overlay. Highlight boxes on the  */
+/* screenshot are positioned as percentages of tutorialScreenshot.png.       */
+
+.ft-tutorial-figure {
+  margin: 0.75rem 0 0;
+}
+
+.ft-tutorial-image-wrap {
+  position: relative;
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+.ft-tutorial-image {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.ft-tutorial-caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+.ft-tutorial-highlight {
+  position: absolute;
+  border-radius: 8px;
+  border: 3px solid currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ft-tutorial-highlight--stats {
+  left: 1%;
+  top: 1.5%;
+  width: 52%;
+  height: 7.5%;
+  color: #1976d2;
+}
+
+.ft-tutorial-highlight--prompt {
+  left: 1%;
+  top: 9.5%;
+  width: 98%;
+  height: 9%;
+  color: #2e7d32;
+}
+
+.ft-tutorial-highlight--buttons {
+  left: 1%;
+  top: 19.5%;
+  width: 31.5%;
+  height: 21%;
+  color: #ed6c02;
+}
+
+.ft-tutorial-highlight--trend {
+  left: 1%;
+  top: 48%;
+  width: 98%;
+  height: 40%;
+  color: #7b1fa2;
+}

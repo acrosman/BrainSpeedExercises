@@ -11,6 +11,7 @@ share their structure.
   `buildTrial()`, which builds a random trial for any level and voice setting without changing
   state. `pickTrial()` uses the current level; `generatePracticeTrial()` uses `LEVELS[0]`.
 - `index.js`: the trial cycle, controls, voice radios, and plugin lifecycle.
+- `tutorial/`: the first-run tutorial. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Audio
 
