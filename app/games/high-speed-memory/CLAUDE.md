@@ -29,14 +29,12 @@ after `completeRound()`. If you change the staircase in `game.js`, update that c
 ## Saved fields
 
 `score`, `sessionDurationMs`, and `level`. `lowestDisplayTime` is the display time at the level
-reached. There are no extra fields. `stop()` with no session returns an idle result, saves
-nothing, and leaves the screen alone.
+reached. There are no extra fields.
 
 ## Tutorial
 
-`tutorial/` holds the first-run tutorial: its slides, and the code that launches it and plays
-practice rounds. `game.createPracticeRound()` returns `{ grid, displayMs }` for a level-0 round
-without changing state. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
+See [tutorial/CLAUDE.md](tutorial/CLAUDE.md). `game.createPracticeRound()` returns
+`{ grid, displayMs }` for a level-0 round without changing state.
 
 ## Controls
 

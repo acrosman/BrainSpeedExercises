@@ -13,11 +13,10 @@ the registry. Start new games by copying `_template/`.
 3. `app/interface.js` injects the HTML into the game container, adds `<id>/style.css`, imports
    `./games/<id>/<entryPoint>`, and calls **only `init(container)`**. The game starts itself when
    the player presses its Start button.
-4. On `app:before-quit`, the shell calls `stop()` on the active plugin. `stop()` can therefore
-   run when no session is in progress. Every `game.stopGame()` throws if the game is not
-   running, so `index.js` checks `game.isRunning()` first and builds an idle result instead.
-   It also avoids saving an empty session (`sound-sweep` and `directional-processing` only
-   save when `trialsCompleted > 0`).
+4. On `app:before-quit`, the shell calls `stop()` on the active plugin, so `stop()` can run
+   when no session is in progress. `game.stopGame()` throws if the game is not running, so
+   `index.js` checks `game.isRunning()` first, returns an idle result, and saves nothing.
+   Games that count trials also skip saving when `trialsCompleted` is 0.
 5. To leave a game, call `returnToMainMenu()` from `../../components/gameUtils.js`. It
    dispatches `bsx:return-to-main-menu` on `window`. The shell then refreshes the game cards
    with the new scores.
@@ -49,6 +48,7 @@ Every `saveScore`, `loadGameScore`, `games:listImages`, and tutorial `gameId` us
 `game.GAME_ID`. Never write the ID as a string literal in game code. `tests/game.test.js`
 checks that `GAME_ID` equals `manifest.id`. Tests that mock `game.js` supply `GAME_ID` in the
 mock.
+
 Paths to images at runtime are relative to `app/index.html`, for example
 `games/<id>/images/foo.png`.
 
@@ -58,52 +58,40 @@ HTML.
 
 ## Common game conventions
 
+Games use the shared services in `app/components/`. Their APIs are in
+[../components/CLAUDE.md](../components/CLAUDE.md).
+
 - **game.js holds the rules.** It keeps module-level state, which `initGame()` resets.
   `startGame()` and `stopGame()` bracket a session, and `stopGame()` returns the result object.
   Getters (`getScore`, `getLevel`, `getSpeedHistory`, and so on) expose state. `index.js` never
   changes game state directly.
-- **Adaptive difficulty** uses `updateAdaptiveDifficultyState` from
-  `components/adaptiveDifficultyService.js`. The house rule is 3 correct in a row makes the game
-  one step harder, and 3 wrong in a row makes it two steps easier. The function handles only the
-  counters and clamping. The caller decides what "value" means (level index, milliseconds, and
-  so on) and the sign of `harderStep` and `easierStep`.
-- **Speed history.** Each game pushes its speed metric to a `speedHistory` array after each
-  trial. `index.js` renders it with `renderTrendChart({ lineEl, emptyEl, latestEl }, history,
-  current)` from `components/trendChartService.js`, using the shared `.game-trend` markup.
-- **Session timing.** Call `timerService.startTimer(onTick)` in `start()`. In `stop()`,
-  `timerService.stopTimer()` returns `sessionDurationMs`. Show elapsed time with
-  `formatDuration`.
-- **Audio.** Use `components/audioService.js` (`playSuccessSound`, `playFailureSound`,
-  `playFeedbackSound(bool)`, and so on). Never create an `AudioContext` inside a game.
-- **Saving.** Call `saveScore(gameId, result, extraFields?)` from
-  `components/scoreService.js` inside `stop()`. Never call `progress:save` directly.
-  - Standard fields are merged for you: `score` → `highScore` (max), `sessionDurationMs` →
-    `dailyTime[today]` (sum), `level` → `highestLevel` (max), and `lowestDisplayTime` (min).
-    `sessionsPlayed` and `lastPlayed` are always updated.
-  - For fields that only this game stores, pass `extraFields` as `(prevRecord) => ({ ... })`
-    when the value must be merged with the old one, or as a plain object to overwrite.
-  - `saveScore` resolves to the updated record, or `null` on failure.
-- **Precise stimulus timing.** Games that flash stimuli for tens of milliseconds
-  (`directional-processing`, `field-of-view`, `object-track`) drive them with
+- **Adaptive difficulty:** `updateAdaptiveDifficultyState` from `adaptiveDifficultyService.js`.
+  The house rule is 3 correct in a row → one step harder, 3 wrong in a row → two steps easier.
+  Change difficulty by editing the game's level table or formula, not with special cases.
+- **Speed history:** push the game's speed metric to a `speedHistory` array after each trial,
+  and draw it with `renderTrendChart` in the shared `.game-trend` markup.
+- **Session timing:** `startTimer(onTick)` in `start()`; `stopTimer()` in `stop()` gives
+  `sessionDurationMs`.
+- **Audio:** only through `audioService.js`. Never create an `AudioContext` in a game.
+- **Saving:** `saveScore(game.GAME_ID, result, extraFields?)` in `stop()`. Never call
+  `progress:save` directly. Record in the game's `CLAUDE.md` which fields it saves.
+- **Precise stimulus timing:** stimuli shown for tens of milliseconds are driven with
   `requestAnimationFrame` and `performance.now()`, not `setTimeout`. Cancel every rAF handle
   and timeout in `stop()` and `reset()`.
-- **Keyboard handlers on `document`** stay attached after the player leaves the game. The shell
-  only replaces the container's HTML, and the module stays cached. Handlers must therefore do
-  nothing (and must not call `preventDefault()`) unless `game.isRunning()` is true. Remove the
-  handler before adding it in `init()`, or detach it on stop (`card-rat`). Call
-  `preventDefault()` only on the keys the game uses, and only while a session runs.
-- **Images discovered at runtime.** To use whatever files are in an image subfolder, call
-  `window.api.invoke('games:listImages', { gameId, subfolder })`. Always have a fallback for an
-  empty list.
+- **Keyboard handlers on `document`** outlive the game: the shell only replaces the
+  container's HTML, and the module stays cached. A handler must do nothing, and must not call
+  `preventDefault()`, unless a session (or practice round) is running. Remove it before adding
+  it in `init()`, or attach it on start and detach it on stop. Call `preventDefault()` only for
+  the keys the game uses.
+- **Images found at runtime:** `window.api.invoke('games:listImages', { gameId, subfolder })`
+  lists a subfolder so new images need no code change. Keep a fallback for an empty list.
 
 ## Tutorials (optional)
 
-Games add first-run tutorials with the shared framework in `components/tutorialService.js`,
-launched through `createTutorialLauncher()` in `components/tutorialLauncher.js`. All of a
-game's tutorial code, including its launcher and practice rounds, lives in `<id>/tutorial/`;
-`index.js` only supplies practice controls and calls the launcher. How it works, and the steps
-to add a tutorial to a game, are in [../components/CLAUDE.md](../components/CLAUDE.md). Each
-game documents its own tutorial in `<id>/tutorial/CLAUDE.md`.
+A game's first-run tutorial lives in `<id>/tutorial/` and runs on the shared tutorial
+framework. `index.js` only supplies practice controls and calls the launcher. The framework and
+the steps to add a tutorial are in [../components/CLAUDE.md](../components/CLAUDE.md). Each
+tutorial is documented in `<id>/tutorial/CLAUDE.md`.
 
 ## Shared screen markup
 
@@ -121,8 +109,8 @@ Shared classes are defined in `app/styles/game-shared.css`. Do not duplicate the
   `index.js` fills each `<dd>` with `textContent`. Put the buttons in
   `.game-end-panel__actions`: "Play Again" is `game-btn--primary` and "Return to Menu" is
   `game-btn--secondary`.
-- Feedback and score changes go to an `aria-live="polite"` region. Most games have an
-  `announce(message)` helper that writes to it.
+- Feedback and score changes go to an `aria-live="polite"` region, usually through an
+  `announce(message)` helper in `index.js`.
 
 ## Testing games
 
@@ -134,5 +122,4 @@ Shared classes are defined in `app/styles/game-shared.css`. Do not duplicate the
   Assert on DOM state, `saveScore` calls, and the lifecycle (`start` → `stop` → `reset`).
 - Stub `requestAnimationFrame`, `performance.now`, and canvas `getContext` in jsdom when a
   game needs them.
-- `_template/` is excluded from coverage. Every other game counts toward the 100%
-  function-coverage requirement.
+- Every game except `_template/` counts toward the 100% function-coverage requirement.

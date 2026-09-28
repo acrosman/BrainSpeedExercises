@@ -22,8 +22,7 @@ A joker never forms a pair or sandwich with a card next to it.
   cut cards out of `images/cards-sprite.png`, plus the paths for the joker and card-back PNGs.
   The sprite geometry constants must match that image exactly. Update them together if the
   sprite changes.
-- `tutorial/`: the first-run tutorial, both its content and the code that launches it and plays
-  practice rounds. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
+- `tutorial/`: the first-run tutorial. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Difficulty
 
@@ -34,8 +33,7 @@ of 50. Hits count as correct. Misses and false alarms both count as wrong, so th
 ## Saved fields
 
 `score`, `sessionDurationMs`, and `lowestDisplayTime`, plus `bestTriggerHits` (max) through
-`extraFields`. It does not save `level`. `stop()` with no session running returns an idle result
-without saving or changing the screen.
+`extraFields`. It does not save `level`.
 
 ## Controls
 

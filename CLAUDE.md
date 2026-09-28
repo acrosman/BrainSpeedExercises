@@ -2,14 +2,27 @@
 
 Electron desktop app that delivers brain-speed training games. The player picks a game from a
 selection screen, plays it, and their progress is saved locally. Each game is a self-contained
-plugin under `app/games/`. See [app/CLAUDE.md](app/CLAUDE.md) for the renderer shell,
-components, styles, preload, and progress storage, and [app/games/CLAUDE.md](app/games/CLAUDE.md)
-for the plugin contract and the shared services games use.
+plugin under `app/games/`.
+
+Instructions are split across `CLAUDE.md` files, each next to the code it covers:
+
+- [app/CLAUDE.md](app/CLAUDE.md): the renderer shell, styles, preload, and progress storage.
+- [app/components/CLAUDE.md](app/components/CLAUDE.md): every shared component and the
+  tutorial framework.
+- [app/games/CLAUDE.md](app/games/CLAUDE.md): the plugin contract and conventions every game
+  follows.
+- `app/games/<id>/CLAUDE.md` and `app/games/<id>/tutorial/CLAUDE.md`: one game, or its tutorial.
 
 ## General Practices
 
-* Take credit for your work. Make sure you sign all commit comments, commits, issues, and pull request descriptions so it is clear what you created.
-* When in doubt commit work into simple clean commits that are easy to review.
+- Sign every commit, issue, issue comment, and pull request description you write, so it is
+  clear what you created.
+- Prefer small, focused commits that are easy to review.
+- `CLAUDE.md` files describe how the code works and how to write it. Put each fact in the most
+  specific file that covers it; a detail about one game goes in that game's file, not a general
+  one. Update the matching `CLAUDE.md` when you change the code it describes.
+- Record bugs, gaps, and follow-ups as GitHub issues on `acrosman/BrainSpeedExercises`, never
+  as "known issue" notes in a `CLAUDE.md`. Search for an existing issue first.
 
 ## Commands
 
@@ -26,6 +39,22 @@ npm run make           # build installers with Electron Forge (forge.config.cjs)
 
 Before calling work done, run `npm run lint` and `npm test`. Run `npm audit` before merging.
 
+After any change to `package.json` or `package-lock.json`, run `rm -rf node_modules && npm ci`
+before committing. CI installs with `npm ci`, which fails when the lockfile is out of sync, even
+if lint and tests pass against the existing `node_modules`.
+
+### Driving the app from a script
+
+To check a change in the running app (for example with Playwright's `_electron`, installed
+outside the project):
+
+- Unset `ELECTRON_RUN_AS_NODE` (`env -u ELECTRON_RUN_AS_NODE ...`). VS Code sets it, and it
+  makes Electron run as plain Node, which fails with `bad option: --remote-debugging-port`.
+- Launch the binary from `node -p "require('electron')"` with the project directory and
+  `--user-data-dir=<temp dir>`, so progress is written there and not over the player's real
+  saves. Confirm with `app.evaluate(({ app }) => app.getPath('userData'))` before playing.
+- Open a game by clicking the `.game-card` whose text contains the game's name.
+
 ## Stack
 
 - Electron (see `package.json`), ES Modules everywhere (`"type": "module"`) except
@@ -40,7 +69,7 @@ Before calling work done, run `npm run lint` and `npm test`. Run `npm audit` bef
 ```
 main.js                  Main process: window creation, all ipcMain.handle registrations
 app/preload.js           contextBridge: window.api.invoke / window.api.receive with allowlists
-app/index.html           Shell page (CSP: default-src 'self')
+app/index.html           Shell page and its CSP
 app/interface.js         Renderer: game selector, game loading, history view, quit handling
 app/style.css            Only @imports app/styles/*.css (edit the sub-files, not this one)
 app/styles/              variables, base, layout, game-card, history, game-shared
@@ -127,5 +156,5 @@ All UI must meet WCAG 2.2 AA:
 
 - `nodeIntegration: false` and `contextIsolation: true`. Keep both.
 - No `eval` or `new Function` in the renderer. Keep the CSP in `app/index.html` at
-  `default-src 'self'`.
+  `default-src 'self'; script-src 'self'`.
 - Every new IPC channel must be added to the allowlist in `app/preload.js`.

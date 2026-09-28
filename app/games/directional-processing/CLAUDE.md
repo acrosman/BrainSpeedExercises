@@ -13,22 +13,20 @@ the speed-of-processing training used in the ACTIVE study.
   vary the patch hue from trial to trial.
 - `game.js`: the level table and the staircase. It knows nothing about rendering.
   `generatePracticeTrial()` returns a random direction at `LEVELS[0]` without changing state.
-- `index.js`: runs the trial cycle: stimulus (rAF, animating phase at `PHASE_SPEED_RAD_PER_MS`)
-  → mask (`MASK_DURATION_MS` 150) → short pause → response enabled → feedback flash.
-- `tutorial/`: the first-run tutorial, both its content and the code that launches it and plays
-  practice trials. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
+- `index.js`: runs the trial cycle: stimulus (rAF, animating phase at
+  `gabor.PHASE_SPEED_RAD_PER_MS`) → mask (`MASK_DURATION_MS` 150) → short pause → response
+  enabled → feedback flash.
+- `tutorial/`: the first-run tutorial. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Difficulty
 
 `LEVELS` in `game.js` has 10 entries. Each one lowers `displayDurationMs` (500 → 40 ms), and
-from level 3 on it also lowers `contrast` (1.0 → 0.3). `level` is an index into `LEVELS`. Change
-difficulty by editing that table, not by adding special-case logic.
+from level 3 on it also lowers `contrast` (1.0 → 0.3). `level` is an index into `LEVELS`.
 
 ## Saved fields
 
 `score`, `level`, and `sessionDurationMs`, plus `lastTrialsCompleted` as a plain-object
-`extraFields`. The game saves only when a session is running and `trialsCompleted > 0`.
-`stop()` with no session returns an idle result and leaves the screen alone.
+`extraFields`. The game saves only when `trialsCompleted > 0`.
 
 ## Controls
 
