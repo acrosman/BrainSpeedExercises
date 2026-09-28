@@ -93,6 +93,12 @@ let _trendLatestEl = null;
 
 // ── Private state ─────────────────────────────────────────────────────────────
 
+/** @type {Array<object>} Circles of the round in progress, as last moved by stepCircles. */
+let _roundCircles = [];
+
+/** @type {number} How long (ms) the round in progress tracks before the response phase. */
+let _trackingDurationMs = 0;
+
 /** @type {Set<number>} Circle IDs selected by the player during response phase. */
 let _selectedIds = new Set();
 
@@ -171,6 +177,20 @@ export function updateTrendChart() {
     game.getSpeedHistory(),
     game.getLevelConfig(game.getLevel()).speedPxPerSec,
   );
+}
+
+// ── Arena ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Measure the arena, falling back to 600×400 when it has no layout (for example in jsdom).
+ *
+ * @returns {{ width: number, height: number }} Arena dimensions in pixels.
+ */
+export function getArenaBounds() {
+  return {
+    width: (_arenaEl && _arenaEl.offsetWidth) || 600,
+    height: (_arenaEl && _arenaEl.offsetHeight) || 400,
+  };
 }
 
 // ── Arena background ──────────────────────────────────────────────────────────
@@ -270,7 +290,7 @@ export function repositionCircleElements(roundCircles) {
  */
 export function highlightTargets() {
   if (!_arenaEl) return;
-  game.getCurrentCircles().forEach((c) => {
+  _roundCircles.forEach((c) => {
     if (!c.isTarget) return;
     const el = _arenaEl.querySelector(`#mot-circle-${c.id}`);
     if (el) el.classList.add('mot-circle--target-reveal');
@@ -299,18 +319,14 @@ export function unhighlightTargets() {
  */
 export function startTrackingAnimation(durationMs) {
   _lastFrameMs = null;
-  const bounds = {
-    width: (_arenaEl && _arenaEl.offsetWidth) || 600,
-    height: (_arenaEl && _arenaEl.offsetHeight) || 400,
-  };
+  const bounds = getArenaBounds();
 
   /** @param {number} timestamp - DOMHighResTimeStamp from rAF. */
   const tick = (timestamp) => {
-    if (!game.isRunning()) return;
     const delta = _lastFrameMs === null ? 0 : timestamp - _lastFrameMs;
     _lastFrameMs = timestamp;
-    const updated = game.tickPhysics(delta, bounds);
-    repositionCircleElements(updated);
+    _roundCircles = game.stepCircles(_roundCircles, delta, bounds);
+    repositionCircleElements(_roundCircles);
     _rafHandle = requestAnimationFrame(tick);
   };
 
@@ -340,7 +356,7 @@ export function stopTrackingAnimation() {
  */
 export function enterResponsePhase() {
   _selectedIds = new Set();
-  _numTargets = game.getCurrentCircles().filter((c) => c.isTarget).length;
+  _numTargets = _roundCircles.filter((c) => c.isTarget).length;
   if (_arenaEl) {
     _arenaEl.classList.add('mot-arena--response');
     _arenaEl.addEventListener('click', handleCircleClick);
@@ -388,13 +404,12 @@ export async function submitResponse() {
     _arenaEl.classList.remove('mot-arena--response');
     _arenaEl.removeEventListener('click', handleCircleClick);
   }
-  const currentCircles = game.getCurrentCircles();
-  const evalResult = game.evaluateResponse(currentCircles, _selectedIds);
+  const evalResult = game.evaluateResponse(_roundCircles, _selectedIds);
   game.recordRoundResult(evalResult.correct);
   updateStats();
   updateTrendChart();
 
-  currentCircles.forEach((c) => {
+  _roundCircles.forEach((c) => {
     if (!_arenaEl) return;
     const el = _arenaEl.querySelector(`#mot-circle-${c.id}`);
     if (!el || !c.isTarget) return;
@@ -439,25 +454,39 @@ export function showEndPanel(result) {
 // ── Round lifecycle ───────────────────────────────────────────────────────────
 
 /**
- * Start a new round: pick a palette, spawn circles, and enter the marking phase.
+ * Play a round with `roundCircles`: pick a palette and background, show the circles with
+ * their targets highlighted, then track for `trackingDurationMs` and take the response.
+ *
+ * @param {Array<object>} roundCircles - The round's circles, with their targets chosen.
+ * @param {number} trackingDurationMs - How long (ms) the circles move before they stop.
+ * @returns {void}
+ */
+export function playRound(roundCircles, trackingDurationMs) {
+  _roundCircles = roundCircles;
+  _trackingDurationMs = trackingDurationMs;
+  _selectedIds = new Set();
+  _currentPalette = CIRCLE_PALETTES[Math.floor(Math.random() * CIRCLE_PALETTES.length)];
+  setRandomBackground(_arenaEl);
+  unhighlightTargets();
+  renderCircles(_roundCircles);
+  if (_phaseLabel) _phaseLabel.textContent = 'Watch for targets!';
+  highlightTargets();
+  _markingTimer = setTimeout(() => endMarkingPhase(), MARKING_DURATION_MS);
+}
+
+/**
+ * Start a new session round at the current level.
  *
  * @returns {void}
  */
 export function beginRound() {
-  _selectedIds = new Set();
-  _currentPalette = CIRCLE_PALETTES[Math.floor(Math.random() * CIRCLE_PALETTES.length)];
-  setRandomBackground(_arenaEl);
-  const bounds = {
-    width: (_arenaEl && _arenaEl.offsetWidth) || 600,
-    height: (_arenaEl && _arenaEl.offsetHeight) || 400,
-  };
-  const roundCircles = game.initRound(bounds.width, bounds.height);
-  unhighlightTargets();
-  renderCircles(roundCircles);
+  const level = game.getLevel();
+  const bounds = getArenaBounds();
+  playRound(
+    game.createRoundCircles(level, bounds.width, bounds.height),
+    game.getLevelConfig(level).trackingDurationMs,
+  );
   updateStats();
-  if (_phaseLabel) _phaseLabel.textContent = 'Watch for targets!';
-  highlightTargets();
-  _markingTimer = setTimeout(() => endMarkingPhase(), MARKING_DURATION_MS);
 }
 
 /**
@@ -469,8 +498,21 @@ export function endMarkingPhase() {
   _markingTimer = null;
   unhighlightTargets();
   if (_phaseLabel) _phaseLabel.textContent = 'Track the targets...';
-  const config = game.getLevelConfig(game.getLevel());
-  startTrackingAnimation(config.trackingDurationMs);
+  startTrackingAnimation(_trackingDurationMs);
+}
+
+/**
+ * Stop the round in progress: cancel its timers and animation and ignore further clicks
+ * on the circles.
+ *
+ * @returns {void}
+ */
+export function stopRound() {
+  clearAllTimers();
+  if (_arenaEl) {
+    _arenaEl.removeEventListener('click', handleCircleClick);
+    _arenaEl.classList.remove('mot-arena--response');
+  }
 }
 
 // ── Plugin lifecycle ──────────────────────────────────────────────────────────
@@ -544,7 +586,7 @@ function start() {
  *   duration: number }>} Session summary object.
  */
 async function stop() {
-  clearAllTimers();
+  stopRound();
   const result = game.isRunning()
     ? game.stopGame()
     : {
@@ -554,10 +596,6 @@ async function stop() {
         duration: 0,
       };
   const sessionDurationMs = timerService.stopTimer();
-  if (_arenaEl) {
-    _arenaEl.removeEventListener('click', handleCircleClick);
-    _arenaEl.classList.remove('mot-arena--response');
-  }
   await saveScore(game.GAME_ID, {
     score: result.score,
     sessionDurationMs,
@@ -573,14 +611,11 @@ async function stop() {
  * @returns {void}
  */
 function reset() {
-  clearAllTimers();
+  stopRound();
   game.initGame();
   timerService.resetTimer();
-  if (_arenaEl) {
-    _arenaEl.innerHTML = '';
-    _arenaEl.classList.remove('mot-arena--response');
-    _arenaEl.removeEventListener('click', handleCircleClick);
-  }
+  if (_arenaEl) _arenaEl.innerHTML = '';
+  _roundCircles = [];
   _selectedIds = new Set();
   if (_phaseLabel) _phaseLabel.textContent = '';
   if (_feedbackEl) _feedbackEl.textContent = '';
