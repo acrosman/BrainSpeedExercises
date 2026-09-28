@@ -1,0 +1,212 @@
+/* ── Fine Tuning ──────────────────────────────────────────────────────────── */
+/*
+ * All selectors are prefixed with .fine-tuning or .ft- to avoid collisions.
+ * Shared panel and button styles (.game-welcome, .game-end-panel, .game-results,
+ * .game-btn) come from app/style.css — they are NOT duplicated here.
+ * CSS custom properties are defined in app/styles/variables.css.
+ */
+
+.fine-tuning {
+  color: var(--text-base);
+}
+
+/* ── Panel wrapper ────────────────────────────────────────────────────────── */
+
+.ft-panel {
+  background: var(--bg-body);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+/* ── Voice setting ───────────────────────────────────────────────────────── */
+
+.ft-voice {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.ft-voice__legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.ft-voice__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+
+.ft-voice__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.ft-voice__option input:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ft-voice__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* ── Stats bar ───────────────────────────────────────────────────────────── */
+
+.ft-stats,
+.ft-stats-live {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.ft-stats {
+  margin-bottom: 1rem;
+}
+
+/* ── Cue area ────────────────────────────────────────────────────────────── */
+
+.ft-cue {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.ft-cue__status {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+}
+
+/* ── Response fieldset ───────────────────────────────────────────────────── */
+
+.ft-response {
+  border: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.ft-response__legend {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.ft-response__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* ── Answer buttons ──────────────────────────────────────────────────────── */
+
+.ft-answer-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 8rem;
+  padding: 0.75rem 1.25rem;
+  border: 2px solid var(--text-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-muted);
+  color: var(--text-base);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition-quick), transform var(--transition-quick);
+}
+
+.ft-answer-btn:hover {
+  background: var(--border-color);
+}
+
+.ft-answer-btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ft-answer-btn:active {
+  transform: scale(0.96);
+}
+
+.ft-answer-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ft-answer-btn__label {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.ft-answer-btn__key {
+  font-size: 0.7rem;
+  color: var(--text-subtle);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 0 0.25rem;
+  font-family: monospace;
+}
+
+/* ── Feedback region ─────────────────────────────────────────────────────── */
+
+.ft-feedback {
+  min-height: 1.5rem;
+  margin-top: 0.75rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────── */
+
+.ft-controls {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── In-play buttons ─────────────────────────────────────────────────────── */
+/* Shared button styles come from .game-btn in app/style.css.                */
+/* .ft-btn is used for controls inside the active play area.                 */
+
+.ft-btn {
+  background: var(--bg-muted);
+  color: var(--text-base);
+  border: 1px solid var(--text-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ft-btn--icon {
+  background: var(--bg-subtle);
+  border-color: var(--border-color);
+  font-size: 0.875rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.ft-btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ft-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

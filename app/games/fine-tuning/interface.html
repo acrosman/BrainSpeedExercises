@@ -1,0 +1,150 @@
+<section class="fine-tuning" aria-labelledby="ft-title">
+  <h2 id="ft-title">Fine Tuning</h2>
+
+  <!-- Instructions panel: shown before the game starts and after reset. -->
+  <div id="ft-instructions" class="ft-panel game-welcome">
+    <h3>How to Play</h3>
+    <p>
+      Pick out which of two quick speech sounds matches the target, even when the sounds
+      differ by a single consonant, such as &ldquo;ba&rdquo; and &ldquo;da&rdquo;.
+    </p>
+    <ol>
+      <li>Listen to the target sound.</li>
+      <li>Listen to the two sounds that follow it, one after the other.</li>
+      <li>Choose <strong>First</strong> or <strong>Second</strong>, whichever matched the
+        target. Use the buttons or press <kbd>1</kbd> or <kbd>2</kbd>.</li>
+      <li>Get 3 correct in a row to advance to a harder level.</li>
+      <li>Get 3 wrong in a row to drop back 2 levels.</li>
+    </ol>
+    <p>
+      As you advance, the consonants get quicker, the two sounds come closer together, and
+      background noise is added. Headphones work best.
+    </p>
+
+    <fieldset class="ft-voice">
+      <legend class="ft-voice__legend">Voice</legend>
+      <div class="ft-voice__options">
+        <label class="ft-voice__option">
+          <input type="radio" name="ft-voice" value="lower" checked>
+          Lower voice
+        </label>
+        <label class="ft-voice__option">
+          <input type="radio" name="ft-voice" value="higher">
+          Higher voice
+        </label>
+        <label class="ft-voice__option">
+          <input type="radio" name="ft-voice" value="mixed">
+          Mixed voices
+        </label>
+      </div>
+      <p class="ft-voice__hint">
+        With mixed voices, the hardest levels speak the target in one voice and the two
+        choices in the other.
+      </p>
+    </fieldset>
+
+    <div class="ft-controls">
+      <button id="ft-start-btn" type="button" class="game-btn game-btn--primary">
+        Start Game
+      </button>
+    </div>
+  </div>
+
+  <!-- Main game area: shown while a session is active. -->
+  <div id="ft-game-area" class="ft-panel" hidden>
+    <!-- Only per-trial stats sit in the live region; the session timer stays
+         outside it so screen readers are not interrupted every second. -->
+    <div class="ft-stats">
+      <div class="ft-stats-live" aria-live="polite" aria-atomic="true">
+        <span>Level: <strong id="ft-level">1</strong></span>
+        <span>Score: <strong id="ft-score">0</strong></span>
+        <span>Round: <strong id="ft-trials">0</strong></span>
+        <span>Streak: <strong id="ft-streak">0</strong></span>
+      </div>
+      <span>Session: <strong id="ft-session-timer">00:00</strong></span>
+    </div>
+
+    <!-- Visual cue area for current trial status. -->
+    <div class="ft-cue" aria-live="assertive" aria-atomic="true">
+      <p id="ft-status" class="ft-cue__status" tabindex="-1">Listen&hellip;</p>
+      <button
+        id="ft-replay-btn"
+        type="button"
+        class="ft-btn ft-btn--icon"
+        aria-label="Replay sounds"
+        title="Replay the target and both sounds (does not affect scoring)"
+        disabled
+      >
+        &#128266; Replay
+      </button>
+    </div>
+
+    <!-- Response buttons: always visible; disabled during playback. -->
+    <fieldset id="ft-response" class="ft-response">
+      <legend class="ft-response__legend">Which sound matched the target?</legend>
+      <div class="ft-response__row">
+        <button id="ft-btn-first" type="button" class="ft-answer-btn" disabled
+          aria-label="First: the first sound after the target matched">
+          <span class="ft-answer-btn__label">First</span>
+          <kbd class="ft-answer-btn__key">1</kbd>
+        </button>
+        <button id="ft-btn-second" type="button" class="ft-answer-btn" disabled
+          aria-label="Second: the second sound after the target matched">
+          <span class="ft-answer-btn__label">Second</span>
+          <kbd class="ft-answer-btn__key">2</kbd>
+        </button>
+      </div>
+    </fieldset>
+
+    <!-- Live feedback region (correct / incorrect messages). -->
+    <div id="ft-feedback" class="ft-feedback" role="status" aria-live="polite"></div>
+
+    <!-- Speed trend chart -->
+    <section class="game-trend" aria-labelledby="ft-trend-title">
+      <h4 id="ft-trend-title">Transition Speed (ms)</h4>
+      <svg id="ft-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
+        aria-label="Consonant transition length trend over recent rounds">
+        <polyline id="ft-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+      </svg>
+      <p id="ft-trend-empty" class="game-trend__empty">Complete a round to populate chart.</p>
+      <p class="game-trend__meta">
+        Latest: <strong id="ft-trend-latest">--</strong> ms
+      </p>
+    </section>
+
+    <div class="ft-controls">
+      <button id="ft-stop-btn" type="button" class="game-btn game-btn--secondary">
+        End Game
+      </button>
+    </div>
+  </div>
+
+  <!-- End panel: shown when the session ends. -->
+  <div id="ft-end-panel" class="ft-panel game-end-panel" hidden>
+    <h2>Session Ended</h2>
+
+    <dl class="game-results">
+      <div class="game-results__row">
+        <dt class="game-results__label">Level Reached</dt>
+        <dd class="game-results__value" id="ft-final-level">1</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Score (correct answers)</dt>
+        <dd class="game-results__value" id="ft-final-score">0</dd>
+      </div>
+      <div class="game-results__row">
+        <dt class="game-results__label">Total Rounds</dt>
+        <dd class="game-results__value" id="ft-final-trials">0</dd>
+      </div>
+    </dl>
+
+    <div class="ft-controls game-end-panel__actions">
+      <button id="ft-play-again-btn" type="button" class="game-btn game-btn--primary">
+        Play Again
+      </button>
+      <button id="ft-return-btn" type="button" class="game-btn game-btn--secondary">
+        Return to Menu
+      </button>
+    </div>
+  </div>
+</section>
