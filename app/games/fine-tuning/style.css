@@ -250,31 +250,39 @@
 .ft-tutorial-highlight--stats {
   left: 1%;
   top: 1.5%;
-  width: 52%;
-  height: 7.5%;
+  width: 56%;
+  height: 5.5%;
   color: #1976d2;
 }
 
 .ft-tutorial-highlight--prompt {
   left: 1%;
-  top: 9.5%;
+  top: 7.5%;
   width: 98%;
-  height: 9%;
+  height: 7.5%;
   color: #2e7d32;
 }
 
 .ft-tutorial-highlight--buttons {
   left: 1%;
-  top: 19.5%;
-  width: 31.5%;
-  height: 21%;
+  top: 15.5%;
+  width: 32%;
+  height: 17%;
   color: #ed6c02;
 }
 
 .ft-tutorial-highlight--trend {
   left: 1%;
-  top: 48%;
+  top: 38%;
   width: 98%;
-  height: 40%;
+  height: 32%;
   color: #7b1fa2;
+}
+
+.ft-tutorial-highlight--voice {
+  left: 1%;
+  top: 70.5%;
+  width: 98%;
+  height: 20%;
+  color: #00796b;
 }

@@ -312,6 +312,15 @@ describe('fine-tuning plugin', () => {
       expect($('input[value="lower"]').checked).toBe(false);
     });
 
+    test('changing the voice mid-trial keeps the trial\'s voices on Replay', async () => {
+      await startAndOpenResponses();
+      chooseVoice('higher');
+      $('#ft-replay-btn').click();
+      expect(syllableMock.playSyllableSequence.mock.calls[1][0].voices)
+        .toEqual(['lower', 'lower', 'lower']);
+      expect(mockVoice).toBe('higher');
+    });
+
     test('changing the radio sets the voice', async () => {
       chooseVoice('mixed');
       expect(gameMock.setVoiceSetting).toHaveBeenCalledWith('mixed');
@@ -854,5 +863,11 @@ describe('interface.html', () => {
       expect(input.closest('label').textContent.trim().length).toBeGreaterThan(0);
     });
     expect(document.querySelector('.ft-voice legend').textContent).toBe('Voice');
+  });
+
+  test('the voice setting is on the game screen, not the welcome panel', () => {
+    document.body.innerHTML = INTERFACE_HTML;
+    expect(document.querySelector('#ft-game-area .ft-voice')).not.toBeNull();
+    expect(document.querySelector('#ft-instructions input[name="ft-voice"]')).toBeNull();
   });
 });

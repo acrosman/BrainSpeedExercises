@@ -52,8 +52,10 @@ a preference, so `initGame()` keeps it. With `lower` or `higher`, every syllable
 voice. With `mixed`, each trial picks a voice at random, and at `crossVoice` levels the target
 uses one voice and both choices the other.
 
-The welcome panel's `ft-voice` radios set it. `init()` checks the radio for the current
-setting, then applies the saved `voice` from `loadGameScore` if it is valid.
+The `ft-voice` radios in the game area, below the trend chart, set it, so the player can change
+it during a session or practice. A change applies from the next trial: the trial in progress,
+and its Replay, keep their voices. `init()` checks the radio for the current setting, then
+applies the saved `voice` from `loadGameScore` if it is valid.
 
 ## Saved fields
 

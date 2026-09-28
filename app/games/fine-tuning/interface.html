@@ -18,30 +18,9 @@
     </ol>
     <p>
       As you advance, the consonants get quicker, the two sounds come closer together, and
-      background noise is added. Headphones work best.
+      background noise is added. Headphones work best. While you play, you can switch
+      between a lower voice, a higher voice, or a mix of both.
     </p>
-
-    <fieldset class="ft-voice">
-      <legend class="ft-voice__legend">Voice</legend>
-      <div class="ft-voice__options">
-        <label class="ft-voice__option">
-          <input type="radio" name="ft-voice" value="lower" checked>
-          Lower voice
-        </label>
-        <label class="ft-voice__option">
-          <input type="radio" name="ft-voice" value="higher">
-          Higher voice
-        </label>
-        <label class="ft-voice__option">
-          <input type="radio" name="ft-voice" value="mixed">
-          Mixed voices
-        </label>
-      </div>
-      <p class="ft-voice__hint">
-        With mixed voices, the hardest levels speak the target in one voice and the two
-        choices in the other.
-      </p>
-    </fieldset>
 
     <div class="ft-controls">
       <button id="ft-start-btn" type="button" class="game-btn game-btn--primary">
@@ -114,6 +93,29 @@
         Latest: <strong id="ft-trend-latest">--</strong> ms
       </p>
     </section>
+
+    <!-- Voice setting: changes apply from the next trial. -->
+    <fieldset class="ft-voice">
+      <legend class="ft-voice__legend">Voice</legend>
+      <div class="ft-voice__options">
+        <label class="ft-voice__option">
+          <input type="radio" name="ft-voice" value="lower" checked>
+          Lower voice
+        </label>
+        <label class="ft-voice__option">
+          <input type="radio" name="ft-voice" value="higher">
+          Higher voice
+        </label>
+        <label class="ft-voice__option">
+          <input type="radio" name="ft-voice" value="mixed">
+          Mixed voices
+        </label>
+      </div>
+      <p class="ft-voice__hint">
+        Changes apply from the next round. With mixed voices, the hardest levels speak the
+        target in one voice and the two choices in the other.
+      </p>
+    </fieldset>
 
     <div class="ft-controls">
       <button id="ft-stop-btn" type="button" class="game-btn game-btn--secondary">

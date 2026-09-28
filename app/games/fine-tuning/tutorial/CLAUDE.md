@@ -9,9 +9,10 @@ what is specific to Fine Tuning.
   comes from the answer's place in `game.ANSWERS`.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
   percentage-positioned `.ft-tutorial-highlight--*` boxes in `../style.css`. The screenshot is
-  the `#ft-game-area` element in the response phase of a level 1 session after five rounds, in
-  a 1512 px wide window, scaled to 640 px wide. If the layout changes, retake it and move the
-  boxes together.
+  the `#ft-game-area` element in the response phase after five rounds of a session, in a
+  1512 px wide window, scaled to 640 px wide. The five boxes cover the stats, the prompt and
+  Replay, the answer buttons, the trend chart, and the voice setting. If the layout changes,
+  retake it and move the boxes together.
 
 ## Practice controls and hooks
 
