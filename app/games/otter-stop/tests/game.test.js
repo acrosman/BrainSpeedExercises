@@ -9,7 +9,9 @@ import {
   stopGame,
   pickNextImage,
   isCorrectResponse,
+  createPracticeSequence,
   recordResponse,
+  getIntervalMs,
   getCurrentIntervalMs,
   getScore,
   getNoGoHits,
@@ -377,6 +379,43 @@ describe('isCorrectResponse()', () => {
   });
 });
 
+describe('createPracticeSequence()', () => {
+  it('round 1 is three otters, then the fish', () => {
+    expect(createPracticeSequence(1)).toEqual([
+      { imageKey: 'go-1.png', isNoGo: false },
+      { imageKey: 'go-2.png', isNoGo: false },
+      { imageKey: 'go-3.png', isNoGo: false },
+      { imageKey: NO_GO_KEY, isNoGo: true },
+    ]);
+  });
+
+  it('round 2 is the longest level 1 run of otters, cycling through them, then the fish', () => {
+    const sequence = createPracticeSequence(2);
+    expect(sequence).toHaveLength(getMaxSequenceLength() + 1);
+    expect(sequence.map((s) => s.imageKey)).toEqual([
+      'go-1.png', 'go-2.png', 'go-3.png', 'go-1.png', 'go-2.png', NO_GO_KEY,
+    ]);
+  });
+
+  it('uses the go images found at runtime', () => {
+    setGoKeys(['otter-a.png', 'otter-b.png', 'otter-c.png', 'otter-d.png']);
+    expect(createPracticeSequence(1).map((s) => s.imageKey))
+      .toEqual(['otter-a.png', 'otter-b.png', 'otter-c.png', NO_GO_KEY]);
+  });
+
+  it('starts over after the last round', () => {
+    expect(createPracticeSequence(3)).toEqual(createPracticeSequence(1));
+  });
+
+  it('changes no game state', () => {
+    const before = [getCurrentSequenceLength(), getForceGoNext(), getLevel(), [...GO_KEYS]];
+    createPracticeSequence(2);
+    expect([getCurrentSequenceLength(), getForceGoNext(), getLevel(), [...GO_KEYS]])
+      .toEqual(before);
+    expect(getTrialsCompleted()).toBe(0);
+  });
+});
+
 describe('recordResponse()', () => {
   describe('go + Space pressed (correct)', () => {
     it('returns "correct"', () => {
@@ -614,6 +653,22 @@ describe('recordResponse()', () => {
 });
 
 // ── getCurrentIntervalMs ──────────────────────────────────────────────────────
+
+describe('getIntervalMs()', () => {
+  it('is 1500 ms at level 0 and shrinks by 12% per level', () => {
+    expect(getIntervalMs(0)).toBe(1500);
+    expect(getIntervalMs(1)).toBe(1320);
+    expect(getIntervalMs(2)).toBe(1162);
+  });
+
+  it('never goes below 150 ms', () => {
+    expect(getIntervalMs(100)).toBe(150);
+  });
+
+  it('matches getCurrentIntervalMs() at the current level', () => {
+    expect(getCurrentIntervalMs()).toBe(getIntervalMs(getLevel()));
+  });
+});
 
 describe('getCurrentIntervalMs()', () => {
   it('returns 1500 at level 0', () => {

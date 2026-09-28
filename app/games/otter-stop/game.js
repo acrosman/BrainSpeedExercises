@@ -78,6 +78,12 @@ const LEVEL_DROP = 2;
 const BASE_MAX_SEQUENCE_LENGTH = 5;
 
 /**
+ * Go images before the no-go image in each tutorial practice round: a short run, then the
+ * longest run at the first level.
+ */
+const PRACTICE_GO_COUNTS = [3, BASE_MAX_SEQUENCE_LENGTH];
+
+/**
  * Minimum number of go images (otters) in a sequence at any level.
  * A value of 0 means the fish may appear immediately with no preceding otters.
  */
@@ -279,6 +285,22 @@ export function isCorrectResponse(isNoGo, pressed) {
 }
 
 /**
+ * Get the stimuli for a tutorial practice round: a run of go images, cycling through the
+ * otters, then the no-go image. Rounds past the last start over. Changes no game state.
+ *
+ * @param {number} round - Practice round number, starting at 1.
+ * @returns {Array<{ imageKey: string, isNoGo: boolean }>}
+ */
+export function createPracticeSequence(round) {
+  const goCount = PRACTICE_GO_COUNTS[(round - 1) % PRACTICE_GO_COUNTS.length];
+  const goImages = Array.from({ length: goCount }, (_, i) => ({
+    imageKey: GO_KEYS[i % GO_KEYS.length],
+    isNoGo: false,
+  }));
+  return [...goImages, { imageKey: NO_GO_KEY, isNoGo: true }];
+}
+
+/**
  * Record the outcome of a completed trial and apply the adaptive staircase.
  *
  * Correct responses (score +1):
@@ -352,15 +374,28 @@ export function recordResponse(isNoGo, spacePressed) {
 // ── Difficulty ────────────────────────────────────────────────────────────────
 
 /**
- * Return the display interval in milliseconds for the current level.
+ * Return the display interval in milliseconds for a level.
  * Uses geometric decay: each level multiplies the base interval by
  * INTERVAL_DECAY_RATE, producing large speed jumps early and increasingly
  * smaller increments as the game gets faster. Floored at MIN_INTERVAL_MS.
  *
+ * @param {number} forLevel - Difficulty level (0 is the easiest).
+ * @returns {number} Display interval in milliseconds.
+ */
+export function getIntervalMs(forLevel) {
+  return Math.max(
+    Math.round(BASE_INTERVAL_MS * (INTERVAL_DECAY_RATE ** forLevel)),
+    MIN_INTERVAL_MS,
+  );
+}
+
+/**
+ * Return the display interval in milliseconds for the current level.
+ *
  * @returns {number} Display interval in milliseconds.
  */
 export function getCurrentIntervalMs() {
-  return Math.max(Math.round(BASE_INTERVAL_MS * (INTERVAL_DECAY_RATE ** level)), MIN_INTERVAL_MS);
+  return getIntervalMs(level);
 }
 
 // ── Getters ───────────────────────────────────────────────────────────────────

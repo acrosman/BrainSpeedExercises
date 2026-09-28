@@ -14,6 +14,7 @@ import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import { setPracticeControls, tutorial } from './tutorial/tutorial.js';
 
 /** Human-readable name returned as part of the plugin contract. */
 const name = 'Otter Stop!';
@@ -31,6 +32,9 @@ const IMAGE_BASE = './games/otter-stop/images/';
 const IMAGE_BASE_GO = `${IMAGE_BASE}go/`;
 
 // ── DOM references — populated by init() ─────────────────────────────────────
+
+/** @type {HTMLElement|null} */
+let _container = null;
 
 /** @type {HTMLElement|null} */
 let _instructionsEl = null;
@@ -58,6 +62,9 @@ let _endPanelEl = null;
 
 /** @type {HTMLButtonElement|null} */
 let _startBtn = null;
+
+/** @type {HTMLButtonElement|null} */
+let _replayTutorialBtn = null;
 
 /** @type {HTMLButtonElement|null} */
 let _stopBtn = null;
@@ -446,6 +453,8 @@ export function detachGlobalKeyListener() {
  * @param {HTMLElement} container - The element into which the HTML fragment was injected.
  */
 function init(container) {
+  _container = container;
+  setPracticeControls(PRACTICE_CONTROLS);
   if (!container) return;
 
   _instructionsEl = container.querySelector('#os-instructions');
@@ -457,6 +466,7 @@ function init(container) {
   _feedbackText = container.querySelector('#os-feedback-text');
   _endPanelEl = container.querySelector('#os-end-panel');
   _startBtn = container.querySelector('#os-start-btn');
+  _replayTutorialBtn = container.querySelector('#os-replay-tutorial-btn');
   _stopBtn = container.querySelector('#os-stop-btn');
   _playAgainBtn = container.querySelector('#os-play-again-btn');
   _returnBtn = container.querySelector('#os-return-btn');
@@ -484,7 +494,14 @@ function init(container) {
 
   if (_startBtn) {
     _startBtn.addEventListener('click', () => {
-      start();
+      void start();
+    });
+  }
+
+  // Replay always shows the tutorial, then starts a session.
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => {
+      void tutorial.replay(tutorialOptions());
     });
   }
 
@@ -511,9 +528,18 @@ function init(container) {
 }
 
 /**
- * Start the game. Shows the game area and begins the trial loop.
+ * Show the game area in place of the welcome and end panels.
  */
-function start() {
+function showGameArea() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+  if (_gameAreaEl) _gameAreaEl.hidden = false;
+}
+
+/**
+ * Start a session and its trial loop, without the tutorial check.
+ */
+function beginGameSession() {
   game.initGame();
   game.startGame();
 
@@ -523,23 +549,69 @@ function start() {
     }
   });
 
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_endPanelEl) _endPanelEl.hidden = true;
-  if (_gameAreaEl) _gameAreaEl.hidden = false;
-
+  showGameArea();
   updateStats();
   playTrials(SESSION_TRIALS);
 }
 
 /**
+ * Trial loop controls the tutorial uses to play practice rounds with the real display,
+ * feedback, and Space and click handling.
+ *
+ * @type {import('./tutorial/tutorial.js').PracticeRoundControls}
+ */
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea,
+  playTrials,
+  stopTrials,
+  getStimulusArea: () => _stimulusEl,
+});
+
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, onComplete: beginGameSession };
+}
+
+/**
+ * Start a session, showing the tutorial first if the player has not seen it.
+ *
+ * @returns {Promise<void>}
+ */
+function start() {
+  return tutorial.startIfNeeded(tutorialOptions());
+}
+
+/**
  * Stop the game, show the end panel, and persist progress via the score service.
  *
+ * With no session running (on the welcome screen, during the tutorial, or when the app quits
+ * after a session ended) there is nothing to save and the screen is left alone, except that
+ * leaving a tutorial this way cancels it and returns to the welcome screen.
+ *
  * @returns {{ score: number, noGoHits: number, misses: number,
- *             trialsCompleted: number, level: number, duration: number,
- *             bestScore: number }}
+ *             trialsCompleted: number, level: number, maxSequenceLength: number,
+ *             duration: number, bestScore: number }}
  */
 function stop() {
   stopTrials();
+
+  if (!game.isRunning()) {
+    if (tutorial.isActive()) reset();
+    return {
+      score: game.getScore(),
+      noGoHits: game.getNoGoHits(),
+      misses: game.getMisses(),
+      trialsCompleted: game.getTrialsCompleted(),
+      level: game.getLevel(),
+      maxSequenceLength: game.getMaxSequenceLength(),
+      duration: 0,
+      bestScore: game.getSessionBestScore(),
+    };
+  }
 
   const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
@@ -568,6 +640,7 @@ function stop() {
  * Returns to the instructions screen.
  */
 function reset() {
+  tutorial.cancel();
   stopTrials();
   game.initGame();
 

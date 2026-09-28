@@ -47,6 +47,14 @@ click on the stimulus (`respond`) ends the trial early. `endTrial` records the r
 `ISI_MS`. Only one of these timeouts is pending at a time, so they share `_timer`. The Space
 listener is attached only while a run is playing.
 
+## Tutorial
+
+See [tutorial/CLAUDE.md](tutorial/CLAUDE.md). Practice rounds use `isCorrectResponse`,
+`createPracticeSequence(round)`, and `getIntervalMs(level)`, none of which change game state.
+
+`stop()` with no session running returns the idle result without saving. During the tutorial
+it cancels the tutorial and returns to the welcome panel.
+
 ## Saved fields
 
 `score`, `sessionDurationMs`, and `level`. `lowestDisplayTime` is the current interval.

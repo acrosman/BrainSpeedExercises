@@ -16,7 +16,25 @@ jest.unstable_mockModule('../../../components/timerService.js', () => ({
 }));
 await import('../../../components/timerService.js');
 
-// ── 1. Mock game.js ───────────────────────────────────────────────────────────
+// ── 1. Mock tutorialService (the real tutorial.js runs on top of it) ──────────
+
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Otter Stop', content: '<p>Welcome</p>' },
+  ]),
+  // Default replay: the player finishes the tutorial at once.
+  runGuidedTutorial: jest.fn((options) => {
+    options.onComplete();
+    return { cancel: jest.fn(), isActive: () => false };
+  }),
+  // Default first start: the tutorial was already seen.
+  runGuidedTutorialIfNeeded: jest.fn(async (options) => {
+    options.onComplete();
+    return null;
+  }),
+}));
+
+// ── 1b. Mock game.js ───────────────────────────────────────────────────────────
 
 jest.unstable_mockModule('../game.js', () => ({
   GAME_ID: 'otter-stop',
@@ -32,7 +50,14 @@ jest.unstable_mockModule('../game.js', () => ({
     bestScore: 5,
   })),
   pickNextImage: jest.fn(() => ({ imageKey: 'go-1.png', isNoGo: false })),
+  isCorrectResponse: jest.fn((isNoGo, pressed) => (isNoGo ? !pressed : pressed)),
+  createPracticeSequence: jest.fn(() => [
+    { imageKey: 'go-1.png', isNoGo: false },
+    { imageKey: 'go-2.png', isNoGo: false },
+    { imageKey: 'no-go', isNoGo: true },
+  ]),
   recordResponse: jest.fn(() => 'correct'),
+  getIntervalMs: jest.fn(() => 1500),
   getCurrentIntervalMs: jest.fn(() => 1500),
   getScore: jest.fn(() => 5),
   getNoGoHits: jest.fn(() => 1),
@@ -42,6 +67,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getConsecutiveCorrect: jest.fn(() => 0),
   getConsecutiveWrong: jest.fn(() => 0),
   getSessionBestScore: jest.fn(() => 5),
+  getMaxSequenceLength: jest.fn(() => 5),
   isRunning: jest.fn(() => true),
   setGoKeys: jest.fn(),
   getSpeedHistory: jest.fn(() => []),
@@ -80,6 +106,9 @@ globalThis.AudioContext = jest.fn(() => mockAudioCtx);
 // ── 3. Dynamic imports ────────────────────────────────────────────────────────
 
 const gameMock = await import('../game.js');
+const tutorialServiceMock = await import('../../../components/tutorialService.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT, GUIDED_NO_GO_MS } = await import('../tutorial/tutorial.js');
 const indexModule = await import('../index.js');
 const plugin = indexModule.default;
 const {
@@ -119,6 +148,7 @@ function buildContainer() {
     </div>
     <div id="os-end-panel" hidden></div>
     <button id="os-start-btn"></button>
+    <button id="os-replay-tutorial-btn"></button>
     <button id="os-stop-btn"></button>
     <button id="os-play-again-btn"></button>
     <button id="os-return-btn"></button>
@@ -145,9 +175,18 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Cancel any tutorial or run left going so the next test starts clean.
+  plugin.reset();
   jest.useRealTimers();
   document.body.innerHTML = '';
 });
+
+/** Let pending promise callbacks (such as a tutorial launch) run. */
+async function flushMicrotasks() {
+  for (let i = 0; i < 5; i += 1) {
+    await Promise.resolve();
+  }
+}
 
 // ── Null DOM refs (before any init call) ─────────────────────────────────────
 // These tests run first, when all module-level DOM refs are still null.
@@ -223,26 +262,26 @@ describe('init()', () => {
 // ── start ─────────────────────────────────────────────────────────────────────
 
 describe('start()', () => {
-  it('calls game.initGame() and game.startGame()', () => {
+  it('calls game.initGame() and game.startGame()', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(gameMock.initGame).toHaveBeenCalled();
     expect(gameMock.startGame).toHaveBeenCalled();
   });
 
-  it('shows the game area', () => {
+  it('shows the game area', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     const gameArea = container.querySelector('#os-game-area');
     expect(gameArea.hidden).toBe(false);
   });
 
-  it('hides the instructions panel', () => {
+  it('hides the instructions panel', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     const instructions = container.querySelector('#os-instructions');
     expect(instructions.hidden).toBe(true);
   });
@@ -251,28 +290,28 @@ describe('start()', () => {
 // ── stop ──────────────────────────────────────────────────────────────────────
 
 describe('stop()', () => {
-  it('calls game.stopGame() and returns its result', () => {
+  it('calls game.stopGame() and returns its result', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     const result = plugin.stop();
     expect(gameMock.stopGame).toHaveBeenCalled();
     expect(result).toMatchObject({ score: 5, noGoHits: 1, misses: 2 });
   });
 
-  it('hides the game area', () => {
+  it('hides the game area', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.stop();
     const gameArea = container.querySelector('#os-game-area');
     expect(gameArea.hidden).toBe(true);
   });
 
-  it('shows the end panel', () => {
+  it('shows the end panel', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.stop();
     const endPanel = container.querySelector('#os-end-panel');
     expect(endPanel.hidden).toBe(false);
@@ -297,19 +336,19 @@ describe('reset()', () => {
     expect(gameMock.initGame).toHaveBeenCalled();
   });
 
-  it('shows the instructions panel', () => {
+  it('shows the instructions panel', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.reset();
     const instructions = container.querySelector('#os-instructions');
     expect(instructions.hidden).toBe(false);
   });
 
-  it('hides the game area', () => {
+  it('hides the game area', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.reset();
     const gameArea = container.querySelector('#os-game-area');
     expect(gameArea.hidden).toBe(true);
@@ -562,32 +601,32 @@ describe('global Space key listener', () => {
     expect(pressSpace().defaultPrevented).toBe(false);
   });
 
-  it('is attached by start() and handles Space during a session', () => {
+  it('is attached by start() and handles Space during a session', async () => {
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     gameMock.isRunning.mockReturnValue(true);
     expect(pressSpace().defaultPrevented).toBe(true);
   });
 
-  it('is detached by stop()', () => {
+  it('is detached by stop()', async () => {
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     plugin.stop();
     gameMock.isRunning.mockReturnValue(true);
     expect(pressSpace().defaultPrevented).toBe(false);
   });
 
-  it('is detached by reset()', () => {
+  it('is detached by reset()', async () => {
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     plugin.reset();
     gameMock.isRunning.mockReturnValue(true);
     expect(pressSpace().defaultPrevented).toBe(false);
   });
 
-  it('is detached when init() runs again after a session', () => {
+  it('is detached when init() runs again after a session', async () => {
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     plugin.init(buildContainer());
     gameMock.isRunning.mockReturnValue(true);
     expect(pressSpace().defaultPrevented).toBe(false);
@@ -625,11 +664,11 @@ const INTERVAL_MS = 1500;
  * @param {{ imageKey: string, isNoGo: boolean }} [stimulus] - The game's first pick.
  * @returns {HTMLElement} The container.
  */
-function startFirstTrial(stimulus = { imageKey: 'go-1.png', isNoGo: false }) {
+async function startFirstTrial(stimulus = { imageKey: 'go-1.png', isNoGo: false }) {
   const container = buildContainer();
   plugin.init(container);
   gameMock.pickNextImage.mockReturnValueOnce(stimulus);
-  plugin.start();
+  await plugin.start();
   jest.advanceTimersByTime(ISI_MS);
   return container;
 }
@@ -642,8 +681,8 @@ function spaceEvent() {
 describe('handleKeyDown()', () => {
   afterEach(() => stopTrials());
 
-  it('ignores non-Space keys', () => {
-    startFirstTrial();
+  it('ignores non-Space keys', async () => {
+    await startFirstTrial();
     const event = new KeyboardEvent('keydown', { code: 'ArrowLeft', cancelable: true });
     handleKeyDown(event);
     expect(event.defaultPrevented).toBe(false);
@@ -658,17 +697,17 @@ describe('handleKeyDown()', () => {
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
   });
 
-  it('prevents the default between trials without recording anything', () => {
+  it('prevents the default between trials without recording anything', async () => {
     plugin.init(buildContainer());
-    plugin.start();
+    await plugin.start();
     const event = spaceEvent();
     handleKeyDown(event);
     expect(event.defaultPrevented).toBe(true);
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
   });
 
-  it('responds to the stimulus on screen', () => {
-    startFirstTrial();
+  it('responds to the stimulus on screen', async () => {
+    await startFirstTrial();
     const event = spaceEvent();
     handleKeyDown(event);
     expect(event.defaultPrevented).toBe(true);
@@ -679,11 +718,11 @@ describe('handleKeyDown()', () => {
 describe('session trials', () => {
   afterEach(() => stopTrials());
 
-  it('shows the game\'s pick after the gap between trials', () => {
+  it('shows the game\'s pick after the gap between trials', async () => {
     const container = buildContainer();
     plugin.init(container);
     gameMock.pickNextImage.mockReturnValueOnce({ imageKey: 'go-2.png', isNoGo: false });
-    plugin.start();
+    await plugin.start();
 
     jest.advanceTimersByTime(ISI_MS - 1);
     expect(gameMock.pickNextImage).not.toHaveBeenCalled();
@@ -693,8 +732,8 @@ describe('session trials', () => {
     expect(img.classList.contains('os-hidden')).toBe(false);
   });
 
-  it('a press ends the trial early, records the response time, and moves straight on', () => {
-    const container = startFirstTrial();
+  it('a press ends the trial early, records the response time, and moves straight on', async () => {
+    const container = await startFirstTrial();
     jest.advanceTimersByTime(300);
     respond();
 
@@ -708,24 +747,24 @@ describe('session trials', () => {
     expect(gameMock.recordResponse).toHaveBeenCalledTimes(1);
   });
 
-  it('a click on the stimulus area responds', () => {
-    const container = startFirstTrial();
+  it('a click on the stimulus area responds', async () => {
+    const container = await startFirstTrial();
     container.querySelector('#os-stimulus').click();
     expect(gameMock.recordResponse).toHaveBeenCalledWith(false, true);
   });
 
-  it('ignores presses between trials', () => {
+  it('ignores presses between trials', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     respond();
     container.querySelector('#os-stimulus').click();
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
   });
 
-  it('a go image that times out is a miss, followed by feedback and then the next trial', () => {
+  it('an otter that times out is a miss, followed by feedback and the next trial', async () => {
     gameMock.recordResponse.mockReturnValueOnce('wrong');
-    const container = startFirstTrial();
+    const container = await startFirstTrial();
 
     jest.advanceTimersByTime(INTERVAL_MS - 1);
     expect(gameMock.recordResponse).not.toHaveBeenCalled();
@@ -742,9 +781,9 @@ describe('session trials', () => {
     expect(gameMock.pickNextImage).toHaveBeenCalledTimes(2);
   });
 
-  it('a no-go trial shows feedback and refreshes the average response time', () => {
+  it('a no-go trial shows feedback and refreshes the average response time', async () => {
     gameMock.getAverageResponseMs.mockReturnValue(320);
-    const container = startFirstTrial({ imageKey: 'no-go', isNoGo: true });
+    const container = await startFirstTrial({ imageKey: 'no-go', isNoGo: true });
     jest.advanceTimersByTime(INTERVAL_MS);
 
     expect(gameMock.recordResponse).toHaveBeenCalledWith(true, false);
@@ -752,17 +791,17 @@ describe('session trials', () => {
     expect(container.querySelector('#os-avg-response').textContent).toBe('320');
   });
 
-  it('shows "--" for the average after a no-go trial when there is no go response yet', () => {
+  it('shows "--" for the average after a no-go trial with no go response yet', async () => {
     gameMock.getAverageResponseMs.mockReturnValue(null);
-    const container = startFirstTrial({ imageKey: 'no-go', isNoGo: true });
+    const container = await startFirstTrial({ imageKey: 'no-go', isNoGo: true });
     container.querySelector('#os-avg-response').textContent = '999';
     jest.advanceTimersByTime(INTERVAL_MS);
     expect(container.querySelector('#os-avg-response').textContent).toBe('--');
   });
 
-  it('pressing on the no-go image records a no-go hit without a response time', () => {
+  it('pressing on the no-go image records a no-go hit without a response time', async () => {
     gameMock.recordResponse.mockReturnValueOnce('wrong');
-    const container = startFirstTrial({ imageKey: 'no-go', isNoGo: true });
+    const container = await startFirstTrial({ imageKey: 'no-go', isNoGo: true });
     respond();
 
     expect(gameMock.recordResponse).toHaveBeenCalledWith(true, true);
@@ -770,9 +809,9 @@ describe('session trials', () => {
     expect(container.querySelector('#os-feedback-text').textContent).toBe('Oops \u2014 too fast!');
   });
 
-  it('a go trial updates the stats but not the average response time', () => {
+  it('a go trial updates the stats but not the average response time', async () => {
     gameMock.getAverageResponseMs.mockReturnValue(250);
-    const container = startFirstTrial();
+    const container = await startFirstTrial();
     gameMock.getScore.mockReturnValue(7);
     respond();
 
@@ -839,8 +878,8 @@ describe('playTrials()', () => {
 });
 
 describe('stopTrials()', () => {
-  it('cancels the pending trial and clears the stimulus, feedback, and Space listener', () => {
-    const container = startFirstTrial();
+  it('cancels the pending trial and clears the stimulus, feedback, and listener', async () => {
+    const container = await startFirstTrial();
     showFeedback('correct', true);
     stopTrials();
 
@@ -876,7 +915,7 @@ describe('stop() — window.api IPC call', () => {
 
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.stop();
 
     // Flush all pending async microtasks/timers
@@ -927,7 +966,7 @@ describe('stop() — window.api IPC call', () => {
     // Mock returns score:5 (higher than stored 2)
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.stop();
     await Promise.resolve();
     await Promise.resolve();
@@ -956,7 +995,7 @@ describe('stop() — window.api IPC call', () => {
     window.api = { invoke: invokeMock };
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     plugin.stop();
     await Promise.resolve();
     await Promise.resolve();
@@ -970,7 +1009,7 @@ describe('stop() — window.api IPC call', () => {
 
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
 
     expect(() => plugin.stop()).not.toThrow();
 
@@ -981,10 +1020,10 @@ describe('stop() — window.api IPC call', () => {
     delete window.api;
   });
 
-  it('does not throw when window.api is unavailable', () => {
+  it('does not throw when window.api is unavailable', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(() => plugin.stop()).not.toThrow();
   });
 });
@@ -1037,27 +1076,28 @@ describe('loadGoImages()', () => {
 });
 
 describe('button wiring', () => {
-  it('start button calls start()', () => {
+  it('start button calls start()', async () => {
     const container = buildContainer();
     plugin.init(container);
     const btn = container.querySelector('#os-start-btn');
     btn.click();
+    await flushMicrotasks();
     expect(gameMock.startGame).toHaveBeenCalled();
   });
 
-  it('stop button calls stop()', () => {
+  it('stop button calls stop()', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     const btn = container.querySelector('#os-stop-btn');
     btn.click();
     expect(gameMock.stopGame).toHaveBeenCalled();
   });
 
-  it('play-again button returns to the instructions screen (reset only)', () => {
+  it('play-again button returns to the instructions screen (reset only)', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     gameMock.initGame.mockClear();
     gameMock.startGame.mockClear();
     const btn = container.querySelector('#os-play-again-btn');
@@ -1089,7 +1129,7 @@ describe('dailyTime accumulation', () => {
     timerMod = await import('../../../components/timerService.js');
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
   });
 
   afterEach(() => {
@@ -1152,6 +1192,287 @@ describe('dailyTime accumulation', () => {
 
     // 30000 (existing) + 60000 (new) = 90000
     expect(savedPayloads[0].data.games['otter-stop'].dailyTime['2024-01-15']).toBe(90000);
+  });
+});
+
+// ── Tutorial ──────────────────────────────────────────────────────────────────
+
+/**
+ * Make the next start() open a guided tutorial that stays in progress until the test
+ * calls finish(). Like the real runner, cancel() aborts the practice signal and ends the run.
+ * @returns {Promise<{ options: object, run: object, controller: AbortController,
+ *   finish: () => void }>}
+ */
+async function startPendingTutorial() {
+  let options = null;
+  let active = true;
+  const controller = new AbortController();
+  const finish = () => { active = false; };
+  const run = {
+    cancel: jest.fn(() => {
+      controller.abort();
+      finish();
+    }),
+    isActive: jest.fn(() => active),
+  };
+  tutorialServiceMock.runGuidedTutorialIfNeeded.mockImplementationOnce(async (opts) => {
+    options = opts;
+    return run;
+  });
+  await plugin.start();
+  return {
+    options, run, controller, finish,
+  };
+}
+
+describe('tutorial', () => {
+  let container;
+
+  beforeEach(() => {
+    container = buildContainer();
+    plugin.init(container);
+  });
+
+  it('start runs the guided tutorial if needed with the Otter Stop steps', async () => {
+    await plugin.start();
+    expect(tutorialServiceMock.loadTutorialSteps).toHaveBeenCalled();
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith({
+      gameId: 'otter-stop',
+      container,
+      introSteps: expect.arrayContaining([
+        expect.objectContaining({ title: 'Welcome to Otter Stop' }),
+      ]),
+      playPracticeRound: expect.any(Function),
+      onComplete: expect.any(Function),
+    });
+  });
+
+  it('does not start the game until the tutorial completes', async () => {
+    const { options } = await startPendingTutorial();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#os-game-area').hidden).toBe(true);
+
+    options.onComplete();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#os-game-area').hidden).toBe(false);
+  });
+
+  it('replay tutorial button runs the guided tutorial and then starts the game', async () => {
+    container.querySelector('#os-replay-tutorial-btn').click();
+    await flushMicrotasks();
+    expect(tutorialServiceMock.runGuidedTutorial).toHaveBeenCalledWith(expect.objectContaining({
+      gameId: 'otter-stop',
+      container,
+      playPracticeRound: expect.any(Function),
+    }));
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(gameMock.startGame).toHaveBeenCalled();
+  });
+
+  it('stop() with no session returns the idle result and saves nothing', () => {
+    const invoke = jest.fn(() => Promise.resolve({}));
+    window.api = { invoke };
+    gameMock.isRunning.mockReturnValue(false);
+    gameMock.getScore.mockReturnValue(4);
+    gameMock.getNoGoHits.mockReturnValue(1);
+    gameMock.getMisses.mockReturnValue(2);
+    gameMock.getTrialsCompleted.mockReturnValue(9);
+    gameMock.getLevel.mockReturnValue(3);
+    gameMock.getMaxSequenceLength.mockReturnValue(8);
+    gameMock.getSessionBestScore.mockReturnValue(6);
+
+    const result = plugin.stop();
+
+    expect(result).toEqual({
+      score: 4,
+      noGoHits: 1,
+      misses: 2,
+      trialsCompleted: 9,
+      level: 3,
+      maxSequenceLength: 8,
+      duration: 0,
+      bestScore: 6,
+    });
+    expect(gameMock.stopGame).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
+    expect(container.querySelector('#os-end-panel').hidden).toBe(true);
+    delete window.api;
+  });
+
+  it('stop() with no session ignores a tutorial that already finished', async () => {
+    const { finish } = await startPendingTutorial();
+    finish();
+    gameMock.isRunning.mockReturnValue(false);
+    container.querySelector('#os-end-panel').hidden = false;
+    gameMock.initGame.mockClear();
+
+    plugin.stop();
+    expect(gameMock.initGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#os-end-panel').hidden).toBe(false);
+  });
+});
+
+describe('practice round', () => {
+  let container;
+  let pending;
+  let timerMock;
+
+  beforeEach(async () => {
+    // jsdom does not implement scrollIntoView.
+    Element.prototype.scrollIntoView = jest.fn();
+    timerMock = await import('../../../components/timerService.js');
+    container = buildContainer();
+    plugin.init(container);
+    gameMock.isRunning.mockReturnValue(false);
+    pending = await startPendingTutorial();
+  });
+
+  afterEach(() => {
+    delete Element.prototype.scrollIntoView;
+  });
+
+  /**
+   * Start a practice round the way the tutorial runner does.
+   * @param {{ guided?: boolean, round?: number }} [options]
+   * @returns {{ context: object, done: Promise<object> }}
+   */
+  function playRound({ guided = true, round = 1 } = {}) {
+    const context = {
+      round,
+      attempt: 1,
+      maxRounds: 2,
+      guided,
+      signal: pending.controller.signal,
+      setInstructions: jest.fn(),
+      showMarker: jest.fn(),
+      hideMarker: jest.fn(),
+    };
+    const done = pending.options.playPracticeRound(context);
+    return { context, done };
+  }
+
+  /** @returns {string} The file shown in the stimulus area, or '' while it is hidden. */
+  function shownImage() {
+    const img = container.querySelector('#os-stimulus-img');
+    return img.classList.contains('os-hidden') ? '' : img.src.split('/').pop();
+  }
+
+  /** @returns {KeyboardEvent} The Space press, after dispatching it on document. */
+  function pressSpace() {
+    const event = spaceEvent();
+    document.dispatchEvent(event);
+    return event;
+  }
+
+  it('a guided round waits for each otter, then holds the fish, and never scores', async () => {
+    const { context, done } = playRound();
+    expect(container.querySelector('#os-game-area').hidden).toBe(false);
+    expect(container.querySelector('#os-instructions').hidden).toBe(true);
+    expect(container.querySelector('#os-stimulus').scrollIntoView)
+      .toHaveBeenCalledWith({ block: 'nearest' });
+
+    jest.advanceTimersByTime(ISI_MS);
+    expect(shownImage()).toBe('go-1.png');
+    expect(context.showMarker).toHaveBeenCalledWith({
+      anchor: container.querySelector('#os-stimulus'),
+      shape: 'box',
+    });
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedGo);
+
+    // The otter waits for the player.
+    jest.advanceTimersByTime(10000);
+    expect(shownImage()).toBe('go-1.png');
+
+    expect(pressSpace().defaultPrevented).toBe(true);
+    jest.advanceTimersByTime(ISI_MS);
+    expect(shownImage()).toBe('go-2.png');
+    container.querySelector('#os-stimulus').click();
+    jest.advanceTimersByTime(ISI_MS);
+
+    expect(shownImage()).toBe('no-go.png');
+    expect(context.hideMarker).toHaveBeenCalled();
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedNoGo);
+    jest.advanceTimersByTime(GUIDED_NO_GO_MS - 1);
+    expect(shownImage()).toBe('no-go.png');
+    jest.advanceTimersByTime(1);
+
+    await expect(done).resolves.toEqual({ correct: true });
+    expect(container.querySelector('#os-feedback-text').textContent).toBe('Great stop!');
+    expect(gameMock.recordResponse).not.toHaveBeenCalled();
+    expect(gameMock.recordGoResponseTime).not.toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(timerMock.startTimer).not.toHaveBeenCalled();
+
+    // After the feedback the run ends and Space is left alone.
+    jest.advanceTimersByTime(FEEDBACK_MS + ISI_MS);
+    expect(pressSpace().defaultPrevented).toBe(false);
+  });
+
+  it('a round at game speed counts a missed otter and asks for a retry', async () => {
+    const { context, done } = playRound({ guided: false, round: 2 });
+    expect(gameMock.createPracticeSequence).toHaveBeenCalledWith(2);
+    expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
+
+    jest.advanceTimersByTime(ISI_MS);
+    pressSpace();
+    jest.advanceTimersByTime(ISI_MS);
+    // Let the second otter go by.
+    jest.advanceTimersByTime(INTERVAL_MS);
+    expect(container.querySelector('#os-feedback-text').textContent).toBe('Too slow!');
+    jest.advanceTimersByTime(FEEDBACK_MS + ISI_MS);
+    expect(shownImage()).toBe('no-go.png');
+    jest.advanceTimersByTime(INTERVAL_MS);
+
+    await expect(done).resolves.toEqual({
+      correct: false,
+      feedback: PRACTICE_TEXT.mistakes(1, 0),
+    });
+    expect(context.showMarker).not.toHaveBeenCalled();
+    expect(gameMock.getIntervalMs).toHaveBeenCalledWith(0);
+  });
+
+  it('pressing for the fish asks for a retry', async () => {
+    const { done } = playRound({ guided: false });
+    jest.advanceTimersByTime(ISI_MS);
+    pressSpace();
+    jest.advanceTimersByTime(ISI_MS);
+    pressSpace();
+    jest.advanceTimersByTime(ISI_MS);
+    pressSpace();
+
+    await expect(done).resolves.toEqual({
+      correct: false,
+      feedback: PRACTICE_TEXT.mistakes(0, 1),
+    });
+    expect(container.querySelector('#os-feedback-text').textContent).toBe('Oops \u2014 too fast!');
+  });
+
+  it('ending the tutorial mid-round stops the run and the Space listener', () => {
+    playRound();
+    jest.advanceTimersByTime(ISI_MS);
+
+    pending.controller.abort();
+    expect(shownImage()).toBe('');
+    expect(pressSpace().defaultPrevented).toBe(false);
+    jest.advanceTimersByTime(10000);
+    expect(shownImage()).toBe('');
+  });
+
+  it('End Game during practice cancels the tutorial and shows the welcome screen', () => {
+    const invoke = jest.fn(() => Promise.resolve({}));
+    window.api = { invoke };
+    playRound();
+    jest.advanceTimersByTime(ISI_MS);
+
+    container.querySelector('#os-stop-btn').click();
+
+    expect(pending.run.cancel).toHaveBeenCalled();
+    expect(container.querySelector('#os-instructions').hidden).toBe(false);
+    expect(container.querySelector('#os-game-area').hidden).toBe(true);
+    expect(container.querySelector('#os-end-panel').hidden).toBe(true);
+    expect(gameMock.stopGame).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
+    delete window.api;
   });
 });
 
