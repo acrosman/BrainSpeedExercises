@@ -337,6 +337,21 @@ export function createRoundCircles(lvl, areaWidth, areaHeight) {
 }
 
 /**
+ * Build a tutorial practice round at the easiest level without changing any game state.
+ *
+ * @param {number} areaWidth - Arena width in pixels.
+ * @param {number} areaHeight - Arena height in pixels.
+ * @returns {{ circles: Array<object>, trackingDurationMs: number }} The round's circles and
+ *   how long they move.
+ */
+export function createPracticeRound(areaWidth, areaHeight) {
+  return {
+    circles: createRoundCircles(MIN_LEVEL, areaWidth, areaHeight),
+    trackingDurationMs: getLevelConfig(MIN_LEVEL).trackingDurationMs,
+  };
+}
+
+/**
  * Advance circles by one animation frame: move them, bounce them off the walls, then
  * resolve collisions between them.
  *

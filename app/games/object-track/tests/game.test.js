@@ -29,6 +29,7 @@ import {
   evaluateResponse,
   recordRoundResult,
   createRoundCircles,
+  createPracticeRound,
   stepCircles,
   initGame,
   startGame,
@@ -422,6 +423,28 @@ describe('createRoundCircles', () => {
     expect(getLevel()).toBe(0);
     expect(getRoundsPlayed()).toBe(0);
     expect(getSpeedHistory()).toEqual([]);
+  });
+});
+
+// ── createPracticeRound ───────────────────────────────────────────────────────
+
+describe('createPracticeRound', () => {
+  it('builds a round at the easiest level', () => {
+    const { circles, trackingDurationMs } = createPracticeRound(600, 400);
+    const config = getLevelConfig(MIN_LEVEL);
+    expect(circles).toHaveLength(config.numCircles);
+    expect(circles.filter((c) => c.isTarget)).toHaveLength(config.numTargets);
+    expect(trackingDurationMs).toBe(config.trackingDurationMs);
+  });
+
+  it('ignores the current level and leaves game state alone', () => {
+    startGame();
+    for (let i = 0; i < CORRECT_TO_ADVANCE * 4; i += 1) recordRoundResult(true);
+    const before = { level: getLevel(), score: getScore(), rounds: getRoundsPlayed() };
+    const { circles } = createPracticeRound(600, 400);
+    expect(before.level).toBe(4);
+    expect(circles).toHaveLength(getLevelConfig(MIN_LEVEL).numCircles);
+    expect({ level: getLevel(), score: getScore(), rounds: getRoundsPlayed() }).toEqual(before);
   });
 });
 

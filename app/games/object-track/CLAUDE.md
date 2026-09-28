@@ -55,6 +55,11 @@ Arena backgrounds come from `images/bg/`, which is read at init through `games:l
 `ARENA_BACKGROUNDS`. One is picked at random for each round. To add a background, drop a
 PNG/JPEG into that folder; no code change is needed. Circle colors come from `CIRCLE_PALETTES`.
 
+## Tutorial
+
+See [tutorial/CLAUDE.md](tutorial/CLAUDE.md). `game.createPracticeRound(width, height)` returns
+`{ circles, trackingDurationMs }` for a level 0 round without changing state.
+
 ## Saved fields
 
 `score` (rounds correct), `sessionDurationMs`, and `level`.

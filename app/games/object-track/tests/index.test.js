@@ -77,6 +77,13 @@ jest.unstable_mockModule('../game.js', () => ({
   ]),
   // Each frame moves every circle 5 px to the right.
   stepCircles: jest.fn((cs) => cs.map((c) => ({ ...c, x: c.x + 5 }))),
+  // Practice circles: 1, 3, and 5 are targets, so they differ from the session round.
+  createPracticeRound: jest.fn(() => ({
+    circles: [0, 1, 2, 3, 4, 5].map((id) => ({
+      id, x: 50 + id * 80, y: 100, vx: 0, vy: 0, radius: 30, isTarget: id % 2 === 1,
+    })),
+    trackingDurationMs: 5000,
+  })),
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({ score: 5, level: 2, roundsPlayed: 10, duration: 8000 })),
@@ -89,12 +96,33 @@ jest.unstable_mockModule('../game.js', () => ({
   getSpeedHistory: jest.fn(() => []),
 }));
 
+// ── 2b. Mock tutorialService ──────────────────────────────────────────────────
+
+jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
+  loadTutorialSteps: jest.fn(async () => [
+    { title: 'Welcome to Object Track', content: '<p>Welcome</p>' },
+  ]),
+  // Default replay: the player finishes the tutorial at once.
+  runGuidedTutorial: jest.fn((options) => {
+    options.onComplete();
+    return { cancel: jest.fn(), isActive: () => false };
+  }),
+  // Default first start: the tutorial was already seen.
+  runGuidedTutorialIfNeeded: jest.fn(async (options) => {
+    options.onComplete();
+    return null;
+  }),
+}));
+
 // ── 3. Dynamic imports ────────────────────────────────────────────────────────
 
 const gameMock = await import('../game.js');
 const scoreServiceMock = await import('../../../components/scoreService.js');
 const timerServiceMock = await import('../../../components/timerService.js');
+const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const indexModule = await import('../index.js');
+// The real tutorial module runs, on top of the mocked tutorialService.
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 const plugin = indexModule.default;
 const {
   clearAllTimers,
@@ -117,6 +145,7 @@ const {
   endMarkingPhase,
   stopRound,
   getArenaBounds,
+  getCircleEl,
   MARKING_DURATION_MS,
   FEEDBACK_DURATION_MS,
   ARENA_BACKGROUNDS,
@@ -128,7 +157,14 @@ const {
 global.requestAnimationFrame = jest.fn(() => 1);
 global.cancelAnimationFrame = jest.fn();
 
-// ── 5. DOM helper ─────────────────────────────────────────────────────────────
+// ── 5. DOM helpers ────────────────────────────────────────────────────────────
+
+/** Let pending promise callbacks (such as a tutorial launch) run. */
+async function flushMicrotasks() {
+  for (let i = 0; i < 5; i += 1) {
+    await Promise.resolve();
+  }
+}
 
 /**
  * Build a minimal DOM container matching interface.html structure.
@@ -150,6 +186,7 @@ function buildContainer() {
     <div id="mot-feedback"></div>
     <button id="mot-stop"></button>
     <button id="mot-start"></button>
+    <button id="mot-replay-tutorial"></button>
     <button id="mot-play-again"></button>
     <button id="mot-return"></button>
     <dd id="mot-final-score">0</dd>
@@ -229,36 +266,37 @@ describe('init()', () => {
     expect(() => plugin.init(null)).not.toThrow();
   });
 
-  it('wires Start button click to start()', () => {
+  it('wires Start button click to start()', async () => {
     const container = buildContainer();
     plugin.init(container);
     const startBtn = container.querySelector('#mot-start');
     startBtn.click();
+    await flushMicrotasks();
     expect(gameMock.startGame).toHaveBeenCalled();
   });
 });
 
 describe('start()', () => {
-  it('calls game.startGame and timerService.startTimer', () => {
+  it('calls game.startGame and timerService.startTimer', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(timerServiceMock.startTimer).toHaveBeenCalled();
   });
 
-  it('shows play area and hides instructions', () => {
+  it('shows play area and hides instructions', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(container.querySelector('#mot-instructions').hidden).toBe(true);
     expect(container.querySelector('#mot-play-area').hidden).toBe(false);
   });
 
-  it('creates the first round at the current level (via beginRound)', () => {
+  it('creates the first round at the current level (via beginRound)', async () => {
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(gameMock.createRoundCircles).toHaveBeenCalledWith(2, 600, 400);
   });
 });
@@ -304,9 +342,12 @@ describe('stop() when NOT running', () => {
     const container = buildContainer();
     plugin.init(container);
     const result = await plugin.stop();
-    // stopGame should NOT have been called
+    expect(result).toEqual({
+      score: 5, level: 2, roundsPlayed: 10, duration: 0,
+    });
     expect(gameMock.stopGame).not.toHaveBeenCalled();
-    expect(result.score).toBe(5); // from getScore mock
+    expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+    expect(container.querySelector('#mot-end-panel').hidden).toBe(true);
   });
 });
 
@@ -1000,13 +1041,13 @@ describe('returnToMainMenu via Return to Menu button', () => {
 // ── Extra coverage: timerService callback in start() ─────────────────────────
 
 describe('start() — session timer callback', () => {
-  it('updates session timer element when timerService fires the callback', () => {
+  it('updates session timer element when timerService fires the callback', async () => {
     // Make startTimer immediately invoke its callback with a duration value.
     timerServiceMock.startTimer.mockImplementationOnce((cb) => cb(5000));
     timerServiceMock.formatDuration.mockReturnValue('01:23');
     const container = buildContainer();
     plugin.init(container);
-    plugin.start();
+    await plugin.start();
     expect(container.querySelector('#mot-session-timer').textContent).toBe('01:23');
   });
 });
@@ -1022,15 +1063,270 @@ describe('button wiring', () => {
     expect(gameMock.stopGame).toHaveBeenCalled();
   });
 
-  it('play-again button calls reset() then start()', () => {
+  it('play-again button calls reset() then start()', async () => {
     const container = buildContainer();
     plugin.init(container);
     const btn = container.querySelector('#mot-play-again');
     btn.click();
+    await flushMicrotasks();
     // reset calls initGame, start calls startGame
     expect(gameMock.initGame).toHaveBeenCalled();
     expect(gameMock.startGame).toHaveBeenCalled();
   });
+});
+
+// ── getCircleEl ───────────────────────────────────────────────────────────────
+
+describe('getCircleEl(id)', () => {
+  it('finds a rendered circle button by ID', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    renderCircles([{ id: 4, x: 100, y: 100, radius: 30, isTarget: false }]);
+    expect(getCircleEl(4)).toBe(container.querySelector('#mot-circle-4'));
+    expect(getCircleEl(5)).toBeNull();
+  });
+});
+
+// ── Guided tutorial ───────────────────────────────────────────────────────────
+
+/**
+ * Make the next start() open a guided tutorial that stays in progress until the test
+ * calls finish(). Like the real runner, cancel() aborts the practice signal and ends the run.
+ * @returns {Promise<{ options: object, run: object, controller: AbortController,
+ *   finish: () => void }>}
+ */
+async function startPendingTutorial() {
+  let options = null;
+  let active = true;
+  const controller = new AbortController();
+  const finish = () => { active = false; };
+  const run = {
+    cancel: jest.fn(() => {
+      controller.abort();
+      finish();
+    }),
+    isActive: jest.fn(() => active),
+  };
+  tutorialServiceMock.runGuidedTutorialIfNeeded.mockImplementationOnce(async (opts) => {
+    options = opts;
+    return run;
+  });
+  await plugin.start();
+  return {
+    options, run, controller, finish,
+  };
+}
+
+describe('guided tutorial', () => {
+  let container;
+
+  beforeEach(() => {
+    container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+  });
+
+  afterEach(() => {
+    plugin.reset();
+  });
+
+  it('start runs the guided tutorial if needed with the Object Track steps', async () => {
+    await plugin.start();
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gameId: 'object-track',
+        container,
+        introSteps: [{ title: 'Welcome to Object Track', content: '<p>Welcome</p>' }],
+        playPracticeRound: expect.any(Function),
+        onComplete: expect.any(Function),
+      }),
+    );
+    expect(gameMock.startGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('replay tutorial button runs the guided tutorial and then starts the game', async () => {
+    container.querySelector('#mot-replay-tutorial').click();
+    await flushMicrotasks();
+    expect(tutorialServiceMock.runGuidedTutorial).toHaveBeenCalledWith(expect.objectContaining({
+      gameId: 'object-track',
+      playPracticeRound: expect.any(Function),
+    }));
+    expect(tutorialServiceMock.runGuidedTutorialIfNeeded).not.toHaveBeenCalled();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#mot-play-area').hidden).toBe(false);
+  });
+
+  it('does not start the game until the tutorial completes', async () => {
+    const { options } = await startPendingTutorial();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(container.querySelector('#mot-play-area').hidden).toBe(true);
+
+    options.onComplete();
+    expect(gameMock.startGame).toHaveBeenCalled();
+    expect(container.querySelector('#mot-play-area').hidden).toBe(false);
+    expect(gameMock.createRoundCircles).toHaveBeenCalled();
+  });
+});
+
+// ── Practice rounds ───────────────────────────────────────────────────────────
+
+describe('practice round', () => {
+  let container;
+  let pending;
+
+  beforeEach(async () => {
+    gameMock.isRunning.mockReturnValue(false);
+    // jsdom does not implement scrollIntoView.
+    Element.prototype.scrollIntoView = jest.fn();
+    container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    pending = await startPendingTutorial();
+  });
+
+  afterEach(() => {
+    plugin.reset();
+    delete Element.prototype.scrollIntoView;
+  });
+
+  /**
+   * Start a practice round, like the tutorial runner does.
+   * @param {boolean} [guided=true]
+   * @returns {{ context: object, done: Promise<object> }}
+   */
+  function playPractice(guided = true) {
+    const context = {
+      round: guided ? 1 : 2,
+      attempt: 1,
+      maxRounds: 2,
+      guided,
+      signal: pending.controller.signal,
+      setInstructions: jest.fn(),
+      showMarker: jest.fn(),
+      hideMarker: jest.fn(),
+    };
+    const done = pending.options.playPracticeRound(context);
+    return { context, done };
+  }
+
+  /** Run the marking and tracking phases so the circles take clicks. */
+  const stopTheBalls = () => jest.advanceTimersByTime(MARKING_DURATION_MS + 5000);
+
+  /** @param {number} id */
+  const circle = (id) => container.querySelector(`#mot-circle-${id}`);
+
+  it('shows the practice circles without starting a session', () => {
+    const { context } = playPractice();
+
+    expect(container.querySelector('#mot-instructions').hidden).toBe(true);
+    expect(container.querySelector('#mot-play-area').hidden).toBe(false);
+    expect(gameMock.createPracticeRound).toHaveBeenCalledWith(600, 400);
+    expect(gameMock.createRoundCircles).not.toHaveBeenCalled();
+    expect(gameMock.startGame).not.toHaveBeenCalled();
+    expect(container.querySelectorAll('#mot-arena .mot-circle')).toHaveLength(6);
+    expect(container.querySelectorAll('.mot-circle--target-reveal')).toHaveLength(3);
+    expect(circle(1).classList.contains('mot-circle--target-reveal')).toBe(true);
+    expect(context.setInstructions).toHaveBeenCalledWith(PRACTICE_TEXT.watch);
+  });
+
+  it('moves the circles while no session is running', () => {
+    let tick;
+    global.requestAnimationFrame = jest.fn((cb) => { tick = cb; return 1; });
+    playPractice();
+    jest.advanceTimersByTime(MARKING_DURATION_MS);
+    tick(100);
+    tick(116);
+    expect(gameMock.stepCircles).toHaveBeenLastCalledWith(
+      expect.any(Array), 16, { width: 600, height: 400 },
+    );
+    expect(circle(0).style.left).toBe('30px');
+  });
+
+  it('a guided round rings each target in turn without scoring', () => {
+    const { context } = playPractice();
+    stopTheBalls();
+    expect(circle(1).scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: circle(1) });
+    expect(context.setInstructions)
+      .toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(0, 'Circle 2'));
+
+    circle(1).click();
+    expect(circle(1).getAttribute('aria-pressed')).toBe('true');
+    expect(context.showMarker).toHaveBeenLastCalledWith({ anchor: circle(3) });
+    expect(context.setInstructions)
+      .toHaveBeenLastCalledWith(PRACTICE_TEXT.guided(1, 'Circle 4'));
+    expect(gameMock.recordRoundResult).not.toHaveBeenCalled();
+  });
+
+  it('choosing every target resolves the round as correct', async () => {
+    const { context, done } = playPractice();
+    stopTheBalls();
+    [1, 3, 5].forEach((id) => circle(id).click());
+
+    const evaluation = { correct: true, correctCount: 3, totalTargets: 3 };
+    await expect(done).resolves.toEqual({
+      correct: true, feedback: PRACTICE_TEXT.result(evaluation),
+    });
+    expect(context.hideMarker).toHaveBeenCalled();
+    expect(container.querySelector('#mot-feedback').textContent)
+      .toBe(PRACTICE_TEXT.result(evaluation));
+    [1, 3, 5].forEach((id) => {
+      expect(circle(id).classList.contains('mot-circle--correct')).toBe(true);
+    });
+    expect(audioServiceMock.playSuccessSound).toHaveBeenCalled();
+    expect(gameMock.recordRoundResult).not.toHaveBeenCalled();
+    expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('a miss marks the missed target and resolves with feedback', async () => {
+    const evaluation = { correct: false, correctCount: 2, totalTargets: 3 };
+    gameMock.evaluateResponse.mockReturnValueOnce(evaluation);
+    const { done } = playPractice();
+    stopTheBalls();
+    [0, 1, 3].forEach((id) => circle(id).click());
+
+    await expect(done).resolves.toEqual({
+      correct: false, feedback: PRACTICE_TEXT.result(evaluation),
+    });
+    expect(circle(5).classList.contains('mot-circle--missed')).toBe(true);
+    expect(audioServiceMock.playFailureSound).toHaveBeenCalled();
+    expect(container.querySelector('#mot-feedback').textContent)
+      .not.toBe(PRACTICE_TEXT.result(evaluation));
+    expect(gameMock.recordRoundResult).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('an unguided round only prompts for the answer', () => {
+    const { context } = playPractice(false);
+    stopTheBalls();
+    circle(0).click();
+    expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.answer);
+    expect(context.showMarker).not.toHaveBeenCalled();
+  });
+
+  it('ending the tutorial stops the round', () => {
+    playPractice();
+    pending.controller.abort();
+    expect(jest.getTimerCount()).toBe(0);
+    jest.advanceTimersByTime(MARKING_DURATION_MS + 5000);
+    expect(container.querySelector('#mot-arena').classList.contains('mot-arena--response'))
+      .toBe(false);
+  });
+
+  it('End Game during practice cancels the tutorial and returns to the welcome panel',
+    async () => {
+      playPractice();
+      container.querySelector('#mot-stop').click();
+      await flushMicrotasks();
+
+      expect(pending.run.cancel).toHaveBeenCalled();
+      expect(gameMock.stopGame).not.toHaveBeenCalled();
+      expect(scoreServiceMock.saveScore).not.toHaveBeenCalled();
+      expect(container.querySelector('#mot-instructions').hidden).toBe(false);
+      expect(container.querySelector('#mot-play-area').hidden).toBe(true);
+      expect(container.querySelector('#mot-end-panel').hidden).toBe(true);
+    });
 });
 
 // ── interface.html accessibility ──────────────────────────────────────────────

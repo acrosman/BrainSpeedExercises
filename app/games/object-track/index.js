@@ -13,6 +13,14 @@ import * as timerService from '../../components/timerService.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import { returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
+import {
+  finishPracticeRound,
+  guidePracticeResponse,
+  isPracticing,
+  promptPracticeResponse,
+  setPracticeControls,
+  tutorial,
+} from './tutorial/tutorial.js';
 
 // ── Exported constants ────────────────────────────────────────────────────────
 
@@ -72,6 +80,8 @@ let _feedbackEl = null;
 let _stopBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _startBtn = null;
+/** @type {HTMLButtonElement|null} */
+let _replayTutorialBtn = null;
 /** @type {HTMLButtonElement|null} */
 let _playAgainBtn = null;
 /** @type {HTMLButtonElement|null} */
@@ -236,6 +246,16 @@ export function setRandomBackground(arenaEl) {
 // ── Circle rendering ──────────────────────────────────────────────────────────
 
 /**
+ * Find the button for a circle ID in the arena.
+ *
+ * @param {number} id - Circle ID.
+ * @returns {HTMLElement|null} The circle's button, or null if it is not rendered.
+ */
+export function getCircleEl(id) {
+  return _arenaEl ? _arenaEl.querySelector(`#mot-circle-${id}`) : null;
+}
+
+/**
  * Render circle DOM elements into the arena, replacing any existing content.
  *
  * @param {Array<object>} roundCircles - Circle state array.
@@ -274,7 +294,7 @@ export function renderCircles(roundCircles) {
 export function repositionCircleElements(roundCircles) {
   if (!_arenaEl) return;
   roundCircles.forEach((c) => {
-    const el = _arenaEl.querySelector(`#mot-circle-${c.id}`);
+    const el = getCircleEl(c.id);
     if (!el) return;
     el.style.left = `${c.x - c.radius}px`;
     el.style.top = `${c.y - c.radius}px`;
@@ -292,7 +312,7 @@ export function highlightTargets() {
   if (!_arenaEl) return;
   _roundCircles.forEach((c) => {
     if (!c.isTarget) return;
-    const el = _arenaEl.querySelector(`#mot-circle-${c.id}`);
+    const el = getCircleEl(c.id);
     if (el) el.classList.add('mot-circle--target-reveal');
   });
 }
@@ -363,6 +383,7 @@ export function enterResponsePhase() {
   }
   if (_phaseLabel) _phaseLabel.textContent = 'Click the targets you tracked!';
   announce('Circles stopped. Click each target you tracked.');
+  if (isPracticing()) promptPracticeResponse();
 }
 
 /**
@@ -391,11 +412,14 @@ export function handleCircleClick(event) {
   // Auto-submit once the player has selected all required targets.
   if (_selectedIds.size >= _numTargets) {
     submitResponse();
+  } else if (isPracticing()) {
+    guidePracticeResponse(_selectedIds);
   }
 }
 
 /**
- * Evaluate the player's current selection and transition to feedback.
+ * Evaluate the player's current selection and transition to feedback. In a practice round
+ * nothing is scored: the targets are marked and the tutorial takes the result.
  *
  * @returns {Promise<void>}
  */
@@ -405,16 +429,26 @@ export async function submitResponse() {
     _arenaEl.removeEventListener('click', handleCircleClick);
   }
   const evalResult = game.evaluateResponse(_roundCircles, _selectedIds);
-  game.recordRoundResult(evalResult.correct);
-  updateStats();
-  updateTrendChart();
-
   _roundCircles.forEach((c) => {
-    if (!_arenaEl) return;
-    const el = _arenaEl.querySelector(`#mot-circle-${c.id}`);
+    const el = getCircleEl(c.id);
     if (!el || !c.isTarget) return;
     el.classList.add(_selectedIds.has(c.id) ? 'mot-circle--correct' : 'mot-circle--missed');
   });
+
+  if (isPracticing()) {
+    if (_phaseLabel) _phaseLabel.textContent = '';
+    if (evalResult.correct) {
+      playSuccessSound();
+    } else {
+      playFailureSound();
+    }
+    finishPracticeRound(evalResult);
+    return;
+  }
+
+  game.recordRoundResult(evalResult.correct);
+  updateStats();
+  updateTrendChart();
 
   const msg = evalResult.correct
     ? `Perfect! All ${evalResult.totalTargets} targets found!`
@@ -526,6 +560,7 @@ export function stopRound() {
 function init(gameContainer) {
   _container = gameContainer;
   game.initGame();
+  setPracticeControls(PRACTICE_CONTROLS);
   if (!_container) return;
 
   /** @param {string} id - Element ID to query. */
@@ -542,6 +577,7 @@ function init(gameContainer) {
   _feedbackEl = q('#mot-feedback');
   _stopBtn = q('#mot-stop');
   _startBtn = q('#mot-start');
+  _replayTutorialBtn = q('#mot-replay-tutorial');
   _playAgainBtn = q('#mot-play-again');
   _returnBtn = q('#mot-return');
   _finalScoreEl = q('#mot-final-score');
@@ -552,9 +588,15 @@ function init(gameContainer) {
   _trendEmptyEl = q('#mot-trend-empty');
   _trendLatestEl = q('#mot-trend-latest');
 
-  if (_startBtn) _startBtn.addEventListener('click', () => start());
+  if (_startBtn) _startBtn.addEventListener('click', () => { void start(); });
+  // Replay always shows the tutorial, then starts a session.
+  if (_replayTutorialBtn) {
+    _replayTutorialBtn.addEventListener('click', () => {
+      void tutorial.replay(tutorialOptions());
+    });
+  }
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
-  if (_playAgainBtn) _playAgainBtn.addEventListener('click', () => { reset(); start(); });
+  if (_playAgainBtn) _playAgainBtn.addEventListener('click', () => { reset(); void start(); });
   if (_returnBtn) _returnBtn.addEventListener('click', () => returnToMainMenu());
 
   // Load background images asynchronously; silently falls back if unavailable.
@@ -562,39 +604,89 @@ function init(gameContainer) {
 }
 
 /**
- * Start a new game session.
+ * Show the game area, with no leftover feedback, in place of the welcome and end panels.
  *
  * @returns {void}
  */
-function start() {
+function showGameArea() {
+  if (_instructionsEl) _instructionsEl.hidden = true;
+  if (_endPanelEl) _endPanelEl.hidden = true;
+  if (_playAreaEl) _playAreaEl.hidden = false;
+  if (_phaseLabel) _phaseLabel.textContent = '';
+  announce('');
+}
+
+/**
+ * Start a gameplay session immediately without tutorial gating.
+ *
+ * @returns {void}
+ */
+function beginGameSession() {
   game.startGame();
   timerService.startTimer((elapsedMs) => {
     if (_sessionTimerEl) {
       _sessionTimerEl.textContent = timerService.formatDuration(elapsedMs);
     }
   });
-  if (_instructionsEl) _instructionsEl.hidden = true;
-  if (_playAreaEl) _playAreaEl.hidden = false;
-  if (_endPanelEl) _endPanelEl.hidden = true;
+  showGameArea();
   beginRound();
 }
 
 /**
+ * Round controls the tutorial uses to play practice rounds with the real marking, tracking,
+ * and response phases.
+ *
+ * @type {import('./tutorial/tutorial.js').PracticeRoundControls}
+ */
+const PRACTICE_CONTROLS = Object.freeze({
+  showGameArea,
+  getArenaBounds,
+  playRound,
+  stopRound,
+  getCircle: getCircleEl,
+  announce,
+});
+
+/**
+ * Options for launching the tutorial from this game.
+ *
+ * @returns {import('../../components/tutorialLauncher.js').TutorialLaunchOptions}
+ */
+function tutorialOptions() {
+  return { container: _container, onComplete: beginGameSession };
+}
+
+/**
+ * Start a gameplay session, showing the tutorial first if the player has not seen it.
+ *
+ * @returns {Promise<void>}
+ */
+function start() {
+  return tutorial.startIfNeeded(tutorialOptions());
+}
+
+/**
  * Stop the current session, persist results, and show the end panel.
+ *
+ * With no session running (on the welcome screen, during the tutorial, or when the app
+ * quits after a session ended) there is nothing to save and the screen is left alone,
+ * except that leaving a tutorial this way cancels it and returns to the welcome screen.
  *
  * @returns {Promise<{ score: number, level: number, roundsPlayed: number,
  *   duration: number }>} Session summary object.
  */
 async function stop() {
   stopRound();
-  const result = game.isRunning()
-    ? game.stopGame()
-    : {
-        score: game.getScore(),
-        level: game.getLevel(),
-        roundsPlayed: game.getRoundsPlayed(),
-        duration: 0,
-      };
+  if (!game.isRunning()) {
+    if (tutorial.isActive()) reset();
+    return {
+      score: game.getScore(),
+      level: game.getLevel(),
+      roundsPlayed: game.getRoundsPlayed(),
+      duration: 0,
+    };
+  }
+  const result = game.stopGame();
   const sessionDurationMs = timerService.stopTimer();
   await saveScore(game.GAME_ID, {
     score: result.score,
@@ -611,6 +703,7 @@ async function stop() {
  * @returns {void}
  */
 function reset() {
+  tutorial.cancel();
   stopRound();
   game.initGame();
   timerService.resetTimer();

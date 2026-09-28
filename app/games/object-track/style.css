@@ -228,3 +228,84 @@
     0 0 18px 6px rgba(239, 68, 68, 0.65),
     0 8px 24px rgba(0, 0, 0, 0.55);
 }
+
+/* ── Tutorial slides ─────────────────────────────────────────────────────────── */
+/* Content shown inside the shared tutorial overlay. Highlight boxes on the      */
+/* screenshot are positioned as percentages of tutorialScreenshot.png.           */
+
+.mot-tutorial-figure {
+  margin: 0.75rem 0 0;
+}
+
+.mot-tutorial-image-wrap {
+  position: relative;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.mot-tutorial-image {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.mot-tutorial-caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+.mot-tutorial-highlight {
+  position: absolute;
+  border-radius: 8px;
+  border: 3px solid currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mot-tutorial-highlight--stats {
+  left: 26.8%;
+  top: 0;
+  width: 46.4%;
+  height: 3.6%;
+  color: #1976d2;
+}
+
+.mot-tutorial-highlight--arena {
+  left: 0;
+  top: 10.2%;
+  width: 100%;
+  height: 52.2%;
+  color: #2e7d32;
+}
+
+.mot-tutorial-highlight--trend {
+  left: 28.5%;
+  top: 65%;
+  width: 43%;
+  height: 35%;
+  color: #ed6c02;
+}
+
+/* A target ball and a plain ball on the "What to Look For" step. They reuse the game's */
+/* .mot-circle look (default blue palette) but sit in the flow instead of the arena.    */
+.mot-tutorial-balls {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+}
+
+.mot-tutorial-ball {
+  margin: 0.75rem 0;
+  text-align: center;
+}
+
+.mot-tutorial-ball__sample {
+  position: relative;
+  display: block;
+  width: 60px;
+  height: 60px;
+  margin: 0.75rem auto 0.75rem;
+}
