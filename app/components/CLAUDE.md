@@ -20,6 +20,7 @@ Rules for every component:
 | `timerService.js` | games, shell | Session timer, `formatDuration`, today's date key |
 | `logService.js` | all renderer code | `logger.*`, forwarded to `electron-log` |
 | `audioService.js` | games | The shared `AudioContext` and every sound effect |
+| `syllableService.js` | games | Synthesized speech syllables and background noise |
 | `adaptiveDifficultyService.js` | games | Staircase counter math |
 | `trendChartService.js` | games | In-game SVG trend line |
 | `gameUtils.js` | games | `returnToMainMenu()` |
@@ -73,7 +74,31 @@ where Web Audio is missing. Every sound resumes a suspended context and swallows
   frequency sweeps between `SWEEP_LOW_FREQ_HZ` and `SWEEP_HIGH_FREQ_HZ` on the context clock and
   returns at once. Invalid input schedules nothing.
 
-Add new sounds here, with their tuning values as named constants at the top of the file.
+Add new sounds here, with their tuning values as named constants at the top of the file. Speech
+sounds go in `syllableService.js` instead.
+
+## `syllableService.js`
+
+Synthesized consonant-vowel syllables (/b d g p t/ × /a i/, listed in `SYLLABLE_IDS`) on the
+shared context from `getAudioContext()`. It never creates its own context.
+
+- Each syllable is a parallel formant synthesizer: a sawtooth voicing source and a noise source
+  feed band-pass filters for F1–F3, which glide from the consonant's onsets (`PLACE_CUES`) to
+  the vowel's steady values (`VOWEL_FORMANTS`) over `transitionMs`. Voiceless /p t/ play
+  aspiration noise through F2 and F3 until voicing starts (`VOT_MS`).
+- `VOICE_PROFILES` (`lower`, `higher`, listed in `VOICE_IDS`) set the falling F0 and a
+  `formantScale` that multiplies every formant and burst frequency.
+- `playSyllableSequence({ syllables, voices, gapsMs, transitionMs, snrDb })` schedules the
+  whole sequence on the audio clock, with one voice per syllable and `gapsMs` of silence
+  between syllables. It returns a `stop()` function that fades the sequence out; it is safe to
+  call more than once. Invalid options, or no Web Audio, schedule nothing and return a no-op.
+- `snrDb` adds looping, low-passed white noise from the start to the end of the sequence;
+  `null` means none. The SNR is approximate (`NOISE_GAIN_AT_0_DB`, tuned by ear), and
+  `MAX_NOISE_GAIN` caps it.
+- `getSyllableSequenceDurationMs({ syllables, gapsMs, transitionMs })` is the total length,
+  including `NOISE_LEAD_MS` before the first syllable and `NOISE_TAIL_MS` after the last, with
+  or without noise. Open responses from it, never from a separate formula.
+- Tuning values are named constants at the top of the file. Change them by ear.
 
 ## `adaptiveDifficultyService.js`
 
