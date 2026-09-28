@@ -21,6 +21,7 @@ import {
   startGame,
   stopGame,
   pickSequence,
+  formatSequence,
   recordTrial,
   getCurrentLevel,
   getCurrentLevelConfig,
@@ -147,6 +148,17 @@ describe('pickSequence', () => {
 });
 
 // ── recordTrial staircase behavior ────────────────────────────────────────────
+
+describe('formatSequence', () => {
+  test.each([
+    ['up-up', 'Up-Up'],
+    ['up-down', 'Up-Down'],
+    ['down-up', 'Down-Up'],
+    ['down-down', 'Down-Down'],
+  ])('%s reads as %s', (sequence, label) => {
+    expect(formatSequence(sequence)).toBe(label);
+  });
+});
 
 describe('recordTrial — staircase advancement', () => {
   test('3 consecutive correct responses advance the level by 1', () => {

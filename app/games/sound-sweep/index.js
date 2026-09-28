@@ -85,8 +85,14 @@ let _replayBtn = null;
 
 // ── Per-trial state ───────────────────────────────────────────────────────────
 
-/** Sequence chosen for the current trial, e.g. 'up-down'. @type {string|null} */
-let _currentSequence = null;
+/**
+ * One trial: the sequence to play and the level timing to play it at.
+ *
+ * @typedef {{ sequence: string, sweepDurationMs: number, isiMs: number }} Trial
+ */
+
+/** The trial being played, kept so Replay repeats it exactly. @type {Trial|null} */
+let _currentTrial = null;
 
 /** Whether the player can currently submit a response. */
 let _responseEnabled = false;
@@ -102,15 +108,17 @@ let _nextTrialTimer = null;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Enable or disable all four sequence response buttons.
+ * Open or close the response phase: the four sequence buttons, the Replay button, and
+ * whether answers (clicks or keys) are accepted.
  *
- * Buttons are disabled during sweep playback and re-enabled once the response
+ * Responses are closed during sweep playback and opened once the response
  * phase begins so the player cannot respond prematurely.
  *
  * @param {boolean} enabled
  */
-function setResponseButtonsEnabled(enabled) {
-  [_uuBtn, _udBtn, _duBtn, _ddBtn].forEach((btn) => {
+function setResponsesEnabled(enabled) {
+  _responseEnabled = enabled;
+  [_uuBtn, _udBtn, _duBtn, _ddBtn, _replayBtn].forEach((btn) => {
     if (btn) btn.disabled = !enabled;
   });
 }
@@ -161,9 +169,9 @@ export function updateTrendChart() {
 }
 
 /**
- * Cancel and clear all outstanding timer handles.
+ * End the trial in progress: cancel its timers, close responses, and forget the trial.
  */
-function clearAsyncHandles() {
+function stopTrial() {
   if (_waitTimer !== null) {
     clearTimeout(_waitTimer);
     _waitTimer = null;
@@ -172,6 +180,8 @@ function clearAsyncHandles() {
     clearTimeout(_nextTrialTimer);
     _nextTrialTimer = null;
   }
+  setResponsesEnabled(false);
+  _currentTrial = null;
 }
 
 /**
@@ -179,8 +189,7 @@ function clearAsyncHandles() {
  * are ready to respond.
  */
 function enterResponsePhase() {
-  _responseEnabled = true;
-  setResponseButtonsEnabled(true);
+  setResponsesEnabled(true);
   announce('Which sequence did you hear?');
   if (_uuBtn) {
     _uuBtn.focus();
@@ -188,31 +197,63 @@ function enterResponsePhase() {
 }
 
 /**
- * Begin a new trial: pick a sequence, play it via audioService, and schedule
- * the response phase after the sweeps complete.
+ * Play a trial's sweep pair through audioService. Playback is scheduled on the audio clock,
+ * so this returns at once.
+ *
+ * @param {Trial} trial
+ */
+function playSweeps({ sequence, sweepDurationMs, isiMs }) {
+  playSweepPair(sequence.split('-'), { sweepDurationMs, isiMs });
+}
+
+/**
+ * Play a trial: the sweep pair, then the response phase once both sweeps have ended.
+ *
+ * @param {Trial} trial
+ * @param {() => void} [onSweepsEnd] - Called when the response phase begins.
+ */
+function playTrial(trial, onSweepsEnd = () => {}) {
+  _currentTrial = trial;
+  setResponsesEnabled(false);
+  if (_feedbackEl) _feedbackEl.textContent = '';
+  announce('Listen...');
+
+  playSweeps(trial);
+
+  const { sweepDurationMs, isiMs } = trial;
+  const waitMs = sweepDurationMs + isiMs + sweepDurationMs + POST_SWEEP_BUFFER_MS;
+  _waitTimer = setTimeout(() => {
+    _waitTimer = null;
+    enterResponsePhase();
+    onSweepsEnd();
+  }, waitMs);
+}
+
+/**
+ * Begin a new session trial: a random sequence at the current level.
  */
 function startTrial() {
   if (!game.isRunning()) return;
 
-  _currentSequence = game.pickSequence();
-  const { sweepDurationMs, isiMs } = game.getCurrentLevelConfig();
-
-  _responseEnabled = false;
-  setResponseButtonsEnabled(false);
-  if (_replayBtn) _replayBtn.disabled = true;
-  if (_feedbackEl) _feedbackEl.textContent = '';
-  announce('Listen...');
-
   updateStats();
+  playTrial({ sequence: game.pickSequence(), ...game.getCurrentLevelConfig() });
+}
 
-  playSweepPair(_currentSequence.split('-'), { sweepDurationMs, isiMs });
+/**
+ * Play the feedback sound and show the result. After a miss, name the sequence that played.
+ * Changes no game state.
+ *
+ * @param {boolean} success - Whether the response was correct.
+ */
+function showResponseFeedback(success) {
+  playFeedbackSound(success);
 
-  const waitMs = sweepDurationMs + isiMs + sweepDurationMs + POST_SWEEP_BUFFER_MS;
-  _waitTimer = setTimeout(() => {
-    _waitTimer = null;
-    if (_replayBtn) _replayBtn.disabled = false;
-    enterResponsePhase();
-  }, waitMs);
+  // Write result feedback directly to the polite live region (#ss-feedback)
+  // so it does not also trigger the assertive #ss-status announcer.
+  const feedbackMsg = success
+    ? 'Correct!'
+    : `Incorrect - the sequence was ${game.formatSequence(_currentTrial.sequence)}.`;
+  if (_feedbackEl) _feedbackEl.textContent = feedbackMsg;
 }
 
 /**
@@ -223,23 +264,14 @@ function startTrial() {
 export function handleSequenceResponse(response) {
   if (!_responseEnabled) return;
 
-  _responseEnabled = false;
-  setResponseButtonsEnabled(false);
-  if (_replayBtn) _replayBtn.disabled = true;
+  setResponsesEnabled(false);
 
-  const success = response === _currentSequence;
+  const success = response === _currentTrial.sequence;
   game.recordTrial({ success });
 
   updateStats();
   updateTrendChart();
-  playFeedbackSound(success);
-
-  // Write result feedback directly to the polite live region (#ss-feedback)
-  // so it does not also trigger the assertive #ss-status announcer.
-  const feedbackMsg = success
-    ? 'Correct!'
-    : `Incorrect - the sequence was ${formatSequenceLabel(_currentSequence)}.`;
-  if (_feedbackEl) _feedbackEl.textContent = feedbackMsg;
+  showResponseFeedback(success);
 
   if (game.isRunning()) {
     _nextTrialTimer = setTimeout(() => {
@@ -254,22 +286,7 @@ export function handleSequenceResponse(response) {
  * Only active during the response phase.
  */
 function replayCurrentSweep() {
-  if (!_currentSequence) return;
-  const { sweepDurationMs, isiMs } = game.getCurrentLevelConfig();
-  playSweepPair(_currentSequence.split('-'), { sweepDurationMs, isiMs });
-}
-
-/**
- * Convert a sequence key to a human-readable label, e.g. 'up-down' → 'Up-Down'.
- *
- * @param {string} sequence
- * @returns {string}
- */
-function formatSequenceLabel(sequence) {
-  return sequence
-    .split('-')
-    .map((d) => d.charAt(0).toUpperCase() + d.slice(1))
-    .join('-');
+  if (_currentTrial) playSweeps(_currentTrial);
 }
 
 /**
@@ -280,15 +297,8 @@ function formatSequenceLabel(sequence) {
  * @param {KeyboardEvent} event
  */
 export function handleKeyDown(event) {
-  /** @type {Record<string, string>} */
-  const keyMap = {
-    1: 'up-up',
-    2: 'up-down',
-    3: 'down-up',
-    4: 'down-down',
-  };
-
-  const response = keyMap[event.key];
+  // Keys 1–4 answer game.SEQUENCES in order, the same order as the buttons.
+  const response = game.SEQUENCES[Number(event.key) - 1];
   if (!response) return;
 
   if (_responseEnabled) {
@@ -374,7 +384,7 @@ function init(gameContainer) {
   document.removeEventListener('keydown', handleKeyDown);
   document.addEventListener('keydown', handleKeyDown);
 
-  setResponseButtonsEnabled(false);
+  setResponsesEnabled(false);
   updateStats();
 }
 
@@ -399,8 +409,6 @@ function start() {
   // rather than remaining on the now-hidden Start button (WCAG 2.4.3).
   if (_statusEl) _statusEl.focus();
 
-  setResponseButtonsEnabled(false);
-
   startTrial();
 }
 
@@ -410,9 +418,7 @@ function start() {
  * @returns {{ score: number, level: number, trialsCompleted: number, duration: number }}
  */
 function stop() {
-  clearAsyncHandles();
-  _responseEnabled = false;
-  setResponseButtonsEnabled(false);
+  stopTrial();
 
   const result = game.isRunning() ? game.stopGame() : {
     score: game.getScore(),
@@ -440,12 +446,9 @@ function stop() {
  * Reset to the pre-game instructions state without reloading interface.html.
  */
 function reset() {
-  clearAsyncHandles();
+  stopTrial();
   game.initGame();
   timerService.resetTimer();
-
-  _currentSequence = null;
-  _responseEnabled = false;
 
   if (_sessionTimerEl) _sessionTimerEl.textContent = '00:00';
   if (_feedbackEl)     _feedbackEl.textContent = '';
@@ -454,7 +457,6 @@ function reset() {
   if (_gameAreaEl)     _gameAreaEl.hidden = true;
   if (_endPanelEl)     _endPanelEl.hidden = true;
 
-  setResponseButtonsEnabled(false);
   updateStats();
   updateTrendChart();
 }

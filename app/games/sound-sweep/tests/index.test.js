@@ -26,6 +26,8 @@ await import('../../../components/timerService.js');
 
 jest.unstable_mockModule('../game.js', () => ({
   GAME_ID: 'sound-sweep',
+  SEQUENCES:             ['up-up', 'up-down', 'down-up', 'down-down'],
+  formatSequence:        jest.fn(() => 'Up-Down'),
   initGame:              jest.fn(),
   startGame:             jest.fn(),
   stopGame:              jest.fn(() => ({
@@ -361,12 +363,23 @@ describe('sound-sweep plugin', () => {
     jest.clearAllTimers();
   });
 
-  it('replay button calls playSweepPair again', () => {
+  it('replay button replays the same pair at the timing it was played with', () => {
     plugin.start();
     jest.runAllTimers();
     audioServiceMock.playSweepPair.mockClear();
+    gameMock.getCurrentLevelConfig.mockReturnValueOnce({ sweepDurationMs: 50, isiMs: 50 });
     document.querySelector('#ss-replay-btn').click();
-    expect(audioServiceMock.playSweepPair).toHaveBeenCalled();
+    expect(audioServiceMock.playSweepPair).toHaveBeenCalledWith(
+      ['up', 'down'],
+      { sweepDurationMs: 200, isiMs: 200 },
+    );
+  });
+
+  it('replay button is disabled once the player answers', () => {
+    plugin.start();
+    jest.runAllTimers();
+    document.querySelector('#ss-btn-ud').click();
+    expect(document.querySelector('#ss-replay-btn').disabled).toBe(true);
   });
 
   // ── stop ──────────────────────────────────────────────────────────────────
@@ -423,7 +436,20 @@ describe('sound-sweep plugin', () => {
     plugin.start();
     // Wait timer is pending (sweep not done yet).
     plugin.stop();
+    jest.runAllTimers();
+    expect(document.querySelector('#ss-btn-uu').disabled).toBe(true);
     expect(document.querySelector('#ss-end-panel').hidden).toBe(false);
+  });
+
+  it('stop during the response phase closes responses and Replay', () => {
+    plugin.start();
+    jest.runAllTimers();
+    plugin.stop();
+    expect(document.querySelector('#ss-btn-uu').disabled).toBe(true);
+    expect(document.querySelector('#ss-replay-btn').disabled).toBe(true);
+    gameMock.recordTrial.mockClear();
+    handleKeyDown({ key: '2' });
+    expect(gameMock.recordTrial).not.toHaveBeenCalled();
   });
 
   // ── reset ─────────────────────────────────────────────────────────────────
@@ -460,9 +486,11 @@ describe('sound-sweep plugin', () => {
 
   // ── keyboard handler ──────────────────────────────────────────────────────
 
-  it('handleKeyDown ignores non-digit keys', () => {
+  it.each(['ArrowUp', '0', '5', ' '])('handleKeyDown ignores the %p key', (key) => {
+    plugin.start();
+    jest.runAllTimers();
     gameMock.recordTrial.mockClear();
-    handleKeyDown({ key: 'ArrowUp', preventDefault: jest.fn() });
+    handleKeyDown({ key, preventDefault: jest.fn() });
     expect(gameMock.recordTrial).not.toHaveBeenCalled();
   });
 

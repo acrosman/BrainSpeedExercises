@@ -11,16 +11,25 @@ in `components/audioService.js` schedules both sweeps on the shared `AudioContex
 ↔ 3000 Hz, `SWEEP_LOW_FREQ_HZ` / `SWEEP_HIGH_FREQ_HZ`) and returns immediately. Change the sweep
 sound in the service, not here.
 
-Because playback does not block, `startTrial()` enables responses only after
-`2 × sweepDurationMs + isiMs + POST_SWEEP_BUFFER_MS` (150). Keep that formula in sync if the
-sweep scheduling changes. Once responses are enabled, the Replay button replays the same pair.
+## Trials
+
+`playTrial(trial, onSweepsEnd?)` in `index.js` plays one `Trial` (`{ sequence, sweepDurationMs,
+isiMs }`): the sweep pair, then the response phase. A session trial comes from `startTrial()`,
+which picks a sequence at the current level. Because playback does not block, responses open
+only after `2 × sweepDurationMs + isiMs + POST_SWEEP_BUFFER_MS` (150). Keep that formula in sync
+if the sweep scheduling changes. Once responses are open, the Replay button replays the same
+trial at the same timing.
+
+`setResponsesEnabled()` opens and closes the four answer buttons, Replay, and keyboard answers
+together. `stopTrial()` cancels the trial's timers and closes responses.
 
 ## Difficulty
 
 `LEVELS` in `game.js` has 14 entries. Each one shortens `sweepDurationMs` (600 → 15 ms) and the
 inter-stimulus interval `isiMs` (600 → 10 ms). At the top levels the sweeps are chirp-like. The
 standard staircase applies, and trials are 500 ms apart. Sequences are the strings in
-`SEQUENCES` (`'up-down'` and so on). Split them on `-` to get the direction array.
+`SEQUENCES` (`'up-down'` and so on). Split them on `-` to get the direction array, and use
+`formatSequence()` for the label the player sees (`'Up-Down'`).
 
 ## Saved fields
 
@@ -29,7 +38,7 @@ standard staircase applies, and trials are 500 ms apart. Sequences are the strin
 
 ## Controls
 
-Keys `1`–`4` map to Up-Up, Up-Down, Down-Up, and Down-Down, the same order as the four response
-buttons. When responses are enabled, focus moves to the first button. `init()` calls
-`removeEventListener` before `addEventListener` on `document`, so re-entering the game never
-registers the handler twice.
+Keys `1`–`4` answer `SEQUENCES` in order (Up-Up, Up-Down, Down-Up, Down-Down), the same order
+as the four response buttons. When responses are enabled, focus moves to the first button.
+`init()` calls `removeEventListener` before `addEventListener` on `document`, so re-entering the
+game never registers the handler twice.
