@@ -192,3 +192,96 @@
   font-weight: 700;
   color: var(--text-heading);
 }
+
+/* ── Tutorial slides ─────────────────────────────────────────────────────── */
+/* Content shown inside the shared tutorial overlay. Highlight boxes on the      */
+/* screenshot are positioned as percentages of tutorialScreenshot.png.           */
+
+.os-tutorial-figure {
+  margin: 0.75rem 0 0;
+}
+
+.os-tutorial-image-wrap {
+  position: relative;
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.os-tutorial-image {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.os-tutorial-caption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Each modifier sets only its position and `color`; the border and tint derive from it.
+   Boxes at the image's edge extend just past it, so their borders do not cover the text. */
+.os-tutorial-highlight {
+  position: absolute;
+  border-radius: 8px;
+  border: 3px solid currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.os-tutorial-highlight--stats {
+  left: 3.5%;
+  top: -1.2%;
+  width: 93%;
+  height: 5%;
+  color: #1976d2;
+}
+
+.os-tutorial-highlight--stimulus {
+  left: 18.5%;
+  top: 4.2%;
+  width: 63%;
+  height: 55%;
+  color: #2e7d32;
+}
+
+.os-tutorial-highlight--controls {
+  left: -1.5%;
+  top: 59.8%;
+  width: 103%;
+  height: 14.5%;
+  color: #ed6c02;
+}
+
+.os-tutorial-highlight--trend {
+  left: 27.5%;
+  top: 76%;
+  width: 45%;
+  height: 25%;
+  color: #7b1fa2;
+}
+
+/* Two pictures side by side, each with a caption: the otter and the fish, or the feedback
+   pictures. */
+.os-tutorial-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.os-tutorial-pair__item {
+  flex: 1 1 160px;
+  max-width: 220px;
+  margin: 0;
+  text-align: center;
+}
+
+.os-tutorial-pair__img {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}

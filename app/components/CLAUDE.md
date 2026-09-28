@@ -226,5 +226,6 @@ controls, and routes input to the tutorial while it is practicing.
 Worked examples: `fast-piggie` and `directional-processing` (one answer per round), `card-rat`
 (a timed run of cards with one to act on), `field-of-view` (a two-part answer, with retries),
 `high-speed-memory` (several answers per round, with retries), `object-track` (several
-answers per round after an animation, with retries), and `orbit-sprite-memory` (several
-answers per round after a timed sequence, with retries).
+answers per round after an animation, with retries), `orbit-sprite-memory` (several
+answers per round after a timed sequence, with retries), and `otter-stop` (a steady stream of
+responses, played through the game's own trial loop with no practice hooks, with retries).

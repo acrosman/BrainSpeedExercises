@@ -78,6 +78,12 @@ const LEVEL_DROP = 2;
 const BASE_MAX_SEQUENCE_LENGTH = 5;
 
 /**
+ * Go images before the no-go image in each tutorial practice round: a short run, then the
+ * longest run at the first level.
+ */
+const PRACTICE_GO_COUNTS = [3, BASE_MAX_SEQUENCE_LENGTH];
+
+/**
  * Minimum number of go images (otters) in a sequence at any level.
  * A value of 0 means the fish may appear immediately with no preceding otters.
  */
@@ -228,6 +234,16 @@ export function stopGame() {
 // ── Trial helpers ─────────────────────────────────────────────────────────────
 
 /**
+ * Pick one go image at random.
+ *
+ * @returns {{ imageKey: string, isNoGo: boolean }}
+ */
+function pickGoImage() {
+  const idx = Math.floor(Math.random() * GO_KEYS.length);
+  return { imageKey: GO_KEYS[idx], isNoGo: false };
+}
+
+/**
  * Pick the next image to display.
  *
  * Images are presented as sequences: a run of go (otter) images followed by
@@ -246,37 +262,60 @@ export function stopGame() {
  * @returns {{ imageKey: string, isNoGo: boolean }}
  */
 export function pickNextImage() {
-  if (forceGoNext) {
-    forceGoNext = false;
-    sequencePosition += 1;
-    const idx = Math.floor(Math.random() * GO_KEYS.length);
-    return { imageKey: GO_KEYS[idx], isNoGo: false };
-  }
-  if (sequencePosition >= currentSequenceLength) {
+  if (!forceGoNext && sequencePosition >= currentSequenceLength) {
     sequencePosition = 0;
     currentSequenceLength = generateSequenceLength();
     return { imageKey: NO_GO_KEY, isNoGo: true };
   }
+  forceGoNext = false;
   sequencePosition += 1;
-  const idx = Math.floor(Math.random() * GO_KEYS.length);
-  return { imageKey: GO_KEYS[idx], isNoGo: false };
+  return pickGoImage();
+}
+
+/**
+ * Whether a response to a stimulus is correct: a press for a go image, or no press for the
+ * no-go image. Changes no game state.
+ *
+ * @param {boolean} isNoGo - Whether the stimulus was the no-go image.
+ * @param {boolean} pressed - Whether the player pressed Space or clicked.
+ * @returns {boolean}
+ */
+export function isCorrectResponse(isNoGo, pressed) {
+  return isNoGo ? !pressed : pressed;
+}
+
+/**
+ * Get the stimuli for a tutorial practice round: a run of go images, cycling through the
+ * otters, then the no-go image. Rounds past the last start over. Changes no game state.
+ *
+ * @param {number} round - Practice round number, starting at 1.
+ * @returns {Array<{ imageKey: string, isNoGo: boolean }>}
+ */
+export function createPracticeSequence(round) {
+  const goCount = PRACTICE_GO_COUNTS[(round - 1) % PRACTICE_GO_COUNTS.length];
+  const goImages = Array.from({ length: goCount }, (_, i) => ({
+    imageKey: GO_KEYS[i % GO_KEYS.length],
+    isNoGo: false,
+  }));
+  return [...goImages, { imageKey: NO_GO_KEY, isNoGo: true }];
 }
 
 /**
  * Record the outcome of a completed trial and apply the adaptive staircase.
  *
- * Correct responses:
- *   - Go image + Space pressed  → score +1, wrong streak reset
- *   - No-go image + no press   → score +1, streak +1 (only no-go inhibitions
- *                                 count toward level advancement)
+ * Correct responses (score +1):
+ *   - Go image + Space pressed  → streaks unchanged
+ *   - No-go image + no press    → correct streak +1, wrong streak reset (only no-go
+ *                                 inhibitions count toward advancement)
  *
- * Wrong responses:
- *   - Go image + no press      → miss +1, streak broken, forceGoNext set
- *   - No-go image + Space pressed → noGoHit +1, streak broken, forceGoNext set
+ * Wrong responses (correct streak reset, wrong streak +1, forceGoNext set):
+ *   - Go image + no press          → miss +1
+ *   - No-go image + Space pressed  → noGoHit +1
  *
  * Staircase rules:
  *   - 3 consecutive correct no-go inhibitions → level +1, streak reset
- *   - 3 consecutive wrong responses   → level −2 (min 0), streak reset
+ *   - 3 wrong responses with no correct no-go inhibition between them → level −2 (min 0),
+ *     streak reset
  *
  * After any wrong outcome, `forceGoNext` is set so that `pickNextImage()` will
  * guarantee a go stimulus on the very next trial.
@@ -288,32 +327,10 @@ export function pickNextImage() {
 export function recordResponse(isNoGo, spacePressed) {
   trialsCompleted += 1;
 
-  const correct = isNoGo ? !spacePressed : spacePressed;
-
-  let staircaseState;
+  const correct = isCorrectResponse(isNoGo, spacePressed);
 
   if (correct) {
     score += 1;
-    if (isNoGo) {
-      staircaseState = updateAdaptiveDifficultyState({
-        value: level,
-        wasCorrect: true,
-        consecutiveCorrect,
-        consecutiveWrong,
-        increaseAfter: CORRECT_STREAK_TO_ADVANCE,
-        decreaseAfter: WRONG_STREAK_TO_DROP,
-        harderStep: 1,
-        easierStep: -LEVEL_DROP,
-        minValue: 0,
-        maxValue: Number.POSITIVE_INFINITY,
-      });
-    } else {
-      staircaseState = {
-        value: level,
-        consecutiveCorrect,
-        consecutiveWrong,
-      };
-    }
   } else {
     if (isNoGo) {
       noGoHits += 1;
@@ -321,9 +338,13 @@ export function recordResponse(isNoGo, spacePressed) {
       misses += 1;
     }
     forceGoNext = true;
-    staircaseState = updateAdaptiveDifficultyState({
+  }
+
+  // A correct go press leaves the staircase alone; every other outcome moves it.
+  if (isNoGo || !correct) {
+    const staircaseState = updateAdaptiveDifficultyState({
       value: level,
-      wasCorrect: false,
+      wasCorrect: correct,
       consecutiveCorrect,
       consecutiveWrong,
       increaseAfter: CORRECT_STREAK_TO_ADVANCE,
@@ -333,11 +354,10 @@ export function recordResponse(isNoGo, spacePressed) {
       minValue: 0,
       maxValue: Number.POSITIVE_INFINITY,
     });
+    level = staircaseState.value;
+    consecutiveCorrect = staircaseState.consecutiveCorrect;
+    consecutiveWrong = staircaseState.consecutiveWrong;
   }
-
-  level = staircaseState.value;
-  consecutiveCorrect = staircaseState.consecutiveCorrect;
-  consecutiveWrong = staircaseState.consecutiveWrong;
 
   // If the level dropped, cap the in-flight sequence length to the new maximum
   // so the player is not exposed to sequences that are too long for their level.
@@ -354,15 +374,28 @@ export function recordResponse(isNoGo, spacePressed) {
 // ── Difficulty ────────────────────────────────────────────────────────────────
 
 /**
- * Return the display interval in milliseconds for the current level.
+ * Return the display interval in milliseconds for a level.
  * Uses geometric decay: each level multiplies the base interval by
  * INTERVAL_DECAY_RATE, producing large speed jumps early and increasingly
  * smaller increments as the game gets faster. Floored at MIN_INTERVAL_MS.
  *
+ * @param {number} forLevel - Difficulty level (0 is the easiest).
+ * @returns {number} Display interval in milliseconds.
+ */
+export function getIntervalMs(forLevel) {
+  return Math.max(
+    Math.round(BASE_INTERVAL_MS * (INTERVAL_DECAY_RATE ** forLevel)),
+    MIN_INTERVAL_MS,
+  );
+}
+
+/**
+ * Return the display interval in milliseconds for the current level.
+ *
  * @returns {number} Display interval in milliseconds.
  */
 export function getCurrentIntervalMs() {
-  return Math.max(Math.round(BASE_INTERVAL_MS * (INTERVAL_DECAY_RATE ** level)), MIN_INTERVAL_MS);
+  return getIntervalMs(level);
 }
 
 // ── Getters ───────────────────────────────────────────────────────────────────

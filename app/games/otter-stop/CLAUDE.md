@@ -36,9 +36,24 @@ CSS classes and element IDs use the `os-` prefix.
 
 ## Controller (`index.js`)
 
-`beginTrial` shows the image and arms `_trialTimer` for the interval. A press ends the trial
-early. `endTrial` records the result. Feedback (800 ms) appears only after a no-go trial or a
-missed go. Trials are separated by a 120 ms `ISI_MS`.
+`playTrials(run)` plays any `TrialRun`: `next()` gives each stimulus (`null` ends the run) and
+`record(stimulus, pressed, responseMs)` scores it. A session plays `SESSION_TRIALS`, which
+picks from and records to `game.js`. `stopTrials()` ends a run and is the cleanup that
+`init()`, `stop()`, and `reset()` share.
+
+`beginTrial` shows the stimulus for its `displayMs` (`null` waits for a press). Space or a
+click on the stimulus (`respond`) ends the trial early. `endTrial` records the result. Feedback
+(800 ms) appears only after a no-go trial or a missed go. Trials are separated by a 120 ms
+`ISI_MS`. Only one of these timeouts is pending at a time, so they share `_timer`. The Space
+listener is attached only while a run is playing.
+
+## Tutorial
+
+See [tutorial/CLAUDE.md](tutorial/CLAUDE.md). Practice rounds use `isCorrectResponse`,
+`createPracticeSequence(round)`, and `getIntervalMs(level)`, none of which change game state.
+
+`stop()` with no session running returns the idle result without saving. During the tutorial
+it cancels the tutorial and returns to the welcome panel.
 
 ## Saved fields
 
