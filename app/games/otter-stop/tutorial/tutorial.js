@@ -33,12 +33,6 @@ const TUTORIAL_STEP_DEFINITIONS = [
 ].map(([title, file]) => ({ title, contentPath: `${STEP_PATH}${file}` }));
 
 /**
- * How long the fish stays up in a guided round. Longer than the game's interval, so there is
- * time to read the coach before it goes.
- */
-export const GUIDED_NO_GO_MS = 3000;
-
-/**
  * Text for the practice rounds that follow the slides. Any text that describes a click also
  * gives the keyboard alternative.
  */
@@ -114,8 +108,8 @@ export const tutorial = createTutorialLauncher({
 // ── Practice rounds ───────────────────────────────────────────────────────────
 
 /**
- * How long a practice stimulus stays up with no press. A guided round waits for each otter
- * and holds the fish long enough to read the coach. Other rounds use the game's easiest
+ * How long a practice stimulus stays up with no press. A guided round waits for each otter.
+ * Every other stimulus, including the fish in a guided round, uses the game's easiest
  * interval.
  *
  * @param {boolean} guided
@@ -123,8 +117,7 @@ export const tutorial = createTutorialLauncher({
  * @returns {number|null} Milliseconds, or `null` to wait for a press.
  */
 function getPracticeDisplayMs(guided, isNoGo) {
-  if (!guided) return game.getIntervalMs(0);
-  return isNoGo ? GUIDED_NO_GO_MS : null;
+  return guided && !isNoGo ? null : game.getIntervalMs(0);
 }
 
 /**

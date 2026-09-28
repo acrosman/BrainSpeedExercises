@@ -108,7 +108,7 @@ globalThis.AudioContext = jest.fn(() => mockAudioCtx);
 const gameMock = await import('../game.js');
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
 // The real tutorial module runs, on top of the mocked tutorialService.
-const { PRACTICE_TEXT, GUIDED_NO_GO_MS } = await import('../tutorial/tutorial.js');
+const { PRACTICE_TEXT } = await import('../tutorial/tutorial.js');
 const indexModule = await import('../index.js');
 const plugin = indexModule.default;
 const {
@@ -1364,7 +1364,7 @@ describe('practice round', () => {
     return event;
   }
 
-  it('a guided round waits for each otter, then holds the fish, and never scores', async () => {
+  it('a guided round waits for each otter, then shows the fish, and never scores', async () => {
     const { context, done } = playRound();
     expect(container.querySelector('#os-game-area').hidden).toBe(false);
     expect(container.querySelector('#os-instructions').hidden).toBe(true);
@@ -1392,7 +1392,7 @@ describe('practice round', () => {
     expect(shownImage()).toBe('no-go.png');
     expect(context.hideMarker).toHaveBeenCalled();
     expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedNoGo);
-    jest.advanceTimersByTime(GUIDED_NO_GO_MS - 1);
+    jest.advanceTimersByTime(INTERVAL_MS - 1);
     expect(shownImage()).toBe('no-go.png');
     jest.advanceTimersByTime(1);
 

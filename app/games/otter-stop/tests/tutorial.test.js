@@ -30,7 +30,7 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
 }));
 
 const tutorialModule = await import('../tutorial/tutorial.js');
-const { PRACTICE_TEXT, GUIDED_NO_GO_MS, tutorial } = tutorialModule;
+const { PRACTICE_TEXT, tutorial } = tutorialModule;
 const tutorialServiceMock = await import('../../../components/tutorialService.js');
 const game = await import('../game.js');
 
@@ -210,7 +210,7 @@ describe('Otter Stop tutorial controller', () => {
     expect(controls.playTrials).toHaveBeenCalledWith(run);
   });
 
-  test('a guided round rings each otter, waits for it, and holds the fish longer', () => {
+  test('a guided round rings each otter and waits for it, then shows the fish as usual', () => {
     const { context, stimuli, run } = play();
 
     const first = run.next();
@@ -224,7 +224,7 @@ describe('Otter Stop tutorial controller', () => {
 
     const shown = [first, ...playAll(run, pressForOtters)];
     expect(shown.map(({ imageKey, isNoGo }) => ({ imageKey, isNoGo }))).toEqual(stimuli);
-    expect(shown.at(-1)).toEqual({ ...stimuli.at(-1), displayMs: GUIDED_NO_GO_MS });
+    expect(shown.at(-1)).toEqual({ ...stimuli.at(-1), displayMs: game.getIntervalMs(0) });
     expect(context.hideMarker).toHaveBeenCalled();
     expect(context.setInstructions).toHaveBeenLastCalledWith(PRACTICE_TEXT.guidedNoGo);
   });

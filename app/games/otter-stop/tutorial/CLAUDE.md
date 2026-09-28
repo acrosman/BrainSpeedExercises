@@ -29,8 +29,8 @@ no `isPracticing()` checks.
 - Rounds come from `game.createPracticeSequence(round)`: round 1 is three otters and the fish,
   round 2 is five otters (the longest run at level 1) and the fish.
 - Round 1 is guided. Each otter waits for a press (`displayMs: null`) with the picture area
-  marked (`shape: 'box'`). The fish removes the marker and stays up for `GUIDED_NO_GO_MS`, long
-  enough to read the coach.
+  marked (`shape: 'box'`). The fish removes the marker and stays up for the usual level 1
+  interval, `game.getIntervalMs(0)`.
 - Round 2 runs at the level 1 interval, `game.getIntervalMs(0)`, with no marker.
 - The round resolves when the fish's trial is recorded, while its feedback is still showing.
   Any mistake resolves `{ correct: false, feedback }`, and the retry plays the same script. The
