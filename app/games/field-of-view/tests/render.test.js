@@ -3,9 +3,11 @@
  * render.test.js - Unit tests for Field of View render utility module.
  */
 import {
+  afterEach,
   describe,
   test,
   expect,
+  jest,
 } from '@jest/globals';
 
 import {
@@ -15,6 +17,7 @@ import {
   labelForIcon,
   cellPosition,
   createStimulusImage,
+  preloadImages,
   buildTrendPolylinePoints,
   announce,
   setStageMode,
@@ -349,5 +352,38 @@ describe('updateLocationSelectionVisual', () => {
 
   test('tolerates null containerEl', () => {
     expect(() => updateLocationSelectionVisual(null, 1)).not.toThrow();
+  });
+});
+
+describe('preloadImages', () => {
+  afterEach(() => {
+    delete HTMLImageElement.prototype.decode;
+    delete globalThis.window.api;
+  });
+
+  test('returns one decoding image per file under the images path', () => {
+    HTMLImageElement.prototype.decode = jest.fn(() => Promise.resolve());
+
+    const images = preloadImages(['toy1.png', 'Field.png']);
+
+    expect(images.map((img) => img.getAttribute('src'))).toEqual([
+      `${IMAGES_BASE_PATH}toy1.png`,
+      `${IMAGES_BASE_PATH}Field.png`,
+    ]);
+    expect(HTMLImageElement.prototype.decode).toHaveBeenCalledTimes(2);
+  });
+
+  test('logs a warning when an image fails to decode', async () => {
+    HTMLImageElement.prototype.decode = jest.fn(() => Promise.reject(new Error('bad')));
+    globalThis.window.api = { invoke: jest.fn(() => Promise.resolve()) };
+
+    preloadImages(['missing.png']);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(globalThis.window.api.invoke).toHaveBeenCalledWith('log:send', {
+      level: 'warn',
+      message: 'Field of View could not preload missing.png',
+    });
   });
 });

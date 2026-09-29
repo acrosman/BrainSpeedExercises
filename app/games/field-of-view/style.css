@@ -51,9 +51,11 @@
 
 /* ── Stage (board + flash overlay wrapper) ───────────────────────────────── */
 
+/* A fixed square, so hiding the board during the mask never collapses the layout. */
 .fov-stage {
   position: relative;
   width: min(88vw, 520px);
+  aspect-ratio: 1 / 1;
   margin: 0 auto;
 }
 
@@ -161,8 +163,6 @@
 .fov-mask {
   position: absolute;
   inset: 0;
-  height: auto;
-  aspect-ratio: 1 / 1;
   border-radius: var(--radius-lg);
   border: 2px solid var(--text-base);
   background-image: url('images/Field.png');

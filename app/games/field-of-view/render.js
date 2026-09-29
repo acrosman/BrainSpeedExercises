@@ -10,6 +10,7 @@
  */
 
 import { buildPolylinePoints, renderTrendChart } from '../../components/trendChartService.js';
+import { logger } from '../../components/logService.js';
 
 /** Path to Field of View image assets from renderer root. */
 export const IMAGES_BASE_PATH = 'games/field-of-view/images/';
@@ -73,6 +74,26 @@ export function createStimulusImage(icon) {
   img.decoding = 'async';
   img.loading = 'eager';
   return img;
+}
+
+/**
+ * Load and decode images ahead of time, so the first stimulus and mask draw at once.
+ *
+ * The mask is a CSS background inside a hidden panel, which the browser does not fetch until it
+ * is first shown. Loading the same URL here puts it in the image cache first.
+ *
+ * @param {string[]} files - File names inside {@link IMAGES_BASE_PATH}.
+ * @returns {HTMLImageElement[]} The images being loaded.
+ */
+export function preloadImages(files) {
+  return files.map((file) => {
+    const img = new Image();
+    img.src = `${IMAGES_BASE_PATH}${file}`;
+    img.decode().catch(() => {
+      logger.warn(`Field of View could not preload ${file}`);
+    });
+    return img;
+  });
 }
 
 /**

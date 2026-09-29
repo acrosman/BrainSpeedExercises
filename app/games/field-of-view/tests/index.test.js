@@ -60,6 +60,9 @@ function buildLayout(centerId = 'primary-kitten') {
 
 jest.unstable_mockModule('../game.js', () => ({
   GAME_ID: 'field-of-view',
+  CENTRAL_TARGET_SET: [{ file: 'primaryKitten.png' }, { file: 'secondaryKitten.png' }],
+  PERIPHERAL_TARGET_SET: [{ file: 'toy1.png' }, { file: 'toy2.png' }],
+  MASK_SPEC: { file: 'Field.png' },
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({
@@ -102,6 +105,13 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
     return null;
   }),
 }));
+
+// jsdom does not implement image decoding. Record which images init() preloads.
+const decodedSources = [];
+HTMLImageElement.prototype.decode = jest.fn(function decode() {
+  decodedSources.push(this.getAttribute('src'));
+  return Promise.resolve();
+});
 
 const pluginModule = await import('../index.js');
 const plugin = pluginModule.default;
@@ -166,7 +176,7 @@ function buildContainer() {
       <div id="fov-mask" hidden></div>
     </div>
     <div id="fov-response" hidden>
-      <div id="fov-location-selector" class="fov-location-selector" hidden></div>
+      <div id="fov-location-selector" class="fov-location-selector"></div>
     </div>
     <div id="fov-feedback"></div>
     <strong id="fov-soa"></strong>
@@ -246,6 +256,19 @@ describe('field-of-view index', () => {
     expect(() => plugin.init(null)).not.toThrow();
   });
 
+  test('init preloads the kitten, toy, and mask images', () => {
+    decodedSources.length = 0;
+    plugin.init(document.body.firstElementChild);
+
+    expect(decodedSources).toEqual([
+      'games/field-of-view/images/primaryKitten.png',
+      'games/field-of-view/images/secondaryKitten.png',
+      'games/field-of-view/images/toy1.png',
+      'games/field-of-view/images/toy2.png',
+      'games/field-of-view/images/Field.png',
+    ]);
+  });
+
   test('start enters game area and eventually shows response phase', async () => {
     await plugin.start();
 
@@ -294,6 +317,46 @@ describe('field-of-view index', () => {
     expect(sources.some((src) => src.includes('toy1.png'))).toBe(true);
   });
 
+  test('stimulus phase builds the location grid before the response phase', async () => {
+    await plugin.start();
+
+    const selector = document.querySelector('#fov-location-selector');
+    expect(selector.hidden).toBe(false);
+    expect(selector.querySelectorAll('.fov-loc-cell')).toHaveLength(9);
+    expect(
+      document.querySelector('#fov-stage').classList.contains('fov-stage--response'),
+    ).toBe(false);
+  });
+
+  test('location clicks during the stimulus phase are ignored', async () => {
+    gameMock.recordTrial.mockClear();
+    await plugin.start();
+
+    const cell = document.querySelector('#fov-location-selector [data-index="1"]');
+    cell.click();
+
+    expect(cell.classList.contains('fov-loc-cell--selected')).toBe(false);
+    expect(gameMock.recordTrial).not.toHaveBeenCalled();
+  });
+
+  test('location grid is rebuilt at the size of each new trial', async () => {
+    const layout5 = {
+      ...buildLayout(),
+      gridSize: 5,
+      centerIndex: 12,
+      cells: Array.from({ length: 25 }, (_, index) => ({ index, role: 'empty', icon: null })),
+    };
+    gameMock.createTrialLayout.mockReturnValueOnce(buildLayout()).mockReturnValueOnce(layout5);
+
+    await plugin.start();
+    jest.runAllTimers();
+    document.querySelector('#fov-center-primary').click();
+    document.querySelector('#fov-location-selector [data-index="1"]').click();
+    jest.runOnlyPendingTimers();
+
+    expect(document.querySelectorAll('#fov-location-selector .fov-loc-cell')).toHaveLength(25);
+  });
+
   test('stop returns running result and updates end panel', async () => {
     await plugin.start();
     const result = plugin.stop();
@@ -340,6 +403,7 @@ describe('field-of-view index', () => {
     expect(document.querySelector('#fov-instructions').hidden).toBe(false);
     expect(document.querySelector('#fov-game-area').hidden).toBe(true);
     expect(document.querySelector('#fov-end-panel').hidden).toBe(true);
+    expect(document.querySelector('#fov-location-selector').children).toHaveLength(0);
   });
 
   test('return button dispatches main menu event', () => {
