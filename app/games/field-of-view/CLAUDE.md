@@ -46,6 +46,10 @@ board, so the response panel is full size before the first mask and changes to 5
 time as the board. Its clicks are ignored until the response phase (`_responseEnabled`). It is
 never `hidden` on its own; its parent `#fov-response` controls whether it shows.
 
+`init()` preloads every trial image (the kittens, the toys, and `MASK_SPEC.file`) with
+`render.preloadImages`. The mask is a CSS background inside a hidden panel, so without this the
+browser fetched it only when it was first shown, and the first trial's mask was blank.
+
 ## Saved fields
 
 `score` is `round(1000 / thresholdMs)`. `lowestDisplayTime` is the threshold in milliseconds.

@@ -556,6 +556,13 @@ function buildIdleResult() {
 /** Human-readable plugin name. */
 const name = 'Field of View';
 
+/** Every image a trial shows: the kittens, the toys, and the mask. */
+const PRELOAD_FILES = [
+  ...game.CENTRAL_TARGET_SET.map((icon) => icon.file),
+  ...game.PERIPHERAL_TARGET_SET.map((icon) => icon.file),
+  game.MASK_SPEC.file,
+];
+
 /**
  * Initialize plugin with injected game container.
  *
@@ -567,6 +574,8 @@ function init(gameContainer) {
   setPracticeControls(PRACTICE_CONTROLS);
 
   if (!_container) return;
+
+  render.preloadImages(PRELOAD_FILES);
 
   _instructionsEl = _container.querySelector('#fov-instructions');
   _gameAreaEl = _container.querySelector('#fov-game-area');

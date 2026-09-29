@@ -60,6 +60,9 @@ function buildLayout(centerId = 'primary-kitten') {
 
 jest.unstable_mockModule('../game.js', () => ({
   GAME_ID: 'field-of-view',
+  CENTRAL_TARGET_SET: [{ file: 'primaryKitten.png' }, { file: 'secondaryKitten.png' }],
+  PERIPHERAL_TARGET_SET: [{ file: 'toy1.png' }, { file: 'toy2.png' }],
+  MASK_SPEC: { file: 'Field.png' },
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({
@@ -102,6 +105,13 @@ jest.unstable_mockModule('../../../components/tutorialService.js', () => ({
     return null;
   }),
 }));
+
+// jsdom does not implement image decoding. Record which images init() preloads.
+const decodedSources = [];
+HTMLImageElement.prototype.decode = jest.fn(function decode() {
+  decodedSources.push(this.getAttribute('src'));
+  return Promise.resolve();
+});
 
 const pluginModule = await import('../index.js');
 const plugin = pluginModule.default;
@@ -244,6 +254,19 @@ describe('field-of-view index', () => {
 
   test('init accepts null container', () => {
     expect(() => plugin.init(null)).not.toThrow();
+  });
+
+  test('init preloads the kitten, toy, and mask images', () => {
+    decodedSources.length = 0;
+    plugin.init(document.body.firstElementChild);
+
+    expect(decodedSources).toEqual([
+      'games/field-of-view/images/primaryKitten.png',
+      'games/field-of-view/images/secondaryKitten.png',
+      'games/field-of-view/images/toy1.png',
+      'games/field-of-view/images/toy2.png',
+      'games/field-of-view/images/Field.png',
+    ]);
   });
 
   test('start enters game area and eventually shows response phase', async () => {
