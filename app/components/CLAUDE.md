@@ -20,6 +20,7 @@ Rules for every component:
 | `timerService.js` | games, shell | Session timer, `formatDuration`, today's date key |
 | `logService.js` | all renderer code | `logger.*`, forwarded to `electron-log` |
 | `audioService.js` | games | The shared `AudioContext` and every sound effect |
+| `syllableService.js` | games | Synthesized speech syllables and background noise |
 | `adaptiveDifficultyService.js` | games | Staircase counter math |
 | `trendChartService.js` | games | In-game SVG trend line |
 | `gameUtils.js` | games | `returnToMainMenu()` |
@@ -73,7 +74,33 @@ where Web Audio is missing. Every sound resumes a suspended context and swallows
   frequency sweeps between `SWEEP_LOW_FREQ_HZ` and `SWEEP_HIGH_FREQ_HZ` on the context clock and
   returns at once. Invalid input schedules nothing.
 
-Add new sounds here, with their tuning values as named constants at the top of the file.
+Add new sounds here, with their tuning values as named constants at the top of the file. Speech
+sounds go in `syllableService.js` instead.
+
+## `syllableService.js`
+
+Synthesized consonant-vowel syllables (/b d g p t/ × /a i/, listed in `SYLLABLE_IDS`) on the
+shared context from `getAudioContext()`. It never creates its own context.
+
+- Each syllable is a parallel formant synthesizer: a sawtooth voicing source and a noise source
+  feed band-pass filters for F1–F3, which glide from the consonant's onsets (`PLACE_CUES`) to
+  the vowel's steady values (`VOWEL_FORMANTS`) over `transitionMs`. Voiceless /p t/ play
+  aspiration noise through F2 and F3 until voicing starts (`VOT_MS`).
+- `VOICE_PROFILES` (`lower`, `higher`, listed in `VOICE_IDS`) set the falling F0 and a
+  `formantScale` that multiplies every formant and burst frequency.
+- `playSyllableSequence({ syllables, voices, gapsMs, transitionMs, snrDb })` schedules the
+  whole sequence on the audio clock, with one voice per syllable and `gapsMs` of silence
+  between syllables. It returns a `stop()` function that fades the sequence out; it is safe to
+  call more than once. Invalid options, or no Web Audio, schedule nothing and return a no-op.
+- `snrDb` adds looping brown noise (a leaky random walk, a soft rumble rather than hiss) from
+  the start to the end of the sequence, fading in and out over `NOISE_FADE_MS`; `null` means
+  none. The brown buffer is scaled to `BROWN_NOISE_RMS` and crossfaded at its ends so it loops
+  without a click. Bursts and aspiration use a separate white-noise buffer. The SNR is
+  approximate (`NOISE_GAIN_AT_0_DB`, tuned by ear), and `MAX_NOISE_GAIN` caps it.
+- `getSyllableSequenceDurationMs({ syllables, gapsMs, transitionMs })` is the total length,
+  including `NOISE_LEAD_MS` before the first syllable and `NOISE_TAIL_MS` after the last, with
+  or without noise. Open responses from it, never from a separate formula.
+- Tuning values are named constants at the top of the file. Change them by ear.
 
 ## `adaptiveDifficultyService.js`
 
@@ -223,10 +250,10 @@ controls, and routes input to the tutorial while it is practicing.
 5. Add `<id>/tutorial/CLAUDE.md` covering only what differs from the steps above: the controls,
    the hooks `index.js` calls, and the practice rules. Link it from the game's `CLAUDE.md`.
 
-Worked examples: `fast-piggie`, `directional-processing`, and `sound-sweep` (one answer per
-round), `card-rat` (a timed run of cards with one to act on), `field-of-view` (a two-part
-answer, with retries), `high-speed-memory` (several answers per round, with retries),
-`object-track` (several answers per round after an animation, with retries),
+Worked examples: `fast-piggie`, `directional-processing`, `sound-sweep`, and `fine-tuning`
+(one answer per round), `card-rat` (a timed run of cards with one to act on), `field-of-view`
+(a two-part answer, with retries), `high-speed-memory` (several answers per round, with
+retries), `object-track` (several answers per round after an animation, with retries),
 `orbit-sprite-memory` (several answers per round after a timed sequence, with retries), and
 `otter-stop` (a steady stream of responses, played through the game's own trial loop with no
 practice hooks, with retries).

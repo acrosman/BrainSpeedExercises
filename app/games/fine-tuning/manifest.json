@@ -1,0 +1,9 @@
+{
+  "id": "fine-tuning",
+  "name": "Fine Tuning",
+  "description": "Hear a target syllable, then two more in quick succession, and pick the one that matches — like \"ba\" versus \"da\". Trains the brain to tell similar speech sounds apart quickly, even in noise.",
+  "version": "0.1.0",
+  "entryPoint": "index.js",
+  "thumbnail": "images/thumbnail.jpg",
+  "author": "BrainSpeed Exercises"
+}

@@ -72,7 +72,8 @@ Games use the shared services in `app/components/`. Their APIs are in
   and draw it with `renderTrendChart` in the shared `.game-trend` markup.
 - **Session timing:** `startTimer(onTick)` in `start()`; `stopTimer()` in `stop()` gives
   `sessionDurationMs`.
-- **Audio:** only through `audioService.js`. Never create an `AudioContext` in a game.
+- **Audio:** only through `audioService.js`, or `syllableService.js` for speech sounds. Never
+  create an `AudioContext` in a game.
 - **Saving:** `saveScore(game.GAME_ID, result, extraFields?)` in `stop()`. Never call
   `progress:save` directly. Record in the game's `CLAUDE.md` which fields it saves.
 - **Precise stimulus timing:** stimuli shown for tens of milliseconds are driven with
