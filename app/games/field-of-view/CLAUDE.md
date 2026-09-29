@@ -35,6 +35,12 @@ milliseconds:
 
 Timing values are fractional. Round them only for display, with `render.formatMs`.
 
+## Play area layout
+
+The play area must not change size between phases. `.fov-stage` is a fixed square
+(`aspect-ratio: 1 / 1`). The mask is absolutely positioned over it, and the board is `hidden`
+during the mask phase, so the stage's own size is all that keeps the layout in place.
+
 ## Saved fields
 
 `score` is `round(1000 / thresholdMs)`. `lowestDisplayTime` is the threshold in milliseconds.
