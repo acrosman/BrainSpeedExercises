@@ -166,7 +166,7 @@ function buildContainer() {
       <div id="fov-mask" hidden></div>
     </div>
     <div id="fov-response" hidden>
-      <div id="fov-location-selector" class="fov-location-selector" hidden></div>
+      <div id="fov-location-selector" class="fov-location-selector"></div>
     </div>
     <div id="fov-feedback"></div>
     <strong id="fov-soa"></strong>
@@ -294,6 +294,46 @@ describe('field-of-view index', () => {
     expect(sources.some((src) => src.includes('toy1.png'))).toBe(true);
   });
 
+  test('stimulus phase builds the location grid before the response phase', async () => {
+    await plugin.start();
+
+    const selector = document.querySelector('#fov-location-selector');
+    expect(selector.hidden).toBe(false);
+    expect(selector.querySelectorAll('.fov-loc-cell')).toHaveLength(9);
+    expect(
+      document.querySelector('#fov-stage').classList.contains('fov-stage--response'),
+    ).toBe(false);
+  });
+
+  test('location clicks during the stimulus phase are ignored', async () => {
+    gameMock.recordTrial.mockClear();
+    await plugin.start();
+
+    const cell = document.querySelector('#fov-location-selector [data-index="1"]');
+    cell.click();
+
+    expect(cell.classList.contains('fov-loc-cell--selected')).toBe(false);
+    expect(gameMock.recordTrial).not.toHaveBeenCalled();
+  });
+
+  test('location grid is rebuilt at the size of each new trial', async () => {
+    const layout5 = {
+      ...buildLayout(),
+      gridSize: 5,
+      centerIndex: 12,
+      cells: Array.from({ length: 25 }, (_, index) => ({ index, role: 'empty', icon: null })),
+    };
+    gameMock.createTrialLayout.mockReturnValueOnce(buildLayout()).mockReturnValueOnce(layout5);
+
+    await plugin.start();
+    jest.runAllTimers();
+    document.querySelector('#fov-center-primary').click();
+    document.querySelector('#fov-location-selector [data-index="1"]').click();
+    jest.runOnlyPendingTimers();
+
+    expect(document.querySelectorAll('#fov-location-selector .fov-loc-cell')).toHaveLength(25);
+  });
+
   test('stop returns running result and updates end panel', async () => {
     await plugin.start();
     const result = plugin.stop();
@@ -340,6 +380,7 @@ describe('field-of-view index', () => {
     expect(document.querySelector('#fov-instructions').hidden).toBe(false);
     expect(document.querySelector('#fov-game-area').hidden).toBe(true);
     expect(document.querySelector('#fov-end-panel').hidden).toBe(true);
+    expect(document.querySelector('#fov-location-selector').children).toHaveLength(0);
   });
 
   test('return button dispatches main menu event', () => {

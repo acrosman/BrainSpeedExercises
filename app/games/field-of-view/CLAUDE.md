@@ -41,6 +41,11 @@ The play area must not change size between phases. `.fov-stage` is a fixed squar
 (`aspect-ratio: 1 / 1`). The mask is absolutely positioned over it, and the board is `hidden`
 during the mask phase, so the stage's own size is all that keeps the layout in place.
 
+The location grid (`#fov-location-selector`) is rebuilt in `runStimulusPhase`, alongside the
+board, so the response panel is full size before the first mask and changes to 5×5 at the same
+time as the board. Its clicks are ignored until the response phase (`_responseEnabled`). It is
+never `hidden` on its own; its parent `#fov-response` controls whether it shows.
+
 ## Saved fields
 
 `score` is `round(1000 / thresholdMs)`. `lowestDisplayTime` is the threshold in milliseconds.

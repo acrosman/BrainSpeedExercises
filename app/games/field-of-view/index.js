@@ -326,6 +326,27 @@ function resetResponseSelection() {
 }
 
 /**
+ * Build the toy location grid for the current trial.
+ *
+ * Called at the start of the stimulus so the response panel is already full size, and the grid
+ * changes size together with the board. Clicks are ignored until the response phase.
+ */
+function renderLocationSelector() {
+  if (!_currentTrial) return;
+  render.renderLocationGrid(
+    _locationSelectorEl,
+    _currentTrial.gridSize,
+    _currentTrial.centerIndex,
+    (index) => {
+      if (!_responseEnabled) return;
+      _selectedPeripheralIndex = index;
+      render.updateLocationSelectionVisual(_locationSelectorEl, index);
+      attemptAutoSubmit();
+    },
+  );
+}
+
+/**
  * Enter response phase after stimulus and mask complete.
  */
 function enterResponsePhase() {
@@ -338,21 +359,6 @@ function enterResponsePhase() {
   if (_boardEl) _boardEl.hidden = false;
 
   renderBoard(false);
-
-  if (_locationSelectorEl && _currentTrial) {
-    _locationSelectorEl.hidden = false;
-    render.renderLocationGrid(
-      _locationSelectorEl,
-      _currentTrial.gridSize,
-      _currentTrial.centerIndex,
-      (index) => {
-        if (!_responseEnabled) return;
-        _selectedPeripheralIndex = index;
-        render.updateLocationSelectionVisual(_locationSelectorEl, index);
-        attemptAutoSubmit();
-      },
-    );
-  }
 
   resetResponseSelection();
   if (isPracticing()) promptPracticeResponse();
@@ -396,6 +402,7 @@ function runStimulusPhase(targetSoa) {
   render.setMaskVisible(_maskEl, false);
 
   renderBoard(true);
+  renderLocationSelector();
 
   const start = nowMs();
 
@@ -684,10 +691,7 @@ function reset() {
   if (_boardEl) _boardEl.innerHTML = '';
   render.setStageMode(_stageEl, 'stimulus');
   render.setMaskVisible(_maskEl, false);
-  if (_locationSelectorEl) {
-    _locationSelectorEl.hidden = true;
-    _locationSelectorEl.innerHTML = '';
-  }
+  if (_locationSelectorEl) _locationSelectorEl.innerHTML = '';
   if (_responseEl) _responseEl.hidden = true;
   if (_feedbackEl) _feedbackEl.textContent = '';
   if (_instructionsEl) _instructionsEl.hidden = false;
