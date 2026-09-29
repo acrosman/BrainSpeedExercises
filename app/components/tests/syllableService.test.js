@@ -484,7 +484,15 @@ describe('playSyllableSequence: background noise', () => {
 
   test('caps the noise gain', () => {
     playSyllableSequence({ ...TRIAL, snrDb: -40 });
-    expect(noisePeak()).toBe(0.5);
+    const atZeroDb = (() => {
+      mockCtx = buildMockContext();
+      playSyllableSequence({ ...TRIAL, snrDb: 0 });
+      return noisePeak();
+    })();
+    expect(atZeroDb).toBeCloseTo(0.7);
+    mockCtx = buildMockContext();
+    playSyllableSequence({ ...TRIAL, snrDb: -40 });
+    expect(noisePeak()).toBeCloseTo(atZeroDb);
   });
 });
 

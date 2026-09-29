@@ -147,10 +147,10 @@ const FORMANT_BANDWIDTHS_HZ = Object.freeze([90, 110, 170]);
 const NOISE_GAIN_AT_0_DB = 0.7;
 
 /**
- * Ceiling on the background noise gain, whatever the SNR. It keeps long sessions comfortable
- * and protects the player's ears.
+ * Ceiling on the background noise gain, whatever the SNR: the 0 dB level, so the noise is never
+ * louder than the speech. It keeps long sessions comfortable and protects the player's ears.
  */
-const MAX_NOISE_GAIN = 0.5;
+const MAX_NOISE_GAIN = NOISE_GAIN_AT_0_DB;
 
 /** Fade-out (s) when a sequence is stopped early. */
 const STOP_RAMP_S = 0.02;

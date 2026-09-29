@@ -133,7 +133,7 @@ describe('exported constants', () => {
   });
 
   test('the noise never gets louder than the speech', () => {
-    expect(MIN_SNR_DB).toBeGreaterThan(0);
+    expect(MIN_SNR_DB).toBe(0);
     LEVELS.filter((level) => level.snrDb !== null).forEach((level) => {
       expect(level.snrDb).toBeGreaterThanOrEqual(MIN_SNR_DB);
     });

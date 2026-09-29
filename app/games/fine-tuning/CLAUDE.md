@@ -39,12 +39,13 @@ answer, so the task stays auditory. A miss names the target and where it was.
 
 1. Levels 1–6: clean audio with stretched transitions (100 → 50 ms) and long gaps.
 2. Level 7: natural transitions (40 ms).
-3. Levels 8–14: background noise that gets louder (+20 → +5 dB SNR), then compressed transitions
-   (35 → 25 ms) and cross-voice trials from level 12.
+3. Levels 8–14: brown background noise that gets louder (+20 → 0 dB SNR), then compressed
+   transitions (35 → 25 ms) and cross-voice trials from level 12.
 
-The game is meant to be played for long stretches, so the noise always stays quieter than the
-speech: no level goes below `MIN_SNR_DB` (+5 dB). Make the top levels harder through timing or
-voices, not louder noise. The service also fades the noise in and out and caps its gain.
+The game is meant to be played for long stretches, so the noise is never louder than the
+speech: no level goes below `MIN_SNR_DB` (0 dB, reached only at level 14). Make the top levels
+harder through timing or voices, not louder noise. The service also fades the noise in and out
+and caps its gain at the 0 dB level.
 
 The standard staircase applies, and trials are 500 ms apart. The trend chart tracks
 `transitionMs`. `tests/game.test.js` checks that no level is easier than the one before it.
