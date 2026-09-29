@@ -409,9 +409,21 @@ describe('playSyllableSequence: background noise', () => {
     expect(noisePeak() / quiet).toBeCloseTo(10 ** (15 / 20));
   });
 
+  test('fades the noise in and out over 150 ms', () => {
+    playSyllableSequence({ ...TRIAL, snrDb: 10 });
+    const { gain } = findNoiseBed();
+    const ramps = gain.gain.linearRampToValueAtTime.mock.calls;
+    expect(ramps[0][1]).toBeCloseTo(10.15);
+    const totalS = getSyllableSequenceDurationMs(TRIAL) / 1000;
+    const holds = gain.gain.setValueAtTime.mock.calls;
+    expect(holds[1][1]).toBeCloseTo(10 + totalS - 0.15);
+    // The noise is at full level before the first syllable starts, 250 ms in.
+    expect(ramps[0][1]).toBeLessThan(10.25);
+  });
+
   test('caps the noise gain', () => {
     playSyllableSequence({ ...TRIAL, snrDb: -40 });
-    expect(noisePeak()).toBe(1);
+    expect(noisePeak()).toBe(0.5);
   });
 });
 

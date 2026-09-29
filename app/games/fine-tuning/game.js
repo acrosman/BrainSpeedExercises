@@ -61,6 +61,12 @@ export const VOICE_SETTINGS = Object.freeze(['lower', 'higher', 'mixed']);
 /** Voice setting for a new player: the most intelligible voice. */
 export const DEFAULT_VOICE_SETTING = 'lower';
 
+/**
+ * Lowest speech-to-noise ratio (dB) any level may use. The game is played for long stretches,
+ * so the background noise always stays quieter than the speech.
+ */
+export const MIN_SNR_DB = 5;
+
 /** Consecutive correct responses needed to advance one level. */
 export const CORRECT_STREAK_TO_ADVANCE = 3;
 
@@ -99,12 +105,12 @@ export const LEVELS = Object.freeze([
   { transitionMs: 50, isiMs: 250, snrDb: null, crossVoice: false },
   { transitionMs: 40, isiMs: 200, snrDb: null, crossVoice: false },
   { transitionMs: 40, isiMs: 150, snrDb: 20, crossVoice: false },
-  { transitionMs: 40, isiMs: 120, snrDb: 15, crossVoice: false },
-  { transitionMs: 40, isiMs: 100, snrDb: 10, crossVoice: false },
-  { transitionMs: 40, isiMs: 80, snrDb: 5, crossVoice: false },
-  { transitionMs: 35, isiMs: 60, snrDb: 0, crossVoice: true },
-  { transitionMs: 30, isiMs: 55, snrDb: -3, crossVoice: true },
-  { transitionMs: 25, isiMs: 50, snrDb: -5, crossVoice: true },
+  { transitionMs: 40, isiMs: 120, snrDb: 16, crossVoice: false },
+  { transitionMs: 40, isiMs: 100, snrDb: 13, crossVoice: false },
+  { transitionMs: 40, isiMs: 80, snrDb: 10, crossVoice: false },
+  { transitionMs: 35, isiMs: 60, snrDb: 8, crossVoice: true },
+  { transitionMs: 30, isiMs: 55, snrDb: 6, crossVoice: true },
+  { transitionMs: 25, isiMs: 50, snrDb: 5, crossVoice: true },
 ].map((level) => Object.freeze(level)));
 
 /**

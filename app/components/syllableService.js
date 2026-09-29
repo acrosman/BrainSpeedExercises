@@ -60,6 +60,14 @@ const NOISE_LEAD_MS = 250;
 /** Silence (or noise) after the last syllable. */
 const NOISE_TAIL_MS = 150;
 
+/**
+ * Fade-in and fade-out of the background noise. The noise eases in during the lead-in and out
+ * during the tail, so each round does not start with an abrupt burst of hiss. It must not be
+ * longer than NOISE_LEAD_MS or NOISE_TAIL_MS, so the noise is at full level under every
+ * syllable.
+ */
+const NOISE_FADE_MS = 150;
+
 /** Length of the cached white-noise buffer, which loops for longer sequences. */
 const NOISE_BUFFER_S = 2;
 
@@ -116,8 +124,11 @@ const FORMANT_BANDWIDTHS_HZ = Object.freeze([90, 110, 170]);
  */
 const NOISE_GAIN_AT_0_DB = 0.7;
 
-/** Ceiling on the background noise gain, whatever the SNR, to protect the player's ears. */
-const MAX_NOISE_GAIN = 1;
+/**
+ * Ceiling on the background noise gain, whatever the SNR. It keeps long sessions comfortable
+ * and protects the player's ears.
+ */
+const MAX_NOISE_GAIN = 0.5;
 
 /** Fade-out (s) when a sequence is stopped early. */
 const STOP_RAMP_S = 0.02;
@@ -313,9 +324,10 @@ export function getSyllableSequenceDurationMs({ syllables, gapsMs, transitionMs 
  * @param {number} start - Context time (s) the fade-in starts.
  * @param {number} end - Context time (s) the fade-out ends.
  * @param {number} fadeOutS - Fade-out length (s).
+ * @param {number} [fadeInS] - Fade-in length (s). Defaults to the short click-free onset.
  */
-function scheduleEnvelope(param, level, start, end, fadeOutS) {
-  const attackEnd = Math.min(start + ONSET_RAMP_MS / 1000, end);
+function scheduleEnvelope(param, level, start, end, fadeOutS, fadeInS = ONSET_RAMP_MS / 1000) {
+  const attackEnd = Math.min(start + fadeInS, end);
   const releaseStart = Math.max(end - fadeOutS, attackEnd);
   param.setValueAtTime(0, start);
   param.linearRampToValueAtTime(level, attackEnd);
@@ -433,7 +445,8 @@ function scheduleNoiseBed(ctx, output, snrDb, startTime, endTime) {
   filter.type = 'lowpass';
   filter.frequency.setValueAtTime(NOISE_LOWPASS_HZ, startTime);
   const gain = ctx.createGain();
-  scheduleEnvelope(gain.gain, level, startTime, endTime, NOISE_TAIL_MS / 1000);
+  scheduleEnvelope(gain.gain, level, startTime, endTime, NOISE_FADE_MS / 1000,
+    NOISE_FADE_MS / 1000);
   source.connect(filter);
   filter.connect(gain);
   gain.connect(output);

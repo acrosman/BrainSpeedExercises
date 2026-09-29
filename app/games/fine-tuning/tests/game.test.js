@@ -23,6 +23,7 @@ import {
   WRONG_STREAK_TO_DROP,
   LEVEL_DROP,
   LEVELS,
+  MIN_SNR_DB,
   initGame,
   startGame,
   stopGame,
@@ -129,6 +130,13 @@ describe('exported constants', () => {
       }
       if (prev.crossVoice) expect(curr.crossVoice).toBe(true);
     }
+  });
+
+  test('the noise never gets louder than the speech', () => {
+    expect(MIN_SNR_DB).toBeGreaterThan(0);
+    LEVELS.filter((level) => level.snrDb !== null).forEach((level) => {
+      expect(level.snrDb).toBeGreaterThanOrEqual(MIN_SNR_DB);
+    });
   });
 
   test('levels follow the three phases: clean, natural speed, then noise', () => {
