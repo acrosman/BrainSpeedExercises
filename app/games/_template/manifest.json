@@ -4,6 +4,6 @@
   "description": "One or two sentences shown on the game-selection screen.",
   "version": "1.0.0",
   "entryPoint": "index.js",
-  "thumbnail": "images/thumb.png",
+  "thumbnail": "images/thumbnail.png",
   "author": "Your Name"
 }

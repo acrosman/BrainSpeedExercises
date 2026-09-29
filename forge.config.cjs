@@ -17,9 +17,10 @@ module.exports = {
     },
     ignore: [
       /^\/\.github/, /^\/coverage/, /^\/__mocks__/, /^\/out\//,
-      /^\/scripts/, 'contributing.md', 'CODE_OF_CONDUCT.md',
+      /^\/scripts/, 'contributing.md', 'CODE_OF_CONDUCT.md', /\/CLAUDE\.md$/,
       '.eslint.config.js', 'jest.config.js', 'forge.config.cjs',
-      /\/tests\//, /.test.js$/, /assets\/icons\/source\.png$/,
+      /\/tests(\/|$)/, /.test.js$/, /assets\/icons\/source\.png$/,
+      /^\/app\/games\/_template(\/|$)/, /^\/nohup\.out$/,
     ],
   },
   rebuildConfig: {},
