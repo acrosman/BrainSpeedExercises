@@ -12,7 +12,7 @@
  *   aspiration noise through F2 and F3 before voicing starts.
  * - Two voice profiles (`lower`, `higher`) change the pitch (F0) and scale every formant.
  *
- * A sequence can be played over speech-shaped background noise. The signal-to-noise ratio is
+ * A sequence can be played over brown background noise. The signal-to-noise ratio is
  * approximate: it is set from gain constants tuned by ear, not measured as RMS.
  *
  * @file Synthesized speech syllables.
@@ -68,11 +68,33 @@ const NOISE_TAIL_MS = 150;
  */
 const NOISE_FADE_MS = 150;
 
-/** Length of the cached white-noise buffer, which loops for longer sequences. */
-const NOISE_BUFFER_S = 2;
+/** Length of the cached white-noise buffer used for bursts and aspiration. */
+const WHITE_NOISE_BUFFER_S = 2;
 
-/** Low-pass cutoff (Hz) that shapes white noise to roughly the long-term speech spectrum. */
-const NOISE_LOWPASS_HZ = 2000;
+/**
+ * Length of the cached brown-noise buffer for the background. It loops if a sequence runs
+ * longer.
+ */
+const BROWN_NOISE_BUFFER_S = 4;
+
+/**
+ * Step of the random walk that turns white noise into brown noise. Each sample adds this much
+ * white noise to the last, then leaks back toward zero by the same fraction, so the walk never
+ * drifts away. Smaller steps put more of the energy at low frequencies.
+ */
+const BROWN_NOISE_STEP = 0.02;
+
+/**
+ * RMS level the brown noise is scaled to. It matches the low-passed white noise the game used
+ * before, so NOISE_GAIN_AT_0_DB keeps its calibration.
+ */
+const BROWN_NOISE_RMS = 0.18;
+
+/**
+ * Crossfade (s) between the end of the brown-noise buffer and its start, so it loops without a
+ * click. Brown noise drifts, so its last sample and first sample would not otherwise meet.
+ */
+const BROWN_NOISE_LOOP_FADE_S = 0.05;
 
 // ── Levels ────────────────────────────────────────────────────────────────────
 
@@ -206,11 +228,17 @@ export const SYLLABLE_IDS = Object.freeze(Object.keys(SYLLABLE_SPECS));
 
 // ── Cached noise ──────────────────────────────────────────────────────────────
 
-/** @type {AudioBuffer|null} White noise shared by bursts, aspiration, and the noise bed. */
-let _noiseBuffer = null;
+/** @type {AudioBuffer|null} White noise shared by bursts and aspiration. */
+let _whiteNoiseBuffer = null;
 
-/** @type {AudioContext|null} The context `_noiseBuffer` was built for. */
-let _noiseBufferCtx = null;
+/** @type {AudioContext|null} The context `_whiteNoiseBuffer` was built for. */
+let _whiteNoiseBufferCtx = null;
+
+/** @type {AudioBuffer|null} Brown noise for the background. */
+let _brownNoiseBuffer = null;
+
+/** @type {AudioContext|null} The context `_brownNoiseBuffer` was built for. */
+let _brownNoiseBufferCtx = null;
 
 /**
  * Return a white-noise buffer for `ctx`, building it on first use.
@@ -218,16 +246,80 @@ let _noiseBufferCtx = null;
  * @param {AudioContext} ctx
  * @returns {AudioBuffer}
  */
-function getNoiseBuffer(ctx) {
-  if (_noiseBuffer && _noiseBufferCtx === ctx) return _noiseBuffer;
-  const length = Math.ceil(ctx.sampleRate * NOISE_BUFFER_S);
+function getWhiteNoiseBuffer(ctx) {
+  if (_whiteNoiseBuffer && _whiteNoiseBufferCtx === ctx) return _whiteNoiseBuffer;
+  const length = Math.ceil(ctx.sampleRate * WHITE_NOISE_BUFFER_S);
   const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < length; i++) {
     data[i] = Math.random() * 2 - 1;
   }
-  _noiseBuffer = buffer;
-  _noiseBufferCtx = ctx;
+  _whiteNoiseBuffer = buffer;
+  _whiteNoiseBufferCtx = ctx;
+  return buffer;
+}
+
+/**
+ * Generate a leaky random walk: white noise integrated so its energy falls off with frequency
+ * (brown noise).
+ *
+ * @param {number} length - Number of samples.
+ * @returns {Float32Array}
+ */
+function generateBrownWalk(length) {
+  const walk = new Float32Array(length);
+  let last = 0;
+  for (let i = 0; i < length; i++) {
+    last = (last + BROWN_NOISE_STEP * (Math.random() * 2 - 1)) / (1 + BROWN_NOISE_STEP);
+    walk[i] = last;
+  }
+  return walk;
+}
+
+/**
+ * Scale samples in place so their RMS is `targetRms`. Silent input is left alone.
+ *
+ * @param {Float32Array} data
+ * @param {number} targetRms
+ */
+function normalizeRms(data, targetRms) {
+  let sumOfSquares = 0;
+  for (let i = 0; i < data.length; i++) {
+    sumOfSquares += data[i] * data[i];
+  }
+  const rms = Math.sqrt(sumOfSquares / data.length);
+  if (rms === 0) return;
+  const scale = targetRms / rms;
+  for (let i = 0; i < data.length; i++) {
+    data[i] *= scale;
+  }
+}
+
+/**
+ * Return a seamlessly looping brown-noise buffer for `ctx`, building it on first use.
+ *
+ * The walk runs past the end of the buffer, and the start of the buffer is crossfaded from
+ * those extra samples into its own. The sample after the last one is then the walk's own next
+ * sample, so the loop point is as smooth as anywhere else in the noise.
+ *
+ * @param {AudioContext} ctx
+ * @returns {AudioBuffer}
+ */
+function getBrownNoiseBuffer(ctx) {
+  if (_brownNoiseBuffer && _brownNoiseBufferCtx === ctx) return _brownNoiseBuffer;
+  const length = Math.ceil(ctx.sampleRate * BROWN_NOISE_BUFFER_S);
+  const fade = Math.ceil(ctx.sampleRate * BROWN_NOISE_LOOP_FADE_S);
+  const walk = generateBrownWalk(length + fade);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  data.set(walk.subarray(0, length));
+  for (let i = 0; i < fade; i++) {
+    const t = i / fade;
+    data[i] = walk[length + i] * (1 - t) + walk[i] * t;
+  }
+  normalizeRms(data, BROWN_NOISE_RMS);
+  _brownNoiseBuffer = buffer;
+  _brownNoiseBufferCtx = ctx;
   return buffer;
 }
 
@@ -387,7 +479,7 @@ function scheduleSyllable(ctx, output, { id, voice, startTime, transitionMs }) {
 
   // Noise: the release burst, and for voiceless stops the aspiration before voicing.
   const noise = ctx.createBufferSource();
-  noise.buffer = getNoiseBuffer(ctx);
+  noise.buffer = getWhiteNoiseBuffer(ctx);
   const burstFilter = ctx.createBiquadFilter();
   burstFilter.type = 'bandpass';
   burstFilter.frequency.setValueAtTime(burstHz * formantScale, startTime);
@@ -427,7 +519,8 @@ function scheduleSyllable(ctx, output, { id, voice, startTime, transitionMs }) {
 }
 
 /**
- * Schedule looping, speech-shaped background noise from `startTime` to `endTime`.
+ * Schedule looping brown background noise from `startTime` to `endTime`. Brown noise puts
+ * most of its energy at low frequencies, so it sounds like a soft rumble rather than a hiss.
  *
  * @param {AudioContext} ctx
  * @param {AudioNode} output - The master bus.
@@ -439,16 +532,12 @@ function scheduleSyllable(ctx, output, { id, voice, startTime, transitionMs }) {
 function scheduleNoiseBed(ctx, output, snrDb, startTime, endTime) {
   const level = Math.min(NOISE_GAIN_AT_0_DB * 10 ** (-snrDb / 20), MAX_NOISE_GAIN);
   const source = ctx.createBufferSource();
-  source.buffer = getNoiseBuffer(ctx);
+  source.buffer = getBrownNoiseBuffer(ctx);
   source.loop = true;
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(NOISE_LOWPASS_HZ, startTime);
   const gain = ctx.createGain();
   scheduleEnvelope(gain.gain, level, startTime, endTime, NOISE_FADE_MS / 1000,
     NOISE_FADE_MS / 1000);
-  source.connect(filter);
-  filter.connect(gain);
+  source.connect(gain);
   gain.connect(output);
   source.start(startTime);
   source.stop(endTime);

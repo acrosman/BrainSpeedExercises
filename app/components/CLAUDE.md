@@ -92,9 +92,11 @@ shared context from `getAudioContext()`. It never creates its own context.
   whole sequence on the audio clock, with one voice per syllable and `gapsMs` of silence
   between syllables. It returns a `stop()` function that fades the sequence out; it is safe to
   call more than once. Invalid options, or no Web Audio, schedule nothing and return a no-op.
-- `snrDb` adds looping, low-passed white noise from the start to the end of the sequence,
-  fading in and out over `NOISE_FADE_MS`; `null` means none. The SNR is approximate (`NOISE_GAIN_AT_0_DB`, tuned by ear), and
-  `MAX_NOISE_GAIN` caps it.
+- `snrDb` adds looping brown noise (a leaky random walk, a soft rumble rather than hiss) from
+  the start to the end of the sequence, fading in and out over `NOISE_FADE_MS`; `null` means
+  none. The brown buffer is scaled to `BROWN_NOISE_RMS` and crossfaded at its ends so it loops
+  without a click. Bursts and aspiration use a separate white-noise buffer. The SNR is
+  approximate (`NOISE_GAIN_AT_0_DB`, tuned by ear), and `MAX_NOISE_GAIN` caps it.
 - `getSyllableSequenceDurationMs({ syllables, gapsMs, transitionMs })` is the total length,
   including `NOISE_LEAD_MS` before the first syllable and `NOISE_TAIL_MS` after the last, with
   or without noise. Open responses from it, never from a separate formula.

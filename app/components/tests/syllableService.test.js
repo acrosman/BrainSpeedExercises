@@ -388,16 +388,77 @@ describe('playSyllableSequence: background noise', () => {
     expect(mockCtx.sources.some((s) => s.loop)).toBe(false);
   });
 
-  test('plays low-passed looping noise across the whole sequence', () => {
+  test('plays looping brown noise, unfiltered, across the whole sequence', () => {
     playSyllableSequence({ ...TRIAL, snrDb: 10 });
-    const { source } = findNoiseBed();
+    const { source, gain } = findNoiseBed();
     expect(source).toBeDefined();
-    const lowpass = mockCtx.filters.find((f) => f.type === 'lowpass');
-    expect(lowpass).toBeDefined();
+    expect(mockCtx.filters.some((f) => f.type === 'lowpass')).toBe(false);
+    expect(source.connect).toHaveBeenCalledWith(gain);
     expect(source.start).toHaveBeenCalledWith(10);
     const totalS = getSyllableSequenceDurationMs(TRIAL) / 1000;
     expect(source.stop.mock.calls[0][0]).toBeCloseTo(10 + totalS);
-    expect(findNoiseBed().gain.connect).toHaveBeenCalledWith(mockCtx.gains[0]);
+    expect(gain.connect).toHaveBeenCalledWith(mockCtx.gains[0]);
+  });
+
+  test('the background uses its own buffer, not the white noise of the bursts', () => {
+    playSyllableSequence({ ...TRIAL, snrDb: 10 });
+    const burstBuffer = mockCtx.sources[0].buffer;
+    const { source } = findNoiseBed();
+    expect(source.buffer).not.toBe(burstBuffer);
+    expect(mockCtx.createBuffer).toHaveBeenCalledTimes(2);
+
+    // Both buffers are cached.
+    playSyllableSequence({ ...TRIAL, snrDb: 10 });
+    expect(mockCtx.createBuffer).toHaveBeenCalledTimes(2);
+  });
+
+  describe('brown noise', () => {
+    /**
+     * Samples of the background noise buffer.
+     *
+     * @returns {Float32Array}
+     */
+    function brownSamples() {
+      playSyllableSequence({ ...TRIAL, snrDb: 10 });
+      return findNoiseBed().source.buffer.getChannelData(0);
+    }
+
+    /**
+     * Mean absolute difference between neighboring samples.
+     *
+     * @param {Float32Array} data
+     * @returns {number}
+     */
+    function meanStep(data) {
+      let sum = 0;
+      for (let i = 1; i < data.length; i += 1) sum += Math.abs(data[i] - data[i - 1]);
+      return sum / (data.length - 1);
+    }
+
+    test('is scaled to the calibrated RMS level', () => {
+      const data = brownSamples();
+      const rms = Math.sqrt(data.reduce((sum, v) => sum + v * v, 0) / data.length);
+      expect(rms).toBeCloseTo(0.18, 5);
+    });
+
+    test('changes slowly from sample to sample, unlike white noise', () => {
+      const data = brownSamples();
+      // White noise at the same RMS would move about 0.2 between samples.
+      expect(meanStep(data)).toBeLessThan(0.1);
+    });
+
+    test('loops without a jump from the last sample to the first', () => {
+      const data = brownSamples();
+      const seam = Math.abs(data[0] - data[data.length - 1]);
+      expect(seam).toBeLessThan(meanStep(data) * 5);
+    });
+
+    test('a silent walk is left silent', () => {
+      jest.spyOn(Math, 'random').mockReturnValue(0.5);
+      const data = brownSamples();
+      jest.restoreAllMocks();
+      expect(data.every((v) => v === 0)).toBe(true);
+    });
   });
 
   test('a lower SNR plays louder noise', () => {
