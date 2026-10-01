@@ -43,6 +43,13 @@ After any change to `package.json` or `package-lock.json`, run `rm -rf node_modu
 before committing. CI installs with `npm ci`, which fails when the lockfile is out of sync, even
 if lint and tests pass against the existing `node_modules`.
 
+### Releasing
+
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`, which builds on macOS, Linux, and
+Windows and attaches the installers to the GitHub release. Forge finds that release by
+`package.json`'s version, not by the tag. So merge a version bump (`npm version X.Y.Z
+--no-git-tag-version`) before you tag. The workflow fails if the tag and version differ.
+
 ### Driving the app from a script
 
 To check a change in the running app (for example with Playwright's `_electron`, installed
