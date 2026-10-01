@@ -7,9 +7,11 @@ the registry. Start new games by copying `_template/`.
 ## How a game gets loaded
 
 1. `registry.js` (main process) runs `scanGamesDirectory`. It reads every `<id>/manifest.json`
-   and skips entries that are missing required fields.
+   and skips entries that are missing required fields, whose `id` does not match the directory
+   name, or whose `entryPoint` resolves outside the game's directory.
 2. When the player picks a game, `games:load` returns `{ manifest, html }`, where `html` is the
-   raw `interface.html`.
+   raw `interface.html`. The main process never imports game code: game modules run only in
+   the renderer.
 3. `app/interface.js` injects the HTML into the game container, adds `<id>/style.css`, imports
    `./games/<id>/<entryPoint>`, and calls **only `init(container)`**. The game starts itself when
    the player presses its Start button.
