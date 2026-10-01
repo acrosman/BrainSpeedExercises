@@ -21,6 +21,16 @@ jobs:
         with:
           node-version: 24
           cache: "npm"
+      # Forge publishes to the release named v<package.json version>, not to the pushed tag.
+      # A tag pushed without bumping the version would upload to the previous release.
+      - name: Check tag matches package.json version
+        shell: bash
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version ($expected)."
+            exit 1
+          fi
       - run: npm ci
       - run: npm test
       - name: Install rpm tools (Linux only)
