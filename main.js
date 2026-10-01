@@ -12,10 +12,15 @@
 import { app, BrowserWindow, ipcMain, session, screen } from 'electron';
 import debug from 'electron-debug';
 import log from 'electron-log';
-import { readFile, readdir } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import path from 'path';
 import { loadProgress, saveProgress, resetProgress } from './app/progress/progressManager.js';
-import { scanGamesDirectory, loadGame } from './app/games/registry.js';
+import {
+  scanGamesDirectory,
+  findGame,
+  listGameImages,
+  resolveInside,
+} from './app/games/registry.js';
 
 debug();
 
@@ -194,8 +199,8 @@ const gamesPath = path.join(app.getAppPath(), 'app', 'games');
 ipcMain.handle('games:list', async () => scanGamesDirectory(gamesPath));
 
 ipcMain.handle('games:load', async (event, gameId) => {
-  const { manifest } = await loadGame(gamesPath, gameId);
-  const htmlFilePath = path.join(gamesPath, gameId, 'interface.html');
+  const manifest = await findGame(gamesPath, gameId);
+  const htmlFilePath = resolveInside(gamesPath, [manifest.id, 'interface.html']);
   const html = await readFile(htmlFilePath, 'utf8').catch(() => {
     throw new Error(`Could not read interface HTML for game: ${gameId}`);
   });
@@ -210,15 +215,10 @@ ipcMain.handle('games:load', async (event, gameId) => {
  * @param {{ gameId: string, subfolder: string }} params
  * @returns {Promise<string[]>} Sorted array of filenames (with extension) in the subfolder.
  */
-ipcMain.handle('games:listImages', async (event, { gameId, subfolder }) => {
-  const dirPath = path.join(gamesPath, gameId, 'images', subfolder);
-  try {
-    const files = await readdir(dirPath);
-    return files.filter((f) => /\.(png|jpe?g)$/i.test(f)).sort();
-  } catch {
-    return [];
-  }
-});
+ipcMain.handle(
+  'games:listImages',
+  async (event, { gameId, subfolder }) => listGameImages(gamesPath, gameId, subfolder),
+);
 
 /**
  * Maximum number of characters accepted from renderer-provided log messages.

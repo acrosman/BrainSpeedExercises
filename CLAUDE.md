@@ -158,3 +158,8 @@ All UI must meet WCAG 2.2 AA:
 - No `eval` or `new Function` in the renderer. Keep the CSP in `app/index.html` at
   `default-src 'self'; script-src 'self'`.
 - Every new IPC channel must be added to the allowlist in `app/preload.js`.
+- Build file paths from renderer input or manifest fields with `resolveInside` from
+  `app/games/registry.js`, never with a bare `path.join`. It rejects `..`, absolute paths, and
+  Windows drive letters that would leave the base directory.
+- Never pass a filesystem path to `import()`. On Windows, `C:\...` is read as a URL with the
+  scheme `c:` and fails. Convert it first with `pathToFileURL(p).href` from `url`.
