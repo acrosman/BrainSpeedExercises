@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ macos-latest, ubuntu-latest, windows-latest ]
@@ -22,4 +24,13 @@ jobs:
       - name: Install rpm tools (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y rpm
-      - run: npm run package
+      # Build the same installers as the release workflow, so a PR can be tested as shipped.
+      - name: Build installers
+        run: npm run make -- ${{ matrix.os == 'macos-latest' && '--arch=universal' || '' }}
+      - name: Upload installers
+        uses: actions/upload-artifact@v7
+        with:
+          name: brain-speed-exercises-${{ runner.os }}-pr${{ github.event.pull_request.number }}
+          path: out/make/
+          if-no-files-found: error
+          retention-days: 14
