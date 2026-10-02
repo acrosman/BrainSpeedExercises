@@ -227,6 +227,9 @@
  * Apply .game-trend to the <section> that wraps the SVG polyline chart.
  * The inner SVG uses .game-trend__chart; status messages use .game-trend__meta /
  * .game-trend__empty.
+ *
+ * The chart is ruled card paper. Its polyline must use stroke="currentColor", so the
+ * line takes --trend-line from the chart's colour.
  */
 
 .game-trend {
@@ -252,7 +255,13 @@
   margin-top: 0.35rem;
   border: 1px solid var(--trend-chart-border);
   border-radius: var(--radius-md);
-  background: linear-gradient(180deg, #f8fafc 0%, #e5edf5 100%);
+  background-color: var(--bg-card);
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 19px,
+    var(--trend-chart-border) 19px 20px
+  );
+  color: var(--trend-line);
 }
 
 .game-trend__empty,
