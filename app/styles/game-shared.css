@@ -279,9 +279,9 @@
  *
  *   .tutorial-overlay              — full-screen wrapper (positions the backdrop + panel)
  *     .tutorial-overlay__backdrop  — semi-transparent scrim
- *     .tutorial-overlay__panel     — white card containing tutorial content
- *       .tutorial-overlay__step-indicator — "Step N of M" counter
- *       .tutorial-overlay__title          — step heading <h2>
+ *     .tutorial-overlay__panel     — card-paper panel containing tutorial content
+ *       .tutorial-overlay__step-indicator — "Step N of M" counter (clay eyebrow)
+ *       .tutorial-overlay__title          — step heading <h2> (Fraunces)
  *       .tutorial-overlay__content        — step body text / HTML
  *       .tutorial-overlay__actions        — Prev / Next button row
  *         .tutorial-overlay__btn.tutorial-overlay__btn--primary    — Next / Got it!
@@ -309,15 +309,15 @@
   z-index: 1;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
   max-width: 480px;
   width: calc(100% - 2rem);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  gap: var(--space-3);
+  box-shadow: var(--shadow-2);
 }
 
 .tutorial-overlay__panel:focus-visible {
@@ -325,19 +325,24 @@
   outline-offset: 2px;
 }
 
-.tutorial-overlay__step-indicator {
+.tutorial-overlay__step-indicator,
+.tutorial-coach__label {
   margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-subtle);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
 }
 
 .tutorial-overlay__title {
   margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'SOFT' 50;
   color: var(--text-heading);
 }
 
@@ -446,13 +451,14 @@
  * Shown by tutorialService.js (built in tutorialCoach.js) while a game plays a guided
  * practice round. Neither covers the game, so the player can still use the board.
  *
- *   .tutorial-coach               — sticky banner prepended to the game container
+ *   .tutorial-coach               — sticky banner prepended to the game container (clay left rule)
  *     .tutorial-coach__message    — aria-live label ("Practice round 1 of 2") and instructions
  *     .tutorial-coach__controls   — always-present row, so the banner keeps its height and
  *                                   the board below does not jump when a prompt appears
  *       .tutorial-coach__actions  — "Play Another Round" / "Start the Game" prompt buttons
  *       .tutorial-coach__skip     — "Skip Practice" link-style button
- *   .tutorial-marker              — pulsing ring over the control to use (pointer-events: none)
+ *   .tutorial-marker              — pulsing pen-blue ring over the control to use, with a white
+ *                                   halo (pointer-events: none)
  */
 
 .tutorial-coach {
@@ -469,23 +475,14 @@
   box-sizing: border-box;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-left: 4px solid var(--tutorial-marker);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
 }
 
 .tutorial-coach:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
-}
-
-.tutorial-coach__label {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-subtle);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 /* Room for two lines, so instructions of different lengths do not resize the banner. */
