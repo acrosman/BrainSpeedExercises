@@ -32,7 +32,8 @@
 /* ── Welcome / instructions panel ───────────────────────────────────────── */
 /*
  * Apply .game-welcome to the instructions <div> shown before the game starts.
- * The panel always starts with <h3>How to Play</h3>.
+ * The panel always starts with <h3>How to Play</h3>, drawn as a clay eyebrow label.
+ * Key names use the global kbd key cap from base.css.
  */
 
 .game-welcome {
@@ -42,14 +43,24 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1.5rem 2rem;
+  box-shadow: var(--shadow-1);
+  padding: var(--space-5) var(--space-6);
   box-sizing: border-box;
 }
 
+/* Same look as .eyebrow in base.css; kept as an h3 for the heading outline. */
 .game-welcome h3 {
-  font-size: 1.25rem;
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
   font-weight: 700;
-  margin: 0 0 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.game-welcome li::marker {
+  color: var(--accent);
 }
 
 .game-welcome p {
