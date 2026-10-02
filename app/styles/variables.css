@@ -26,6 +26,7 @@
   --bg-subtle:  #ede6d6;   /* Hover rows, kbd (alias of sunken)                 */
   --bg-dark:    #1f3a2e;   /* Deep ink: skip link, dark controls                */
   --bg-nav:     #244a37;   /* Dark forest: legacy dark buttons                  */
+  --scrim:      rgb(30 42 35 / 55%);  /* Modal backdrop: ink at 55% over the page */
 
   /* ── Text palette ───────────────────────────────────────────────────────── */
   --text-base:     #1e2a23;  /* Primary text   (13.2 paper, 14.6 card, 12.0 sunken) */
