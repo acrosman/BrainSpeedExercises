@@ -81,8 +81,8 @@
 
   /* ── Shared game-component palette ─────────────────────────────────────── */
   --game-results-border:     var(--border-color);
-  --game-results-row-border: var(--border-color);
-  --game-results-label:      var(--text-muted);
+  --game-results-row-border: var(--border-strong);  /* Dotted leader between label and value */
+  --game-results-label:      var(--accent);         /* Eyebrow label (6.0 card)             */
   --game-results-value:      var(--text-base);
 
   /* ── Tutorial practice marker ───────────────────────────────────────────── */
