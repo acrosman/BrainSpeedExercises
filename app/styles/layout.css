@@ -67,3 +67,15 @@ footer {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.5rem;
 }
+
+/* Eyebrow above the cards. The alt text after the slash is empty, so screen readers skip it;
+   the section is already labelled "Available games". */
+#game-selector::before {
+  content: 'Choose an exercise' / '';
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
