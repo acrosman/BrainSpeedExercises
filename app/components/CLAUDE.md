@@ -128,11 +128,15 @@ game should leave.
 ## `gameCard.js`
 
 `createGameCard(manifest, progress)` returns an `<article class="game-card">` with the
-thumbnail, name, description, a stats line, and a Play button. A click anywhere on the card
-dispatches a bubbling `game:select` event with `detail.gameId`. The stats line joins whatever
-is present: Top Score, Max Level (`highestLevel + 1`), Min Display Time, and time played today.
-It is left out when none of them are present. The function throws without `manifest.id` and
-`manifest.name`.
+thumbnail (inside `.game-card__frame`), name, description, a stats list, and a "Play →" button
+whose accessible name is "Play <name>" (the arrow is `aria-hidden`). A click anywhere on the
+card dispatches a bubbling `game:select` event with `detail.gameId`.
+
+The stats list is a `<dl class="game-high-score game-card__stats">` labelled "Stats for <name>",
+with one `.game-card__stat` (`dt` + `dd`) for each stat present, in this order: Top score, Max
+level (`highestLevel + 1`), Fastest (`lowestDisplayTime` in ms), and Today (time played
+today). It is left out when none of them are present. The function throws without
+`manifest.id` and `manifest.name`.
 
 ## `historyView.js`
 

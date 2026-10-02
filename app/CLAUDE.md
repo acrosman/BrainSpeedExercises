@@ -67,8 +67,8 @@ fires `bsx:return-to-main-menu` so the menu rebuilds. Build any new modal the sa
 | `variables.css` | All design tokens: theme colors (backgrounds, text, accent, borders, focus ring, buttons, status, results, trend, charts), then type (`--font-display`, `--font-body`), radii, shadows, spacing, transitions, and the `--stim-*` stimulus surfaces |
 | `base.css` | Reset, body defaults, `.sr-only`, `.eyebrow`, `kbd` key caps, global focus ring, reduced-motion overrides |
 | `layout.css` | Paper masthead (`.masthead__title`), nav, main, footer, game-selector grid |
-| `game-card.css` | Game tiles and the play-time bar |
-| `history.css` | History modal, charts, table |
+| `game-card.css` | Game cards (specimen plates: framed thumbnail, stats list, Play button) and the play-time ledger strip |
+| `history.css` | History modal (uses `--scrim` for its backdrop), charts, table |
 | `game-shared.css` | Shared game panels, buttons, trend chart, tutorial overlay, practice coach and marker |
 
 - Use `var(--token)` instead of hard-coded colors, radii, or transitions. When you add a token
