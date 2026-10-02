@@ -1,6 +1,7 @@
 /* ── Shared Game UI Components ───────────────────────────────────────────────
  *
  * Reusable UI elements shared across all game plugins:
+ *   • game title       — the <h2> directly inside each game's root <section>
  *   • .game-welcome    — instructions / welcome panel
  *   • .game-end-panel  — end-of-session results layout
  *   • .game-results    — results definition list
@@ -11,6 +12,22 @@
  * game-specific classes. Do NOT duplicate these styles in game stylesheets.
  * Depends on: variables.css
  */
+
+/* ── Game title ──────────────────────────────────────────────────────────── */
+/*
+ * Every game's root <section> holds its title <h2> as a direct child. The ID selector
+ * outranks per-game h2 rules on purpose. It sets the typeface only, never colour, so a
+ * game keeps whatever colour its own stylesheet gives the title.
+ */
+
+#game-container > section > h2 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  font-variation-settings: 'SOFT' 50;
+}
 
 /* ── Welcome / instructions panel ───────────────────────────────────────── */
 /*
