@@ -147,19 +147,24 @@
 
 /* ── Shared game buttons ─────────────────────────────────────────────────── */
 /*
- * .game-btn           — base style; always pair with a variant modifier.
- * .game-btn--primary  — "Start Game" / "Play Again" (blue).
- * .game-btn--secondary — "Return to Menu" / "End Game" (red).
+ * .game-btn            — base style; always pair with a variant modifier.
+ * .game-btn--primary   — "Start Game" / "Play Again" (forest fill).
+ * .game-btn--secondary — "End Game" / "Return to Menu" / "Replay Tutorial" (outlined ink).
+ *                        None of these is destructive, so it is not red.
+ *
+ * Buttons do not inherit the page font, so each rule sets --font-body.
  */
 
 .game-btn {
   padding: 0.55rem 1.4rem;
+  font-family: var(--font-body);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    transform var(--transition-quick);
 }
 
 .game-btn:focus-visible {
@@ -177,14 +182,21 @@
   background: var(--btn-primary-hover);
 }
 
+.game-btn--primary:active {
+  background: var(--btn-primary-active);
+  transform: translateY(2px);
+}
+
+/* Hover darkens the outline too: on card panels the hover fill alone would not show. */
 .game-btn--secondary {
-  background: var(--btn-danger-bg);
-  color: var(--bg-card);
-  border-color: var(--btn-danger-border);
+  background: transparent;
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
 }
 
 .game-btn--secondary:hover {
-  background: var(--btn-danger-hover);
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-text);
 }
 
 /* ── In-game speed/difficulty trend chart ────────────────────────────────── */
@@ -320,16 +332,18 @@
   margin-top: 0.5rem;
 }
 
-/* Tutorial nav and coach buttons reuse the same base shape as .game-btn */
+/* Tutorial nav and coach buttons mirror .game-btn: forest primary, outlined secondary. */
 .tutorial-overlay__btn,
 .tutorial-coach__btn {
   padding: 0.5rem 1.25rem;
+  font-family: var(--font-body);
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    transform var(--transition-quick);
 }
 
 .tutorial-overlay__btn:focus-visible,
@@ -350,16 +364,23 @@
   background: var(--btn-primary-hover);
 }
 
+.tutorial-overlay__btn--primary:active,
+.tutorial-coach__btn--primary:active {
+  background: var(--btn-primary-active);
+  transform: translateY(2px);
+}
+
 .tutorial-overlay__btn--secondary,
 .tutorial-coach__btn--secondary {
   background: transparent;
-  color: var(--text-muted);
-  border-color: var(--border-color);
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
 }
 
 .tutorial-overlay__btn--secondary:hover,
 .tutorial-coach__btn--secondary:hover {
-  background: var(--bg-subtle);
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-text);
 }
 
 .tutorial-overlay__skip,
@@ -368,6 +389,7 @@
   background: none;
   border: none;
   padding: 0;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   color: var(--text-subtle);
   cursor: pointer;
