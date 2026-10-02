@@ -48,8 +48,8 @@
   width: 100%;
   height: auto;
   aspect-ratio: 1 / 1;
-  border: 2px solid var(--text-subtle);
-  border-radius: var(--radius-lg);
+  border: 2px solid var(--stim-cell-border);
+  border-radius: var(--stim-radius-lg);
   background: rgb(128, 128, 128);
 }
 
@@ -59,7 +59,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--stim-radius-lg);
   opacity: 0;
   z-index: 3;
 }

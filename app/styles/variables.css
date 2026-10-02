@@ -87,4 +87,25 @@
   --chart-color-8:     #e85aad;
   --chart-color-9:     #4d6b1e;
   --chart-color-total: #adb5bd;
+
+  /* ── Stimulus surfaces (never themed) ───────────────────────────────────── */
+  /*
+   * Colors and corners of what the player sees during a trial. They are part of the
+   * experiment: changing them changes difficulty and makes saved thresholds incomparable
+   * across versions. Never point these at theme tokens or retune them with the theme.
+   */
+  --stim-white:             #ffffff;  /* Fast Piggie wheel, Orbit board, revealed HSM card   */
+  --stim-cell-bg:           #e9ecef;  /* Field of View grid cells                            */
+  --stim-cell-border:       #6c757d;  /* Field of View cells and board, Directional canvas   */
+  --stim-cell-text:         #212529;  /* Field of View cell text                             */
+  --stim-mask-text:         #f8f9fa;  /* Field of View mask label                            */
+  --stim-mask-border:       #212529;  /* Field of View mask frame                            */
+  --stim-surface:           #f1f3f5;  /* Otter Stop stimulus panel                           */
+  --stim-frame:             #c0c8d4;  /* Otter Stop stimulus frame                           */
+  --stim-osm-board-border:  #ccd8df;  /* Orbit Sprite Memory board edge                      */
+  --stim-arena-border:      #dee2e6;  /* Object Track arena frame                            */
+  --stim-flash-correct:     #28a745;  /* Fast Piggie correct flash                           */
+  --stim-flash-wrong:       #dc3545;  /* Fast Piggie wrong flash                             */
+  --stim-radius-md:         6px;      /* Field of View cells, High Speed Memory cards        */
+  --stim-radius-lg:         8px;      /* Stimulus boards, canvases, and their flash overlays */
 }

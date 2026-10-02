@@ -64,7 +64,7 @@
   height: 100%;
   border-radius: 50%;
   /* visual hint that it's a circle game */
-  background-color: var(--bg-card);
+  background-color: var(--stim-white);
   cursor: crosshair;
 }
 
@@ -92,24 +92,24 @@
 
 @keyframes fp-flash-green {
   0% {
-    background-color: var(--color-success);
+    background-color: var(--stim-flash-correct);
     opacity: 0.55;
   }
 
   100% {
-    background-color: var(--color-success);
+    background-color: var(--stim-flash-correct);
     opacity: 0;
   }
 }
 
 @keyframes fp-flash-red {
   0% {
-    background-color: var(--color-danger-muted);
+    background-color: var(--stim-flash-wrong);
     opacity: 0.55;
   }
 
   100% {
-    background-color: var(--color-danger-muted);
+    background-color: var(--stim-flash-wrong);
     opacity: 0;
   }
 }
