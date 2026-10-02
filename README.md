@@ -6,6 +6,17 @@
 
 A desktop application for brain-speed training — pick a game, play it, and track your progress over time. Inspired by the research in [this study on dementia](https://www.npr.org/2026/02/18/nx-s1-5716010/brain-training-exercise-cut-dementia-risk-decades).
 
+## A Look Inside
+
+![The exercise menu: game cards with artwork, your best scores, and today's total play time](.github/readme/menu.jpg)
+
+<p>
+  <img src=".github/readme/in-game.png" alt="Fast Piggie in play: round, score, and display time above the circle of guinea pigs, with a speed trend chart below" width="49%">
+  <img src=".github/readme/tutorial.png" alt="A tutorial step that outlines each part of the game screen before you play" width="49%">
+</p>
+
+![Play history: total play time per day and time spent in each game](.github/readme/history.png)
+
 ## Games
 
 Brain Speed Exercises ships with eight games, each targeting a different cognitive skill:
