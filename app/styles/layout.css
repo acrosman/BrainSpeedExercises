@@ -5,36 +5,55 @@
  * Depends on: variables.css
  */
 
-/* ── App header ──────────────────────────────────────────────────────────── */
+/* ── App header (paper masthead) ─────────────────────────────────────────── */
 
 header {
-  padding: 1rem 1.5rem;
-  background-color: var(--bg-dark);
-  color: var(--text-inverted);
+  padding: 1.75rem 3rem 1.125rem;
+  background-color: var(--bg-body);
+  color: var(--text-heading);
+  border-bottom: 1px solid var(--border-color);
 }
 
-header h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
+.masthead__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.875rem;
+  font-family: var(--font-display);
+  font-size: 2.125rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'SOFT' 50;
+  color: var(--text-heading);
+}
+
+.masthead__title .eyebrow {
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
 }
 
 /* ── Navigation bar ──────────────────────────────────────────────────────── */
+/* Kept in the DOM for structure; it holds nothing yet, so it takes no space. */
 
 nav[aria-label='Game selection'] {
-  padding: 0.5rem 1.5rem;
-  background-color: var(--bg-nav);
+  padding: 0;
+  background: none;
 }
 
 /* ── Main content area ───────────────────────────────────────────────────── */
 
 main {
-  padding: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.75rem 3rem 2.5rem;
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 
 footer {
-  padding: 1rem 1.5rem;
+  padding: 1rem 3rem;
   text-align: center;
   font-size: 0.875rem;
   color: var(--text-muted);
