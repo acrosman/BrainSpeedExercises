@@ -58,14 +58,15 @@ fires `bsx:return-to-main-menu` so the menu rebuilds. Build any new modal the sa
 
 ## Styles (`style.css`, `styles/`)
 
-`style.css` only `@import`s the sub-files, in this order: `variables` → `base` → `layout` →
-`game-card` → `history` → `game-shared`.
+`style.css` only `@import`s the sub-files, in this order: `fonts` → `variables` → `base` →
+`layout` → `game-card` → `history` → `game-shared`.
 
 | File | Contents |
 | --- | --- |
-| `variables.css` | All design tokens: backgrounds, text, borders, focus ring, buttons, status colors, results table, trend chart, tutorial marker, radii, transitions, and chart colors |
-| `base.css` | Reset, body defaults, `.sr-only`, global focus ring |
-| `layout.css` | Header, nav, main, footer, game-selector grid |
+| `fonts.css` | `@font-face` rules for the bundled fonts in `app/fonts/` (Fraunces, Atkinson Hyperlegible Next; OFL licenses alongside). The CSP blocks font CDNs, so fonts must be bundled |
+| `variables.css` | All design tokens: theme colors (backgrounds, text, accent, borders, focus ring, buttons, status, results, trend, charts), then type (`--font-display`, `--font-body`), radii, shadows, spacing, transitions, and the `--stim-*` stimulus surfaces |
+| `base.css` | Reset, body defaults, `.sr-only`, `.eyebrow`, `kbd` key caps, global focus ring, reduced-motion overrides |
+| `layout.css` | Paper masthead (`.masthead__title`), nav, main, footer, game-selector grid |
 | `game-card.css` | Game tiles and the play-time bar |
 | `history.css` | History modal, charts, table |
 | `game-shared.css` | Shared game panels, buttons, trend chart, tutorial overlay, practice coach and marker |
@@ -73,6 +74,12 @@ fires `bsx:return-to-main-menu` so the menu rebuilds. Build any new modal the sa
 - Use `var(--token)` instead of hard-coded colors, radii, or transitions. When you add a token
   to `variables.css`, record its contrast ratio in a comment, as the text tokens do. All
   pairings must meet WCAG AA.
+- Theme colors live in one group at the top of `variables.css`, so a dark theme can override only
+  that group.
+- `--stim-*` tokens hold the colors and corners of stimulus surfaces (what the player sees during
+  a trial). They are frozen: changing them changes difficulty and makes saved thresholds
+  incomparable. Never retune them with the theme, and never style a stimulus surface with a theme
+  token.
 - History chart series use `--chart-color-0` through `--chart-color-9`, applied through
   `history-chart__bar--color-N` classes. Games beyond ten reuse the colors from the start.
   To add slots, change the CSS and `COLOR_SLOT_COUNT` in `historyView.js` together.
