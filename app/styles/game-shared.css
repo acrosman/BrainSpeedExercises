@@ -67,16 +67,6 @@
   margin-bottom: 0.25rem;
 }
 
-.game-welcome kbd {
-  display: inline-block;
-  padding: 0 0.35em;
-  font-family: monospace;
-  font-size: 0.875em;
-  border: 1px solid var(--text-subtle);
-  border-radius: 3px;
-  background-color: var(--bg-subtle);
-}
-
 /* ── End-of-session panel ────────────────────────────────────────────────── */
 /*
  * Apply .game-end-panel to the container shown after the session ends.
@@ -256,7 +246,7 @@
 .tutorial-overlay__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--scrim);
 }
 
 .tutorial-overlay__panel {
