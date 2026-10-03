@@ -4,6 +4,21 @@ A visual memory task. A grid of face-up cards is shown briefly, then all cards f
 The player must click the 3 cards that showed the Primary image (`images/Primary.jpg`). Every
 other card shows a random distractor (`Distractor1..3.jpg`).
 
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.hsm-stats`, `.hsm-stats-live`, and
+`.hsm-stat` (see [../CLAUDE.md](../CLAUDE.md)). Answer states use the shared feedback tokens:
+`.hsm-card--matched` takes `--feedback-correct-bg` and `--feedback-correct-border`, and
+`.hsm-card--wrong` takes `--feedback-wrong-bg` and `--feedback-wrong-border`. The green frame
+around the target greyhound on the welcome panel and tutorial is `--feedback-correct-border`.
+
+Stimulus surfaces keep their own colors and never take theme tokens:
+
+- `.hsm-card`: the `#1a1a2e` face-down card, its `--stim-radius-md` corners, and the hover
+  scale.
+- `.hsm-card--revealed`: the `--stim-white` face-up card and its greyhound image.
+- `.hsm-grid`: its size and 6px gaps.
+
 ## Round flow (`index.js`)
 
 1. `startRound()` generates the grid and passes it to `playRound()`, which shows it face-up

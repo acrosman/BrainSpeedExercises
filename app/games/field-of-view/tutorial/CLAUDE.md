@@ -7,8 +7,13 @@ what is specific to Field of View.
 - `PRACTICE_TEXT` holds the coach and result text. Any text that describes a click also gives
   the Tab and Enter alternative.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.fov-tutorial-highlight--*` boxes in `../style.css`. If the layout
-  changes, retake the screenshot and move the boxes together.
+  percentage-positioned `.fov-tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue,
+  `--callout-1`), `--board` (green, `--callout-2`, the stage), and `--response` (orange,
+  `--callout-3`, the kitten buttons and location grid), each with the shared
+  `.tutorial-callout` halo. The screenshot follows the standard in
+  [../../../components/CLAUDE.md](../../../components/CLAUDE.md), clipped to `#fov-game-area`
+  during the second trial's stimulus, after one answered trial has drawn the location grid. If
+  the layout changes, retake it and move the boxes together.
 
 ## Practice controls and hooks
 

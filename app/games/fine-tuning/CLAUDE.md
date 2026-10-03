@@ -68,6 +68,23 @@ applies the saved `voice` from `loadGameScore` if it is valid.
 `trialsCompleted > 0`. The voice is saved with the session because `saveScore` always counts a
 session, so a voice changed without playing a round is not remembered.
 
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.ft-stats` and `.ft-stats-live` (see
+[../CLAUDE.md](../CLAUDE.md)). The welcome and end panels take their look from `.game-welcome`
+and `.game-end-panel`, so `.ft-panel` sets only spacing. `#ft-game-area` is the same card as the
+welcome panel; the end panel stays bare because its results ledger is already a card.
+
+`.ft-answer-btn` and `.ft-btn` are notebook keys: card paper, a `--border-strong` edge,
+`--radius-md`, and a 2px bottom edge that flattens on `:active`. A disabled key lies flat on
+`--bg-sunken` with `--text-subtle` text rather than fading, because the answer keys stay
+disabled while the sounds play. The answer keys keep a 2px border so their hit area does not
+shrink. Their number labels use the global `kbd` key cap. `.ft-btn--icon` (Replay) is a quiet
+outlined button with no fill or raised edge. The voice radios use the forest accent.
+
+This game has no visual stimulus surfaces: the sounds are the stimulus, so everything on screen
+is chrome and uses theme tokens.
+
 ## Controls
 
 Keys `1` and `2` answer `ANSWERS` in order (First, Second), the same order as the buttons. When

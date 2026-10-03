@@ -7,9 +7,13 @@ what is specific to Sound Sweep.
 - `PRACTICE_TEXT`: the guided text names both sweeps, the answer, and its number key, since the
   marker is not announced. The key comes from the answer's place in `game.SEQUENCES`.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.ss-tutorial-highlight--*` boxes in `../style.css`. The screenshot is
-  the `#ss-game-area` element in the response phase of a level 3 session, in a 1512 px wide
-  window, scaled to 640 px wide. If the layout changes, retake it and move the boxes together.
+  percentage-positioned `.ss-tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue,
+  `--callout-1`), `--prompt` (green, `--callout-2`, the status line and Replay), `--buttons`
+  (orange, `--callout-3`, the four sequence keys), and `--trend` (purple, `--callout-4`), each
+  with the shared `.tutorial-callout` halo. The screenshot follows the standard in
+  [../../../components/CLAUDE.md](../../../components/CLAUDE.md), clipped to `#ss-game-area`
+  after five rounds, once the next sweeps have played and the sequence keys are enabled. If the
+  layout changes, retake it and move the boxes together.
 
 ## Practice controls and hooks
 

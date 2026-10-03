@@ -40,3 +40,18 @@ of 50. Hits count as correct. Misses and false alarms both count as wrong, so th
 A `document`-level Space listener (`attachGlobalKeyListener` / `detachGlobalKeyListener`) makes
 Space work wherever focus is. The reaction-zone button also slaps when clicked. A checkbox toggles
 the hint text under the cards (`updateHintVisibility()`).
+
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.card-rat__stats` and
+`.card-rat__stats-live` (see [../CLAUDE.md](../CLAUDE.md)). The setting checkboxes take the
+primary forest color through `accent-color`.
+
+Stimulus surfaces keep their own colors and never take theme tokens:
+
+- `.card-rat__card`: the `#f8f4e8` card face, its 14px corners, and its shadow, plus the card
+  images cut from `images/cards-sprite.png` and the joker and card-back PNGs.
+- `.card-rat__card--deck`: the rotated deck card.
+- `.card-rat__reaction-zone`: a transparent button around the cards; keep it unstyled so it
+  does not frame the stimulus.
+

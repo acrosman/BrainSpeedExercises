@@ -19,8 +19,8 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 1rem;
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
   line-height: 1.5;
   background-color: var(--bg-body);
   color: var(--text-base);
@@ -65,4 +65,43 @@ body {
 *:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* ── Eyebrow label ───────────────────────────────────────────────────────── */
+/* Small uppercase label above a heading, value, or group (clay, 5.4:1 on paper). */
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ── Key caps ────────────────────────────────────────────────────────────── */
+
+kbd {
+  display: inline-block;
+  padding: 0 0.4em;
+  font-family: var(--font-body);
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text-base);
+  background-color: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* Hover lifts and press effects are decoration; turn them off on request. Each stylesheet
+   does this at its own end, after the rules it overrides: a block here would lose to the
+   later imports (game-card, history, game-shared) at equal specificity. */
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
 }

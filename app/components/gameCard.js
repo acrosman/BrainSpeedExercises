@@ -2,11 +2,32 @@
  * gameCard.js — UI component for rendering a game selection card.
  *
  * Exports a function to create a WCAG-compliant game card element for the selector screen.
+ * Each card is a "specimen plate": framed thumbnail, name, description, a list of the
+ * player's stats, and a Play button.
  *
  * @file Game card UI component for BrainSpeedExercises.
  */
 
 import { formatDuration, getTodayDateString } from './timerService.js';
+
+/**
+ * Creates one stat for the card's stats list: a term (label) and its value.
+ *
+ * @param {string} term - Visible label, for example "Top score".
+ * @param {string} value - Formatted value, for example "120 ms".
+ * @returns {HTMLDivElement} A <div class="game-card__stat"> holding a <dt> and a <dd>.
+ */
+function createStat(term, value) {
+  const stat = document.createElement('div');
+  stat.className = 'game-card__stat';
+  const dt = document.createElement('dt');
+  dt.textContent = term;
+  const dd = document.createElement('dd');
+  dd.textContent = value;
+  stat.appendChild(dt);
+  stat.appendChild(dd);
+  return stat;
+}
 
 /**
  * Creates a game card element for the game-selection screen.
@@ -43,32 +64,41 @@ export function createGameCard(manifest, progress) {
   const description = document.createElement('p');
   description.textContent = manifest.description || '';
 
-  // Show per-game stats for cards that expose meaningful progress metrics.
+  // Show per-game stats for cards that expose meaningful progress metrics, as a <dl> of
+  // term/value pairs so screen readers announce each label with its value.
   let scoreElem = null;
   if (progress) {
-    scoreElem = document.createElement('p');
-    scoreElem.className = 'game-high-score';
-    const details = [];
-    if (typeof progress.highScore === 'number') details.push(`Top Score: ${progress.highScore}`);
-    if (typeof progress.highestLevel === 'number') details.push(`Max Level: ${progress.highestLevel + 1}`);
-    if (typeof progress.lowestDisplayTime === 'number') details.push(`Min Display Time: ${progress.lowestDisplayTime}ms`);
+    const stats = [];
+    if (typeof progress.highScore === 'number') {
+      stats.push(createStat('Top score', String(progress.highScore)));
+    }
+    if (typeof progress.highestLevel === 'number') {
+      stats.push(createStat('Max level', String(progress.highestLevel + 1)));
+    }
+    if (typeof progress.lowestDisplayTime === 'number') {
+      stats.push(createStat('Fastest', `${progress.lowestDisplayTime} ms`));
+    }
     // Show time played today if available.
     const today = getTodayDateString();
     if (progress.dailyTime && typeof progress.dailyTime[today] === 'number'
       && progress.dailyTime[today] > 0) {
-      details.push(`Today: ${formatDuration(progress.dailyTime[today])}`);
+      stats.push(createStat('Today', formatDuration(progress.dailyTime[today])));
     }
-    if (details.length > 0) {
-      scoreElem.textContent = details.join(' | ');
-      scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}: ${scoreElem.textContent}`);
-    } else {
-      scoreElem = null;
+    if (stats.length > 0) {
+      scoreElem = document.createElement('dl');
+      scoreElem.className = 'game-high-score game-card__stats';
+      scoreElem.setAttribute('aria-label', `Stats for ${manifest.name}`);
+      stats.forEach((stat) => scoreElem.appendChild(stat));
     }
   }
 
   const button = document.createElement('button');
   button.type = 'button';
-  button.textContent = `Play ${manifest.name}`;
+  button.textContent = 'Play ';
+  const arrow = document.createElement('span');
+  arrow.setAttribute('aria-hidden', 'true');
+  arrow.textContent = '→';
+  button.appendChild(arrow);
   button.setAttribute('aria-label', `Play ${manifest.name}`);
 
 
@@ -82,7 +112,12 @@ export function createGameCard(manifest, progress) {
     article.dispatchEvent(event);
   });
 
-  article.appendChild(img);
+  // The frame clips the hover zoom and draws the plate's hairline border.
+  const frame = document.createElement('div');
+  frame.className = 'game-card__frame';
+  frame.appendChild(img);
+
+  article.appendChild(frame);
   article.appendChild(heading);
   article.appendChild(description);
   if (scoreElem) article.appendChild(scoreElem);

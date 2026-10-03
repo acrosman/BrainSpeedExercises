@@ -36,14 +36,14 @@
   <div id="ft-game-area" class="ft-panel" hidden>
     <!-- Only per-trial stats sit in the live region; the session timer stays
          outside it so screen readers are not interrupted every second. -->
-    <div class="ft-stats">
-      <div class="ft-stats-live" aria-live="polite" aria-atomic="true">
-        <span>Level: <strong id="ft-level">1</strong></span>
-        <span>Score: <strong id="ft-score">0</strong></span>
-        <span>Round: <strong id="ft-trials">0</strong></span>
-        <span>Streak: <strong id="ft-streak">0</strong></span>
+    <div class="ft-stats game-hud">
+      <div class="ft-stats-live game-hud__live" aria-live="polite" aria-atomic="true">
+        <span class="game-hud__stat">Level: <strong id="ft-level">1</strong></span>
+        <span class="game-hud__stat">Score: <strong id="ft-score">0</strong></span>
+        <span class="game-hud__stat">Round: <strong id="ft-trials">0</strong></span>
+        <span class="game-hud__stat">Streak: <strong id="ft-streak">0</strong></span>
       </div>
-      <span>Session: <strong id="ft-session-timer">00:00</strong></span>
+      <span class="game-hud__stat">Session: <strong id="ft-session-timer">00:00</strong></span>
     </div>
 
     <!-- Visual cue area for current trial status. -->

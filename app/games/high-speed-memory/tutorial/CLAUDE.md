@@ -7,9 +7,12 @@ what is specific to High Speed Memory.
 - `PRACTICE_TEXT` holds the coach and result text. Any text that describes a click also gives
   the Tab and Enter alternative.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.hsm-tutorial-highlight--*` boxes in `../style.css`. The screenshot is
-  the `#hsm-game-area` element during a level 1 reveal. If the layout changes, retake it and
-  move the boxes together.
+  percentage-positioned `.hsm-tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue,
+  `--callout-1`), `--grid` (green, `--callout-2`), and `--trend` (orange, `--callout-3`, the
+  trend chart and the End Game row together), each with the shared `.tutorial-callout` halo.
+  The screenshot follows the standard in
+  [../../../components/CLAUDE.md](../../../components/CLAUDE.md), taken during a level 1 reveal
+  with every card face up. If the layout changes, retake it and move the boxes together.
 
 ## Practice controls and hooks
 

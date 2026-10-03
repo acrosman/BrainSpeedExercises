@@ -11,28 +11,27 @@
 }
 
 /* ── Panels ──────────────────────────────────────────────────────────────────── */
-/* .dp-panel is used for both the instructions and end panels alongside the     */
-/* shared .game-welcome / .game-end-panel classes.                              */
+/* The welcome and end panels take their look from .game-welcome and            */
+/* .game-end-panel. The game area is the same paper card as the welcome panel.  */
+/* The end panel stays bare: its results ledger is already a card.              */
 
 .dp-panel {
-  background: var(--bg-body);
+  margin-top: var(--space-4);
+}
+
+#dp-game-area {
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem;
-  margin-top: 1rem;
+  box-shadow: var(--shadow-1);
+  padding: var(--space-5) var(--space-6);
 }
 
 /* ── Stats bar ───────────────────────────────────────────────────────────────── */
-
-.dp-stats,
-.dp-stats-live {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-}
+/* Drawn by the shared .game-hud classes; only its spacing is set here.          */
 
 .dp-stats {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 /* ── Stage (canvas wrapper) ──────────────────────────────────────────────────── */
@@ -48,8 +47,8 @@
   width: 100%;
   height: auto;
   aspect-ratio: 1 / 1;
-  border: 2px solid var(--text-subtle);
-  border-radius: var(--radius-lg);
+  border: 2px solid var(--stim-cell-border);
+  border-radius: var(--stim-radius-lg);
   background: rgb(128, 128, 128);
 }
 
@@ -59,7 +58,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--stim-radius-lg);
   opacity: 0;
   z-index: 3;
 }
@@ -100,49 +99,76 @@
   gap: 0.4rem;
 }
 
+/* ── Notebook keys ───────────────────────────────────────────────────────────── */
+/* .dp-dir-btn and .dp-btn are notebook keys: card paper, a control-boundary     */
+/* edge, and a 2px bottom edge that flattens when pressed. A disabled key lies   */
+/* flat on sunken paper, with its text still readable (a 45% fade left the       */
+/* labels near 2.6:1). Buttons do not inherit the page font, so the keys set     */
+/* --font-body.                                                                  */
+
+.dp-dir-btn,
+.dp-btn {
+  background: var(--bg-card);
+  color: var(--text-base);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 0 var(--border-strong);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: background var(--transition-quick), transform var(--transition-quick);
+}
+
+.dp-dir-btn:hover,
+.dp-btn:hover {
+  background: var(--bg-sunken);
+}
+
+.dp-dir-btn:focus-visible,
+.dp-btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.dp-dir-btn:active,
+.dp-btn:active {
+  box-shadow: none;
+  transform: translateY(2px);
+}
+
+/* Visual treatment for the disabled (non-response) phase. */
+.dp-dir-btn:disabled,
+.dp-btn:disabled {
+  background: var(--bg-sunken);
+  border-color: var(--border-color);
+  box-shadow: none;
+  color: var(--text-subtle);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* The fixed 100x56 size is the timed hit area; keep it. */
 .dp-dir-btn {
   width: 100px;
   height: 56px;
   font-size: 1rem;
   font-weight: 700;
-  border: 2px solid var(--text-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-muted);
+  border-width: 2px;
+}
+
+/* Highlight the correct direction button after a wrong response. The buttons  */
+/* are disabled by then, so this must outrank the disabled look.               */
+.dp-dir-btn--correct,
+.dp-dir-btn--correct:disabled {
+  background: var(--feedback-correct-bg);
+  border-color: var(--feedback-correct-border);
+  color: var(--feedback-correct-text);
+}
+
+.dp-dir-btn--selected,
+.dp-dir-btn--selected:disabled {
+  background: var(--selected-bg);
+  border-color: var(--focus-ring);
   color: var(--text-base);
-  cursor: pointer;
-  transition: background var(--transition-quick), transform var(--transition-quick);
-}
-
-.dp-dir-btn:hover {
-  background: var(--border-color);
-}
-
-.dp-dir-btn:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.dp-dir-btn:active {
-  transform: scale(0.96);
-}
-
-/* Highlight the correct direction button after a wrong response. */
-.dp-dir-btn--correct {
-  background: #bbf7d0;
-  border-color: #15803d;
-  color: #14532d;
-}
-
-/* Visual treatment for the disabled (non-response) phase. */
-.dp-dir-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.dp-dir-btn--selected {
-  background: #cfe8ff;
-  border-color: var(--btn-primary-bg);
 }
 
 /* ── Feedback region ─────────────────────────────────────────────────────────── */
@@ -165,32 +191,35 @@
 
 /* ── Buttons ─────────────────────────────────────────────────────────────────── */
 /* Shared button styles come from .game-btn in app/style.css.                    */
-/* .dp-btn is used for controls inside the active play area and may differ from  */
-/* the primary/secondary shared variants.                                        */
+/* .dp-btn is a notebook key (above) for controls inside the play area.          */
 
 .dp-btn {
-  background: var(--bg-muted);
-  color: var(--text-base);
-  border: 1px solid var(--text-subtle);
-  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-weight: 600;
-  cursor: pointer;
 }
 
+/* Same forest tokens as .game-btn--primary. Kept as its own class. */
 .dp-btn--primary {
   background: var(--btn-primary-bg);
   color: var(--bg-card);
   border-color: var(--btn-primary-border);
+  box-shadow: 0 2px 0 var(--btn-primary-active);
 }
 
+.dp-btn--primary:enabled:hover {
+  background: var(--btn-primary-hover);
+}
+
+.dp-btn--primary:enabled:active {
+  background: var(--btn-primary-active);
+  box-shadow: none;
+}
+
+/* Same outlined ink as .game-btn--secondary. */
 .dp-btn--secondary {
-  background: var(--bg-muted);
-}
-
-.dp-btn:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
+  background: transparent;
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
 }
 
 /* ── Tutorial screenshot ─────────────────────────────────────────────────────── */
@@ -218,39 +247,49 @@
   font-size: 0.9rem;
 }
 
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .dp-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
-  border: 3px solid;
+  border: 3px solid currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
   pointer-events: none;
   z-index: 1;
 }
 
 .dp-tutorial-highlight--stats {
-  left: 0.5%;
-  top: 1%;
-  width: 40%;
-  height: 7%;
-  border-color: #1976d2;
-  background: rgb(25 118 210 / 16%);
+  left: 2.6%;
+  top: 1.9%;
+  width: 94.7%;
+  height: 7.0%;
+  color: var(--callout-1);
 }
 
 .dp-tutorial-highlight--pattern {
-  left: 32%;
-  top: 7%;
-  width: 36%;
-  height: 59%;
-  border-color: #2e7d32;
-  background: rgb(46 125 50 / 10%);
+  left: 30.6%;
+  top: 9.5%;
+  width: 38.8%;
+  height: 37.8%;
+  color: var(--callout-2);
 }
 
 .dp-tutorial-highlight--buttons {
-  left: 41%;
-  top: 71%;
-  width: 18.5%;
-  height: 27.5%;
-  border-color: #ed6c02;
-  background: rgb(237 108 2 / 16%);
+  left: 40.3%;
+  top: 51.4%;
+  width: 19.4%;
+  height: 16.7%;
+  color: var(--callout-3);
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* The keys still drop 2px when pressed, but without the slide.             */
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-dir-btn,
+  .dp-btn {
+    transition: none;
+  }
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────────── */

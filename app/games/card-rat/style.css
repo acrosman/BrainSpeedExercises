@@ -2,9 +2,6 @@
 
 .card-rat {
   --card-rat-card-gap: 0.65rem;
-  --card-rat-tutorial-highlight-stats: #1976d2;
-  --card-rat-tutorial-highlight-cards: #2e7d32;
-  --card-rat-tutorial-highlight-controls: #ed6c02;
 
   display: flex;
   flex-direction: column;
@@ -12,10 +9,6 @@
   gap: 1rem;
   padding: 1rem;
   color: var(--text-base);
-}
-
-.card-rat h2 {
-  margin: 0;
 }
 
 .card-rat__instruction-actions {
@@ -31,18 +24,6 @@
   align-items: center;
   gap: 0.75rem;
   width: 100%;
-}
-
-.card-rat__stats,
-.card-rat__stats-live {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.card-rat__stats {
-  font-size: 0.95rem;
 }
 
 .card-rat__reaction-zone {
@@ -112,6 +93,10 @@
   font-weight: 600;
 }
 
+.card-rat__toggle input {
+  accent-color: var(--btn-primary-bg);
+}
+
 .card-rat__tutorial-figure {
   margin: 0.75rem 0 0;
 }
@@ -124,8 +109,8 @@
   display: block;
   width: 100%;
   max-width: 540px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
 }
 
 .card-rat__tutorial-caption {
@@ -133,28 +118,30 @@
   font-size: 0.9rem;
 }
 
+/* The tutorial overlay is appended to #game-container, outside .card-rat, so callouts use the
+   global --callout-N tokens. Each modifier sets only its position and `color`; the border and
+   tint derive from it. The shared .tutorial-callout class adds the white halo. */
 .card-rat__tutorial-highlight {
   position: absolute;
   border-radius: 10px;
-  border: 4px solid;
+  border: 4px solid currentColor;
+  background: color-mix(in srgb, currentColor 16%, transparent);
   pointer-events: none;
   z-index: 1;
 }
 
 .card-rat__tutorial-highlight--stats {
-  left: 7.5%;
-  top: 9%;
-  width: 84.5%;
-  height: 8%;
-  border-color: var(--card-rat-tutorial-highlight-stats, #1976d2);
-  background: rgb(25 118 210 / 16%);
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 12%;
+  color: var(--callout-1);
 }
 
 .card-rat__tutorial-highlight--controls {
-  left: 29%;
-  top: 55%;
-  width: 40%;
-  height: 9%;
-  border-color: var(--card-rat-tutorial-highlight-controls, #ed6c02);
-  background: rgb(237 108 2 / 16%);
+  left: 32.9%;
+  top: 55.7%;
+  width: 34.1%;
+  height: 9.6%;
+  color: var(--callout-3);
 }
