@@ -42,6 +42,35 @@ Through `extraFields`: `bestThresholdMs` (kept for older saves), `lastThresholdM
 `lastRecentAccuracy`, the full `thresholdHistory`, and `trialsCompleted`. The game saves only
 when `trialsCompleted > 0`, and does not save `level`.
 
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.fov-stats`, `.fov-stats-live`, and
+`.fov-stat` (see [../CLAUDE.md](../CLAUDE.md)). The welcome and end panels take their look from
+`.game-welcome` and `.game-end-panel`, so `.fov-panel` sets only spacing. `#fov-game-area` is the
+same card as the welcome panel; the end panel stays bare because its results ledger is already a
+card.
+
+The kitten buttons (`.fov-choice-btn`), the location squares (`.fov-loc-cell`), and the unused
+`.fov-btn` are notebook keys: card paper, a `--border-strong` edge, `--radius-md`, and a 2px
+bottom edge that flattens on `:active`. The kitten buttons keep their fixed 120×120 size. A
+pressed kitten (`aria-pressed="true"`) gets a 4px `--focus-ring` border and a `--focus-ring`
+glow. The location squares sit in a `--bg-sunken` tray. The center square, which cannot be
+chosen, lies flat, and a chosen square uses `--selected-bg` with a `--focus-ring` border.
+
+Stimulus surfaces keep their own colors and never take theme tokens:
+
+- `.fov-board`: the `#aeb4bb` board, its `--stim-cell-border` frame, and `--stim-radius-lg`
+  corners.
+- `.fov-cell` and `.fov-cell--center`: `--stim-cell-bg`, `--stim-cell-border`,
+  `--stim-cell-text`, and `--stim-radius-md`, plus the kitten and toy images.
+- `.fov-mask`: `images/Field.png`, `--stim-mask-border`, and `--stim-mask-text`.
+- The response phase's translucent white cells over the mask
+  (`.fov-stage--response .fov-cell`).
+- `.fov-stage--flash-correct` and `.fov-stage--flash-wrong`: the `::after` flash colors.
+
+A board cell chosen over the mask (`.fov-stage--response .fov-cell--selected`) is response
+feedback, not stimulus: it uses a `--focus-ring` wash at 35% with a `--selected-bg` ring.
+
 ## Controls
 
 All responses use native buttons: two kitten buttons (`aria-pressed`) and the location grid built
