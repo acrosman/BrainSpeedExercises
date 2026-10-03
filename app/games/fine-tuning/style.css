@@ -261,41 +261,41 @@
 }
 
 .ft-tutorial-highlight--stats {
-  left: 1%;
-  top: 1.5%;
-  width: 56%;
-  height: 5.5%;
+  left: 2.6%;
+  top: 2.8%;
+  width: 94.7%;
+  height: 10.6%;
   color: var(--callout-1);
 }
 
 .ft-tutorial-highlight--prompt {
-  left: 1%;
-  top: 7.5%;
-  width: 98%;
-  height: 7.5%;
+  left: 2.6%;
+  top: 15.1%;
+  width: 94.7%;
+  height: 5.3%;
   color: var(--callout-2);
 }
 
 .ft-tutorial-highlight--buttons {
-  left: 1%;
-  top: 15.5%;
-  width: 32%;
-  height: 17%;
+  left: 2.6%;
+  top: 27.1%;
+  width: 25.0%;
+  height: 11.4%;
   color: var(--callout-3);
 }
 
 .ft-tutorial-highlight--trend {
-  left: 1%;
-  top: 38%;
-  width: 98%;
-  height: 32%;
+  left: 2.6%;
+  top: 44.4%;
+  width: 94.7%;
+  height: 28.6%;
   color: var(--callout-4);
 }
 
 .ft-tutorial-highlight--voice {
-  left: 1%;
-  top: 70.5%;
-  width: 98%;
-  height: 20%;
+  left: 2.6%;
+  top: 74.1%;
+  width: 94.7%;
+  height: 15.3%;
   color: var(--callout-5);
 }
