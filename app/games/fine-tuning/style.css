@@ -54,6 +54,10 @@
   cursor: pointer;
 }
 
+.ft-voice__option input {
+  accent-color: var(--btn-primary-bg);
+}
+
 .ft-voice__option input:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
