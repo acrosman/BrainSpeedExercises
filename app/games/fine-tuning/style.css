@@ -249,7 +249,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .ft-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -264,7 +265,7 @@
   top: 1.5%;
   width: 56%;
   height: 5.5%;
-  color: #1976d2;
+  color: var(--callout-1);
 }
 
 .ft-tutorial-highlight--prompt {
@@ -272,7 +273,7 @@
   top: 7.5%;
   width: 98%;
   height: 7.5%;
-  color: #2e7d32;
+  color: var(--callout-2);
 }
 
 .ft-tutorial-highlight--buttons {
@@ -280,7 +281,7 @@
   top: 15.5%;
   width: 32%;
   height: 17%;
-  color: #ed6c02;
+  color: var(--callout-3);
 }
 
 .ft-tutorial-highlight--trend {
@@ -288,7 +289,7 @@
   top: 38%;
   width: 98%;
   height: 32%;
-  color: #7b1fa2;
+  color: var(--callout-4);
 }
 
 .ft-tutorial-highlight--voice {
@@ -296,5 +297,5 @@
   top: 70.5%;
   width: 98%;
   height: 20%;
-  color: #00796b;
+  color: var(--callout-5);
 }
