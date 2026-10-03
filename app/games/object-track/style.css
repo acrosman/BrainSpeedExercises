@@ -41,21 +41,7 @@
 }
 
 /* ── Stats bar ───────────────────────────────────────────────────────────────── */
-
-.mot-game__stats,
-.mot-game__stats-live {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.25rem;
-}
-
-.mot-game__stats {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-base);
-  width: 100%;
-}
+/* Drawn by the shared .game-hud classes.                                         */
 
 /* ── Phase label ─────────────────────────────────────────────────────────────── */
 
