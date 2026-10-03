@@ -23,16 +23,10 @@
 }
 
 /* ── Stats bar ───────────────────────────────────────────────────────────────── */
-
-.ss-stats,
-.ss-stats-live {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-}
+/* Drawn by the shared .game-hud classes; only its spacing is set here.          */
 
 .ss-stats {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 /* ── Cue area ────────────────────────────────────────────────────────────────── */
