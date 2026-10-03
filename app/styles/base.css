@@ -104,6 +104,8 @@ kbd {
   .game-card img,
   .game-card button,
   .game-btn,
+  .tutorial-overlay__btn,
+  .tutorial-coach__btn,
   .play-time-bar__btn {
     transition: none;
   }

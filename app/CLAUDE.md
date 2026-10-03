@@ -58,24 +58,42 @@ fires `bsx:return-to-main-menu` so the menu rebuilds. Build any new modal the sa
 
 ## Styles (`style.css`, `styles/`)
 
+**Design motif: Field Notebook.** The app looks like a naturalist's notebook: warm paper
+backgrounds, ink-green text, and a clay accent for eyebrow labels and markers, with hairline
+rules and soft warm shadows. Fraunces sets names and numbers (the wordmark, game titles,
+"Session Ended", tutorial titles, stats, and results). Atkinson Hyperlegible Next sets
+everything meant for reading. Pen blue is kept for focus rings and the tutorial marker, and
+forest for primary actions. The notebook styles the chrome only: it never touches stimuli,
+which keep their own frozen `--stim-*` colors (see below and
+[games/CLAUDE.md](games/CLAUDE.md)).
+
 `style.css` only `@import`s the sub-files, in this order: `fonts` → `variables` → `base` →
 `layout` → `game-card` → `history` → `game-shared`.
 
 | File | Contents |
 | --- | --- |
 | `fonts.css` | `@font-face` rules for the bundled fonts in `app/fonts/` (Fraunces, Atkinson Hyperlegible Next; OFL licenses alongside). The CSP blocks font CDNs, so fonts must be bundled |
-| `variables.css` | All design tokens: theme colors (backgrounds, text, accent, borders, focus ring, buttons, status, results, trend, charts), then type (`--font-display`, `--font-body`), radii, shadows, spacing, transitions, and the `--stim-*` stimulus surfaces |
+| `variables.css` | All design tokens: theme colors (backgrounds, text, accent, borders, focus ring, buttons, status, answer feedback and selection, results, tutorial marker and callouts, trend, charts), then type (`--font-display`, `--font-body`), radii, shadows, spacing, transitions, and the `--stim-*` stimulus surfaces |
 | `base.css` | Reset, body defaults, `.sr-only`, `.eyebrow`, `kbd` key caps, global focus ring, reduced-motion overrides |
 | `layout.css` | Paper masthead (`.masthead__title`), nav, main, footer, game-selector grid |
 | `game-card.css` | Game cards (specimen plates: framed thumbnail, stats list, Play button) and the play-time ledger strip |
 | `history.css` | History modal (uses `--scrim` for its backdrop), charts, table |
-| `game-shared.css` | Shared game panels, buttons, trend chart, tutorial overlay, practice coach and marker |
+| `game-shared.css` | Shared game title rule, stats strip (`.game-hud`), welcome and end panels, results ledger, buttons, trend chart, tutorial overlay, callout halo (`.tutorial-callout`), practice coach and marker |
 
 - Use `var(--token)` instead of hard-coded colors, radii, or transitions. When you add a token
   to `variables.css`, record its contrast ratio in a comment, as the text tokens do. All
   pairings must meet WCAG AA.
 - Theme colors live in one group at the top of `variables.css`, so a dark theme can override only
-  that group.
+  that group. Its subgroups:
+  - surfaces and ink: `--bg-*` (paper, card, sunken), `--text-*`, `--accent` (clay),
+    `--border-*`, `--focus-ring` (pen blue), and `--scrim` for modal backdrops;
+  - actions: `--btn-primary-*` (forest), `--btn-secondary-*` (outlined ink), and
+    `--btn-danger-*` (Clear History only);
+  - status: `--color-*` warning and danger;
+  - game chrome: `--feedback-correct-*`, `--feedback-wrong-*`, and `--selected-bg` for answer
+    states; `--game-results-*`; `--tutorial-marker`; `--callout-1..5` and `--callout-halo` for
+    tutorial screenshot callouts; `--trend-*`, including `--trend-line`;
+  - charts: `--chart-color-0..9` and `--chart-color-total`.
 - `--stim-*` tokens hold the colors and corners of stimulus surfaces (what the player sees during
   a trial). They are frozen: changing them changes difficulty and makes saved thresholds
   incomparable. Never retune them with the theme, and never style a stimulus surface with a theme

@@ -70,17 +70,38 @@
   --color-warning-border:     #b8860b;  /* Warning confirmation border (3.2 card)  */
   --color-warning-text:       #5c4500;  /* Text on warning background (7.1)        */
 
+  /* ── Answer feedback and selection (game chrome, not stimuli) ──────────── */
+  --feedback-correct-text:   #24543a;  /* 7.0 on its bg, 8.7 on white            */
+  --feedback-correct-bg:     #dcebd9;
+  --feedback-correct-border: #3f7a4f;  /* 5.0 on card                             */
+  --feedback-wrong-text:     #7e2222;  /* 7.5 on its bg, 9.8 on white            */
+  --feedback-wrong-bg:       #f4dcd6;
+  --feedback-wrong-border:   #a12c2c;  /* 7.1 on card                             */
+  --selected-bg:             #dce6f3;  /* Chosen answer: text 11.8, --focus-ring border 6.4 */
+
   /* ── Shared game-component palette ─────────────────────────────────────── */
   --game-results-border:     var(--border-color);
-  --game-results-row-border: var(--border-color);
-  --game-results-label:      var(--text-muted);
+  --game-results-row-border: var(--border-strong);  /* Dotted leader between label and value */
+  --game-results-label:      var(--accent);         /* Eyebrow label (6.0 card)             */
   --game-results-value:      var(--text-base);
 
   /* ── Tutorial practice marker ───────────────────────────────────────────── */
-  --tutorial-marker: #24508f;  /* Ring and coach accent (7.9 card; 5.8 on Fast Piggie's
+  --tutorial-marker: #24508f;  /* Practice ring (7.9 card; 5.8 on Fast Piggie's
                                   #ffd75e hint wedge; 3:1 needed)                     */
 
+  /* ── Tutorial screenshot callouts ───────────────────────────────────────── */
+  /* Same hue families as before, because captions name them. Each callout also */
+  /* takes a --callout-halo ring so it stays visible on dark boards.            */
+  /* Ratios are against paper / white; outlines need 3:1.                       */
+  --callout-1:    #24508f;  /* blue   7.1 / 8.0 */
+  --callout-2:    #2f7a4f;  /* green  4.6 / 5.2 */
+  --callout-3:    #c2571a;  /* orange 4.0 / 4.5 */
+  --callout-4:    #7a3e6e;  /* purple 6.8 / 7.7 */
+  --callout-5:    #1d6b6b;  /* teal   5.5 / 6.2 */
+  --callout-halo: #ffffff;  /* 2px ring around every callout */
+
   /* ── Speed-trend chart ──────────────────────────────────────────────────── */
+  --trend-line:         #2f5d46;  /* Polyline stroke via currentColor (7.4 card, 6.1 sunken) */
   --trend-border:       var(--border-color);
   --trend-bg:           var(--bg-sunken);
   --trend-text:         var(--text-heading);  /* 9.9 on sunken */
