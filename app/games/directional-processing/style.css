@@ -282,6 +282,16 @@
   color: var(--callout-3);
 }
 
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* The keys still drop 2px when pressed, but without the slide.             */
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-dir-btn,
+  .dp-btn {
+    transition: none;
+  }
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 480px) {
