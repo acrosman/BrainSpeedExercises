@@ -17,12 +17,6 @@
   color: var(--text-base);
 }
 
-.fast-piggie h2 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0;
-}
-
 /* Instructions image */
 .fp-instructions__image {
   display: block;
