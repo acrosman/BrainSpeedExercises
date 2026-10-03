@@ -166,15 +166,21 @@
   margin: 0.75rem 0 0;
 }
 
+/* The wrapper shrinks to the image, so the percentage callouts stay on their targets. */
 .os-tutorial-image-wrap {
   position: relative;
+  width: fit-content;
   max-width: 340px;
   margin: 0 auto;
 }
 
+/* Cap the height to the window less the slide's text and buttons (about 31rem), so the whole
+   slide fits without scrolling. */
 .os-tutorial-image {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  max-height: max(240px, calc(100vh - 31rem));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
@@ -196,34 +202,34 @@
 }
 
 .os-tutorial-highlight--stats {
-  left: 3.5%;
-  top: -1.2%;
-  width: 93%;
-  height: 5%;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 8.4%;
   color: var(--callout-1);
 }
 
 .os-tutorial-highlight--stimulus {
-  left: 18.5%;
-  top: 4.2%;
-  width: 63%;
-  height: 55%;
+  left: 20.2%;
+  top: 9.7%;
+  width: 59.6%;
+  height: 50.1%;
   color: var(--callout-2);
 }
 
 .os-tutorial-highlight--controls {
-  left: -1.5%;
-  top: 59.8%;
-  width: 103%;
-  height: 14.5%;
+  left: 1%;
+  top: 61.2%;
+  width: 97.9%;
+  height: 10.4%;
   color: var(--callout-3);
 }
 
 .os-tutorial-highlight--trend {
-  left: 27.5%;
-  top: 76%;
-  width: 45%;
-  height: 25%;
+  left: 28%;
+  top: 74.2%;
+  width: 44%;
+  height: 25.8%;
   color: var(--callout-4);
 }
 
