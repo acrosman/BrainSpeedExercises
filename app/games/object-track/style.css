@@ -48,7 +48,7 @@
 .mot-game__phase-label {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--btn-primary-bg); /* 7.1:1 contrast on var(--bg-body) — WCAG AA */
+  color: var(--btn-primary-bg); /* Forest: 6.7:1 on var(--bg-body), WCAG AA */
   text-align: center;
   min-height: 1.5em;
   margin: 0.25rem 0;
