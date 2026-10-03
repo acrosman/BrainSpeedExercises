@@ -2,9 +2,6 @@
 
 .card-rat {
   --card-rat-card-gap: 0.65rem;
-  --card-rat-tutorial-highlight-stats: #1976d2;
-  --card-rat-tutorial-highlight-cards: #2e7d32;
-  --card-rat-tutorial-highlight-controls: #ed6c02;
 
   display: flex;
   flex-direction: column;
@@ -121,10 +118,14 @@
   font-size: 0.9rem;
 }
 
+/* The tutorial overlay is appended to #game-container, outside .card-rat, so callouts use the
+   global --callout-N tokens. Each modifier sets only its position and `color`; the border and
+   tint derive from it. The shared .tutorial-callout class adds the white halo. */
 .card-rat__tutorial-highlight {
   position: absolute;
   border-radius: 10px;
-  border: 4px solid;
+  border: 4px solid currentColor;
+  background: color-mix(in srgb, currentColor 16%, transparent);
   pointer-events: none;
   z-index: 1;
 }
@@ -134,8 +135,7 @@
   top: 9%;
   width: 84.5%;
   height: 8%;
-  border-color: var(--card-rat-tutorial-highlight-stats, #1976d2);
-  background: rgb(25 118 210 / 16%);
+  color: var(--callout-1);
 }
 
 .card-rat__tutorial-highlight--controls {
@@ -143,6 +143,5 @@
   top: 55%;
   width: 40%;
   height: 9%;
-  border-color: var(--card-rat-tutorial-highlight-controls, #ed6c02);
-  background: rgb(237 108 2 / 16%);
+  color: var(--callout-3);
 }
