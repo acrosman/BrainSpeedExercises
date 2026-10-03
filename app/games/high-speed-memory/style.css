@@ -172,7 +172,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .hsm-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -187,7 +188,7 @@
   top: 0;
   width: 86.2%;
   height: 4%;
-  color: #1976d2;
+  color: var(--callout-1);
 }
 
 .hsm-tutorial-highlight--grid {
@@ -195,7 +196,7 @@
   top: 4.1%;
   width: 64.4%;
   height: 63.4%;
-  color: #2e7d32;
+  color: var(--callout-2);
 }
 
 .hsm-tutorial-highlight--trend {
@@ -203,7 +204,7 @@
   top: 69.2%;
   width: 36.8%;
   height: 30.6%;
-  color: #ed6c02;
+  color: var(--callout-3);
 }
 
 /* The target greyhound and the other greyhounds on the "What to Look For" step. */
