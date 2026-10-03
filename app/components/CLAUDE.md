@@ -171,6 +171,9 @@ only through the practice-round context described below.
   time; otherwise it calls `onComplete` at once. `showTutorial(...)` always shows them.
 - Overlay, coach, and marker styles are the `.tutorial-overlay*`, `.tutorial-coach*`, and
   `.tutorial-marker*` classes in `app/styles/game-shared.css`. Do not restyle them per game.
+- The overlay is `position: fixed` over the whole window, and the panel is capped at the window
+  height and scrolls, so a tall slide never pushes its title off screen. Still size slide images
+  so a slide fits an 880px-high window without scrolling (see "Tutorial screenshots").
 
 ### Guided tutorials (slides, then live practice)
 
@@ -276,4 +279,7 @@ scale and crop:
   `width`, and `height` as percentages of that clip, so they stay aligned as the image scales.
 - Color each callout with a `--callout-N` token and add the shared `.tutorial-callout` class
   for its white halo. If the figcaption names a color, it must match the callout's hue.
+- If the game area is tall, cap the image's height so the slide fits without scrolling, and
+  make its wrapper `width: fit-content` so the percentage boxes still line up (see
+  `fast-piggie`'s `.fp-tutorial-image`).
 - When a game's layout changes, retake the screenshot and remeasure the boxes together.
