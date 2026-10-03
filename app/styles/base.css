@@ -96,17 +96,12 @@ kbd {
 }
 
 /* ── Reduced motion ──────────────────────────────────────────────────────── */
-/* Hover lifts and press effects are decoration; turn them off on request. */
+/* Hover lifts and press effects are decoration; turn them off on request. Each stylesheet
+   does this at its own end, after the rules it overrides: a block here would lose to the
+   later imports (game-card, history, game-shared) at equal specificity. */
 
 @media (prefers-reduced-motion: reduce) {
-  .skip-link,
-  .game-card,
-  .game-card img,
-  .game-card button,
-  .game-btn,
-  .tutorial-overlay__btn,
-  .tutorial-coach__btn,
-  .play-time-bar__btn {
+  .skip-link {
     transition: none;
   }
 }

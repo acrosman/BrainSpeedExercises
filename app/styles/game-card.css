@@ -176,3 +176,15 @@
 .play-time-bar__btn:hover {
   background-color: var(--btn-secondary-hover-bg);
 }
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* Kept last so it overrides the transitions above (see base.css).          */
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card,
+  .game-card img,
+  .game-card button,
+  .play-time-bar__btn {
+    transition: none;
+  }
+}

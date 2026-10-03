@@ -632,7 +632,16 @@
   }
 }
 
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* Kept last so it overrides the transitions above (see base.css).          */
+
 @media (prefers-reduced-motion: reduce) {
+  .game-btn,
+  .tutorial-overlay__btn,
+  .tutorial-coach__btn {
+    transition: none;
+  }
+
   .tutorial-marker {
     animation: none;
   }
