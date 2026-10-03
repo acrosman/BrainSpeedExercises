@@ -30,13 +30,7 @@
 }
 
 /* ── Stats bar ────────────────────────────────────────────────────────────── */
-
-.osm-stats,
-.osm-stats-live {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
+/* Drawn by the shared .game-hud classes; only its spacing is set here.        */
 
 .osm-stats {
   margin: 0.75rem 0;
