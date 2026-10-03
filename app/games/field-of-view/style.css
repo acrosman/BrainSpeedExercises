@@ -11,15 +11,20 @@
 }
 
 /* ── Panel wrapper ────────────────────────────────────────────────────────── */
-/* .fov-panel is used alongside the shared .game-welcome / .game-end-panel     */
-/* classes; it does not override the shared layout rules.                       */
+/* The welcome and end panels take their look from .game-welcome and          */
+/* .game-end-panel. The game area is the same paper card as the welcome       */
+/* panel. The end panel stays bare: its results ledger is already a card.     */
 
 .fov-panel {
-  background: var(--bg-body);
+  margin-top: var(--space-4);
+}
+
+#fov-game-area {
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem;
-  margin-top: 1rem;
+  box-shadow: var(--shadow-1);
+  padding: var(--space-5) var(--space-6);
 }
 
 /* ── Stats bar ───────────────────────────────────────────────────────────── */
@@ -192,16 +197,45 @@
   gap: 0.5rem;
 }
 
+/* ── Notebook keys ───────────────────────────────────────────────────────── */
+/* .fov-choice-btn, .fov-loc-cell, and .fov-btn are notebook keys: card      */
+/* paper, a control-boundary edge, and a 2px bottom edge that flattens when  */
+/* pressed. Buttons do not inherit the page font, so the keys set            */
+/* --font-body.                                                              */
+
+.fov-choice-btn,
+.fov-loc-cell,
+.fov-btn {
+  background: var(--bg-card);
+  color: var(--text-base);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 0 var(--border-strong);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: background var(--transition-quick), transform var(--transition-quick);
+}
+
+.fov-loc-cell:hover,
+.fov-btn:hover {
+  background: var(--bg-sunken);
+}
+
+.fov-choice-btn:active,
+.fov-loc-cell:active,
+.fov-btn:active {
+  box-shadow: none;
+  transform: translateY(2px);
+}
+
 /* ── Image choice buttons ────────────────────────────────────────────────── */
+/* The fixed 120x120 size is the timed hit area; keep it.                    */
 
 .fov-choice-btn {
   width: 120px;
   height: 120px;
-  border: 2px solid var(--text-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-body);
+  border-width: 2px;
   padding: 0;
-  cursor: pointer;
   overflow: hidden;
 }
 
@@ -229,34 +263,34 @@
   font-size: 0.9rem;
 }
 
+/* A sunken tray of keys. It is chrome, not a copy of the board's frozen grey. */
 .fov-location-selector {
   display: grid;
   width: 100%;
   aspect-ratio: 1 / 1;
-  gap: 0.2rem;
-  background: #aeb4bb;
-  border: 1px solid var(--text-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.25rem;
+  gap: 0.25rem;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.3rem;
 }
 
-.fov-loc-cell {
-  border: 1px solid var(--text-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-muted);
-  cursor: pointer;
-}
-
-.fov-loc-cell--center {
-  background: var(--bg-muted);
+/* The center square cannot be chosen: it lies flat in the tray. */
+.fov-loc-cell--center,
+.fov-loc-cell--center:hover {
+  background: transparent;
+  border-color: var(--border-color);
+  box-shadow: none;
   cursor: default;
+  transform: none;
 }
 
 .fov-loc-cell--center[disabled] {
   opacity: 1;
 }
 
-.fov-loc-cell--selected {
+.fov-loc-cell--selected,
+.fov-loc-cell--selected:hover {
   background: var(--selected-bg);
   border-color: var(--focus-ring);
 }
@@ -276,26 +310,35 @@
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 /* Shared button styles come from .game-btn in app/style.css.                  */
-/* .fov-btn is used for controls inside the active play area.                  */
+/* .fov-btn is a notebook key (above) for controls inside the play area.       */
 
 .fov-btn {
-  background: var(--bg-muted);
-  color: var(--text-base);
-  border: 1px solid var(--text-subtle);
-  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-weight: 600;
-  cursor: pointer;
 }
 
+/* Same forest tokens as .game-btn--primary. Kept as its own class. */
 .fov-btn--primary {
   background: var(--btn-primary-bg);
   color: var(--bg-card);
   border-color: var(--btn-primary-border);
+  box-shadow: 0 2px 0 var(--btn-primary-active);
 }
 
+.fov-btn--primary:hover {
+  background: var(--btn-primary-hover);
+}
+
+.fov-btn--primary:active {
+  background: var(--btn-primary-active);
+  box-shadow: none;
+}
+
+/* Same outlined ink as .game-btn--secondary. */
 .fov-btn--secondary {
-  background: var(--bg-muted);
+  background: transparent;
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
 }
 
 /* ── Feedback region ─────────────────────────────────────────────────────── */
