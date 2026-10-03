@@ -7,8 +7,13 @@ what is specific to Directional Processing.
 - `PRACTICE_TEXT`: the guided text names the direction and its arrow key, since the marker is
   not announced.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.dp-tutorial-highlight--*` boxes in `../style.css`. If the layout
-  changes, retake the screenshot and move the boxes together.
+  percentage-positioned `.dp-tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue,
+  `--callout-1`), `--pattern` (green, `--callout-2`, the stage), and `--buttons` (orange,
+  `--callout-3`, the direction pad), each with the shared `.tutorial-callout` halo. The
+  screenshot follows the standard in
+  [../../../components/CLAUDE.md](../../../components/CLAUDE.md), clipped to `#dp-game-area`
+  while the level 1 pattern is showing. If the layout changes, retake it and move the boxes
+  together.
 
 ## Practice controls and hooks
 
