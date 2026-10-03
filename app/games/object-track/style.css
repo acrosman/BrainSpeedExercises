@@ -221,15 +221,21 @@
   margin: 0.75rem 0 0;
 }
 
+/* The wrapper shrinks to the image, so the percentage callouts stay on their targets. */
 .mot-tutorial-image-wrap {
   position: relative;
+  width: fit-content;
   max-width: 420px;
   margin: 0 auto;
 }
 
+/* Cap the height to the window less the slide's text and buttons (about 28rem), so the whole
+   slide fits without scrolling. */
 .mot-tutorial-image {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  max-height: max(240px, calc(100vh - 28rem));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
@@ -252,26 +258,26 @@
 }
 
 .mot-tutorial-highlight--stats {
-  left: 26.8%;
-  top: 0;
-  width: 46.4%;
-  height: 3.6%;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 8.8%;
   color: var(--callout-1);
 }
 
 .mot-tutorial-highlight--arena {
-  left: 0;
-  top: 10.2%;
+  left: 0%;
+  top: 14.7%;
   width: 100%;
-  height: 52.2%;
+  height: 50.1%;
   color: var(--callout-2);
 }
 
 .mot-tutorial-highlight--trend {
-  left: 28.5%;
-  top: 65%;
-  width: 43%;
-  height: 35%;
+  left: 28.4%;
+  top: 66.7%;
+  width: 43.1%;
+  height: 33.3%;
   color: var(--callout-3);
 }
 
