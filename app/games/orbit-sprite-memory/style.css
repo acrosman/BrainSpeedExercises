@@ -17,17 +17,13 @@
   --osm-border:      var(--border-strong);
   color: var(--text-base);
   background: var(--bg-body);
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   padding: 1rem;
 }
 
 /* ── Panel wrapper ────────────────────────────────────────────────────────── */
-/* .osm-panel is used alongside .game-welcome / .game-end-panel; it            */
-/* does not override the shared layout rules.                                   */
-
-.osm-panel {
-  /* Styling delegated to shared .game-welcome / .game-end-panel classes */
-}
+/* .osm-panel is used alongside .game-welcome / .game-end-panel, which style   */
+/* it; it has no rules of its own.                                              */
 
 /* ── Stats bar ────────────────────────────────────────────────────────────── */
 /* Drawn by the shared .game-hud classes; only its spacing is set here.        */
