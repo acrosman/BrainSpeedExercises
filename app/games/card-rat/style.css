@@ -14,10 +14,6 @@
   color: var(--text-base);
 }
 
-.card-rat h2 {
-  margin: 0;
-}
-
 .card-rat__instruction-actions {
   display: flex;
   gap: 0.75rem;
