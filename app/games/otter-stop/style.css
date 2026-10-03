@@ -130,13 +130,11 @@
 }
 
 .os-feedback__text--correct {
-  color: #1a6f1a;
-  /* WCAG AA on white: ≥ 4.5:1 */
+  color: var(--feedback-correct-text);  /* 8.7 on white */
 }
 
 .os-feedback__text--wrong {
-  color: #9b1c1c;
-  /* WCAG AA on white: ≥ 4.5:1 */
+  color: var(--feedback-wrong-text);  /* 9.8 on white */
 }
 
 /* ── Reminder text ───────────────────────────────────────────────────────── */
