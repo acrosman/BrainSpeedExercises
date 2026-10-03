@@ -17,12 +17,6 @@
   color: var(--text-base);
 }
 
-.fast-piggie h2 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0;
-}
-
 /* Instructions image */
 .fp-instructions__image {
   display: block;
@@ -31,20 +25,9 @@
   max-height: 100px;
 }
 
-/* Stats bar */
-.fp-stats,
-.fp-stats-live {
-  display: flex;
-  gap: 2rem;
-}
-
+/* Stats bar: drawn by the shared .game-hud classes; only its spacing is set here. */
 .fp-stats {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.fp-stat strong {
-  font-size: 1.25rem;
+  margin-bottom: var(--space-4);
 }
 
 /* Canvas wrapper: provides positioning context for the flash overlay */
@@ -130,14 +113,20 @@
   margin: 0.75rem 0 0;
 }
 
+/* The wrapper shrinks to the image, so the percentage callouts stay on their targets. */
 .fp-tutorial-image-wrap {
   position: relative;
+  width: fit-content;
+  margin-inline: auto;
 }
 
+/* The game area is tall and narrow. Cap its height to the window less the slide's text and
+   buttons (about 28rem), so the whole slide fits without scrolling. */
 .fp-tutorial-image {
   display: block;
-  width: 100%;
-  max-width: 540px;
+  width: auto;
+  max-width: 100%;
+  max-height: max(240px, calc(100vh - 28rem));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
@@ -147,7 +136,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .fp-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -158,27 +148,27 @@
 }
 
 .fp-tutorial-highlight--stats {
-  left: 1%;
-  top: 0.8%;
-  width: 98.5%;
-  height: 5.4%;
-  color: #1976d2;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 8.5%;
+  color: var(--callout-1);
 }
 
 .fp-tutorial-highlight--board {
-  left: 2.5%;
-  top: 6.8%;
-  width: 79%;
-  height: 54.8%;
-  color: #2e7d32;
+  left: 0%;
+  top: 9.4%;
+  width: 100%;
+  height: 57.6%;
+  color: var(--callout-2);
 }
 
 .fp-tutorial-highlight--controls {
-  left: 37.5%;
-  top: 92.3%;
-  width: 25%;
-  height: 6.3%;
-  color: #ed6c02;
+  left: 36.7%;
+  top: 94.8%;
+  width: 26.7%;
+  height: 5.2%;
+  color: var(--callout-3);
 }
 
 /* Target piggie shown on the "What to Look For" step */
