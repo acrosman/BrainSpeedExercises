@@ -128,11 +128,15 @@ game should leave.
 ## `gameCard.js`
 
 `createGameCard(manifest, progress)` returns an `<article class="game-card">` with the
-thumbnail, name, description, a stats line, and a Play button. A click anywhere on the card
-dispatches a bubbling `game:select` event with `detail.gameId`. The stats line joins whatever
-is present: Top Score, Max Level (`highestLevel + 1`), Min Display Time, and time played today.
-It is left out when none of them are present. The function throws without `manifest.id` and
-`manifest.name`.
+thumbnail (inside `.game-card__frame`), name, description, a stats list, and a "Play →" button
+whose accessible name is "Play <name>" (the arrow is `aria-hidden`). A click anywhere on the
+card dispatches a bubbling `game:select` event with `detail.gameId`.
+
+The stats list is a `<dl class="game-high-score game-card__stats">` labelled "Stats for <name>",
+with one `.game-card__stat` (`dt` + `dd`) for each stat present, in this order: Top score, Max
+level (`highestLevel + 1`), Fastest (`lowestDisplayTime` in ms), and Today (time played
+today). It is left out when none of them are present. The function throws without
+`manifest.id` and `manifest.name`.
 
 ## `historyView.js`
 
@@ -221,7 +225,8 @@ Keep all tutorial code in `<id>/tutorial/`. `index.js` only supplies the game's 
 controls, and routes input to the tutorial while it is practicing.
 
 1. Put one HTML fragment per slide in `<id>/tutorial/`, add an annotated
-   `images/tutorialScreenshot.png`, and add a "Replay Tutorial" button to the welcome panel.
+   `images/tutorialScreenshot.png` (see "Tutorial screenshots" below), and add a "Replay
+   Tutorial" button to the welcome panel.
 2. In `tutorial/tutorial.js`:
    - Import `game.js` for `GAME_ID` and the practice-round helpers. Never import `index.js`.
    - `getTutorialSteps()` passes the slide definitions (`TUTORIAL_STEP_DEFINITIONS`) to
@@ -257,3 +262,18 @@ retries), `object-track` (several answers per round after an animation, with ret
 `orbit-sprite-memory` (several answers per round after a timed sequence, with retries), and
 `otter-stop` (a steady stream of responses, played through the game's own trial loop with no
 practice hooks, with retries).
+
+### Tutorial screenshots
+
+Every game's `images/tutorialScreenshot.png` is taken the same way, so the slides match in
+scale and crop:
+
+- Size the window so its content area is 1280×880 CSS pixels, and capture at the display's
+  device scale factor (do not downscale).
+- Play the game to a representative moment, then clip the capture to the game-area element:
+  `#<prefix>-game-area` in every game except Object Track, which uses `#mot-play-area`.
+- Position the slide's callout boxes (`.<prefix>-tutorial-highlight--*`) with `left`, `top`,
+  `width`, and `height` as percentages of that clip, so they stay aligned as the image scales.
+- Color each callout with a `--callout-N` token and add the shared `.tutorial-callout` class
+  for its white halo. If the figcaption names a color, it must match the callout's hue.
+- When a game's layout changes, retake the screenshot and remeasure the boxes together.

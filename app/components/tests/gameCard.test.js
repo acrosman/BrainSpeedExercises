@@ -38,6 +38,17 @@ function makeManifest(id, name) {
   };
 }
 
+/**
+ * Reads a card's stats list as [term, value] pairs.
+ *
+ * @param {HTMLElement} card - A card from createGameCard.
+ * @returns {string[][]} One [dt text, dd text] pair per stat.
+ */
+function statPairs(card) {
+  return [...card.querySelectorAll('.game-card__stat')]
+    .map((stat) => [stat.querySelector('dt').textContent, stat.querySelector('dd').textContent]);
+}
+
 describe('createGameCard', () => {
   afterEach(() => {
     document.body.innerHTML = '';
@@ -122,12 +133,54 @@ describe('createGameCard', () => {
     expect(button.getAttribute('aria-label')).toBeTruthy();
   });
 
+  it('button names the game for assistive tech and hides the decorative arrow', () => {
+    const card = createGameCard(validManifest);
+    const button = card.querySelector('button');
+    expect(button.getAttribute('aria-label')).toBe(`Play ${validManifest.name}`);
+    expect(button.textContent).toBe('Play →');
+    expect(button.querySelector('span').getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('wraps the thumbnail in a frame element', () => {
+    const card = createGameCard(validManifest);
+    const frame = card.querySelector('.game-card__frame');
+    expect(frame).not.toBeNull();
+    expect(frame.querySelector('img')).not.toBeNull();
+    expect(card.firstElementChild).toBe(frame);
+  });
+
   it('displays high score when provided', () => {
     const progress = { highScore: 42 };
     const card = createGameCard(makeManifest('fast-piggie', 'Fast Piggie'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
     expect(scoreElem.textContent).toContain('42');
+    expect(statPairs(card)).toEqual([['Top score', '42']]);
+  });
+
+  it('renders stats as a labelled definition list', () => {
+    const progress = { highScore: 42 };
+    const card = createGameCard(makeManifest('fast-piggie', 'Fast Piggie'), progress);
+    const scoreElem = card.querySelector('.game-high-score');
+    expect(scoreElem.tagName).toBe('DL');
+    expect(scoreElem.classList.contains('game-card__stats')).toBe(true);
+    expect(scoreElem.getAttribute('aria-label')).toBe('Stats for Fast Piggie');
+  });
+
+  it('lists every available stat in a fixed order', () => {
+    const progress = {
+      highScore: 7,
+      highestLevel: 2,
+      lowestDisplayTime: 120,
+      dailyTime: { '2024-01-15': 90000 },
+    };
+    const card = createGameCard(makeManifest('fast-piggie', 'Fast Piggie'), progress);
+    expect(statPairs(card)).toEqual([
+      ['Top score', '7'],
+      ['Max level', '3'],
+      ['Fastest', '120 ms'],
+      ['Today', '01:30'],
+    ]);
   });
 
   it('displays highest level when provided', () => {
@@ -136,7 +189,7 @@ describe('createGameCard', () => {
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
     // highestLevel 4 is displayed as level 5 (1-indexed)
-    expect(scoreElem.textContent).toContain('Max Level: 5');
+    expect(statPairs(card)).toContainEqual(['Max level', '5']);
   });
 
   it('displays min display time when lowestDisplayTime is provided', () => {
@@ -144,7 +197,7 @@ describe('createGameCard', () => {
     const card = createGameCard(makeManifest('any-game', 'Any Game'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
-    expect(scoreElem.textContent).toContain('Min Display Time: 84.2ms');
+    expect(statPairs(card)).toEqual([['Fastest', '84.2 ms']]);
   });
 
   it('displays lowestDisplayTime for field-of-view via generic progress', () => {
@@ -152,7 +205,7 @@ describe('createGameCard', () => {
     const card = createGameCard(makeManifest('field-of-view', 'Field of View'), progress);
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
-    expect(scoreElem.textContent).toContain('84.2ms');
+    expect(statPairs(card)).toContainEqual(['Fastest', '84.2 ms']);
   });
 
   it('shows no progress element when progress has no displayable fields', () => {
@@ -169,7 +222,7 @@ describe('createGameCard', () => {
     const scoreElem = card.querySelector('.game-high-score');
     expect(scoreElem).not.toBeNull();
     // 90000 ms = 01:30
-    expect(scoreElem.textContent).toContain('Today: 01:30');
+    expect(statPairs(card)).toEqual([['Today', '01:30']]);
   });
 
   it('does not display today label when dailyTime has no entry for today', () => {

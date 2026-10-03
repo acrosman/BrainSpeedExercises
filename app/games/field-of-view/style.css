@@ -43,8 +43,8 @@
   display: grid;
   gap: 0.35rem;
   background: #aeb4bb;
-  border: 2px solid var(--text-subtle);
-  border-radius: var(--radius-lg);
+  border: 2px solid var(--stim-cell-border);
+  border-radius: var(--stim-radius-lg);
   padding: 0.5rem;
   margin: 0 auto;
 }
@@ -64,7 +64,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--stim-radius-lg);
   opacity: 0;
   z-index: 3;
 }
@@ -113,10 +113,10 @@
 /* ── Grid cells ──────────────────────────────────────────────────────────── */
 
 .fov-cell {
-  border: 1px solid var(--text-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-muted);
-  color: var(--text-base);
+  border: 1px solid var(--stim-cell-border);
+  border-radius: var(--stim-radius-md);
+  background: var(--stim-cell-bg);
+  color: var(--stim-cell-text);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -142,7 +142,7 @@
 }
 
 .fov-cell--center {
-  background: var(--bg-muted);
+  background: var(--stim-cell-bg);
 }
 
 .fov-cell--center[disabled] {
@@ -163,12 +163,12 @@
 .fov-mask {
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--text-base);
+  border-radius: var(--stim-radius-lg);
+  border: 2px solid var(--stim-mask-border);
   background-image: url('images/Field.png');
   background-position: center;
   background-size: cover;
-  color: var(--bg-body);
+  color: var(--stim-mask-text);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
   display: grid;
   place-items: center;

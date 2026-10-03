@@ -13,4 +13,5 @@ and it is excluded from coverage.
    is the only place the ID is written.
 4. Replace `LEVELS` and the placeholder play area with the real game. Call
    `handleResponse(success)` from the game's input handlers after each trial.
-5. Add a `CLAUDE.md` for the new game that covers only what is specific to it.
+5. Add a `CLAUDE.md` for the new game that covers only what is specific to it, including a
+   list of its stimulus surfaces (see "Colors" in [../CLAUDE.md](../CLAUDE.md)).

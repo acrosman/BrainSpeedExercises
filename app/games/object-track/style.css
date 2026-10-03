@@ -78,8 +78,8 @@
   background-size: cover;
   background-position: center;
   overflow: hidden;
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--border-color);
+  border-radius: var(--stim-radius-lg);
+  border: 2px solid var(--stim-arena-border);
 }
 
 /* ── Controls ────────────────────────────────────────────────────────────────── */

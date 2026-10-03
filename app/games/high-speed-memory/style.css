@@ -99,7 +99,7 @@
 .hsm-card {
   position: relative;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--stim-radius-md);
   cursor: pointer;
   overflow: hidden;
   background-color: #1a1a2e;
@@ -122,7 +122,7 @@
 
 /* Face-up revealed state */
 .hsm-card--revealed {
-  background-color: var(--bg-card);
+  background-color: var(--stim-white);
 }
 
 /* Matched pair: green background */

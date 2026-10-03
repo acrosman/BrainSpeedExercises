@@ -86,8 +86,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-subtle);
-  border: 3px solid var(--border-strong);
+  background: var(--stim-surface);
+  border: 3px solid var(--stim-frame);
   border-radius: 12px;
   cursor: pointer;
   user-select: none;

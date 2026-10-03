@@ -1,21 +1,114 @@
 /* ── Shared Game UI Components ───────────────────────────────────────────────
  *
  * Reusable UI elements shared across all game plugins:
+ *   • game title       — the <h2> directly inside each game's root <section>
  *   • .game-welcome    — instructions / welcome panel
  *   • .game-end-panel  — end-of-session results layout
  *   • .game-results    — results definition list
  *   • .game-btn        — shared action button (primary / secondary variants)
  *   • .game-trend      — in-game speed/difficulty trend chart
+ *   • .game-hud        — in-game stats strip (opt-in)
+ *   • .tutorial-callout — white halo for tutorial screenshot callouts (opt-in)
  *
  * Every game's interface.html should apply these classes alongside any
  * game-specific classes. Do NOT duplicate these styles in game stylesheets.
  * Depends on: variables.css
  */
 
+/* ── Game title ──────────────────────────────────────────────────────────── */
+/*
+ * Every game's root <section> holds its title <h2> as a direct child. The ID selector
+ * outranks per-game h2 rules on purpose. It sets the typeface only, never colour, so a
+ * game keeps whatever colour its own stylesheet gives the title.
+ */
+
+#game-container > section > h2 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  font-variation-settings: 'SOFT' 50;
+}
+
+/* ── In-game stats strip (HUD) ───────────────────────────────────────────── */
+/*
+ * Opt-in classes, added alongside a game's own stats classes:
+ *
+ *   .game-hud                 — sunken strip (the game's .xx-stats)
+ *     .game-hud__live         — per-trial stats; keeps its aria-live (the game's .xx-stats-live)
+ *       .game-hud__stat       — one stat: "Label: <strong>value</strong> [unit]"
+ *     .game-hud__stat         — session timer, outside the live region, pushed right
+ *
+ * Each stat is an eyebrow label over its value. The markup holds the label as bare text,
+ * so the value moves to a second line through a line break in strong::before, and
+ * ::first-line styles the label. Text after the value (" ms", " / 3") stays on the value line.
+ */
+
+.game-hud {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* Every live stat has a left divider. The -1px margin tucks the divider of whichever stat
+   starts a row under the strip's clipped edge, so wrapped rows start clean. */
+.game-hud__live {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  margin-left: -1px;
+}
+
+/* The bold value's taller line box sits on the label line too, so the top pad is smaller. */
+.game-hud__stat {
+  padding: var(--space-1) var(--space-4) var(--space-3);
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+.game-hud__stat::first-line {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.game-hud__live .game-hud__stat,
+.game-hud > .game-hud__stat {
+  border-left: 1px solid var(--border-color);
+}
+
+.game-hud > .game-hud__stat {
+  margin-left: auto;
+  text-align: right;
+}
+
+.game-hud__stat strong {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-base);
+}
+
+.game-hud__stat strong::before {
+  content: '\A';
+  white-space: pre;
+}
+
 /* ── Welcome / instructions panel ───────────────────────────────────────── */
 /*
  * Apply .game-welcome to the instructions <div> shown before the game starts.
- * The panel always starts with <h3>How to Play</h3>.
+ * The panel always starts with <h3>How to Play</h3>, drawn as a clay eyebrow label.
+ * Key names use the global kbd key cap from base.css.
  */
 
 .game-welcome {
@@ -25,14 +118,24 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1.5rem 2rem;
+  box-shadow: var(--shadow-1);
+  padding: var(--space-5) var(--space-6);
   box-sizing: border-box;
 }
 
+/* Same look as .eyebrow in base.css; kept as an h3 for the heading outline. */
 .game-welcome h3 {
-  font-size: 1.25rem;
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
   font-weight: 700;
-  margin: 0 0 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.game-welcome li::marker {
+  color: var(--accent);
 }
 
 .game-welcome p {
@@ -48,16 +151,6 @@
 .game-welcome li {
   line-height: 1.7;
   margin-bottom: 0.25rem;
-}
-
-.game-welcome kbd {
-  display: inline-block;
-  padding: 0 0.35em;
-  font-family: monospace;
-  font-size: 0.875em;
-  border: 1px solid var(--text-subtle);
-  border-radius: 3px;
-  background-color: var(--bg-subtle);
 }
 
 /* ── End-of-session panel ────────────────────────────────────────────────── */
@@ -78,8 +171,12 @@
 
 .game-end-panel h2 {
   margin: 0;
+  font-family: var(--font-display);
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'SOFT' 50;
   color: var(--text-heading);
 }
 
@@ -87,35 +184,54 @@
 /*
  * Use a <dl> with .game-results inside .game-end-panel.
  * Each row is a <div class="game-results__row"> containing one <dt> and one <dd>.
+ * Rows read like a ledger: an eyebrow label, a dotted leader, then the value in
+ * Fraunces with tabular figures so columns of numbers line up.
  */
 
 .game-results {
   width: 100%;
   margin: 0;
+  padding: var(--space-3) var(--space-5);
+  background: var(--bg-card);
   border: 1px solid var(--game-results-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  box-shadow: var(--shadow-1);
 }
 
 .game-results__row {
   display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--game-results-row-border);
-}
-
-.game-results__row:last-child {
-  border-bottom: none;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
 }
 
 .game-results__label {
-  font-weight: 600;
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--game-results-label);
 }
 
+/* Dotted leader from the label to the value. */
+.game-results__label::after {
+  content: '';
+  flex: 1;
+  min-width: var(--space-4);
+  border-bottom: 1px dotted var(--game-results-row-border);
+}
+
 .game-results__value {
-  color: var(--game-results-value);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  color: var(--game-results-value);
 }
 
 /* ── End-panel action buttons ────────────────────────────────────────────── */
@@ -129,19 +245,24 @@
 
 /* ── Shared game buttons ─────────────────────────────────────────────────── */
 /*
- * .game-btn           — base style; always pair with a variant modifier.
- * .game-btn--primary  — "Start Game" / "Play Again" (blue).
- * .game-btn--secondary — "Return to Menu" / "End Game" (red).
+ * .game-btn            — base style; always pair with a variant modifier.
+ * .game-btn--primary   — "Start Game" / "Play Again" (forest fill).
+ * .game-btn--secondary — "End Game" / "Return to Menu" / "Replay Tutorial" (outlined ink).
+ *                        None of these is destructive, so it is not red.
+ *
+ * Buttons do not inherit the page font, so each rule sets --font-body.
  */
 
 .game-btn {
   padding: 0.55rem 1.4rem;
+  font-family: var(--font-body);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    transform var(--transition-quick);
 }
 
 .game-btn:focus-visible {
@@ -159,14 +280,21 @@
   background: var(--btn-primary-hover);
 }
 
+.game-btn--primary:active {
+  background: var(--btn-primary-active);
+  transform: translateY(2px);
+}
+
+/* Hover darkens the outline too: on card panels the hover fill alone would not show. */
 .game-btn--secondary {
-  background: var(--btn-danger-bg);
-  color: var(--bg-card);
-  border-color: var(--btn-danger-border);
+  background: transparent;
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
 }
 
 .game-btn--secondary:hover {
-  background: var(--btn-danger-hover);
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-text);
 }
 
 /* ── In-game speed/difficulty trend chart ────────────────────────────────── */
@@ -174,6 +302,9 @@
  * Apply .game-trend to the <section> that wraps the SVG polyline chart.
  * The inner SVG uses .game-trend__chart; status messages use .game-trend__meta /
  * .game-trend__empty.
+ *
+ * The chart is plain card paper. Its polyline must use stroke="currentColor", so the
+ * line takes --trend-line from the chart's colour.
  */
 
 .game-trend {
@@ -199,7 +330,8 @@
   margin-top: 0.35rem;
   border: 1px solid var(--trend-chart-border);
   border-radius: var(--radius-md);
-  background: linear-gradient(180deg, #f8fafc 0%, #e5edf5 100%);
+  background-color: var(--bg-card);
+  color: var(--trend-line);
 }
 
 .game-trend__empty,
@@ -217,9 +349,9 @@
  *
  *   .tutorial-overlay              — full-screen wrapper (positions the backdrop + panel)
  *     .tutorial-overlay__backdrop  — semi-transparent scrim
- *     .tutorial-overlay__panel     — white card containing tutorial content
- *       .tutorial-overlay__step-indicator — "Step N of M" counter
- *       .tutorial-overlay__title          — step heading <h2>
+ *     .tutorial-overlay__panel     — card-paper panel containing tutorial content
+ *       .tutorial-overlay__step-indicator — "Step N of M" counter (clay eyebrow)
+ *       .tutorial-overlay__title          — step heading <h2> (Fraunces)
  *       .tutorial-overlay__content        — step body text / HTML
  *       .tutorial-overlay__actions        — Prev / Next button row
  *         .tutorial-overlay__btn.tutorial-overlay__btn--primary    — Next / Got it!
@@ -239,7 +371,7 @@
 .tutorial-overlay__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--scrim);
 }
 
 .tutorial-overlay__panel {
@@ -247,15 +379,15 @@
   z-index: 1;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
   max-width: 480px;
   width: calc(100% - 2rem);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  gap: var(--space-3);
+  box-shadow: var(--shadow-2);
 }
 
 .tutorial-overlay__panel:focus-visible {
@@ -263,19 +395,24 @@
   outline-offset: 2px;
 }
 
-.tutorial-overlay__step-indicator {
+.tutorial-overlay__step-indicator,
+.tutorial-coach__label {
   margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-subtle);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
 }
 
 .tutorial-overlay__title {
   margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'SOFT' 50;
   color: var(--text-heading);
 }
 
@@ -302,16 +439,18 @@
   margin-top: 0.5rem;
 }
 
-/* Tutorial nav and coach buttons reuse the same base shape as .game-btn */
+/* Tutorial nav and coach buttons mirror .game-btn: forest primary, outlined secondary. */
 .tutorial-overlay__btn,
 .tutorial-coach__btn {
   padding: 0.5rem 1.25rem;
+  font-family: var(--font-body);
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    transform var(--transition-quick);
 }
 
 .tutorial-overlay__btn:focus-visible,
@@ -332,16 +471,23 @@
   background: var(--btn-primary-hover);
 }
 
+.tutorial-overlay__btn--primary:active,
+.tutorial-coach__btn--primary:active {
+  background: var(--btn-primary-active);
+  transform: translateY(2px);
+}
+
 .tutorial-overlay__btn--secondary,
 .tutorial-coach__btn--secondary {
   background: transparent;
-  color: var(--text-muted);
-  border-color: var(--border-color);
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
 }
 
 .tutorial-overlay__btn--secondary:hover,
 .tutorial-coach__btn--secondary:hover {
-  background: var(--bg-subtle);
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-text);
 }
 
 .tutorial-overlay__skip,
@@ -350,6 +496,7 @@
   background: none;
   border: none;
   padding: 0;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   color: var(--text-subtle);
   cursor: pointer;
@@ -369,18 +516,29 @@
   outline-offset: 2px;
 }
 
+/* ── Tutorial screenshot callouts ────────────────────────────────────────── */
+/*
+ * Add .tutorial-callout next to a game's .xx-tutorial-highlight--* boxes. Their outline
+ * colour comes from --callout-1..5; the white halo keeps it visible on dark boards.
+ */
+
+.tutorial-callout {
+  box-shadow: 0 0 0 2px var(--callout-halo);
+}
+
 /* ── Tutorial practice coach and marker ──────────────────────────────────── */
 /*
  * Shown by tutorialService.js (built in tutorialCoach.js) while a game plays a guided
  * practice round. Neither covers the game, so the player can still use the board.
  *
- *   .tutorial-coach               — sticky banner prepended to the game container
+ *   .tutorial-coach               — sticky banner prepended to the game container (clay left rule)
  *     .tutorial-coach__message    — aria-live label ("Practice round 1 of 2") and instructions
  *     .tutorial-coach__controls   — always-present row, so the banner keeps its height and
  *                                   the board below does not jump when a prompt appears
  *       .tutorial-coach__actions  — "Play Another Round" / "Start the Game" prompt buttons
  *       .tutorial-coach__skip     — "Skip Practice" link-style button
- *   .tutorial-marker              — pulsing ring over the control to use (pointer-events: none)
+ *   .tutorial-marker              — pulsing pen-blue ring over the control to use, with a white
+ *                                   halo (pointer-events: none)
  */
 
 .tutorial-coach {
@@ -397,23 +555,14 @@
   box-sizing: border-box;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-left: 4px solid var(--tutorial-marker);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
 }
 
 .tutorial-coach:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
-}
-
-.tutorial-coach__label {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-subtle);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 /* Room for two lines, so instructions of different lengths do not resize the banner. */

@@ -4,87 +4,171 @@
  * reference these variables rather than hard-coding colour values, so the
  * entire application can be re-themed by editing a single file.
  *
+ * Design motif: Field Notebook — warm paper, forest-ink text, a clay accent,
+ * hairline rules. Contrast ratios in comments are WCAG 2.x, measured against
+ * --bg-body (paper), --bg-card, and --bg-sunken unless stated otherwise.
+ *
+ * The colour groups (backgrounds through charts) are the theme. A future dark
+ * theme overrides only those groups. Type, shape, spacing, and the stimulus
+ * surfaces at the end are not part of the theme.
+ *
  * Naming convention: --<category>-<role>[-<modifier>]
  */
 
 :root {
+  /* ══ Theme colours ══════════════════════════════════════════════════════ */
+
   /* ── Background palette ─────────────────────────────────────────────────── */
-  --bg-body:    #f8f9fa;   /* App body and default panel background             */
-  --bg-card:    #ffffff;   /* Card / modal inner background                     */
-  --bg-dark:    #212529;   /* App header bar                                    */
-  --bg-nav:     #343a40;   /* Navigation bar                                    */
-  --bg-muted:   #e9ecef;   /* Subtle section background (play-time bar, etc.)   */
-  --bg-subtle:  #f1f3f5;   /* Very subtle background (kbd, hover rows, etc.)    */
+  --bg-body:    #f6f1e7;   /* Paper: app body and default panel background      */
+  --bg-card:    #fffdf8;   /* Card / modal inner background                     */
+  --bg-sunken:  #ede6d6;   /* Sunken strips: HUD, ledger, key caps, table heads */
+  --bg-muted:   #ede6d6;   /* Subtle section background (alias of sunken)       */
+  --bg-subtle:  #ede6d6;   /* Hover rows, kbd (alias of sunken)                 */
+  --bg-dark:    #1f3a2e;   /* Deep ink: skip link, dark controls                */
+  --bg-nav:     #244a37;   /* Dark forest: legacy dark buttons                  */
+  --scrim:      rgb(30 42 35 / 55%);  /* Modal backdrop: ink at 55% over the page */
 
   /* ── Text palette ───────────────────────────────────────────────────────── */
-  --text-base:     #212529;  /* Primary body text  (~14.5:1 on --bg-body)       */
-  --text-muted:    #495057;  /* Secondary text     (~7.3:1 on --bg-body)        */
-  --text-subtle:   #6c757d;  /* Tertiary / hint text                            */
-  --text-inverted: #f8f9fa;  /* Text on dark backgrounds (header, nav)          */
-  --text-heading:  #1a1a1a;  /* Game panel headings                             */
+  --text-base:     #1e2a23;  /* Primary text   (13.2 paper, 14.6 card, 12.0 sunken) */
+  --text-heading:  #1f3a2e;  /* Headings       (10.9 paper, 12.1 card)              */
+  --text-muted:    #4a5650;  /* Secondary text (6.8 paper, 7.5 card, 6.2 sunken)    */
+  --text-subtle:   #5e6660;  /* Hint text      (5.3 paper, 5.8 card, 4.8 sunken)    */
+  --text-inverted: #fffdf8;  /* Text on dark fills (12.1 on --bg-dark)              */
+
+  /* ── Accent ─────────────────────────────────────────────────────────────── */
+  --accent: #a3452a;  /* Clay: eyebrow labels, list markers (5.4 paper, 6.0 card, 4.9 sunken) */
 
   /* ── Border palette ─────────────────────────────────────────────────────── */
-  --border-color:  #dee2e6;  /* Standard component border                       */
-  --border-strong: #c0c8d4;  /* Slightly darker border (results table)          */
-  --border-subtle: #e0e0e0;  /* Light divider lines inside tables               */
+  --border-color:  #d8cfbc;  /* Hairline rules and card edges (decorative)          */
+  --border-subtle: #d8cfbc;  /* Divider lines inside tables (decorative)            */
+  --border-strong: #8a8170;  /* Control boundaries (3.4 paper, 3.8 card; ≥3 needed) */
 
   /* ── Focus / interactive ────────────────────────────────────────────────── */
-  --focus-ring: #005fcc;   /* Keyboard focus outline colour (WCAG AA)           */
+  --focus-ring: #24508f;   /* Pen blue focus outline (7.1 paper, 7.9 card, 6.5 sunken) */
 
-  /* ── Primary action — blue ──────────────────────────────────────────────── */
-  --btn-primary-bg:     #005fcc;
-  --btn-primary-border: #004fa3;
-  --btn-primary-hover:  #004fa3;
-  --btn-primary-active: #003d8a;
+  /* ── Primary action — forest ────────────────────────────────────────────── */
+  --btn-primary-bg:     #2f5d46;  /* --bg-card text on it: 7.4  */
+  --btn-primary-border: #244a37;
+  --btn-primary-hover:  #244a37;  /* --bg-card text on it: 9.8  */
+  --btn-primary-active: #1b3829;  /* --bg-card text on it: 12.6 */
 
-  /* ── Danger / secondary game action — red ───────────────────────────────── */
-  --btn-danger-bg:     #c0392b;
-  --btn-danger-border: #922b21;
-  --btn-danger-hover:  #922b21;
+  /* ── Secondary action — outlined ink (End Game, Return to Menu) ─────────── */
+  --btn-secondary-border:   #8a8170;  /* Control boundary (3.4 paper, 3.8 card)    */
+  --btn-secondary-text:     #1e2a23;  /* Same as --text-base                       */
+  --btn-secondary-hover-bg: #fffdf8;  /* Lifts to card on hover                    */
+
+  /* ── Danger — destructive actions only (Clear History) ──────────────────── */
+  --btn-danger-bg:     #a12c2c;  /* --bg-card text on it: 7.1 */
+  --btn-danger-border: #8a2323;
+  --btn-danger-hover:  #8a2323;  /* --bg-card text on it: 8.8 */
 
   /* ── Status / alert colours ─────────────────────────────────────────────── */
-  --color-danger-muted:       #dc3545;  /* Outline-style danger (clear buttons)  */
-  --color-danger-muted-hover: #bb2d3b;
-  --color-success:            #28a745;  /* Correct / matched state               */
-  --color-warning-bg:         #fff3cd;  /* Warning confirmation background       */
-  --color-warning-border:     #ffc107;  /* Warning confirmation border           */
-  --color-warning-text:       #664d03;  /* Text on warning background            */
+  --color-danger-muted:       #a12c2c;  /* Outlined danger text/border (7.1 card)  */
+  --color-danger-muted-hover: #8a2323;
+  --color-success:            #28a745;  /* Legacy; game uses move to feedback tokens */
+  --color-warning-bg:         #f3e3b5;  /* Warning confirmation background         */
+  --color-warning-border:     #b8860b;  /* Warning confirmation border (3.2 card)  */
+  --color-warning-text:       #5c4500;  /* Text on warning background (7.1)        */
+
+  /* ── Answer feedback and selection (game chrome, not stimuli) ──────────── */
+  --feedback-correct-text:   #24543a;  /* 7.0 on its bg, 8.7 on white            */
+  --feedback-correct-bg:     #dcebd9;
+  --feedback-correct-border: #3f7a4f;  /* 5.0 on card                             */
+  --feedback-wrong-text:     #7e2222;  /* 7.5 on its bg, 9.8 on white            */
+  --feedback-wrong-bg:       #f4dcd6;
+  --feedback-wrong-border:   #a12c2c;  /* 7.1 on card                             */
+  --selected-bg:             #dce6f3;  /* Chosen answer: text 11.8, --focus-ring border 6.4 */
 
   /* ── Shared game-component palette ─────────────────────────────────────── */
-  --game-results-border:     #c0c8d4;  /* Border around results <dl>             */
-  --game-results-row-border: #e0e0e0;  /* Row divider inside results table       */
-  --game-results-label:      #333;     /* <dt> label text                        */
-  --game-results-value:      #111;     /* <dd> value text                        */
+  --game-results-border:     var(--border-color);
+  --game-results-row-border: var(--border-strong);  /* Dotted leader between label and value */
+  --game-results-label:      var(--accent);         /* Eyebrow label (6.0 card)             */
+  --game-results-value:      var(--text-base);
 
   /* ── Tutorial practice marker ───────────────────────────────────────────── */
-  --tutorial-marker: #005fcc;  /* Ring and coach accent (~6.0:1 on --bg-card, ~4.3:1 on
-                                  Fast Piggie's yellow hint wedge; 3:1 needed)        */
+  --tutorial-marker: #24508f;  /* Practice ring (7.9 card; 5.8 on Fast Piggie's
+                                  #ffd75e hint wedge; 3:1 needed)                     */
+
+  /* ── Tutorial screenshot callouts ───────────────────────────────────────── */
+  /* Same hue families as before, because captions name them. Each callout also */
+  /* takes a --callout-halo ring so it stays visible on dark boards.            */
+  /* Ratios are against paper / white; outlines need 3:1.                       */
+  --callout-1:    #24508f;  /* blue   7.1 / 8.0 */
+  --callout-2:    #2f7a4f;  /* green  4.6 / 5.2 */
+  --callout-3:    #c2571a;  /* orange 4.0 / 4.5 */
+  --callout-4:    #7a3e6e;  /* purple 6.8 / 7.7 */
+  --callout-5:    #1d6b6b;  /* teal   5.5 / 6.2 */
+  --callout-halo: #ffffff;  /* 2px ring around every callout */
 
   /* ── Speed-trend chart ──────────────────────────────────────────────────── */
-  --trend-border:       #c1c9d2;
-  --trend-bg:           #eef2f6;
-  --trend-text:         #19324a;
-  --trend-chart-border: #9eabb8;
+  --trend-line:         #2f5d46;  /* Polyline stroke via currentColor (7.4 card, 6.1 sunken) */
+  --trend-border:       var(--border-color);
+  --trend-bg:           var(--bg-sunken);
+  --trend-text:         var(--text-heading);  /* 9.9 on sunken */
+  --trend-chart-border: var(--border-color);
+
+  /* ── Chart bar colour palette (10 colours + total bar; all ≥3 on card) ──── */
+  --chart-color-0:     #2f5d46;  /* forest  7.4 */
+  --chart-color-1:     #a3452a;  /* clay    6.0 */
+  --chart-color-2:     #24508f;  /* pen     7.9 */
+  --chart-color-3:     #8a6200;  /* ochre   5.4 */
+  --chart-color-4:     #7a3e6e;  /* plum    7.5 */
+  --chart-color-5:     #1d6b6b;  /* teal    6.1 */
+  --chart-color-6:     #b03a5b;  /* rose    5.7 */
+  --chart-color-7:     #5b6b1e;  /* olive   5.8 */
+  --chart-color-8:     #4a5568;  /* slate   7.4 */
+  --chart-color-9:     #6b4a2b;  /* umber   7.8 */
+  --chart-color-total: #8a8170;  /* stone   3.8 */
+
+  /* ══ Type ═══════════════════════════════════════════════════════════════ */
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body:    'Atkinson Hyperlegible Next', system-ui, -apple-system, sans-serif;
+
+  /* ══ Shape, depth, spacing, motion ══════════════════════════════════════ */
 
   /* ── Border radii ───────────────────────────────────────────────────────── */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* ── Shadows (warm-tinted) ──────────────────────────────────────────────── */
+  --shadow-1: 0 1px 2px rgb(60 45 20 / 6%), 0 1px 1px rgb(60 45 20 / 4%);
+  --shadow-2: 0 10px 30px rgb(60 45 20 / 12%), 0 2px 6px rgb(60 45 20 / 6%);
+
+  /* ── Spacing scale ──────────────────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
 
   /* ── Transitions ────────────────────────────────────────────────────────── */
   --transition-fast:  0.15s ease;
   --transition-quick: 0.1s ease;
 
-  /* ── Chart bar colour palette (10 accessible colours + total-bar grey) ──── */
-  --chart-color-0:     #005fcc;
-  --chart-color-1:     #c9510c;
-  --chart-color-2:     #238636;
-  --chart-color-3:     #8250df;
-  --chart-color-4:     #d1242f;
-  --chart-color-5:     #0969da;
-  --chart-color-6:     #bf8700;
-  --chart-color-7:     #1a7f74;
-  --chart-color-8:     #e85aad;
-  --chart-color-9:     #4d6b1e;
-  --chart-color-total: #adb5bd;
+  /* ══ Stimulus surfaces ══════════════════════════════════════════════════ */
+
+  /* ── Stimulus surfaces (never themed) ───────────────────────────────────── */
+  /*
+   * Colors and corners of what the player sees during a trial. They are part of the
+   * experiment: changing them changes difficulty and makes saved thresholds incomparable
+   * across versions. Never point these at theme tokens or retune them with the theme.
+   */
+  --stim-white:             #ffffff;  /* Fast Piggie wheel, Orbit board, revealed HSM card   */
+  --stim-cell-bg:           #e9ecef;  /* Field of View grid cells                            */
+  --stim-cell-border:       #6c757d;  /* Field of View cells and board, Directional canvas   */
+  --stim-cell-text:         #212529;  /* Field of View cell text                             */
+  --stim-mask-text:         #f8f9fa;  /* Field of View mask label                            */
+  --stim-mask-border:       #212529;  /* Field of View mask frame                            */
+  --stim-surface:           #f1f3f5;  /* Otter Stop stimulus panel                           */
+  --stim-frame:             #c0c8d4;  /* Otter Stop stimulus frame                           */
+  --stim-osm-board-border:  #ccd8df;  /* Orbit Sprite Memory board edge                      */
+  --stim-arena-border:      #dee2e6;  /* Object Track arena frame                            */
+  --stim-flash-correct:     #28a745;  /* Fast Piggie correct flash                           */
+  --stim-flash-wrong:       #dc3545;  /* Fast Piggie wrong flash                             */
+  --stim-radius-md:         6px;      /* Field of View cells, High Speed Memory cards        */
+  --stim-radius-lg:         8px;      /* Stimulus boards, canvases, and their flash overlays */
 }

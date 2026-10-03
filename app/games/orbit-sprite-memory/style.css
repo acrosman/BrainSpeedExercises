@@ -58,9 +58,9 @@
   width: min(94vw, 600px);
   height: min(94vw, 600px);
   margin: 0 auto;
-  border: 2px solid var(--osm-border);
+  border: 2px solid var(--stim-osm-board-border);
   border-radius: 50%;
-  background: var(--bg-card);
+  background: var(--stim-white);
 }
 
 /* During tutorial practice the coach banner sits above the game. Shrink the board so the
