@@ -11,15 +11,20 @@
 }
 
 /* ── Panel wrapper ────────────────────────────────────────────────────────── */
-/* .ss-panel is used alongside .game-welcome / .game-end-panel; it             */
-/* does not override the shared layout rules.                                   */
+/* The welcome and end panels take their look from .game-welcome and          */
+/* .game-end-panel. The game area is the same paper card as the welcome       */
+/* panel. The end panel stays bare: its results ledger is already a card.     */
 
 .ss-panel {
-  background: var(--bg-body);
+  margin-top: var(--space-4);
+}
+
+#ss-game-area {
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem;
-  margin-top: 1rem;
+  box-shadow: var(--shadow-1);
+  padding: var(--space-5) var(--space-6);
 }
 
 /* ── Stats bar ───────────────────────────────────────────────────────────────── */
@@ -66,7 +71,53 @@
   gap: 0.5rem;
 }
 
-/* ── Sequence response buttons ───────────────────────────────────────────────── */
+/* ── Notebook keys ───────────────────────────────────────────────────────────── */
+/* .ss-seq-btn and .ss-btn are notebook keys: card paper, a control-boundary     */
+/* edge, and a 2px bottom edge that flattens when pressed. A disabled key lies   */
+/* flat on sunken paper, with its text still readable. Buttons do not inherit   */
+/* the page font, so the keys set --font-body.                                  */
+
+.ss-seq-btn,
+.ss-btn {
+  background: var(--bg-card);
+  color: var(--text-base);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 0 var(--border-strong);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: background var(--transition-quick), transform var(--transition-quick);
+}
+
+.ss-seq-btn:hover,
+.ss-btn:hover {
+  background: var(--bg-sunken);
+}
+
+.ss-seq-btn:focus-visible,
+.ss-btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ss-seq-btn:active,
+.ss-btn:active {
+  box-shadow: none;
+  transform: translateY(2px);
+}
+
+.ss-seq-btn:disabled,
+.ss-btn:disabled {
+  background: var(--bg-sunken);
+  border-color: var(--border-color);
+  box-shadow: none;
+  color: var(--text-subtle);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Sequence keys ───────────────────────────────────────────────────────────── */
+/* The 2px border keeps the hit area the players are timed on.                  */
 
 .ss-seq-btn {
   display: flex;
@@ -75,32 +126,7 @@
   justify-content: center;
   gap: 0.15rem;
   padding: 0.6rem 0.5rem;
-  border: 2px solid var(--text-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-muted);
-  color: var(--text-base);
-  cursor: pointer;
-  font-family: inherit;
-  transition: background var(--transition-quick), transform var(--transition-quick);
-}
-
-.ss-seq-btn:hover {
-  background: var(--border-color);
-}
-
-.ss-seq-btn:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.ss-seq-btn:active {
-  transform: scale(0.96);
-}
-
-.ss-seq-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
+  border-width: 2px;
 }
 
 .ss-seq-btn__arrows {
@@ -114,14 +140,9 @@
   font-weight: 700;
 }
 
+/* The global kbd key cap from base.css, at a readable size inside the key. */
 .ss-seq-btn__key {
-  font-size: 0.7rem;
-  color: var(--text-subtle);
-  background: var(--bg-subtle);
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  padding: 0 0.25rem;
-  font-family: monospace;
+  font-size: 0.8125rem;
 }
 
 /* ── Feedback region ─────────────────────────────────────────────────────────── */
@@ -144,44 +165,49 @@
 
 /* ── Buttons ─────────────────────────────────────────────────────────────────── */
 /* Shared button styles come from .game-btn in app/style.css.                    */
-/* .ss-btn is used for controls inside the active play area.                     */
+/* .ss-btn is a notebook key (above) for controls inside the play area.          */
 
 .ss-btn {
-  background: var(--bg-muted);
-  color: var(--text-base);
-  border: 1px solid var(--text-subtle);
-  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
 }
 
+/* Same forest tokens as .game-btn--primary. Kept as its own class. */
 .ss-btn--primary {
   background: var(--btn-primary-bg);
   color: var(--bg-card);
   border-color: var(--btn-primary-border);
+  box-shadow: 0 2px 0 var(--btn-primary-active);
 }
 
+.ss-btn--primary:enabled:hover {
+  background: var(--btn-primary-hover);
+}
+
+.ss-btn--primary:enabled:active {
+  background: var(--btn-primary-active);
+  box-shadow: none;
+}
+
+/* Same outlined ink as .game-btn--secondary. */
 .ss-btn--secondary {
-  background: var(--bg-muted);
+  background: transparent;
+  color: var(--btn-secondary-text);
+  border-color: var(--btn-secondary-border);
 }
 
-.ss-btn--icon {
-  background: var(--bg-subtle);
-  border-color: var(--border-color);
+/* A quiet outlined icon button: no fill and no raised edge, so Replay reads    */
+/* as secondary to the sequence keys.                                           */
+.ss-btn--icon,
+.ss-btn--icon:disabled {
+  background: transparent;
+  box-shadow: none;
   font-size: 0.875rem;
   padding: 0.35rem 0.6rem;
 }
 
-.ss-btn:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.ss-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.ss-btn--icon:active {
+  transform: none;
 }
 
 /* ── Tutorial slides ─────────────────────────────────────────────────────────── */
