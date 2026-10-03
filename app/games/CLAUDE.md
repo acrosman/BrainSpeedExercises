@@ -102,8 +102,8 @@ Shared classes are defined in `app/styles/game-shared.css`. Do not duplicate the
 `style.css`, and do not put game-specific classes on the shared buttons.
 
 - The `<h2>` game title sits directly in the `<section>`, outside the panels. The shared rule
-  `#game-container > section > h2` sets its typeface, size, and weight (Fraunces). Do not set
-  those in a game's `style.css`; a game may set the title's color and margins.
+  `#game-container > section > h2` sets its typeface, size, and weight (Fraunces) and centers
+  it. Do not set those in a game's `style.css`; a game may set the title's color and margins.
 - **Welcome panel** `.game-welcome`: starts with `<h3>How to Play</h3>`, then one sentence
   stating the goal, then a `<ul>` or `<ol>` of steps. Do not mention implementation details such
   as asset file names. The `h3` renders as a clay eyebrow label, and key names in `<kbd>` use

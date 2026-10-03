@@ -299,3 +299,13 @@
   height: 15.3%;
   color: var(--callout-5);
 }
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* The keys still drop 2px when pressed, but without the slide.             */
+
+@media (prefers-reduced-motion: reduce) {
+  .ft-answer-btn,
+  .ft-btn {
+    transition: none;
+  }
+}

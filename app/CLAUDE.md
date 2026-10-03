@@ -74,7 +74,7 @@ which keep their own frozen `--stim-*` colors (see below and
 | --- | --- |
 | `fonts.css` | `@font-face` rules for the bundled fonts in `app/fonts/` (Fraunces, Atkinson Hyperlegible Next; OFL licenses alongside). The CSP blocks font CDNs, so fonts must be bundled |
 | `variables.css` | All design tokens: theme colors (backgrounds, text, accent, borders, focus ring, buttons, status, answer feedback and selection, results, tutorial marker and callouts, trend, charts), then type (`--font-display`, `--font-body`), radii, shadows, spacing, transitions, and the `--stim-*` stimulus surfaces |
-| `base.css` | Reset, body defaults, `.sr-only`, `.eyebrow`, `kbd` key caps, global focus ring, reduced-motion overrides |
+| `base.css` | Reset, body defaults, `.sr-only`, `.eyebrow`, `kbd` key caps, global focus ring |
 | `layout.css` | Paper masthead (`.masthead__title`), nav, main, footer, game-selector grid |
 | `game-card.css` | Game cards (specimen plates: framed thumbnail, stats list, Play button) and the play-time ledger strip |
 | `history.css` | History modal (uses `--scrim` for its backdrop), charts, table |
@@ -103,6 +103,11 @@ which keep their own frozen `--stim-*` colors (see below and
   To add slots, change the CSS and `COLOR_SLOT_COUNT` in `historyView.js` together.
 - Game-specific styles belong in the game's own `style.css`. The shell adds it when the game
   loads and removes it when the player leaves.
+- Reduced motion: every stylesheet that adds a hover lift, press shift, or decorative
+  animation turns it off in its own `@media (prefers-reduced-motion: reduce)` block at the end
+  of that file. A central block in `base.css` would lose to the later imports at equal
+  specificity. Never turn off a stimulus animation or transition (flashes, pulses, card flips):
+  those are part of the trial.
 
 ## Preload (`preload.js`)
 

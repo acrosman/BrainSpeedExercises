@@ -430,6 +430,17 @@
   margin-bottom: 0.25rem;
 }
 
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* The keys still drop 2px when pressed, but without the slide.             */
+
+@media (prefers-reduced-motion: reduce) {
+  .fov-choice-btn,
+  .fov-loc-cell,
+  .fov-btn {
+    transition: none;
+  }
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {

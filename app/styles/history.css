@@ -419,3 +419,12 @@
 .history-table tbody tr:hover {
   background-color: var(--bg-body);
 }
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* Kept last so it overrides the transitions above (see base.css).          */
+
+@media (prefers-reduced-motion: reduce) {
+  .history-chart__bar {
+    transition: none;
+  }
+}

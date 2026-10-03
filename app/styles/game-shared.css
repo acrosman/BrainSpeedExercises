@@ -18,11 +18,13 @@
 /* ── Game title ──────────────────────────────────────────────────────────── */
 /*
  * Every game's root <section> holds its title <h2> as a direct child. The ID selector
- * outranks per-game h2 rules on purpose. It sets the typeface only, never colour, so a
- * game keeps whatever colour its own stylesheet gives the title.
+ * outranks per-game h2 rules on purpose. It sets the typeface and centers the title over
+ * the centered panels, never color, so a game keeps whatever color its own stylesheet
+ * gives the title.
  */
 
 #game-container > section > h2 {
+  text-align: center;
   font-family: var(--font-display);
   font-size: 2rem;
   font-weight: 600;
@@ -630,7 +632,16 @@
   }
 }
 
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* Kept last so it overrides the transitions above (see base.css).          */
+
 @media (prefers-reduced-motion: reduce) {
+  .game-btn,
+  .tutorial-overlay__btn,
+  .tutorial-coach__btn {
+    transition: none;
+  }
+
   .tutorial-marker {
     animation: none;
   }

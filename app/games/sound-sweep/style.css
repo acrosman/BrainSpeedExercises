@@ -279,6 +279,16 @@
   color: var(--callout-4);
 }
 
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* The keys still drop 2px when pressed, but without the slide.             */
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-seq-btn,
+  .ss-btn {
+    transition: none;
+  }
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 480px) {
