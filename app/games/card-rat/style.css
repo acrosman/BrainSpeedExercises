@@ -33,18 +33,6 @@
   width: 100%;
 }
 
-.card-rat__stats,
-.card-rat__stats-live {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.card-rat__stats {
-  font-size: 0.95rem;
-}
-
 .card-rat__reaction-zone {
   border: none;
   background: transparent;
