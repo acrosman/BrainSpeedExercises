@@ -5,38 +5,28 @@
  * .game-btn) come from app/style.css — they are NOT duplicated here.
  * CSS custom properties are defined in app/styles/variables.css.
  *
- * Local game-specific palette:
- *   --osm-accent      primary interactive colour
- *   --osm-accent-dark hover / active shade of --osm-accent
- *   --osm-border      board / choice-button border
+ * Local aliases of the shared tokens (the board's own edge is --stim-osm-board-border):
+ *   --osm-accent      selected choice fill (--btn-primary-bg)
+ *   --osm-accent-dark hover border and selected choice border (--btn-primary-hover)
+ *   --osm-border      choice-button border (--border-strong, a 3:1 control boundary)
  */
 
 .orbit-memory {
-  --osm-accent:      #2b6cb0;
-  --osm-accent-dark: #1a4f8a;
-  --osm-border:      #ccd8df;
+  --osm-accent:      var(--btn-primary-bg);
+  --osm-accent-dark: var(--btn-primary-hover);
+  --osm-border:      var(--border-strong);
   color: var(--text-base);
   background: var(--bg-body);
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   padding: 1rem;
 }
 
 /* ── Panel wrapper ────────────────────────────────────────────────────────── */
-/* .osm-panel is used alongside .game-welcome / .game-end-panel; it            */
-/* does not override the shared layout rules.                                   */
-
-.osm-panel {
-  /* Styling delegated to shared .game-welcome / .game-end-panel classes */
-}
+/* .osm-panel is used alongside .game-welcome / .game-end-panel, which style   */
+/* it; it has no rules of its own.                                              */
 
 /* ── Stats bar ────────────────────────────────────────────────────────────── */
-
-.osm-stats,
-.osm-stats-live {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
+/* Drawn by the shared .game-hud classes; only its spacing is set here.        */
 
 .osm-stats {
   margin: 0.75rem 0;
@@ -134,11 +124,11 @@
 /* ── Board state feedback ────────────────────────────────────────────────── */
 
 .osm-board--success {
-  box-shadow: 0 0 0 6px rgba(43, 166, 91, 0.55);
+  box-shadow: 0 0 0 6px var(--feedback-correct-border);
 }
 
 .osm-board--failure {
-  box-shadow: 0 0 0 6px rgba(198, 58, 58, 0.55);
+  box-shadow: 0 0 0 6px var(--feedback-wrong-border);
 }
 
 /* ── Tutorial slides ─────────────────────────────────────────────────────── */
@@ -167,8 +157,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it.
-   Boxes at the image's edge extend just past it, so their borders do not cover the text. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .osm-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -179,35 +169,35 @@
 }
 
 .osm-tutorial-highlight--stats {
-  left: -1.5%;
-  top: -1.2%;
-  width: 92.5%;
-  height: 4%;
-  color: #1976d2;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 6.8%;
+  color: var(--callout-1);
 }
 
 .osm-tutorial-highlight--target {
-  left: -1.5%;
-  top: 2.8%;
-  width: 26.5%;
-  height: 10.2%;
-  color: #7b1fa2;
+  left: 0%;
+  top: 7.2%;
+  width: 19.9%;
+  height: 9.5%;
+  color: var(--callout-4);
 }
 
 .osm-tutorial-highlight--board {
-  left: 15.2%;
-  top: 13.6%;
-  width: 71.2%;
-  height: 57.8%;
-  color: #2e7d32;
+  left: 21.6%;
+  top: 17.1%;
+  width: 56.7%;
+  height: 55.6%;
+  color: var(--callout-2);
 }
 
 .osm-tutorial-highlight--trend {
-  left: -1.5%;
-  top: 72.2%;
-  width: 103%;
-  height: 28.8%;
-  color: #ed6c02;
+  left: 0%;
+  top: 73.3%;
+  width: 100%;
+  height: 26.7%;
+  color: var(--callout-3);
 }
 
 /* The whole sprite sheet on the "What to Look For" step. */

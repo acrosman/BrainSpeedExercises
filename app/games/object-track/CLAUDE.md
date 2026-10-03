@@ -7,6 +7,21 @@ each other. When they stop, the player selects the circles that were targets.
 CSS classes and element IDs use the `mot-` prefix. The root class is `.mot-game`, not
 `.object-track`.
 
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.mot-game__stats` and
+`.mot-game__stats-live` (see [../CLAUDE.md](../CLAUDE.md)). The phase label is forest
+(`--btn-primary-bg`, 6.7:1 on paper).
+
+Stimulus surfaces keep their own colors and never take theme tokens. Nearly every color literal
+in `style.css` belongs to one of them:
+
+- `.mot-game__arena`: the `#1a2744` arena, its `images/bg/` backgrounds, its
+  `--stim-arena-border` frame, and `--stim-radius-lg` corners.
+- `.mot-circle`: the ball gradients (`--mot-c-*` palettes from `CIRCLE_PALETTES`) and the state
+  glows and rings for target reveal, selected, correct, and missed (`#ff9900`, `#ffe066`,
+  `#ffd700`, `#22c55e`, `#ef4444`).
+
 ## Round phases (`index.js`)
 
 `beginRound()` builds the level's circles with `game.createRoundCircles` and hands them to

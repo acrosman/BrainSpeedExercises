@@ -8,9 +8,13 @@ what is specific to Object Track.
   the Tab and Enter alternative. The guided text names the ringed ball by its accessible name
   ("Circle 4"), because the marker is `aria-hidden`.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.mot-tutorial-highlight--*` boxes in `../style.css`. The screenshot is
-  the `#mot-play-area` element during a level 1 marking phase, scaled to 640 px wide. If the
-  layout changes, retake it and move the boxes together.
+  percentage-positioned `.mot-tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue,
+  `--callout-1`), `--arena` (green, `--callout-2`), and `--trend` (orange, `--callout-3`, the
+  trend chart and the End Game button), each with the shared `.tutorial-callout` halo, which
+  keeps the arena box visible on dark backgrounds. The screenshot follows the standard in
+  [../../../components/CLAUDE.md](../../../components/CLAUDE.md), clipped to `#mot-play-area`
+  while three balls glow as targets. `.mot-tutorial-image` caps its height so the slide fits an
+  880px window. If the layout changes, retake it and move the boxes together.
 - The "What to Look For" slide draws a target and a plain ball with the game's own
   `.mot-circle` classes, so they change when the game's ball styles do.
 

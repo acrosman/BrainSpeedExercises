@@ -22,10 +22,8 @@
   color: var(--text-base);
 }
 
+/* Typeface and size come from the shared title rule; only spacing is set here. */
 .mot-game__title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-base);
   margin-bottom: 1rem;
   text-align: center;
 }
@@ -41,28 +39,14 @@
 }
 
 /* ── Stats bar ───────────────────────────────────────────────────────────────── */
-
-.mot-game__stats,
-.mot-game__stats-live {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.25rem;
-}
-
-.mot-game__stats {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-base);
-  width: 100%;
-}
+/* Drawn by the shared .game-hud classes.                                         */
 
 /* ── Phase label ─────────────────────────────────────────────────────────────── */
 
 .mot-game__phase-label {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--btn-primary-bg); /* 7.1:1 contrast on var(--bg-body) — WCAG AA */
+  color: var(--btn-primary-bg); /* Forest: 6.7:1 on var(--bg-body), WCAG AA */
   text-align: center;
   min-height: 1.5em;
   margin: 0.25rem 0;
@@ -237,15 +221,21 @@
   margin: 0.75rem 0 0;
 }
 
+/* The wrapper shrinks to the image, so the percentage callouts stay on their targets. */
 .mot-tutorial-image-wrap {
   position: relative;
+  width: fit-content;
   max-width: 420px;
   margin: 0 auto;
 }
 
+/* Cap the height to the window less the slide's text and buttons (about 28rem), so the whole
+   slide fits without scrolling. */
 .mot-tutorial-image {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  max-height: max(240px, calc(100vh - 28rem));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
@@ -255,7 +245,9 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo, which keeps the
+   arena box visible on the dark arena. */
 .mot-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -266,27 +258,27 @@
 }
 
 .mot-tutorial-highlight--stats {
-  left: 26.8%;
-  top: 0;
-  width: 46.4%;
-  height: 3.6%;
-  color: #1976d2;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 8.8%;
+  color: var(--callout-1);
 }
 
 .mot-tutorial-highlight--arena {
-  left: 0;
-  top: 10.2%;
+  left: 0%;
+  top: 14.7%;
   width: 100%;
-  height: 52.2%;
-  color: #2e7d32;
+  height: 50.1%;
+  color: var(--callout-2);
 }
 
 .mot-tutorial-highlight--trend {
-  left: 28.5%;
-  top: 65%;
-  width: 43%;
-  height: 35%;
-  color: #ed6c02;
+  left: 28.4%;
+  top: 66.7%;
+  width: 43.1%;
+  height: 33.3%;
+  color: var(--callout-3);
 }
 
 /* A target ball and a plain ball on the "What to Look For" step. They reuse the game's */
