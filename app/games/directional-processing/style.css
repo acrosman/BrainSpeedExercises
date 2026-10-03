@@ -122,9 +122,9 @@
 
 /* Highlight the correct direction button after a wrong response. */
 .dp-dir-btn--correct {
-  background: #bbf7d0;
-  border-color: #15803d;
-  color: #14532d;
+  background: var(--feedback-correct-bg);
+  border-color: var(--feedback-correct-border);
+  color: var(--feedback-correct-text);
 }
 
 /* Visual treatment for the disabled (non-response) phase. */
@@ -135,8 +135,8 @@
 }
 
 .dp-dir-btn--selected {
-  background: #cfe8ff;
-  border-color: var(--btn-primary-bg);
+  background: var(--selected-bg);
+  border-color: var(--focus-ring);
 }
 
 /* ── Feedback region ─────────────────────────────────────────────────────────── */
