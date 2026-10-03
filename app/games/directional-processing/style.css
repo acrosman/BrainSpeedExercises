@@ -259,26 +259,26 @@
 }
 
 .dp-tutorial-highlight--stats {
-  left: 0.5%;
-  top: 1%;
-  width: 40%;
-  height: 7%;
+  left: 2.6%;
+  top: 1.9%;
+  width: 94.7%;
+  height: 7.0%;
   color: var(--callout-1);
 }
 
 .dp-tutorial-highlight--pattern {
-  left: 32%;
-  top: 7%;
-  width: 36%;
-  height: 59%;
+  left: 30.6%;
+  top: 9.5%;
+  width: 38.8%;
+  height: 37.8%;
   color: var(--callout-2);
 }
 
 .dp-tutorial-highlight--buttons {
-  left: 41%;
-  top: 71%;
-  width: 18.5%;
-  height: 27.5%;
+  left: 40.3%;
+  top: 51.4%;
+  width: 19.4%;
+  height: 16.7%;
   color: var(--callout-3);
 }
 
