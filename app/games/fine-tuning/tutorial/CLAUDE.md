@@ -8,11 +8,13 @@ what is specific to Fine Tuning.
   number key, since the marker is not announced. `guidedAnswer` takes the whole trial; the key
   comes from the answer's place in `game.ANSWERS`.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.ft-tutorial-highlight--*` boxes in `../style.css`. The screenshot is
-  the `#ft-game-area` element in the response phase after five rounds of a session, in a
-  1512 px wide window, scaled to 640 px wide. The five boxes cover the stats, the prompt and
-  Replay, the answer buttons, the trend chart, and the voice setting. If the layout changes,
-  retake it and move the boxes together.
+  percentage-positioned `.ft-tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue,
+  `--callout-1`), `--prompt` (green, `--callout-2`, the status line and Replay), `--buttons`
+  (orange, `--callout-3`, the First and Second keys), `--trend` (purple, `--callout-4`), and
+  `--voice` (teal, `--callout-5`), each with the shared `.tutorial-callout` halo. The screenshot
+  follows the standard in [../../../components/CLAUDE.md](../../../components/CLAUDE.md),
+  clipped to `#ft-game-area` after five rounds, once the next trial has played and the answer
+  keys are enabled. If the layout changes, retake it and move the boxes together.
 
 ## Practice controls and hooks
 
