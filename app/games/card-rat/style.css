@@ -113,7 +113,7 @@
   width: 100%;
   max-width: 540px;
   border-radius: 12px;
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border-color);
 }
 
 .card-rat__tutorial-caption {
