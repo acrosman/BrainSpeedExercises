@@ -40,7 +40,7 @@
   height: 120px;
   object-fit: cover;
   border-radius: var(--radius-md);
-  border: 3px solid var(--color-success);
+  border: 3px solid var(--feedback-correct-border);
   margin: 0 auto 1rem;
 }
 
@@ -110,21 +110,21 @@
   background-color: var(--stim-white);
 }
 
-/* Matched pair: green background */
+/* Matched card: the correct-answer feedback colors */
 .hsm-card--matched {
-  background-color: #d4edda;
+  background-color: var(--feedback-correct-bg);
   cursor: default;
-  outline: 2px solid var(--color-success);
+  outline: 2px solid var(--feedback-correct-border);
 }
 
 .hsm-card--matched .hsm-card__img {
   opacity: 0.85;
 }
 
-/* Wrong guess: red tint (no animation per game spec) */
+/* Wrong guess: the wrong-answer feedback colors (no animation per game spec) */
 .hsm-card--wrong {
-  background-color: #f8d7da;
-  outline: 2px solid var(--color-danger-muted);
+  background-color: var(--feedback-wrong-bg);
+  outline: 2px solid var(--feedback-wrong-border);
 }
 
 /* Empty placeholder cell (fills unused grid slot) */
@@ -237,7 +237,7 @@
 .hsm-tutorial-dog--target .hsm-tutorial-dog__image {
   width: 120px;
   height: 120px;
-  border: 3px solid var(--color-success);
+  border: 3px solid var(--feedback-correct-border);
 }
 
 /* ── End-game panel ──────────────────────────────────────────── */
