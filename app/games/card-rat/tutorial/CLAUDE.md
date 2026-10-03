@@ -6,8 +6,12 @@ what is specific to Card Rat.
 
 - `PRACTICE_TEXT`: any text that describes a click also names Space.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  `.card-rat__tutorial-highlight--*` boxes in `../style.css`. If the layout changes, retake the
-  screenshot and move the boxes together.
+  `.card-rat__tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue, `--callout-1`)
+  and `--controls` (orange, `--callout-3`, the End Game and toggles row), each with the shared
+  `.tutorial-callout` halo. The overlay is appended to `#game-container`, outside `.card-rat`, so
+  the boxes must use global tokens, not custom properties set on `.card-rat`. The screenshot
+  follows the standard in [../../../components/CLAUDE.md](../../../components/CLAUDE.md), with a
+  card dealt. If the layout changes, retake the screenshot and move the boxes together.
 
 ## Practice controls and hooks
 

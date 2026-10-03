@@ -7,9 +7,13 @@ what is specific to Otter Stop.
 - `PRACTICE_TEXT` holds the coach text. Any text that asks for a press names both Space and a
   click. `mistakes(misses, noGoHits)` builds the Try Again feedback.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.os-tutorial-highlight--*` boxes in `../style.css`. The screenshot is
-  the `#os-game-area` element during a level 3 session in a 1512 px wide window, scaled to
-  640 px wide. If the layout changes, retake it and move the boxes together.
+  percentage-positioned `.os-tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue,
+  `--callout-1`), `--stimulus` (green, `--callout-2`), `--controls` (orange, `--callout-3`, the
+  reminder and the End Game row together), and `--trend` (purple, `--callout-4`), each with the
+  shared `.tutorial-callout` halo. The screenshot follows the standard in
+  [../../../components/CLAUDE.md](../../../components/CLAUDE.md), taken while an otter is
+  showing. `.os-tutorial-image` caps its height so the slide fits an 880px window. If the layout
+  changes, retake it and move the boxes together.
 - The "Otters and the Fish" slide shows `images/go/go-1.png` as its example otter. If that file
   is renamed or removed, update the slide.
 

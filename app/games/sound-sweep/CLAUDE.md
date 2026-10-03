@@ -43,6 +43,25 @@ standard staircase applies, and trials are 500 ms apart. Sequences are the strin
 `score`, `level`, and `sessionDurationMs`, with no extra fields. The game saves only when
 `trialsCompleted > 0`.
 
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.ss-stats` and `.ss-stats-live` (see
+[../CLAUDE.md](../CLAUDE.md)). The welcome and end panels take their look from `.game-welcome`
+and `.game-end-panel`, so `.ss-panel` sets only spacing. `#ss-game-area` is the same card as the
+welcome panel; the end panel stays bare because its results ledger is already a card.
+
+`.ss-seq-btn` and `.ss-btn` are notebook keys: card paper, a `--border-strong` edge,
+`--radius-md`, and a 2px bottom edge that flattens on `:active`. A disabled key lies flat on
+`--bg-sunken` with `--text-subtle` text rather than fading, because the sequence keys stay
+disabled while the sweeps play. The sequence keys keep a 2px border so their hit area does not
+shrink. Their number labels use the global `kbd` key cap. `.ss-btn--icon` (Replay) is a quiet
+outlined button with no fill or raised edge. `.ss-btn--primary` and `.ss-btn--secondary` use the
+same tokens as `.game-btn--primary` (forest) and `.game-btn--secondary` (outlined ink); nothing
+uses them yet.
+
+This game has no visual stimulus surfaces: the sounds are the stimulus, so everything on screen
+is chrome and uses theme tokens.
+
 ## Controls
 
 Keys `1`–`4` answer `SEQUENCES` in order (Up-Up, Up-Down, Down-Up, Down-Down), the same order

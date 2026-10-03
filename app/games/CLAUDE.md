@@ -101,19 +101,63 @@ tutorial is documented in `<id>/tutorial/CLAUDE.md`.
 Shared classes are defined in `app/styles/game-shared.css`. Do not duplicate them in a game's
 `style.css`, and do not put game-specific classes on the shared buttons.
 
-- The `<h2>` game title sits directly in the `<section>`, outside the panels.
+- The `<h2>` game title sits directly in the `<section>`, outside the panels. The shared rule
+  `#game-container > section > h2` sets its typeface, size, and weight (Fraunces) and centers
+  it. Do not set those in a game's `style.css`; a game may set the title's color and margins.
 - **Welcome panel** `.game-welcome`: starts with `<h3>How to Play</h3>`, then one sentence
   stating the goal, then a `<ul>` or `<ol>` of steps. Do not mention implementation details such
-  as asset file names. The Start button is `game-btn game-btn--primary`.
-- **In-game "End Game" button:** `game-btn game-btn--secondary`.
+  as asset file names. The `h3` renders as a clay eyebrow label, and key names in `<kbd>` use
+  the global key cap from `base.css`. The Start button is `game-btn game-btn--primary`.
+- **Buttons:** `game-btn--primary` is the forest fill for the main action. `game-btn--secondary`
+  is an outlined ink button for non-destructive actions: "End Game", "Return to Menu", and
+  "Replay Tutorial". Never use it, or red, for anything else; the only destructive button in
+  the app is the shell's Clear History.
+- **Stats strip (HUD):** add the shared classes next to the game's own stats classes. Keep the
+  game's classes, IDs, and `aria-live` wrapper, since tests and `index.js` use them.
+  ```html
+  <div class="xx-stats game-hud">
+    <div class="xx-stats-live game-hud__live" aria-live="polite" aria-atomic="true">
+      <span class="xx-stat game-hud__stat">Round: <strong id="xx-round">0</strong></span>
+      <span class="xx-stat game-hud__stat">Display Time: <strong id="xx-time">--</strong> ms</span>
+    </div>
+    <span class="xx-stat game-hud__stat">Session: <strong id="xx-timer">00:00</strong></span>
+  </div>
+  ```
+  Each stat is `Label: <strong>value</strong>`, with any unit after the `<strong>`. CSS puts the
+  label (as an eyebrow) over the value (Fraunces, tabular figures) and pushes the session
+  timer, which stays outside the live region, to the right. Delete the game's own layout rules
+  for the stats once it uses the HUD.
 - **End panel** `.game-end-panel` with `<h2>Session Ended</h2>`. Results go in
   `<dl class="game-results">`, one `<div class="game-results__row">` per result, containing
-  `<dt class="game-results__label">` and `<dd class="game-results__value" id="...">`.
-  `index.js` fills each `<dd>` with `textContent`. Put the buttons in
-  `.game-end-panel__actions`: "Play Again" is `game-btn--primary` and "Return to Menu" is
-  `game-btn--secondary`.
+  `<dt class="game-results__label">` and `<dd class="game-results__value" id="...">`. They
+  render as a ledger: eyebrow label, dotted leader, Fraunces value. `index.js` fills each `<dd>`
+  with `textContent`. Put the buttons in `.game-end-panel__actions`: "Play Again" is
+  `game-btn--primary` and "Return to Menu" is `game-btn--secondary`.
+- **Trend chart** `.game-trend`: the polyline must use `stroke="currentColor"`. The chart's
+  `color` is `--trend-line`.
 - Feedback and score changes go to an `aria-live="polite"` region, usually through an
   `announce(message)` helper in `index.js`.
+
+## Colors: game chrome and stimulus surfaces
+
+A game's screen has two kinds of surfaces, and they take colors from different places.
+
+- **Stimulus surfaces** are what the player sees during a trial and responds to: boards,
+  canvases, cards, cells, masks, arenas, sprites, and the flashes drawn over them. They use
+  `--stim-*` tokens or game-local literals, **never theme tokens**. Their colors and corners
+  are part of the experiment: a theme change must not change difficulty or make saved
+  thresholds incomparable. Each game lists its stimulus surfaces in its own `CLAUDE.md`; a new
+  game adds that list.
+- **Chrome** is everything around the trial: panels, stats, buttons, labels, feedback text, and
+  tutorial callouts. It uses theme tokens from `app/styles/variables.css`:
+  - answer feedback: `--feedback-correct-text|bg|border` and
+    `--feedback-wrong-text|bg|border`;
+  - a chosen, not yet scored answer: `--selected-bg` with a `--focus-ring` border;
+  - tutorial screenshot callouts: `--callout-1` through `--callout-5` (blue, green, orange,
+    purple, teal). Slide captions name callouts by these hues, so keep a callout in the hue its
+    caption names. Add the shared `.tutorial-callout` class to every callout box; it draws the
+    2px `--callout-halo` (white) ring that keeps blue, purple, and teal visible on dark
+    boards. The screenshot standard is in [../components/CLAUDE.md](../components/CLAUDE.md).
 
 ## Testing games
 

@@ -40,3 +40,19 @@ through `extraFields`. `topSpeedMs` and `mostRounds` are tracked in `game.js` bu
 
 Click a wedge on the canvas. With the keyboard, the canvas (`role="application"`) is focusable:
 arrow keys move the highlighted wedge, and Enter or Space submits.
+
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.fp-stats`, `.fp-stats-live`, and
+`.fp-stat` (see [../CLAUDE.md](../CLAUDE.md)).
+
+Stimulus surfaces keep their own colors and never take theme tokens:
+
+- `.fp-canvas`: `--stim-white`, and its circular `border-radius`.
+- Everything drawn on the canvas in `index.js`: the `#ffffff` wedges, the
+  sprites, the hover and keyboard highlights (`rgba(0, 95, 204, …)`), the correct and wrong
+  answer fills (`rgba(40, 167, 69, 0.45)`, `rgba(220, 53, 69, 0.45)`), and
+  `CORRECT_WEDGE_COLOR` (the revealed wedge and the practice hint, which the pen-blue tutorial
+  marker is checked against).
+- `.fp-flash`: the `fp-flash-green` and `fp-flash-red` keyframes use `--stim-flash-correct` and
+  `--stim-flash-wrong`.

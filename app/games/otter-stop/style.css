@@ -15,7 +15,6 @@
   max-width: 800px;
   min-height: calc(100vh - 160px);
   margin: 0 auto;
-  font-family: inherit;
   box-sizing: border-box;
 }
 
@@ -51,21 +50,7 @@
 
 /* ── Stats bar ───────────────────────────────────────────────────────────── */
 
-.os-stats,
-.os-stats-live {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.os-stats {
-  font-size: 1rem;
-  color: var(--text-base);
-}
-
-.os-stat {
-  white-space: nowrap;
-}
+/* Drawn by the shared .game-hud classes. */
 
 /* ── Game area ───────────────────────────────────────────────────────────── */
 
@@ -86,8 +71,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-subtle);
-  border: 3px solid var(--border-strong);
+  background: var(--stim-surface);
+  border: 3px solid var(--stim-frame);
   border-radius: 12px;
   cursor: pointer;
   user-select: none;
@@ -144,13 +129,11 @@
 }
 
 .os-feedback__text--correct {
-  color: #1a6f1a;
-  /* WCAG AA on white: ≥ 4.5:1 */
+  color: var(--feedback-correct-text);  /* 8.7 on white */
 }
 
 .os-feedback__text--wrong {
-  color: #9b1c1c;
-  /* WCAG AA on white: ≥ 4.5:1 */
+  color: var(--feedback-wrong-text);  /* 9.8 on white */
 }
 
 /* ── Reminder text ───────────────────────────────────────────────────────── */
@@ -160,17 +143,6 @@
   font-size: 0.95rem;
   color: var(--text-muted);
   text-align: center;
-}
-
-.os-reminder kbd {
-  display: inline-block;
-  padding: 0.1em 0.4em;
-  background: var(--bg-muted);
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 0.9em;
-  line-height: 1.4;
 }
 
 /* ── Controls ────────────────────────────────────────────────────────────── */
@@ -186,13 +158,6 @@
 /* Layout and results are provided by .game-end-panel and .game-results        */
 /* in app/style.css — only game-specific overrides belong here.                */
 
-.os-end-panel__heading {
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-heading);
-}
-
 /* ── Tutorial slides ─────────────────────────────────────────────────────── */
 /* Content shown inside the shared tutorial overlay. Highlight boxes on the      */
 /* screenshot are positioned as percentages of tutorialScreenshot.png.           */
@@ -201,15 +166,21 @@
   margin: 0.75rem 0 0;
 }
 
+/* The wrapper shrinks to the image, so the percentage callouts stay on their targets. */
 .os-tutorial-image-wrap {
   position: relative;
+  width: fit-content;
   max-width: 340px;
   margin: 0 auto;
 }
 
+/* Cap the height to the window less the slide's text and buttons (about 31rem), so the whole
+   slide fits without scrolling. */
 .os-tutorial-image {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  max-height: max(240px, calc(100vh - 31rem));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
 }
@@ -219,8 +190,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it.
-   Boxes at the image's edge extend just past it, so their borders do not cover the text. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .os-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -231,35 +202,35 @@
 }
 
 .os-tutorial-highlight--stats {
-  left: 3.5%;
-  top: -1.2%;
-  width: 93%;
-  height: 5%;
-  color: #1976d2;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 8.4%;
+  color: var(--callout-1);
 }
 
 .os-tutorial-highlight--stimulus {
-  left: 18.5%;
-  top: 4.2%;
-  width: 63%;
-  height: 55%;
-  color: #2e7d32;
+  left: 20.2%;
+  top: 9.7%;
+  width: 59.6%;
+  height: 50.1%;
+  color: var(--callout-2);
 }
 
 .os-tutorial-highlight--controls {
-  left: -1.5%;
-  top: 59.8%;
-  width: 103%;
-  height: 14.5%;
-  color: #ed6c02;
+  left: 1%;
+  top: 61.2%;
+  width: 97.9%;
+  height: 10.4%;
+  color: var(--callout-3);
 }
 
 .os-tutorial-highlight--trend {
-  left: 27.5%;
-  top: 76%;
-  width: 45%;
-  height: 25%;
-  color: #7b1fa2;
+  left: 28%;
+  top: 74.2%;
+  width: 44%;
+  height: 25.8%;
+  color: var(--callout-4);
 }
 
 /* Two pictures side by side, each with a caption: the otter and the fish, or the feedback

@@ -1,8 +1,9 @@
 /* ── Template Game ────────────────────────────────────────────────────────── */
 /*
  * All selectors are prefixed with .game-template to avoid collisions.
- * Shared welcome panel, end panel, results table, and button styles all come
- * from app/style.css (.game-welcome, .game-end-panel, .game-results, .game-btn).
+ * Shared title, welcome panel, stats strip, end panel, results table, and button
+ * styles all come from app/style.css (#game-container > section > h2, .game-welcome,
+ * .game-hud, .game-end-panel, .game-results, .game-btn).
  * This file only contains layout and presentation rules that are unique to this
  * game.  Use the CSS custom properties defined in app/styles/variables.css
  * instead of hard-coding colour values.
@@ -16,13 +17,11 @@
   padding: 1.5rem;
   max-width: 800px;
   margin: 0 auto;
-  font-family: inherit;
 }
 
+/* Typeface and size come from the shared title rule; set only spacing and colour. */
 .game-template__title {
   margin: 0 0 0.5rem;
-  font-size: 1.75rem;
-  font-weight: 700;
   color: var(--text-heading);
 }
 
@@ -31,14 +30,7 @@
 /* Add any game-specific overrides here.                                       */
 
 /* ── Active play area ─────────────────────────────────────────────────────── */
-
-.game-template__stats,
-.game-template__stats-live {
-  display: flex;
-  gap: 2rem;
-  font-size: 1rem;
-  font-weight: 500;
-}
+/* The stats strip is drawn by .game-hud in app/style.css.                     */
 
 .game-template__play-area {
   min-height: 300px;

@@ -28,6 +28,29 @@ from level 3 on it also lowers `contrast` (1.0 → 0.3). `level` is an index int
 `score`, `level`, and `sessionDurationMs`, plus `lastTrialsCompleted` as a plain-object
 `extraFields`. The game saves only when `trialsCompleted > 0`.
 
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.dp-stats` and `.dp-stats-live` (see
+[../CLAUDE.md](../CLAUDE.md)). The welcome and end panels take their look from `.game-welcome`
+and `.game-end-panel`, so `.dp-panel` sets only spacing. `#dp-game-area` is the same card as the
+welcome panel; the end panel stays bare because its results ledger is already a card.
+
+`.dp-dir-btn` and `.dp-btn` are notebook keys: card paper, a `--border-strong` edge,
+`--radius-md`, and a 2px bottom edge that flattens on `:active`. The direction keys keep their
+fixed 100×56 size. A disabled key lies flat on `--bg-sunken` with `--text-subtle` labels rather
+than fading. After a miss, `.dp-dir-btn--correct` marks the right key with the
+`--feedback-correct-*` tokens; the pad is disabled by then, so that rule outranks the disabled
+look. `.dp-dir-btn--selected` uses `--selected-bg` with a `--focus-ring` border. Nothing uses
+`--selected`, `.dp-btn`, `.dp-btn--primary`, or `.dp-btn--secondary` yet.
+
+Stimulus surfaces keep their own colors and never take theme tokens:
+
+- `.dp-canvas`: the `rgb(128, 128, 128)` background, its `--stim-cell-border` frame, and
+  `--stim-radius-lg` corners.
+- Everything `gabor.js` draws on the canvas: the patch colors from `COLOR_FAMILIES` and the mask
+  fill.
+- `.dp-stage--flash-correct` and `.dp-stage--flash-wrong`: the `::after` flash colors.
+
 ## Controls
 
 Arrow keys, or the four on-screen direction buttons. Responses are ignored until the mask ends

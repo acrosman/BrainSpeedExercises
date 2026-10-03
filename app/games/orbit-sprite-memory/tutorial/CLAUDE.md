@@ -9,9 +9,13 @@ what is specific to Orbit Sprite Memory.
   guided text names the ringed spot by its accessible name ("Position 3"), because the marker
   is `aria-hidden`.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.osm-tutorial-highlight--*` boxes in `../style.css`. The screenshot is
-  the `#osm-game-area` element during a level 1 playback in a 1512 px wide window, scaled to
-  640 px wide. If the layout changes, retake it and move the boxes together.
+  percentage-positioned `.osm-tutorial-highlight--*` boxes in `../style.css`: `--stats` (blue,
+  `--callout-1`), `--target` (purple, `--callout-4`, the target label and sprite), `--board`
+  (green, `--callout-2`), and `--trend` (orange, `--callout-3`, the End Game row and the trend
+  chart together), each with the shared `.tutorial-callout` halo. The screenshot follows the
+  standard in [../../../components/CLAUDE.md](../../../components/CLAUDE.md), taken during a
+  level 1 playback with one rabbit on the circle. If the layout changes, retake it and move the
+  boxes together.
 - The "What to Look For" slide shows the whole `../images/sprites.png` sheet. If the sheet
   changes, update that slide's `alt` text.
 

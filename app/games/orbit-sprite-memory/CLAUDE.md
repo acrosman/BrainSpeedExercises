@@ -6,6 +6,19 @@ each. The player then selects the 3 positions where the target appeared.
 
 CSS classes and element IDs use the `osm-` prefix. The root class is `.orbit-memory`.
 
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.osm-stats` and `.osm-stats-live`
+(see [../CLAUDE.md](../CLAUDE.md)). The local `--osm-accent`, `--osm-accent-dark`, and
+`--osm-border` alias `--btn-primary-bg`, `--btn-primary-hover`, and `--border-strong`, so a
+chosen answer circle fills forest. The success and failure rings around the board are
+`--feedback-correct-border` and `--feedback-wrong-border`.
+
+Stimulus surfaces keep their own colors and never take theme tokens:
+
+- `.osm-board`: the `--stim-white` circle and its `--stim-osm-board-border` edge.
+- `.osm-sprite`: the rabbits cut from `images/sprites.png`, including the target preview.
+
 ## Round generation (`game.js`)
 
 `createRound(level)` does the following:
