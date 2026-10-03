@@ -8,14 +8,14 @@ A desktop application for brain-speed training — pick a game, play it, and tra
 
 ## A Look Inside
 
-![The exercise menu: a card for each game with its artwork, best scores, and a Play button](.github/readme/menu.jpg)
+![The exercise menu: a card for each game with its artwork, best scores, and a Play button](docs/images/readme/menu.jpg)
 
 <p>
-  <img src=".github/readme/in-game.jpg" alt="Fast Piggie in play: round, score, display time, and session time above the circle of guinea pigs" width="49%">
-  <img src=".github/readme/tutorial.jpg" alt="A Fast Piggie tutorial step that outlines each part of the game screen before you play" width="49%">
+  <img src="docs/images/readme/in-game.jpg" alt="Fast Piggie in play: round, score, display time, and session time above the circle of guinea pigs" width="49%">
+  <img src="docs/images/readme/tutorial.jpg" alt="A Fast Piggie tutorial step that outlines each part of the game screen before you play" width="49%">
 </p>
 
-![Play history: total play time per day, and time spent in each game per day](.github/readme/history.jpg)
+![Play history: total play time per day, and time spent in each game per day](docs/images/readme/history.jpg)
 
 ## Games
 
