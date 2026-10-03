@@ -303,7 +303,7 @@
  * The inner SVG uses .game-trend__chart; status messages use .game-trend__meta /
  * .game-trend__empty.
  *
- * The chart is ruled card paper. Its polyline must use stroke="currentColor", so the
+ * The chart is plain card paper. Its polyline must use stroke="currentColor", so the
  * line takes --trend-line from the chart's colour.
  */
 
@@ -331,11 +331,6 @@
   border: 1px solid var(--trend-chart-border);
   border-radius: var(--radius-md);
   background-color: var(--bg-card);
-  background-image: repeating-linear-gradient(
-    180deg,
-    transparent 0 19px,
-    var(--trend-chart-border) 19px 20px
-  );
   color: var(--trend-line);
 }
 
