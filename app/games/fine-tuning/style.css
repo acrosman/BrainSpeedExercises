@@ -11,13 +11,20 @@
 }
 
 /* ── Panel wrapper ────────────────────────────────────────────────────────── */
+/* The welcome and end panels take their look from .game-welcome and          */
+/* .game-end-panel. The game area is the same paper card as the welcome       */
+/* panel. The end panel stays bare: its results ledger is already a card.     */
 
 .ft-panel {
-  background: var(--bg-body);
+  margin-top: var(--space-4);
+}
+
+#ft-game-area {
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1rem;
-  margin-top: 1rem;
+  box-shadow: var(--shadow-1);
+  padding: var(--space-5) var(--space-6);
 }
 
 /* ── Voice setting ───────────────────────────────────────────────────────── */
@@ -102,7 +109,53 @@
   gap: 0.75rem;
 }
 
-/* ── Answer buttons ──────────────────────────────────────────────────────── */
+/* ── Notebook keys ───────────────────────────────────────────────────────── */
+/* .ft-answer-btn and .ft-btn are notebook keys: card paper, a control-      */
+/* boundary edge, and a 2px bottom edge that flattens when pressed. A        */
+/* disabled key lies flat on sunken paper, with its text still readable.     */
+/* Buttons do not inherit the page font, so the keys set --font-body.        */
+
+.ft-answer-btn,
+.ft-btn {
+  background: var(--bg-card);
+  color: var(--text-base);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 0 var(--border-strong);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: background var(--transition-quick), transform var(--transition-quick);
+}
+
+.ft-answer-btn:hover,
+.ft-btn:hover {
+  background: var(--bg-sunken);
+}
+
+.ft-answer-btn:focus-visible,
+.ft-btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ft-answer-btn:active,
+.ft-btn:active {
+  box-shadow: none;
+  transform: translateY(2px);
+}
+
+.ft-answer-btn:disabled,
+.ft-btn:disabled {
+  background: var(--bg-sunken);
+  border-color: var(--border-color);
+  box-shadow: none;
+  color: var(--text-subtle);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Answer keys ─────────────────────────────────────────────────────────── */
+/* The 2px border keeps the hit area the players are timed on.              */
 
 .ft-answer-btn {
   display: flex;
@@ -112,32 +165,7 @@
   gap: 0.25rem;
   min-width: 8rem;
   padding: 0.75rem 1.25rem;
-  border: 2px solid var(--text-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--bg-muted);
-  color: var(--text-base);
-  cursor: pointer;
-  font-family: inherit;
-  transition: background var(--transition-quick), transform var(--transition-quick);
-}
-
-.ft-answer-btn:hover {
-  background: var(--border-color);
-}
-
-.ft-answer-btn:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.ft-answer-btn:active {
-  transform: scale(0.96);
-}
-
-.ft-answer-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
+  border-width: 2px;
 }
 
 .ft-answer-btn__label {
@@ -145,14 +173,9 @@
   font-weight: 700;
 }
 
+/* The global kbd key cap from base.css, at a readable size inside the key. */
 .ft-answer-btn__key {
-  font-size: 0.7rem;
-  color: var(--text-subtle);
-  background: var(--bg-subtle);
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  padding: 0 0.25rem;
-  font-family: monospace;
+  font-size: 0.8125rem;
 }
 
 /* ── Feedback region ─────────────────────────────────────────────────────── */
@@ -175,34 +198,25 @@
 
 /* ── In-play buttons ─────────────────────────────────────────────────────── */
 /* Shared button styles come from .game-btn in app/style.css.                */
-/* .ft-btn is used for controls inside the active play area.                 */
+/* .ft-btn is a notebook key (above) for controls inside the play area.      */
 
 .ft-btn {
-  background: var(--bg-muted);
-  color: var(--text-base);
-  border: 1px solid var(--text-subtle);
-  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
 }
 
-.ft-btn--icon {
-  background: var(--bg-subtle);
-  border-color: var(--border-color);
+/* A quiet outlined icon button: no fill and no raised edge, so Replay reads */
+/* as secondary to the answer keys.                                          */
+.ft-btn--icon,
+.ft-btn--icon:disabled {
+  background: transparent;
+  box-shadow: none;
   font-size: 0.875rem;
   padding: 0.35rem 0.6rem;
 }
 
-.ft-btn:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.ft-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.ft-btn--icon:active {
+  transform: none;
 }
 
 /* ── Tutorial slides ─────────────────────────────────────────────────────── */
