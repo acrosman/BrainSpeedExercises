@@ -22,10 +22,8 @@
   color: var(--text-base);
 }
 
+/* Typeface and size come from the shared title rule; only spacing is set here. */
 .mot-game__title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-base);
   margin-bottom: 1rem;
   text-align: center;
 }
