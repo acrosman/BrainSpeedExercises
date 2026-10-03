@@ -22,10 +22,8 @@
   --bg-body:    #f6f1e7;   /* Paper: app body and default panel background      */
   --bg-card:    #fffdf8;   /* Card / modal inner background                     */
   --bg-sunken:  #ede6d6;   /* Sunken strips: HUD, ledger, key caps, table heads */
-  --bg-muted:   #ede6d6;   /* Subtle section background (alias of sunken)       */
   --bg-subtle:  #ede6d6;   /* Hover rows, kbd (alias of sunken)                 */
   --bg-dark:    #1f3a2e;   /* Deep ink: skip link, dark controls                */
-  --bg-nav:     #244a37;   /* Dark forest: legacy dark buttons                  */
   --scrim:      rgb(30 42 35 / 55%);  /* Modal backdrop: ink at 55% over the page */
 
   /* ── Text palette ───────────────────────────────────────────────────────── */
@@ -40,7 +38,6 @@
 
   /* ── Border palette ─────────────────────────────────────────────────────── */
   --border-color:  #d8cfbc;  /* Hairline rules and card edges (decorative)          */
-  --border-subtle: #d8cfbc;  /* Divider lines inside tables (decorative)            */
   --border-strong: #8a8170;  /* Control boundaries (3.4 paper, 3.8 card; ≥3 needed) */
 
   /* ── Focus / interactive ────────────────────────────────────────────────── */
@@ -59,13 +56,10 @@
 
   /* ── Danger — destructive actions only (Clear History) ──────────────────── */
   --btn-danger-bg:     #a12c2c;  /* --bg-card text on it: 7.1 */
-  --btn-danger-border: #8a2323;
   --btn-danger-hover:  #8a2323;  /* --bg-card text on it: 8.8 */
 
   /* ── Status / alert colours ─────────────────────────────────────────────── */
   --color-danger-muted:       #a12c2c;  /* Outlined danger text/border (7.1 card)  */
-  --color-danger-muted-hover: #8a2323;
-  --color-success:            #28a745;  /* Legacy; game uses move to feedback tokens */
   --color-warning-bg:         #f3e3b5;  /* Warning confirmation background         */
   --color-warning-border:     #b8860b;  /* Warning confirmation border (3.2 card)  */
   --color-warning-text:       #5c4500;  /* Text on warning background (7.1)        */
