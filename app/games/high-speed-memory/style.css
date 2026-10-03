@@ -56,22 +56,7 @@
 }
 
 /* ── Stats bar ───────────────────────────────────────────────── */
-.hsm-stats,
-.hsm-stats-live {
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.hsm-stats {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.hsm-stat strong {
-  font-size: 1.25rem;
-}
+/* Drawn by the shared .game-hud classes. */
 
 /* ── Card grid ───────────────────────────────────────────────── */
 .hsm-grid {
