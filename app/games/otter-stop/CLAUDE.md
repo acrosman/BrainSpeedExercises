@@ -17,6 +17,19 @@ CSS classes and element IDs use the `os-` prefix.
 - `GO_KEYS` and `IMAGE_KEYS` are exported `let` bindings that `setGoKeys` reassigns. Import them
   as live bindings; do not copy them.
 
+## Screen and stimulus surfaces
+
+The stats row uses the shared `.game-hud` classes next to `.os-stats`, `.os-stats-live`, and
+`.os-stat` (see [../CLAUDE.md](../CLAUDE.md)). The result captions on the feedback overlay use
+`--feedback-correct-text` and `--feedback-wrong-text`.
+
+Stimulus surfaces keep their own colors and never take theme tokens:
+
+- `.os-stimulus`: `--stim-surface` background, a 3px `--stim-frame` border, and 12px corners.
+  It is also the response target (click or Space).
+- `.os-stimulus__img`: the otter and fish images, and the 80ms opacity fade between trials.
+- `.os-feedback`: the `rgba(255, 255, 255, 0.93)` overlay and the success and failure images.
+
 ## Trial logic (`game.js`)
 
 - `pickNextImage()` shows a run of go images and then one no-go. Run length is random in
