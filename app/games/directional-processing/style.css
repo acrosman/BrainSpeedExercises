@@ -247,10 +247,13 @@
   font-size: 0.9rem;
 }
 
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .dp-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
-  border: 3px solid;
+  border: 3px solid currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
   pointer-events: none;
   z-index: 1;
 }
@@ -260,8 +263,7 @@
   top: 1%;
   width: 40%;
   height: 7%;
-  border-color: #1976d2;
-  background: rgb(25 118 210 / 16%);
+  color: var(--callout-1);
 }
 
 .dp-tutorial-highlight--pattern {
@@ -269,8 +271,7 @@
   top: 7%;
   width: 36%;
   height: 59%;
-  border-color: #2e7d32;
-  background: rgb(46 125 50 / 10%);
+  color: var(--callout-2);
 }
 
 .dp-tutorial-highlight--buttons {
@@ -278,8 +279,7 @@
   top: 71%;
   width: 18.5%;
   height: 27.5%;
-  border-color: #ed6c02;
-  background: rgb(237 108 2 / 16%);
+  color: var(--callout-3);
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
