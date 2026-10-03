@@ -8,24 +8,26 @@ A desktop application for brain-speed training — pick a game, play it, and tra
 
 ## A Look Inside
 
-![The exercise menu: game cards with artwork, your best scores, and today's total play time](.github/readme/menu.jpg)
+![The exercise menu: a card for each game with its artwork, best scores, and a Play button](.github/readme/menu.jpg)
 
 <p>
-  <img src=".github/readme/in-game.png" alt="Fast Piggie in play: round, score, and display time above the circle of guinea pigs, with a speed trend chart below" width="49%">
-  <img src=".github/readme/tutorial.png" alt="A tutorial step that outlines each part of the game screen before you play" width="49%">
+  <img src=".github/readme/in-game.jpg" alt="Fast Piggie in play: round, score, display time, and session time above the circle of guinea pigs" width="49%">
+  <img src=".github/readme/tutorial.jpg" alt="A Fast Piggie tutorial step that outlines each part of the game screen before you play" width="49%">
 </p>
 
-![Play history: total play time per day and time spent in each game](.github/readme/history.png)
+![Play history: total play time per day, and time spent in each game per day](.github/readme/history.jpg)
 
 ## Games
 
-Brain Speed Exercises ships with eight games, each targeting a different cognitive skill:
+Brain Speed Exercises ships with ten games, each targeting a different cognitive skill:
 
 | Game | What it trains |
 | ---- | -------------- |
+| **Card Rat** | Processing speed and inhibition — react only to pairs, sandwiches, and jokers before the next card appears, in an Egyptian Rat Screw-style challenge. |
 | **Directional Processing** | Rapid visual motion perception — identify the direction of a briefly-displayed moving Gabor pattern. |
 | **Fast Piggie** | Visual attention — spot the different guinea pig before they disappear! |
 | **Field of View** | Split attention — identify the center kitten and the peripheral toys under rapid masked flashes. |
+| **Fine Tuning** | Speech-sound discrimination — hear a target syllable, then pick which of two quick sounds matched it, like "ba" versus "da", even in noise. |
 | **High Speed Memory** | Working memory — memorize the grid of cards, then find all 3 copies of the target card from memory. |
 | **Object Track** | Attention and visual memory — track multiple moving targets among identical distractors. |
 | **Orbit Sprite Memory** | Spatial memory — track where the target sprite appears around the circle, then pick its three positions. |
