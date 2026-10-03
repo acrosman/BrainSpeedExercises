@@ -8,8 +8,15 @@ what is specific to Fast Piggie.
   alternative.
 - Start and Replay Tutorial pass `onComplete: _beginGameSession`.
 - The screenshot slide highlights regions of `../images/tutorialScreenshot.png` with the
-  percentage-positioned `.fp-tutorial-highlight--*` boxes in `../style.css`. If the layout
-  changes, retake the screenshot and move the boxes together.
+  percentage-positioned `.fp-tutorial-highlight--*` boxes in `../style.css` (`--stats` blue
+  `--callout-1`, `--board` green `--callout-2`, `--controls` orange `--callout-3`, each with the
+  shared `.tutorial-callout` halo). The screenshot follows the standard in
+  [../../../components/CLAUDE.md](../../../components/CLAUDE.md), taken while the guinea pigs
+  are on the wheel (they show for 800 ms, so capture as soon as the sprites are drawn). If the
+  layout changes, retake the screenshot and move the boxes together.
+- The game area is tall and narrow, so `.fp-tutorial-image` caps its height to the window less
+  the slide's text, and `.fp-tutorial-image-wrap` shrinks to the image to keep the boxes
+  aligned.
 
 ## Practice controls and hooks
 
