@@ -15,7 +15,6 @@
   max-width: 800px;
   min-height: calc(100vh - 160px);
   margin: 0 auto;
-  font-family: inherit;
   box-sizing: border-box;
 }
 
@@ -146,17 +145,6 @@
   text-align: center;
 }
 
-.os-reminder kbd {
-  display: inline-block;
-  padding: 0.1em 0.4em;
-  background: var(--bg-muted);
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 0.9em;
-  line-height: 1.4;
-}
-
 /* ── Controls ────────────────────────────────────────────────────────────── */
 
 .os-controls {
@@ -169,13 +157,6 @@
 /* ── End panel ───────────────────────────────────────────────────────────── */
 /* Layout and results are provided by .game-end-panel and .game-results        */
 /* in app/style.css — only game-specific overrides belong here.                */
-
-.os-end-panel__heading {
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-heading);
-}
 
 /* ── Tutorial slides ─────────────────────────────────────────────────────── */
 /* Content shown inside the shared tutorial overlay. Highlight boxes on the      */
