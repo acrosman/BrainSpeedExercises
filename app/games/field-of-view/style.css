@@ -373,7 +373,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .fov-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -388,7 +389,7 @@
   top: 0.6%;
   width: 98.6%;
   height: 6.4%;
-  color: #1976d2;
+  color: var(--callout-1);
 }
 
 .fov-tutorial-highlight--response {
@@ -396,7 +397,7 @@
   top: 12.8%;
   width: 31.6%;
   height: 76.6%;
-  color: #ed6c02;
+  color: var(--callout-3);
 }
 
 .fov-tutorial-highlight--board {
@@ -404,7 +405,7 @@
   top: 12.8%;
   width: 59.8%;
   height: 86.4%;
-  color: #2e7d32;
+  color: var(--callout-2);
 }
 
 /* The two center kittens, side by side, on the "What to Look For" step. */
