@@ -184,8 +184,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it.
-   Boxes at the image's edge extend just past it, so their borders do not cover the text. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .os-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -200,7 +200,7 @@
   top: -1.2%;
   width: 93%;
   height: 5%;
-  color: #1976d2;
+  color: var(--callout-1);
 }
 
 .os-tutorial-highlight--stimulus {
@@ -208,7 +208,7 @@
   top: 4.2%;
   width: 63%;
   height: 55%;
-  color: #2e7d32;
+  color: var(--callout-2);
 }
 
 .os-tutorial-highlight--controls {
@@ -216,7 +216,7 @@
   top: 59.8%;
   width: 103%;
   height: 14.5%;
-  color: #ed6c02;
+  color: var(--callout-3);
 }
 
 .os-tutorial-highlight--trend {
@@ -224,7 +224,7 @@
   top: 76%;
   width: 45%;
   height: 25%;
-  color: #7b1fa2;
+  color: var(--callout-4);
 }
 
 /* Two pictures side by side, each with a caption: the otter and the fish, or the feedback
