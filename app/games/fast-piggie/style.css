@@ -130,7 +130,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .fp-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -145,7 +146,7 @@
   top: 0.8%;
   width: 98.5%;
   height: 5.4%;
-  color: #1976d2;
+  color: var(--callout-1);
 }
 
 .fp-tutorial-highlight--board {
@@ -153,7 +154,7 @@
   top: 6.8%;
   width: 79%;
   height: 54.8%;
-  color: #2e7d32;
+  color: var(--callout-2);
 }
 
 .fp-tutorial-highlight--controls {
@@ -161,7 +162,7 @@
   top: 92.3%;
   width: 25%;
   height: 6.3%;
-  color: #ed6c02;
+  color: var(--callout-3);
 }
 
 /* Target piggie shown on the "What to Look For" step */
