@@ -51,21 +51,7 @@
 
 /* ── Stats bar ───────────────────────────────────────────────────────────── */
 
-.os-stats,
-.os-stats-live {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.os-stats {
-  font-size: 1rem;
-  color: var(--text-base);
-}
-
-.os-stat {
-  white-space: nowrap;
-}
+/* Drawn by the shared .game-hud classes. */
 
 /* ── Game area ───────────────────────────────────────────────────────────── */
 
