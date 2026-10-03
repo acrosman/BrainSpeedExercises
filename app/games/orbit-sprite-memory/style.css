@@ -157,8 +157,8 @@
   font-size: 0.9rem;
 }
 
-/* Each modifier sets only its position and `color`; the border and tint derive from it.
-   Boxes at the image's edge extend just past it, so their borders do not cover the text. */
+/* Each modifier sets only its position and `color` (a --callout-N token); the border and tint
+   derive from it. The shared .tutorial-callout class adds the white halo. */
 .osm-tutorial-highlight {
   position: absolute;
   border-radius: 8px;
@@ -173,7 +173,7 @@
   top: -1.2%;
   width: 92.5%;
   height: 4%;
-  color: #1976d2;
+  color: var(--callout-1);
 }
 
 .osm-tutorial-highlight--target {
@@ -181,7 +181,7 @@
   top: 2.8%;
   width: 26.5%;
   height: 10.2%;
-  color: #7b1fa2;
+  color: var(--callout-4);
 }
 
 .osm-tutorial-highlight--board {
@@ -189,7 +189,7 @@
   top: 13.6%;
   width: 71.2%;
   height: 57.8%;
-  color: #2e7d32;
+  color: var(--callout-2);
 }
 
 .osm-tutorial-highlight--trend {
@@ -197,7 +197,7 @@
   top: 72.2%;
   width: 103%;
   height: 28.8%;
-  color: #ed6c02;
+  color: var(--callout-3);
 }
 
 /* The whole sprite sheet on the "What to Look For" step. */
