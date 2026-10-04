@@ -24,7 +24,6 @@ import {
   setMaskVisible,
   updateStats,
   renderThresholdTrend,
-  updatePeripheralSelectionVisual,
   renderLocationGrid,
   updateLocationSelectionVisual,
 } from '../render.js';
@@ -234,34 +233,6 @@ describe('renderThresholdTrend', () => {
       [],
       500,
     )).not.toThrow();
-  });
-});
-
-describe('updatePeripheralSelectionVisual', () => {
-  test('adds selected class to matching cell', () => {
-    const board = document.createElement('div');
-    const btn = document.createElement('button');
-    btn.className = 'fov-cell';
-    btn.setAttribute('data-index', '2');
-    board.appendChild(btn);
-
-    updatePeripheralSelectionVisual(board, 2);
-    expect(btn.classList.contains('fov-cell--selected')).toBe(true);
-  });
-
-  test('removes selected class from non-matching cells', () => {
-    const board = document.createElement('div');
-    const btn = document.createElement('button');
-    btn.className = 'fov-cell fov-cell--selected';
-    btn.setAttribute('data-index', '3');
-    board.appendChild(btn);
-
-    updatePeripheralSelectionVisual(board, 2);
-    expect(btn.classList.contains('fov-cell--selected')).toBe(false);
-  });
-
-  test('tolerates null boardEl', () => {
-    expect(() => updatePeripheralSelectionVisual(null, 1)).not.toThrow();
   });
 });
 

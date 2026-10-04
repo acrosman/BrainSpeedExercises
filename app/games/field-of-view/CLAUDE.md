@@ -68,9 +68,6 @@ Stimulus surfaces keep their own colors and never take theme tokens:
   (`.fov-stage--response .fov-cell`).
 - `.fov-stage--flash-correct` and `.fov-stage--flash-wrong`: the `::after` flash colors.
 
-A board cell chosen over the mask (`.fov-stage--response .fov-cell--selected`) is response
-feedback, not stimulus: it uses a `--focus-ring` wash at 35% with a `--selected-bg` ring.
-
 ## Controls
 
 All responses use native buttons: two kitten buttons (`aria-pressed`) and the location grid built
