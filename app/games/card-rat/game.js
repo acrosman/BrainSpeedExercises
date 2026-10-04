@@ -93,6 +93,14 @@ let mustReactToCurrentCard = false;
 /** @type {boolean} */
 let reactedToCurrentCard = false;
 
+/**
+ * Whether the card before the current one was a missed trigger and no slap has landed on the
+ * current card yet. The first slap in that window is a late reaction to the missed card, which
+ * was already scored as a miss, so it is not also a false alarm.
+ * @type {boolean}
+ */
+let lateSlapPending = false;
+
 /** @type {number[]} */
 let speedHistory = [];
 
@@ -264,6 +272,7 @@ export function initGame() {
   currentCard = null;
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
+  lateSlapPending = false;
   speedHistory = [];
   speedLevel = 0;
   consecutiveCorrect = 0;
@@ -362,6 +371,7 @@ export function dealNextCard() {
   currentCard = card;
   mustReactToCurrentCard = getSlapReason(twoCardsAgo, previousCard, card) !== null;
   reactedToCurrentCard = false;
+  lateSlapPending = missedTrigger;
   twoCardsAgo = previousCard;
   previousCard = card;
   cardsShown += 1;
@@ -379,6 +389,11 @@ export function dealNextCard() {
 /**
  * Record the player's reaction for the current card.
  *
+ * When the previous card was a missed trigger and the current card is not one to slap, the
+ * first slap is a late reaction to the missed card. That card already counted as a miss, so
+ * the slap is ignored instead of also counting as a false alarm. Later slaps on the same card
+ * are false alarms as usual.
+ *
  * @returns {'hit' | 'false-alarm' | 'ignored'}
  */
 export function respondToCurrentCard() {
@@ -395,6 +410,10 @@ export function respondToCurrentCard() {
   }
 
   if (!mustReactToCurrentCard) {
+    if (lateSlapPending) {
+      lateSlapPending = false;
+      return 'ignored';
+    }
     falseAlarms += 1;
     applyStaircaseStep(false);
     return 'false-alarm';

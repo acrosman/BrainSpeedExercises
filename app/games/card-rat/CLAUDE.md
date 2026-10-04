@@ -15,7 +15,10 @@ A joker never forms a pair or sandwich with a card next to it.
   (`deckPasses`), and detects triggers. `dealNextCard()` first calls `finalizeCurrentCard()`, so
   **a miss is scored when the next card is dealt**, not when a timer fires.
   `respondToCurrentCard()` returns `'hit' | 'false-alarm' | 'ignored'`. A second slap on the
-  same trigger returns `'ignored'`. `getSlapReason()` is the pure trigger check
+  same trigger returns `'ignored'`. A late slap is also `'ignored'`: when the previous card was a
+  missed trigger and the current card is not a trigger, the first slap on it scores nothing,
+  since the miss already counted (`lateSlapPending`). Further slaps on that card are false
+  alarms. If the current card is itself a trigger, the slap is a hit. `getSlapReason()` is the pure trigger check
   (`'joker' | 'pair' | 'sandwich' | null`) that `dealNextCard()` and practice rounds share.
   `PRACTICE_SEQUENCES` / `getPracticeSequence(round)` hold the scripted practice cards.
 - `cardSvg.js`: despite the name, it has no SVG. It returns CSS background-position styles that
