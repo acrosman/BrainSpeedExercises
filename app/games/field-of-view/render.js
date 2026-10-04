@@ -203,25 +203,6 @@ export function renderThresholdTrend(els, history, currentSoaMs) {
 }
 
 /**
- * Highlight selected peripheral cell in response phase.
- *
- * @param {HTMLElement|null} boardEl
- * @param {number|null} selectedIndex
- */
-export function updatePeripheralSelectionVisual(boardEl, selectedIndex) {
-  if (!boardEl) return;
-  const cells = boardEl.querySelectorAll('.fov-cell');
-  cells.forEach((el) => {
-    const index = Number(el.getAttribute('data-index'));
-    if (index === selectedIndex) {
-      el.classList.add('fov-cell--selected');
-    } else {
-      el.classList.remove('fov-cell--selected');
-    }
-  });
-}
-
-/**
  * Render a location-selector grid for the player to pick the toy square.
  *
  * @param {HTMLElement|null} containerEl - Container element for the grid.

@@ -100,13 +100,6 @@
   border: 1px solid rgba(255, 255, 255, 0.72);
 }
 
-/* A chosen cell over the mask: a pen-blue wash at the old 35% alpha, ringed in the light
-   selection color so it stays legible on the busy field image. */
-.fov-stage--response .fov-cell--selected {
-  background: color-mix(in srgb, var(--focus-ring) 35%, transparent);
-  border-color: var(--selected-bg);
-}
-
 /* ── Grid cells ──────────────────────────────────────────────────────────── */
 
 .fov-cell {
@@ -131,11 +124,6 @@
 .fov-choice-btn:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
-}
-
-.fov-cell--selected {
-  background: var(--selected-bg);
-  border-color: var(--focus-ring);
 }
 
 .fov-cell--center {
