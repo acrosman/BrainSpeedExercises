@@ -55,9 +55,8 @@ welcome panel; the end panel stays bare because its results ledger is already a 
 `--bg-sunken` with `--text-subtle` text rather than fading, because the sequence keys stay
 disabled while the sweeps play. The sequence keys keep a 2px border so their hit area does not
 shrink. Their number labels use the global `kbd` key cap. `.ss-btn--icon` (Replay) is a quiet
-outlined button with no fill or raised edge. `.ss-btn--primary` and `.ss-btn--secondary` use the
-same tokens as `.game-btn--primary` (forest) and `.game-btn--secondary` (outlined ink); nothing
-uses them yet.
+outlined button with no fill or raised edge. Other in-game actions use the shared
+`.game-btn--primary` and `.game-btn--secondary`.
 
 This game has no visual stimulus surfaces: the sounds are the stimulus, so everything on screen
 is chrome and uses theme tokens.

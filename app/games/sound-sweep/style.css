@@ -172,30 +172,6 @@
   font-weight: 600;
 }
 
-/* Same forest tokens as .game-btn--primary. Kept as its own class. */
-.ss-btn--primary {
-  background: var(--btn-primary-bg);
-  color: var(--bg-card);
-  border-color: var(--btn-primary-border);
-  box-shadow: 0 2px 0 var(--btn-primary-active);
-}
-
-.ss-btn--primary:enabled:hover {
-  background: var(--btn-primary-hover);
-}
-
-.ss-btn--primary:enabled:active {
-  background: var(--btn-primary-active);
-  box-shadow: none;
-}
-
-/* Same outlined ink as .game-btn--secondary. */
-.ss-btn--secondary {
-  background: transparent;
-  color: var(--btn-secondary-text);
-  border-color: var(--btn-secondary-border);
-}
-
 /* A quiet outlined icon button: no fill and no raised edge, so Replay reads    */
 /* as secondary to the sequence keys.                                           */
 .ss-btn--icon,

@@ -35,13 +35,14 @@ The stats row uses the shared `.game-hud` classes next to `.dp-stats` and `.dp-s
 and `.game-end-panel`, so `.dp-panel` sets only spacing. `#dp-game-area` is the same card as the
 welcome panel; the end panel stays bare because its results ledger is already a card.
 
-`.dp-dir-btn` and `.dp-btn` are notebook keys: card paper, a `--border-strong` edge,
+The direction keys (`.dp-dir-btn`) are notebook keys: card paper, a `--border-strong` edge,
 `--radius-md`, and a 2px bottom edge that flattens on `:active`. The direction keys keep their
 fixed 100×56 size. A disabled key lies flat on `--bg-sunken` with `--text-subtle` labels rather
 than fading. After a miss, `.dp-dir-btn--correct` marks the right key with the
 `--feedback-correct-*` tokens; the pad is disabled by then, so that rule outranks the disabled
-look. `.dp-dir-btn--selected` uses `--selected-bg` with a `--focus-ring` border. Nothing uses
-`--selected`, `.dp-btn`, `.dp-btn--primary`, or `.dp-btn--secondary` yet.
+look. `.dp-dir-btn--selected` uses `--selected-bg` with a `--focus-ring` border; nothing uses
+`--selected` yet. Other in-game actions use the shared `.game-btn--primary` and
+`.game-btn--secondary`.
 
 Stimulus surfaces keep their own colors and never take theme tokens:
 

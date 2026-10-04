@@ -100,14 +100,12 @@
 }
 
 /* ── Notebook keys ───────────────────────────────────────────────────────────── */
-/* .dp-dir-btn and .dp-btn are notebook keys: card paper, a control-boundary     */
-/* edge, and a 2px bottom edge that flattens when pressed. A disabled key lies   */
-/* flat on sunken paper, with its text still readable (a 45% fade left the       */
-/* labels near 2.6:1). Buttons do not inherit the page font, so the keys set     */
-/* --font-body.                                                                  */
+/* .dp-dir-btn is a notebook key: card paper, a control-boundary edge, and a    */
+/* 2px bottom edge that flattens when pressed. A disabled key lies flat on      */
+/* sunken paper, with its text still readable (a 45% fade left the labels near  */
+/* 2.6:1). Buttons do not inherit the page font, so the keys set --font-body.   */
 
-.dp-dir-btn,
-.dp-btn {
+.dp-dir-btn {
   background: var(--bg-card);
   color: var(--text-base);
   border: 1px solid var(--border-strong);
@@ -118,26 +116,22 @@
   transition: background var(--transition-quick), transform var(--transition-quick);
 }
 
-.dp-dir-btn:hover,
-.dp-btn:hover {
+.dp-dir-btn:hover {
   background: var(--bg-sunken);
 }
 
-.dp-dir-btn:focus-visible,
-.dp-btn:focus-visible {
+.dp-dir-btn:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-.dp-dir-btn:active,
-.dp-btn:active {
+.dp-dir-btn:active {
   box-shadow: none;
   transform: translateY(2px);
 }
 
 /* Visual treatment for the disabled (non-response) phase. */
-.dp-dir-btn:disabled,
-.dp-btn:disabled {
+.dp-dir-btn:disabled {
   background: var(--bg-sunken);
   border-color: var(--border-color);
   box-shadow: none;
@@ -187,39 +181,6 @@
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
-}
-
-/* ── Buttons ─────────────────────────────────────────────────────────────────── */
-/* Shared button styles come from .game-btn in app/style.css.                    */
-/* .dp-btn is a notebook key (above) for controls inside the play area.          */
-
-.dp-btn {
-  padding: 0.5rem 0.75rem;
-  font-weight: 600;
-}
-
-/* Same forest tokens as .game-btn--primary. Kept as its own class. */
-.dp-btn--primary {
-  background: var(--btn-primary-bg);
-  color: var(--bg-card);
-  border-color: var(--btn-primary-border);
-  box-shadow: 0 2px 0 var(--btn-primary-active);
-}
-
-.dp-btn--primary:enabled:hover {
-  background: var(--btn-primary-hover);
-}
-
-.dp-btn--primary:enabled:active {
-  background: var(--btn-primary-active);
-  box-shadow: none;
-}
-
-/* Same outlined ink as .game-btn--secondary. */
-.dp-btn--secondary {
-  background: transparent;
-  color: var(--btn-secondary-text);
-  border-color: var(--btn-secondary-border);
 }
 
 /* ── Tutorial screenshot ─────────────────────────────────────────────────────── */
@@ -286,8 +247,7 @@
 /* The keys still drop 2px when pressed, but without the slide.             */
 
 @media (prefers-reduced-motion: reduce) {
-  .dp-dir-btn,
-  .dp-btn {
+  .dp-dir-btn {
     transition: none;
   }
 }
