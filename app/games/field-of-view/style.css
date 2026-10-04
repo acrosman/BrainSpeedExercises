@@ -120,7 +120,6 @@
 }
 
 .fov-cell:focus-visible,
-.fov-btn:focus-visible,
 .fov-choice-btn:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
@@ -186,14 +185,12 @@
 }
 
 /* ── Notebook keys ───────────────────────────────────────────────────────── */
-/* .fov-choice-btn, .fov-loc-cell, and .fov-btn are notebook keys: card      */
-/* paper, a control-boundary edge, and a 2px bottom edge that flattens when  */
-/* pressed. Buttons do not inherit the page font, so the keys set            */
-/* --font-body.                                                              */
+/* .fov-choice-btn and .fov-loc-cell are notebook keys: card paper, a       */
+/* control-boundary edge, and a 2px bottom edge that flattens when pressed.  */
+/* Buttons do not inherit the page font, so the keys set --font-body.        */
 
 .fov-choice-btn,
-.fov-loc-cell,
-.fov-btn {
+.fov-loc-cell {
   background: var(--bg-card);
   color: var(--text-base);
   border: 1px solid var(--border-strong);
@@ -204,14 +201,12 @@
   transition: background var(--transition-quick), transform var(--transition-quick);
 }
 
-.fov-loc-cell:hover,
-.fov-btn:hover {
+.fov-loc-cell:hover {
   background: var(--bg-sunken);
 }
 
 .fov-choice-btn:active,
-.fov-loc-cell:active,
-.fov-btn:active {
+.fov-loc-cell:active {
   box-shadow: none;
   transform: translateY(2px);
 }
@@ -294,39 +289,6 @@
   margin-top: 1rem;
   display: flex;
   gap: 0.75rem;
-}
-
-/* ── Buttons ─────────────────────────────────────────────────────────────── */
-/* Shared button styles come from .game-btn in app/style.css.                  */
-/* .fov-btn is a notebook key (above) for controls inside the play area.       */
-
-.fov-btn {
-  padding: 0.5rem 0.75rem;
-  font-weight: 600;
-}
-
-/* Same forest tokens as .game-btn--primary. Kept as its own class. */
-.fov-btn--primary {
-  background: var(--btn-primary-bg);
-  color: var(--bg-card);
-  border-color: var(--btn-primary-border);
-  box-shadow: 0 2px 0 var(--btn-primary-active);
-}
-
-.fov-btn--primary:hover {
-  background: var(--btn-primary-hover);
-}
-
-.fov-btn--primary:active {
-  background: var(--btn-primary-active);
-  box-shadow: none;
-}
-
-/* Same outlined ink as .game-btn--secondary. */
-.fov-btn--secondary {
-  background: transparent;
-  color: var(--btn-secondary-text);
-  border-color: var(--btn-secondary-border);
 }
 
 /* ── Feedback region ─────────────────────────────────────────────────────── */
@@ -423,8 +385,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fov-choice-btn,
-  .fov-loc-cell,
-  .fov-btn {
+  .fov-loc-cell {
     transition: none;
   }
 }

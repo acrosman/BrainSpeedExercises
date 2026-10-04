@@ -50,12 +50,12 @@ The stats row uses the shared `.game-hud` classes next to `.fov-stats`, `.fov-st
 same card as the welcome panel; the end panel stays bare because its results ledger is already a
 card.
 
-The kitten buttons (`.fov-choice-btn`), the location squares (`.fov-loc-cell`), and the unused
-`.fov-btn` are notebook keys: card paper, a `--border-strong` edge, `--radius-md`, and a 2px
-bottom edge that flattens on `:active`. The kitten buttons keep their fixed 120×120 size. A
-pressed kitten (`aria-pressed="true"`) gets a 4px `--focus-ring` border and a `--focus-ring`
-glow. The location squares sit in a `--bg-sunken` tray. The center square, which cannot be
-chosen, lies flat, and a chosen square uses `--selected-bg` with a `--focus-ring` border.
+The kitten buttons (`.fov-choice-btn`) and the location squares (`.fov-loc-cell`) are notebook
+keys: card paper, a `--border-strong` edge, `--radius-md`, and a 2px bottom edge that flattens
+on `:active`. The kitten buttons keep their fixed 120×120 size. A pressed kitten
+(`aria-pressed="true"`) gets a 4px `--focus-ring` border and a `--focus-ring` glow. The location
+squares sit in a `--bg-sunken` tray. The center square, which cannot be chosen, lies flat, and a
+chosen square uses `--selected-bg` with a `--focus-ring` border.
 
 Stimulus surfaces keep their own colors and never take theme tokens:
 
