@@ -336,6 +336,72 @@ describe('deal and response flow', () => {
     expect(nextDeal.missedTrigger).toBe(true);
   });
 
+  /**
+   * Hit the first two of the three jokers in the test deck, miss the third, and deal the
+   * non-trigger card that follows it.
+   */
+  function missTriggerBeforeNonTrigger() {
+    expect(hitNextTrigger()).toBe(true);
+    expect(hitNextTrigger()).toBe(true);
+    expect(dealUntilTrigger()).toBe(true);
+    const nextDeal = dealNextCard();
+    expect(nextDeal.missedTrigger).toBe(true);
+    expect(nextDeal.mustReact).toBe(false);
+  }
+
+  test('a late slap after a missed trigger is ignored, not a false alarm', () => {
+    startGame();
+    missTriggerBeforeNonTrigger();
+
+    expect(respondToCurrentCard()).toBe('ignored');
+    expect(getMisses()).toBe(1);
+    expect(getFalseAlarms()).toBe(0);
+    expect(getConsecutiveWrong()).toBe(1);
+  });
+
+  test('a second late slap on the same card is a false alarm', () => {
+    startGame();
+    missTriggerBeforeNonTrigger();
+
+    expect(respondToCurrentCard()).toBe('ignored');
+    expect(respondToCurrentCard()).toBe('false-alarm');
+    expect(getFalseAlarms()).toBe(1);
+  });
+
+  test('a slap two cards after a missed trigger is a false alarm', () => {
+    startGame();
+    missTriggerBeforeNonTrigger();
+
+    expect(dealNextCard().mustReact).toBe(false);
+    expect(respondToCurrentCard()).toBe('false-alarm');
+    expect(getFalseAlarms()).toBe(1);
+  });
+
+  test('a slap after a trigger that was hit is still a false alarm', () => {
+    startGame();
+    for (let i = 0; i < 3; i += 1) {
+      expect(hitNextTrigger()).toBe(true);
+    }
+    const nextDeal = dealNextCard();
+    expect(nextDeal.missedTrigger).toBe(false);
+    expect(nextDeal.mustReact).toBe(false);
+
+    expect(respondToCurrentCard()).toBe('false-alarm');
+    expect(getFalseAlarms()).toBe(1);
+  });
+
+  test('a slap on a trigger dealt right after a missed trigger is a hit', () => {
+    startGame();
+    expect(dealUntilTrigger()).toBe(true);
+    const nextDeal = dealNextCard();
+    expect(nextDeal.missedTrigger).toBe(true);
+    expect(nextDeal.mustReact).toBe(true);
+
+    expect(respondToCurrentCard()).toBe('hit');
+    expect(getMisses()).toBe(1);
+    expect(getTriggerHits()).toBe(1);
+  });
+
   test('missing a trigger resets the speed-up streak', () => {
     startGame();
     expect(hitNextTrigger()).toBe(true);
@@ -379,18 +445,21 @@ describe('deal and response flow', () => {
   });
 
   test('false alarm resets the speed-up streak', () => {
+    // A deck whose triggers are spread out, so the card after the second hit is not a
+    // trigger and no miss comes between the hits and the false alarm.
+    randomSpy.mockReturnValue(0.6);
+    initGame();
     startGame();
     expect(hitNextTrigger()).toBe(true);
     expect(hitNextTrigger()).toBe(true);
     expect(getConsecutiveCorrect()).toBe(2);
 
-    expect(dealUntilNonTrigger()).toBe(true);
+    expect(dealNextCard().mustReact).toBe(false);
     expect(respondToCurrentCard()).toBe('false-alarm');
 
-    // Correct counter reset, wrong counter incremented (may be higher than 1
-    // if dealUntilNonTrigger passed over intermediate trigger cards).
+    expect(getMisses()).toBe(0);
     expect(getConsecutiveCorrect()).toBe(0);
-    expect(getConsecutiveWrong()).toBeGreaterThanOrEqual(1);
+    expect(getConsecutiveWrong()).toBe(1);
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
     expect(getSpeedHistory()).toHaveLength(0);
   });
