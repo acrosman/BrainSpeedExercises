@@ -54,7 +54,10 @@ rules for writing one are in [components/CLAUDE.md](components/CLAUDE.md).
 `aria-hidden="true"` on every other `body > *`, and moves focus to the close button.
 `closeHistoryPanel` reverses both. The panel closes on the close button, a backdrop click, or
 Escape. Clear History first shows an inline confirmation; confirming it clears the data and then
-fires `bsx:return-to-main-menu` so the menu rebuilds. Build any new modal the same way.
+fires `bsx:return-to-main-menu` so the menu rebuilds. Build any new modal the same way. A
+modal that is not a direct child of `<body>`, such as the tutorial overlay, must make the
+siblings at every level inert instead (see "Slides" in
+[components/CLAUDE.md](components/CLAUDE.md)).
 
 ## Styles (`style.css`, `styles/`)
 

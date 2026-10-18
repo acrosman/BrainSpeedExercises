@@ -264,8 +264,47 @@ export function renderTutorialStep(overlay, steps, stepIndex, finishLabel = 'Got
 }
 
 /**
- * Append a slide overlay to `container`, focus it, and wire its navigation.
- * The caller decides what finishing and skipping mean, and removes the overlay.
+ * Make everything outside `dialog` inert and hidden from assistive technology, so Tab and
+ * screen readers stay inside it. The overlay sits inside the game container, not directly
+ * under `<body>` like the History modal, so this marks the siblings of the dialog and of each
+ * of its ancestors up to `<body>`.
+ *
+ * Elements that are already inert are left alone, and each element's previous `aria-hidden`
+ * is put back, so the release undoes only what this call changed.
+ *
+ * @param {HTMLElement} dialog - The open dialog, already in the document.
+ * @returns {() => void} Restores the background.
+ */
+function _isolateDialog(dialog) {
+  /** @type {{ el: Element, ariaHidden: string|null }[]} */
+  const changed = [];
+  let node = dialog;
+  while (node !== document.body && node.parentElement) {
+    for (const sibling of node.parentElement.children) {
+      if (sibling === node || sibling.hasAttribute('inert')) continue;
+      changed.push({ el: sibling, ariaHidden: sibling.getAttribute('aria-hidden') });
+      sibling.setAttribute('inert', '');
+      sibling.setAttribute('aria-hidden', 'true');
+    }
+    node = node.parentElement;
+  }
+
+  return () => {
+    changed.forEach(({ el, ariaHidden }) => {
+      el.removeAttribute('inert');
+      if (ariaHidden === null) {
+        el.removeAttribute('aria-hidden');
+      } else {
+        el.setAttribute('aria-hidden', ariaHidden);
+      }
+    });
+  };
+}
+
+/**
+ * Append a slide overlay to `container`, focus it, and wire its navigation. While it is open
+ * the rest of the page is inert. The caller decides what finishing and skipping mean, and
+ * closes the overlay with the returned `close`.
  *
  * @param {TutorialStep[]} steps     - Ordered list of tutorial steps.
  * @param {HTMLElement}    container - DOM element to append the overlay into.
@@ -273,14 +312,31 @@ export function renderTutorialStep(overlay, steps, stepIndex, finishLabel = 'Got
  * @param {Function}       handlers.onFinish - Called when Next is pressed on the last step.
  * @param {Function}       handlers.onSkip   - Called when Skip Tutorial is pressed.
  * @param {string}         [handlers.finishLabel] - Next button text on the last step.
- * @returns {HTMLElement} The overlay element.
+ * @returns {{ overlay: HTMLElement, close: () => void }} The overlay element, and a function
+ *   that removes it, restores the page, and returns focus to the control that opened it.
+ *   Safe to call more than once.
  */
 function _openSlideOverlay(steps, container, { onFinish, onSkip, finishLabel }) {
   const overlay = createTutorialOverlay(steps);
+  const opener = document.activeElement;
   let currentStep = 0;
+  let closed = false;
 
   renderTutorialStep(overlay, steps, currentStep, finishLabel);
   container.appendChild(overlay);
+  const releaseBackground = _isolateDialog(overlay);
+
+  /** Remove the overlay, restore the page, and refocus the opener if focus was inside. */
+  function close() {
+    if (closed) return;
+    closed = true;
+    const hadFocus = overlay.contains(document.activeElement);
+    overlay.remove();
+    releaseBackground();
+    // The opener may be gone (or hidden) by now; focus() then does nothing, and a caller
+    // that moves focus afterward (the practice coach) wins.
+    if (hadFocus && opener instanceof HTMLElement && opener.isConnected) opener.focus();
+  }
 
   // Move focus into the overlay panel for keyboard accessibility.
   const panel = overlay.querySelector('.tutorial-overlay__panel');
@@ -305,7 +361,7 @@ function _openSlideOverlay(steps, container, { onFinish, onSkip, finishLabel }) 
 
   overlay.querySelector('#tutorial-overlay-skip').addEventListener('click', () => onSkip());
 
-  return overlay;
+  return { overlay, close };
 }
 
 /**
@@ -324,17 +380,19 @@ function _openSlideOverlay(steps, container, { onFinish, onSkip, finishLabel }) 
  * @returns {HTMLElement} The overlay element (already appended to `container`).
  */
 export function showTutorial(gameId, steps, container, onComplete = () => {}) {
-  /** Finish the tutorial: persist seen state, remove overlay, invoke callback. */
+  /** Finish the tutorial: persist seen state, close the overlay, invoke callback. */
   async function _finish() {
     try {
       await markTutorialSeen(gameId);
     } finally {
-      overlay.remove();
+      close();
       onComplete();
     }
   }
 
-  const overlay = _openSlideOverlay(steps, container, { onFinish: _finish, onSkip: _finish });
+  const { overlay, close } = _openSlideOverlay(
+    steps, container, { onFinish: _finish, onSkip: _finish },
+  );
   return overlay;
 }
 
@@ -455,7 +513,8 @@ export function runGuidedTutorial({
   onComplete = () => {},
 }) {
   const controller = new AbortController();
-  let overlay = null;
+  /** Closes the slide overlay; a no-op when there are no slides or they are closed. */
+  let closeOverlay = () => {};
   let coach = null;
   let removeMarker = () => {};
   let ended = false;
@@ -508,7 +567,7 @@ export function runGuidedTutorial({
   async function end(outcome) {
     if (ended) return;
     ended = true;
-    if (overlay) overlay.remove();
+    closeOverlay();
     hideMarker();
     if (coach) coach.remove();
     controller.abort();
@@ -581,10 +640,7 @@ export function runGuidedTutorial({
 
   /** Close the slides and begin practice, or finish if there is nothing to practice. */
   function startPractice() {
-    if (overlay) {
-      overlay.remove();
-      overlay = null;
-    }
+    closeOverlay();
     if (!playPracticeRound || maxRounds < 1) {
       void end('completed');
       return;
@@ -597,11 +653,12 @@ export function runGuidedTutorial({
   }
 
   if (introSteps.length > 0) {
-    overlay = _openSlideOverlay(introSteps, container, {
+    const slides = _openSlideOverlay(introSteps, container, {
       onFinish: startPractice,
       onSkip: () => { void end('skipped'); },
       finishLabel: playPracticeRound ? 'Start Practice' : undefined,
     });
+    closeOverlay = slides.close;
   } else {
     startPractice();
   }
