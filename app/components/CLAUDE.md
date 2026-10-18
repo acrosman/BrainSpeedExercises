@@ -171,6 +171,12 @@ only through the practice-round context described below.
   time; otherwise it calls `onComplete` at once. `showTutorial(...)` always shows them.
 - Overlay, coach, and marker styles are the `.tutorial-overlay*`, `.tutorial-coach*`, and
   `.tutorial-marker*` classes in `app/styles/game-shared.css`. Do not restyle them per game.
+- The overlay is a modal. It sits inside the game container, not under `<body>`, so while it
+  is open `_isolateDialog` sets `inert` and `aria-hidden="true"` on the siblings of the
+  overlay and of each of its ancestors up to `<body>`. Closing undoes only what it set (an
+  element that was already inert stays inert) and returns focus to the control that opened
+  the overlay, if focus was still inside it. Every path that removes the overlay goes through
+  the `close` that `_openSlideOverlay` returns; never call `overlay.remove()` directly.
 - The overlay is `position: fixed` over the whole window, and the panel is capped at the window
   height and scrolls, so a tall slide never pushes its title off screen. Still size slide images
   so a slide fits an 880px-high window without scrolling (see "Tutorial screenshots").

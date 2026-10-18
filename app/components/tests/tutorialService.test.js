@@ -991,6 +991,143 @@ describe('runGuidedTutorial', () => {
   });
 });
 
+// ── Slide overlay as a modal ──────────────────────────────────────────────────
+
+/**
+ * Build a page shaped like the shell with a game loaded, and focus Replay Tutorial.
+ * @returns {{ container: HTMLElement, replayBtn: HTMLElement, skipLink: HTMLElement,
+ *   header: HTMLElement, main: HTMLElement, welcome: HTMLElement, footer: HTMLElement }}
+ */
+function makeShell() {
+  document.body.innerHTML = `
+    <a href="#game-selector" class="skip-link">Skip to games</a>
+    <header></header>
+    <main id="game-container">
+      <div class="game">
+        <section class="welcome">
+          <button type="button" id="replay">Replay Tutorial</button>
+        </section>
+      </div>
+    </main>
+    <footer></footer>
+  `;
+  const replayBtn = document.getElementById('replay');
+  replayBtn.focus();
+  return {
+    container: document.querySelector('.game'),
+    replayBtn,
+    skipLink: document.querySelector('.skip-link'),
+    header: document.querySelector('header'),
+    main: document.querySelector('main'),
+    welcome: document.querySelector('.welcome'),
+    footer: document.querySelector('footer'),
+  };
+}
+
+/**
+ * Whether an element is inert and hidden from assistive technology.
+ * @param {Element} el
+ * @returns {boolean}
+ */
+function isBackground(el) {
+  return el.hasAttribute('inert') && el.getAttribute('aria-hidden') === 'true';
+}
+
+describe('slide overlay modal behavior', () => {
+  beforeEach(() => {
+    globalThis.window.api = { invoke: buildApiMock().mock };
+  });
+
+  test('makes everything outside the overlay inert, at every level up to body', () => {
+    const shell = makeShell();
+    const overlay = showTutorial('g', SAMPLE_STEPS, shell.container);
+
+    [shell.skipLink, shell.header, shell.footer, shell.welcome]
+      .forEach((el) => expect(isBackground(el)).toBe(true));
+    [overlay, shell.container, shell.main]
+      .forEach((el) => expect(el.hasAttribute('inert')).toBe(false));
+  });
+
+  test('restores the page and returns focus to the opener when skipped', async () => {
+    const shell = makeShell();
+    const overlay = showTutorial('g', SAMPLE_STEPS, shell.container);
+    expect(document.activeElement).not.toBe(shell.replayBtn);
+
+    overlay.querySelector('#tutorial-overlay-skip').click();
+    await flush();
+
+    expect(document.querySelectorAll('[inert], [aria-hidden]')).toHaveLength(0);
+    expect(document.activeElement).toBe(shell.replayBtn);
+  });
+
+  test('leaves elements that were already inert or aria-hidden as they were', async () => {
+    const shell = makeShell();
+    shell.header.setAttribute('inert', '');
+    shell.footer.setAttribute('aria-hidden', 'false');
+    const overlay = showTutorial('g', SAMPLE_STEPS, shell.container);
+    expect(shell.header.hasAttribute('aria-hidden')).toBe(false);
+    expect(isBackground(shell.footer)).toBe(true);
+
+    overlay.querySelector('#tutorial-overlay-skip').click();
+    await flush();
+
+    expect(shell.header.hasAttribute('inert')).toBe(true);
+    expect(shell.footer.hasAttribute('inert')).toBe(false);
+    expect(shell.footer.getAttribute('aria-hidden')).toBe('false');
+  });
+
+  test('does not move focus when it had already left the overlay', async () => {
+    const shell = makeShell();
+    const overlay = showTutorial('g', SAMPLE_STEPS, shell.container);
+    document.activeElement.blur();
+
+    overlay.querySelector('#tutorial-overlay-skip').click();
+    await flush();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  test('does not try to focus an opener that left the page', async () => {
+    const shell = makeShell();
+    const overlay = showTutorial('g', SAMPLE_STEPS, shell.container);
+    shell.welcome.remove();
+
+    overlay.querySelector('#tutorial-overlay-skip').click();
+    await flush();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  test('the guided runner restores the page when practice starts', () => {
+    const shell = makeShell();
+    const { play } = buildPracticeMock();
+    runGuidedTutorial({
+      gameId: 'g', container: shell.container, introSteps: SAMPLE_STEPS,
+      playPracticeRound: play,
+    });
+    expect(isBackground(shell.welcome)).toBe(true);
+
+    finishSlides(shell.container);
+
+    expect(document.querySelectorAll('[inert], [aria-hidden]')).toHaveLength(0);
+    expect(document.activeElement).toBe(shell.container.querySelector('.tutorial-coach'));
+  });
+
+  test('the guided runner restores the page and focus when cancelled', async () => {
+    const shell = makeShell();
+    const run = runGuidedTutorial({
+      gameId: 'g', container: shell.container, introSteps: SAMPLE_STEPS,
+    });
+    expect(isBackground(shell.skipLink)).toBe(true);
+
+    run.cancel();
+    await run.finished;
+
+    expect(document.querySelectorAll('[inert], [aria-hidden]')).toHaveLength(0);
+    expect(document.activeElement).toBe(shell.replayBtn);
+  });
+});
+
 describe('runGuidedTutorialIfNeeded', () => {
   test('calls onComplete and returns null when the tutorial was seen', async () => {
     const { mock } = buildApiMock({ tutorials: { g: true } });
