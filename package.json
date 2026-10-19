@@ -1,6 +1,6 @@
 {
   "name": "brain-speed-exercises",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Brain Speed Exercise Games",
   "main": "main.js",
   "type": "module",
@@ -61,5 +61,12 @@
   "bugs": {
     "url": "https://github.com/acrosman/BrainSpeedExercises/issues"
   },
-  "homepage": "https://github.com/acrosman/BrainSpeedExercises#readme"
+  "homepage": "https://github.com/acrosman/BrainSpeedExercises#readme",
+  "allowScripts": {
+    "electron-winstaller@5.4.4": true,
+    "macos-alias@0.2.12": true,
+    "fs-xattr@0.3.1": true,
+    "unrs-resolver@1.12.2": true,
+    "@parcel/watcher@2.6.0": true
+  }
 }
