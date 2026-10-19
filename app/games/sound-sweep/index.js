@@ -152,7 +152,7 @@ function getSequenceButton(sequence) {
  * (polite) hold the same text simultaneously. Falls back to `#ss-feedback` only
  * when `#ss-status` is unavailable.
  *
- * Use this for trial-phase prompts ("Listen…", "Which sequence did you hear?").
+ * Use this for trial-phase prompts ("Listen…", "Your turn").
  * Write result feedback ("Correct!", "Incorrect…") directly to `_feedbackEl`
  * via {@link handleSequenceResponse} so those go through the polite channel.
  *
@@ -211,7 +211,7 @@ function stopTrial() {
  */
 function enterResponsePhase() {
   setResponsesEnabled(true);
-  announce('Which sequence did you hear?');
+  announce('Your turn');
   if (_uuBtn) {
     _uuBtn.focus();
   }

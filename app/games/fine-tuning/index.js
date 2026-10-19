@@ -142,8 +142,8 @@ function getAnswerButton(answer) {
  * Post a status message to the assertive live region (`#ft-status`), or to `#ft-feedback`
  * when the status element is unavailable.
  *
- * Use this for trial-phase prompts ("Listen…", "Which sound matched the target?"). Result
- * feedback goes straight to `_feedbackEl`, the polite channel, so it is not announced twice.
+ * Use this for trial-phase prompts ("Listen…", "Your turn"). Result feedback goes straight to
+ * `_feedbackEl`, the polite channel, so it is not announced twice.
  *
  * @param {string} message
  */
@@ -230,7 +230,7 @@ function stopTrial() {
  */
 function enterResponsePhase() {
   setResponsesEnabled(true);
-  announce('Which sound matched the target?');
+  announce('Your turn');
   if (_firstBtn) {
     _firstBtn.focus();
   }
