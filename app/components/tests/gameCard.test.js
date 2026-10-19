@@ -59,6 +59,11 @@ describe('createGameCard', () => {
     expect(card.tagName).toBe('ARTICLE');
   });
 
+  it('records the game ID in data-game-id', () => {
+    const card = createGameCard(validManifest);
+    expect(card.dataset.gameId).toBe('test-game');
+  });
+
   it('button fires game:select with correct detail.gameId', () => {
     const card = createGameCard(validManifest);
     document.body.appendChild(card);

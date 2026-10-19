@@ -146,7 +146,7 @@ function buildContainer() {
         </div>
       </div>
     </div>
-    <div id="os-end-panel" hidden></div>
+    <div id="os-end-panel" hidden><h2>Session Ended</h2></div>
     <button id="os-start-btn"></button>
     <button id="os-replay-tutorial-btn"></button>
     <button id="os-stop-btn"></button>
@@ -278,6 +278,15 @@ describe('start()', () => {
     expect(gameArea.hidden).toBe(false);
   });
 
+  it('moves focus to the stimulus', async () => {
+    const container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    await plugin.start();
+    expect(document.activeElement).toBe(container.querySelector('#os-stimulus'));
+    container.remove();
+  });
+
   it('hides the instructions panel', async () => {
     const container = buildContainer();
     plugin.init(container);
@@ -310,11 +319,14 @@ describe('stop()', () => {
 
   it('shows the end panel', async () => {
     const container = buildContainer();
+    document.body.appendChild(container);
     plugin.init(container);
     await plugin.start();
     plugin.stop();
     const endPanel = container.querySelector('#os-end-panel');
     expect(endPanel.hidden).toBe(false);
+    expect(document.activeElement).toBe(endPanel.querySelector('h2'));
+    container.remove();
   });
 
   it('does not throw when container is null', () => {

@@ -53,6 +53,7 @@ export function createGameCard(manifest, progress) {
 
   const article = document.createElement('article');
   article.className = 'game-card';
+  article.dataset.gameId = manifest.id;
 
   const img = document.createElement('img');
   img.src = manifest.thumbnail || '';

@@ -163,7 +163,7 @@ function buildContainer() {
   wrapper.innerHTML = `
     <div id="ss-instructions"></div>
     <div id="ss-game-area" hidden></div>
-    <div id="ss-end-panel" hidden></div>
+    <div id="ss-end-panel" hidden><h2>Session Ended</h2></div>
     <div id="ss-feedback"></div>
     <p id="ss-status" tabindex="-1"></p>
     <strong id="ss-level">1</strong>
@@ -476,6 +476,7 @@ describe('sound-sweep plugin', () => {
     plugin.stop();
     expect(document.querySelector('#ss-end-panel').hidden).toBe(false);
     expect(document.querySelector('#ss-game-area').hidden).toBe(true);
+    expect(document.activeElement).toBe(document.querySelector('#ss-end-panel h2'));
   });
 
   it('stop populates end panel with result values', async () => {

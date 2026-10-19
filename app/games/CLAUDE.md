@@ -13,8 +13,9 @@ the registry. Start new games by copying `_template/`.
    raw `interface.html`. The main process never imports game code: game modules run only in
    the renderer.
 3. `app/interface.js` injects the HTML into the game container, adds `<id>/style.css`, imports
-   `./games/<id>/<entryPoint>`, and calls **only `init(container)`**. The game starts itself when
-   the player presses its Start button.
+   `./games/<id>/<entryPoint>`, and calls **only `init(container)`**. Then it moves focus to the
+   first heading in the container, so the game title must be the first heading in
+   `interface.html`. The game starts itself when the player presses its Start button.
 4. On `app:before-quit`, the shell calls `stop()` on the active plugin, so `stop()` can run
    when no session is in progress. `game.stopGame()` throws if the game is not running, so
    `index.js` checks `game.isRunning()` first, returns an idle result, and saves nothing.
@@ -81,6 +82,13 @@ Games use the shared services in `app/components/`. Their APIs are in
 - **Precise stimulus timing:** stimuli shown for tens of milliseconds are driven with
   `requestAnimationFrame` and `performance.now()`, not `setTimeout`. Cancel every rAF handle
   and timeout in `stop()` and `reset()`.
+- **Focus:** Start and Play Again sit in panels that hide when the session starts, so
+  `beginGameSession()` must move focus into the game area. Focus goes to the main response
+  control, or to the element that holds the round's controls (given `tabindex="-1"` in
+  `interface.html`). When a round removes or replaces controls, wrap that in
+  `keepFocusInside()` from `gameUtils.js` so focus does not fall to `<body>`. The end panel
+  takes focus as described under "Shared screen markup". Each game's `CLAUDE.md` names its
+  targets.
 - **Keyboard handlers on `document`** outlive the game: the shell only replaces the
   container's HTML, and the module stays cached. A handler must do nothing, and must not call
   `preventDefault()`, unless a session (or practice round) is running. Remove it before adding
@@ -132,7 +140,9 @@ Shared classes are defined in `app/styles/game-shared.css`. Do not duplicate the
   `<dt class="game-results__label">` and `<dd class="game-results__value" id="...">`. They
   render as a ledger: eyebrow label, dotted leader, Fraunces value. `index.js` fills each `<dd>`
   with `textContent`. Put the buttons in `.game-end-panel__actions`: "Play Again" is
-  `game-btn--primary` and "Return to Menu" is `game-btn--secondary`.
+  `game-btn--primary` and "Return to Menu" is `game-btn--secondary`. Right after unhiding the
+  panel, call `focusHeading(_endPanelEl)` from `gameUtils.js`. The End Game button is hidden
+  with the game area, so without it focus falls to `<body>`.
 - **Trend chart** `.game-trend`: the polyline must use `stroke="currentColor"`. The chart's
   `color` is `--trend-line`.
 - Feedback and score changes go to an `aria-live="polite"` region, usually through an

@@ -170,7 +170,7 @@ function buildContainer() {
   wrapper.innerHTML = `
     <div id="fov-instructions"></div>
     <div id="fov-game-area" hidden></div>
-    <div id="fov-end-panel" hidden></div>
+    <div id="fov-end-panel" hidden><h2>Session Ended</h2></div>
     <div id="fov-stage" class="fov-stage">
       <div id="fov-board"></div>
       <div id="fov-mask" hidden></div>
@@ -269,6 +269,18 @@ describe('field-of-view index', () => {
     ]);
   });
 
+  test('start moves focus to the first kitten button', async () => {
+    await plugin.start();
+    expect(document.activeElement).toBe(document.querySelector('#fov-center-primary'));
+  });
+
+  test('rebuilding the board moves focus from a removed cell to the first kitten', async () => {
+    await plugin.start();
+    document.querySelector('#fov-board button').focus();
+    jest.runAllTimers();
+    expect(document.activeElement).toBe(document.querySelector('#fov-center-primary'));
+  });
+
   test('start enters game area and eventually shows response phase', async () => {
     await plugin.start();
 
@@ -363,6 +375,7 @@ describe('field-of-view index', () => {
 
     expect(result.thresholdMs).toBe(84.2);
     expect(document.querySelector('#fov-end-panel').hidden).toBe(false);
+    expect(document.activeElement).toBe(document.querySelector('#fov-end-panel h2'));
     expect(document.querySelector('#fov-final-threshold').textContent).toBe('84.2');
     expect(document.querySelector('#fov-final-best-threshold').textContent).toBe('200');
     expect(progressMock.saveProgress).toHaveBeenCalledWith(

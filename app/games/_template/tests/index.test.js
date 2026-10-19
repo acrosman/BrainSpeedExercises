@@ -150,6 +150,7 @@ describe('handleResponse', () => {
 
 describe('stop', () => {
   test('saves the session and shows the end panel', () => {
+    document.body.appendChild(container);
     plugin.start();
     const result = plugin.stop();
     expect(result).toMatchObject({ score: 4, level: 2, trialsCompleted: 7 });
@@ -160,8 +161,10 @@ describe('stop', () => {
     });
     expect($('game-template-play-area').hidden).toBe(true);
     expect($('game-template-end-panel').hidden).toBe(false);
+    expect(document.activeElement).toBe($('game-template-end-panel').querySelector('h2'));
     expect($('game-template-final-score').textContent).toBe('4');
     expect($('game-template-final-level').textContent).toBe('3');
+    container.remove();
   });
 
   test('returns an idle result and skips saving when no session is running', () => {

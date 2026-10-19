@@ -42,7 +42,9 @@ of 50. Hits count as correct. Misses and false alarms both count as wrong, so th
 
 A `document`-level Space listener (`attachGlobalKeyListener` / `detachGlobalKeyListener`) makes
 Space work wherever focus is. The reaction-zone button also slaps when clicked. A checkbox toggles
-the hint text under the cards (`updateHintVisibility()`).
+the hint text under the cards (`updateHintVisibility()`). A session starts with focus on the
+reaction zone. The Space handler calls `preventDefault()`, so Space on the focused button counts
+once, not twice.
 
 ## Screen and stimulus surfaces
 

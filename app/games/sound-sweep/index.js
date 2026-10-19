@@ -13,7 +13,7 @@
 import * as game from './game.js';
 import { playSweepPair, playFeedbackSound } from '../../components/audioService.js';
 import { saveScore } from '../../components/scoreService.js';
-import { returnToMainMenu } from '../../components/gameUtils.js';
+import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
 import * as timerService from '../../components/timerService.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
@@ -342,6 +342,8 @@ function showEndPanel(result) {
   if (_finalScoreEl) _finalScoreEl.textContent = String(result.score);
   if (_finalTrialsEl) _finalTrialsEl.textContent = String(result.trialsCompleted);
   if (_endPanelEl) _endPanelEl.hidden = false;
+  // Move focus off the hidden game area so it does not fall to <body> (WCAG 2.4.3).
+  focusHeading(_endPanelEl);
 }
 
 /**

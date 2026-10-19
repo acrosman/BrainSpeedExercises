@@ -1645,10 +1645,13 @@ describe('_resolveRound — no slot assignment when imageCount equals wedgeCount
 // ===========================================================================
 describe('_showEndPanel and _returnToMainMenu', () => {
   it('end panel contains Session Ended heading after stop()', async () => {
+    document.body.appendChild(container);
     await plugin.start();
     await plugin.stop();
     const endPanel = container.querySelector('#fp-end-panel');
     expect(endPanel.textContent).toContain('Session Ended');
+    expect(document.activeElement).toBe(endPanel.querySelector('h2'));
+    container.remove();
   });
 
   it('clicking #fp-play-again-btn resets and restarts game', () => {

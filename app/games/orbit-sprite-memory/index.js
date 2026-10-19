@@ -10,7 +10,11 @@ import * as game from './game.js';
 import { playFeedbackSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore, loadGameScore } from '../../components/scoreService.js';
-import { returnToMainMenu } from '../../components/gameUtils.js';
+import {
+  focusHeading,
+  keepFocusInside,
+  returnToMainMenu,
+} from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
   finishPracticeRound,
@@ -250,8 +254,10 @@ export function clearTimers() {
  */
 export function clearChoiceButtons() {
   if (!_boardEl) return;
-  const choices = _boardEl.querySelectorAll('.osm-choice-btn');
-  choices.forEach((choice) => choice.remove());
+  // Keep focus on the board if one of the removed buttons had it.
+  keepFocusInside(_boardEl, () => {
+    _boardEl.querySelectorAll('.osm-choice-btn').forEach((choice) => choice.remove());
+  });
 }
 
 /**
@@ -498,6 +504,8 @@ export { returnToMainMenu } from '../../components/gameUtils.js';
 export function showEndPanel(result) {
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = false;
+  // Move focus off the hidden game area so it does not fall to <body> (WCAG 2.4.3).
+  focusHeading(_endPanelEl);
   if (_finalScoreEl) _finalScoreEl.textContent = String(result.score);
   if (_finalLevelEl) _finalLevelEl.textContent = String(result.level + 1);
 }
@@ -589,6 +597,8 @@ function beginGameSession() {
 
   showGameArea();
   startRound();
+  // The Start or Play Again button is now hidden; move focus into the game (WCAG 2.4.3).
+  if (_boardEl) _boardEl.focus();
 }
 
 /**

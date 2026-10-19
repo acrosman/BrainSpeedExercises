@@ -13,7 +13,11 @@ import * as render from './render.js';
 import { playFeedbackSound } from '../../components/audioService.js';
 import { saveProgress } from './progress.js';
 import * as timerService from '../../components/timerService.js';
-import { returnToMainMenu } from '../../components/gameUtils.js';
+import {
+  focusHeading,
+  keepFocusInside,
+  returnToMainMenu,
+} from '../../components/gameUtils.js';
 import {
   finishPracticeTrial,
   guidePracticeResponse,
@@ -358,7 +362,7 @@ function enterResponsePhase() {
   render.setMaskVisible(_maskEl, true);
   if (_boardEl) _boardEl.hidden = false;
 
-  renderBoard(false);
+  keepFocusInside(_container, () => renderBoard(false), _centerPrimaryBtn);
 
   resetResponseSelection();
   if (isPracticing()) promptPracticeResponse();
@@ -401,8 +405,12 @@ function runStimulusPhase(targetSoa) {
   if (_boardEl) _boardEl.hidden = false;
   render.setMaskVisible(_maskEl, false);
 
-  renderBoard(true);
-  renderLocationSelector();
+  // A new trial replaces the board and location squares. If one of them had focus, move it
+  // to the first kitten button, the trial's first answer.
+  keepFocusInside(_container, () => {
+    renderBoard(true);
+    renderLocationSelector();
+  }, _centerPrimaryBtn);
 
   const start = nowMs();
 
@@ -497,6 +505,8 @@ function beginGameSession() {
   });
 
   showGameArea();
+  // The Start or Play Again button is now hidden; move focus into the game (WCAG 2.4.3).
+  if (_centerPrimaryBtn) _centerPrimaryBtn.focus();
   startTrial();
 }
 
@@ -668,6 +678,8 @@ function stop() {
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = false;
+  // Move focus off the hidden game area so it does not fall to <body> (WCAG 2.4.3).
+  focusHeading(_endPanelEl);
 
   if (_finalThresholdEl) _finalThresholdEl.textContent = String(result.thresholdMs);
   if (_finalAccuracyEl) _finalAccuracyEl.textContent = render.percent(result.recentAccuracy);
