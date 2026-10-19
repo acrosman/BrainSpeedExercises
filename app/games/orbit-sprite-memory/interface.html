@@ -45,7 +45,7 @@
       <span class="game-hud__stat">Session: <strong id="osm-session-timer">00:00</strong></span>
     </div>
 
-    <div class="osm-target-wrap">
+    <div id="osm-target-wrap" class="osm-target-wrap">
       <span>Target image:</span>
       <div id="osm-target-preview" class="osm-sprite" aria-hidden="true"></div>
     </div>
@@ -57,6 +57,10 @@
 
     <div class="osm-controls">
       <button id="osm-stop-btn" type="button" class="game-btn game-btn--secondary">End Game</button>
+      <label id="osm-target-toggle-label" class="osm-toggle" for="osm-target-toggle">
+        <input id="osm-target-toggle" type="checkbox" checked>
+        Show target image
+      </label>
     </div>
 
     <!-- Speed trend chart -->
