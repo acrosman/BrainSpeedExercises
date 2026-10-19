@@ -517,6 +517,7 @@ describe('fine-tuning plugin', () => {
       plugin.stop();
       expect($('#ft-game-area').hidden).toBe(true);
       expect($('#ft-end-panel').hidden).toBe(false);
+      expect(document.activeElement).toBe($('#ft-end-panel h2'));
       expect($('#ft-final-level').textContent).toBe('3');
       expect($('#ft-final-score').textContent).toBe('4');
       expect($('#ft-final-trials').textContent).toBe('7');

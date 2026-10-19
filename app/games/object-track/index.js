@@ -11,7 +11,7 @@ import * as game from './game.js';
 import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
-import { returnToMainMenu } from '../../components/gameUtils.js';
+import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
   finishPracticeRound,
@@ -480,6 +480,8 @@ export async function submitResponse() {
 export function showEndPanel(result) {
   if (_playAreaEl) _playAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = false;
+  // Move focus off the hidden game area so it does not fall to <body> (WCAG 2.4.3).
+  focusHeading(_endPanelEl);
   if (_finalScoreEl) _finalScoreEl.textContent = String(result.score);
   if (_finalLevelEl) _finalLevelEl.textContent = String(result.level + 1);
   if (_finalRoundsEl) _finalRoundsEl.textContent = String(result.roundsPlayed);

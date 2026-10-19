@@ -178,7 +178,7 @@ function buildContainer() {
   el.innerHTML = `
     <div id="osm-instructions"></div>
     <div id="osm-game-area" hidden></div>
-    <div id="osm-end-panel" hidden></div>
+    <div id="osm-end-panel" hidden><h2>Session Ended</h2></div>
     <button id="osm-start-btn" type="button"></button>
     <button id="osm-replay-tutorial-btn" type="button"></button>
     <button id="osm-stop-btn" type="button"></button>
@@ -382,6 +382,7 @@ describe('exported helper utilities', () => {
   test('showEndPanel reveals summary values', () => {
     showEndPanel({ score: 9, level: 3 });
     expect(document.querySelector('#osm-end-panel').hidden).toBe(false);
+    expect(document.activeElement).toBe(document.querySelector('#osm-end-panel h2'));
     expect(document.querySelector('#osm-final-score').textContent).toBe('9');
     expect(document.querySelector('#osm-final-level').textContent).toBe('4');
   });

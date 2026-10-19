@@ -42,6 +42,7 @@ const audioServiceMock = await import('../../../components/audioService.js');
 // ── 1c. Mock gameUtils ────────────────────────────────────────────────────────
 
 jest.unstable_mockModule('../../../components/gameUtils.js', () => ({
+  focusHeading: jest.fn(),
   returnToMainMenu: jest.fn(),
 }));
 const gameUtilsMock = await import('../../../components/gameUtils.js');
@@ -324,6 +325,8 @@ describe('stop() when running', () => {
     plugin.init(container);
     await plugin.stop();
     expect(container.querySelector('#mot-end-panel').hidden).toBe(false);
+    expect(gameUtilsMock.focusHeading)
+      .toHaveBeenCalledWith(container.querySelector('#mot-end-panel'));
   });
 
   it('returns result object', async () => {

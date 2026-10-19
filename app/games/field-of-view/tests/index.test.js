@@ -170,7 +170,7 @@ function buildContainer() {
   wrapper.innerHTML = `
     <div id="fov-instructions"></div>
     <div id="fov-game-area" hidden></div>
-    <div id="fov-end-panel" hidden></div>
+    <div id="fov-end-panel" hidden><h2>Session Ended</h2></div>
     <div id="fov-stage" class="fov-stage">
       <div id="fov-board"></div>
       <div id="fov-mask" hidden></div>
@@ -363,6 +363,7 @@ describe('field-of-view index', () => {
 
     expect(result.thresholdMs).toBe(84.2);
     expect(document.querySelector('#fov-end-panel').hidden).toBe(false);
+    expect(document.activeElement).toBe(document.querySelector('#fov-end-panel h2'));
     expect(document.querySelector('#fov-final-threshold').textContent).toBe('84.2');
     expect(document.querySelector('#fov-final-best-threshold').textContent).toBe('200');
     expect(progressMock.saveProgress).toHaveBeenCalledWith(

@@ -13,7 +13,7 @@ import * as render from './render.js';
 import { playFeedbackSound } from '../../components/audioService.js';
 import { saveProgress } from './progress.js';
 import * as timerService from '../../components/timerService.js';
-import { returnToMainMenu } from '../../components/gameUtils.js';
+import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
 import {
   finishPracticeTrial,
   guidePracticeResponse,
@@ -668,6 +668,8 @@ function stop() {
 
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = false;
+  // Move focus off the hidden game area so it does not fall to <body> (WCAG 2.4.3).
+  focusHeading(_endPanelEl);
 
   if (_finalThresholdEl) _finalThresholdEl.textContent = String(result.thresholdMs);
   if (_finalAccuracyEl) _finalAccuracyEl.textContent = render.percent(result.recentAccuracy);

@@ -12,7 +12,7 @@ import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
-import { returnToMainMenu } from '../../components/gameUtils.js';
+import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import { setPracticeControls, tutorial } from './tutorial/tutorial.js';
 
@@ -292,6 +292,8 @@ export function showEndPanel(result) {
   if (_finalMissesEl) _finalMissesEl.textContent = result.misses;
   if (_finalTrialsEl) _finalTrialsEl.textContent = result.trialsCompleted;
   if (_endPanelEl) _endPanelEl.hidden = false;
+  // Move focus off the hidden game area so it does not fall to <body> (WCAG 2.4.3).
+  focusHeading(_endPanelEl);
 }
 
 /**

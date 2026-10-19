@@ -139,7 +139,7 @@ function buildContainer() {
   el.innerHTML = `
     <div id="hsm-instructions"></div>
     <div id="hsm-game-area" hidden></div>
-    <div id="hsm-end-panel" hidden></div>
+    <div id="hsm-end-panel" hidden><h2>Session Ended</h2></div>
     <button id="hsm-start-btn" type="button"></button>
     <button id="hsm-replay-tutorial-btn" type="button"></button>
     <button id="hsm-stop-btn" type="button"></button>
@@ -243,8 +243,11 @@ describe('stop', () => {
   });
 
   test('shows the end panel', () => {
+    document.body.appendChild(container);
     plugin.stop();
     expect(container.querySelector('#hsm-end-panel').hidden).toBe(false);
+    expect(document.activeElement).toBe(container.querySelector('#hsm-end-panel h2'));
+    container.remove();
   });
 
   test('updates the final score display', () => {

@@ -22,8 +22,11 @@ jest.unstable_mockModule('../../../components/scoreService.js', () => ({
 }));
 
 jest.unstable_mockModule('../../../components/gameUtils.js', () => ({
+  focusHeading: jest.fn(),
   returnToMainMenu: jest.fn(),
 }));
+
+const gameUtilsMock = await import('../../../components/gameUtils.js');
 
 jest.unstable_mockModule('../../../components/audioService.js', () => ({
   playSuccessSound: jest.fn(),
@@ -509,6 +512,8 @@ describe('stop and reset', () => {
 
     expect(result).toMatchObject({ score: 3, triggerHits: 2 });
     expect(container.querySelector('#cr-end-panel').hidden).toBe(false);
+    expect(gameUtilsMock.focusHeading)
+      .toHaveBeenCalledWith(container.querySelector('#cr-end-panel'));
     expect(saveScoreMock.saveScore).toHaveBeenCalled();
     expect(timerServiceMock.stopTimer).toHaveBeenCalled();
 

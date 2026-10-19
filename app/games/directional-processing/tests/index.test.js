@@ -149,7 +149,7 @@ function buildContainer() {
   wrapper.innerHTML = `
     <div id="dp-instructions"></div>
     <div id="dp-game-area" hidden></div>
-    <div id="dp-end-panel" hidden></div>
+    <div id="dp-end-panel" hidden><h2>Session Ended</h2></div>
     <div id="dp-stage" class="dp-stage">
       <canvas id="dp-canvas" width="400" height="400"></canvas>
     </div>
@@ -474,6 +474,7 @@ describe('directional-processing plugin', () => {
     plugin.stop();
     expect(document.querySelector('#dp-end-panel').hidden).toBe(false);
     expect(document.querySelector('#dp-game-area').hidden).toBe(true);
+    expect(document.activeElement).toBe(document.querySelector('#dp-end-panel h2'));
   });
 
   it('stop populates end panel with result values', async () => {

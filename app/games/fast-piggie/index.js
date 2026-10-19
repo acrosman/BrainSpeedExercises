@@ -11,7 +11,7 @@ import * as game from './game.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
-import { returnToMainMenu } from '../../components/gameUtils.js';
+import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
   finishPracticeRound,
@@ -529,6 +529,8 @@ function _getCorrectWedgeIndex(round) {
 function _showEndPanel(score, highScore) {
   if (_gameAreaEl) _gameAreaEl.hidden = true;
   if (_endPanelEl) _endPanelEl.hidden = false;
+  // Move focus off the hidden game area so it does not fall to <body> (WCAG 2.4.3).
+  focusHeading(_endPanelEl);
   if (_finalScoreEl) _finalScoreEl.textContent = String(score);
   if (_finalHighScoreEl) _finalHighScoreEl.textContent = String(highScore);
 }
