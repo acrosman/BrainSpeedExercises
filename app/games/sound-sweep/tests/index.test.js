@@ -295,11 +295,10 @@ describe('sound-sweep plugin', () => {
     jest.clearAllTimers();
   });
 
-  it('status changes to response prompt after the wait', async () => {
+  it('status says "Your turn" after the wait', async () => {
     await plugin.start();
     jest.runAllTimers();
-    const status = document.querySelector('#ss-status').textContent;
-    expect(status).toMatch(/sequence/i);
+    expect(document.querySelector('#ss-status').textContent).toBe('Your turn');
   });
 
   // ── response via button clicks ────────────────────────────────────────────

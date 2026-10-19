@@ -411,7 +411,8 @@ describe('fine-tuning plugin', () => {
       expect($('#ft-btn-second').disabled).toBe(false);
       expect($('#ft-replay-btn').disabled).toBe(false);
       expect(document.activeElement).toBe($('#ft-btn-first'));
-      expect($('#ft-status').textContent).toBe('Which sound matched the target?');
+      expect($('#ft-status').textContent).toBe('Your turn');
+      expect($('#ft-status').textContent).not.toBe($('.ft-response__legend').textContent);
     });
 
     test('does not start a trial when the game is not running', async () => {
