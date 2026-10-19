@@ -154,6 +154,7 @@ const {
   startRound,
   playRound,
   stopRound,
+  updateTargetVisibility,
   getPositionButton,
   submitSelection,
   loadBestStatsFromProgress,
@@ -188,7 +189,11 @@ function buildContainer() {
       <div id="osm-active-sprite" hidden></div>
       <div id="osm-feedback"></div>
     </div>
-    <div id="osm-target-preview"></div>
+    <div id="osm-target-wrap"><div id="osm-target-preview"></div></div>
+    <label id="osm-target-toggle-label" for="osm-target-toggle">
+      <input id="osm-target-toggle" type="checkbox" checked>
+      Show target image
+    </label>
     <strong id="osm-score">0</strong>
     <strong id="osm-level">1</strong>
     <strong id="osm-streak">0</strong>
@@ -613,6 +618,55 @@ describe('stop with no session running', () => {
   });
 });
 
+describe('Show target image setting', () => {
+  let container;
+  let toggle;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    container = buildContainer();
+    plugin.init(container);
+    toggle = container.querySelector('#osm-target-toggle');
+  });
+
+  afterEach(() => {
+    plugin.reset();
+    jest.useRealTimers();
+    document.body.innerHTML = '';
+  });
+
+  /** Set the checkbox the way a player does, firing its change event. */
+  function setToggle(checked) {
+    toggle.checked = checked;
+    toggle.dispatchEvent(new Event('change'));
+  }
+
+  test('shows the target image by default', () => {
+    startRound();
+    expect(toggle.checked).toBe(true);
+    expect(container.querySelector('#osm-target-wrap').hidden).toBe(false);
+  });
+
+  test('unchecking hides the target image and checking shows it again', () => {
+    setToggle(false);
+    expect(container.querySelector('#osm-target-wrap').hidden).toBe(true);
+    setToggle(true);
+    expect(container.querySelector('#osm-target-wrap').hidden).toBe(false);
+  });
+
+  test('a round started with the setting off keeps the target hidden', () => {
+    setToggle(false);
+    startRound();
+    expect(container.querySelector('#osm-target-wrap').hidden).toBe(true);
+    expect(container.querySelector('#osm-target-toggle-label').hidden).toBe(false);
+  });
+
+  test('does nothing when the elements are missing', () => {
+    plugin.init(null);
+    expect(() => updateTargetVisibility()).not.toThrow();
+  });
+});
+
 describe('getPositionButton', () => {
   afterEach(() => {
     document.body.innerHTML = '';
@@ -848,6 +902,16 @@ describe('practice round', () => {
     expect(gameMock.recordIncorrectRound).not.toHaveBeenCalled();
   });
 
+  test('shows the target and hides the setting even when the setting is off', () => {
+    const toggle = container.querySelector('#osm-target-toggle');
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change'));
+
+    playPractice();
+    expect(container.querySelector('#osm-target-wrap').hidden).toBe(false);
+    expect(container.querySelector('#osm-target-toggle-label').hidden).toBe(true);
+  });
+
   test('an unguided round only prompts for the answer', () => {
     const { context } = playPractice(false);
     endPlayback();
@@ -923,5 +987,14 @@ describe('interface.html live regions', () => {
     expect(document.querySelector('#osm-session-timer').closest('[aria-live]')).toBeNull();
     expect(document.querySelector('#osm-score').closest('[aria-live]')).not.toBeNull();
     expect(document.querySelector('#osm-level').closest('[aria-live]')).not.toBeNull();
+  });
+
+  test('the Show target image checkbox is labeled and checked by default', () => {
+    document.body.innerHTML = html;
+
+    const toggle = document.querySelector('#osm-target-toggle');
+    expect(toggle.type).toBe('checkbox');
+    expect(toggle.checked).toBe(true);
+    expect(toggle.labels[0].textContent.trim()).toBe('Show target image');
   });
 });

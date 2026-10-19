@@ -68,6 +68,15 @@ let _activeSpriteEl = null;
 let _targetPreviewEl = null;
 
 /** @type {HTMLElement|null} */
+let _targetWrapEl = null;
+
+/** @type {HTMLInputElement|null} */
+let _targetToggleEl = null;
+
+/** @type {HTMLElement|null} */
+let _targetToggleLabelEl = null;
+
+/** @type {HTMLElement|null} */
 let _scoreEl = null;
 
 /** @type {HTMLElement|null} */
@@ -411,6 +420,18 @@ export function startPlayback(round) {
 }
 
 /**
+ * Shows or hides the target image to match the "Show target image" checkbox. A practice
+ * round always shows the target, since the tutorial's coaching points to it, and hides the
+ * checkbox so it is not changed to no effect.
+ */
+export function updateTargetVisibility() {
+  const practicing = isPracticing();
+  const showTarget = practicing || !_targetToggleEl || _targetToggleEl.checked;
+  if (_targetWrapEl) _targetWrapEl.hidden = !showTarget;
+  if (_targetToggleLabelEl) _targetToggleLabelEl.hidden = practicing;
+}
+
+/**
  * Plays one round: shows its target in the preview, flashes its sprites around the circle,
  * then takes position choices. It never reads or changes session state, so it can play a
  * round with no session running.
@@ -425,6 +446,7 @@ export function playRound(round) {
       round.primarySpriteId,
     );
   }
+  updateTargetVisibility();
 
   announce('Watch the circle. The target image appears three times.');
   startPlayback(round);
@@ -537,6 +559,9 @@ function init(gameContainer) {
   _boardEl = _container.querySelector('#osm-board');
   _activeSpriteEl = _container.querySelector('#osm-active-sprite');
   _targetPreviewEl = _container.querySelector('#osm-target-preview');
+  _targetWrapEl = _container.querySelector('#osm-target-wrap');
+  _targetToggleEl = _container.querySelector('#osm-target-toggle');
+  _targetToggleLabelEl = _container.querySelector('#osm-target-toggle-label');
   _scoreEl = _container.querySelector('#osm-score');
   _levelEl = _container.querySelector('#osm-level');
   _streakEl = _container.querySelector('#osm-streak');
@@ -561,6 +586,7 @@ function init(gameContainer) {
     });
   }
   if (_stopBtn) _stopBtn.addEventListener('click', () => stop());
+  if (_targetToggleEl) _targetToggleEl.addEventListener('change', updateTargetVisibility);
   if (_playAgainBtn) {
     _playAgainBtn.addEventListener('click', () => {
       reset();
