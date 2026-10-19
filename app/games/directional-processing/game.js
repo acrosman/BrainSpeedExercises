@@ -29,16 +29,15 @@ export const WRONG_STREAK_TO_DROP = 3;
 export const LEVEL_DROP = 2;
 
 /**
- * Level configurations ordered from easiest (index 0) to hardest (last index).
- *
- * Each level reduces display duration and/or contrast to increase difficulty.
+ * Display bands ordered from easiest to hardest. Each band reduces display duration
+ * and/or contrast.
  * Research basis: decreasing contrast forces the visual cortex to "overclock"
  * to detect the motion, matching the ACTIVE study Speed of Processing Training
  * methodology (Merzenich & Mahncke).
  *
  * @type {Array<{ displayDurationMs: number, contrast: number }>}
  */
-export const LEVELS = [
+export const DISPLAY_BANDS = [
   { displayDurationMs: 500, contrast: 1.00 },
   { displayDurationMs: 400, contrast: 1.00 },
   { displayDurationMs: 300, contrast: 1.00 },
@@ -50,6 +49,27 @@ export const LEVELS = [
   { displayDurationMs:  60, contrast: 0.40 },
   { displayDurationMs:  40, contrast: 0.30 },
 ];
+
+/**
+ * Drift speed tiers played within each display band, slowest first. Each value multiplies
+ * the renderer's base drift speed (`gabor.PHASE_SPEED_RAD_PER_MS`).
+ *
+ * @type {number[]}
+ */
+export const DRIFT_SPEED_MULTIPLIERS = [1, 2];
+
+/**
+ * Level configurations ordered from easiest (index 0) to hardest (last index).
+ *
+ * Every display band is played at each drift speed tier before the display time drops, so
+ * the motion speeds up separately from the shorter display, and display time falls half as
+ * fast per level as it would with one level per band.
+ *
+ * @type {Array<{ displayDurationMs: number, contrast: number, driftSpeedMultiplier: number }>}
+ */
+export const LEVELS = DISPLAY_BANDS.flatMap((band) => DRIFT_SPEED_MULTIPLIERS.map(
+  (driftSpeedMultiplier) => ({ ...band, driftSpeedMultiplier }),
+));
 
 // ── Module-level state (reset by initGame) ────────────────────────────────────
 
@@ -144,7 +164,8 @@ export function pickDirection() {
  * Generate a tutorial practice trial at the easiest level (`LEVELS[0]`) with a random
  * direction. It does not change any game state.
  *
- * @returns {{ direction: string, displayDurationMs: number, contrast: number }}
+ * @returns {{ direction: string, displayDurationMs: number, contrast: number,
+ *   driftSpeedMultiplier: number }}
  */
 export function generatePracticeTrial() {
   return { direction: pickDirection(), ...LEVELS[0] };
@@ -200,7 +221,7 @@ export function getCurrentLevel() {
 /**
  * Get the configuration object for the current difficulty level.
  *
- * @returns {{ displayDurationMs: number, contrast: number }}
+ * @returns {{ displayDurationMs: number, contrast: number, driftSpeedMultiplier: number }}
  */
 export function getCurrentLevelConfig() {
   return LEVELS[currentLevel];

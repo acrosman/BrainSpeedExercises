@@ -322,16 +322,22 @@ function runMaskPhase() {
  * rAF timing, then transition to the mask phase.
  *
  * @param {string} direction - Motion direction ('up'|'down'|'left'|'right').
- * @param {number} contrast - Gabor contrast multiplier (0..1).
- * @param {number} displayDurationMs - Duration to show the stimulus.
+ * @param {{ contrast: number, displayDurationMs: number, driftSpeedMultiplier: number }} config
+ *   Gabor contrast multiplier (0..1), how long to show the stimulus, and the multiple of
+ *   `PHASE_SPEED_RAD_PER_MS` the grating drifts at.
  * @param {() => void} [onStimulusEnd] - Called when the stimulus ends and the mask begins.
  */
-function runStimulusPhase(direction, contrast, displayDurationMs, onStimulusEnd = () => {}) {
+function runStimulusPhase(
+  direction,
+  { contrast, displayDurationMs, driftSpeedMultiplier },
+  onStimulusEnd = () => {},
+) {
   _responseEnabled = false;
   setDirectionButtonsEnabled(false);
   if (_feedbackEl) _feedbackEl.textContent = '';
 
   const { theta, phiDirection } = getDirectionParams(direction);
+  const phaseSpeed = PHASE_SPEED_RAD_PER_MS * driftSpeedMultiplier;
   const start = nowMs();
 
   const tick = () => {
@@ -345,7 +351,7 @@ function runStimulusPhase(direction, contrast, displayDurationMs, onStimulusEnd 
     }
 
     // Advance the grating phase to create the apparent motion effect.
-    const phi = phiDirection * PHASE_SPEED_RAD_PER_MS * elapsed;
+    const phi = phiDirection * phaseSpeed * elapsed;
     if (_canvasEl) {
       drawGabor(_canvasEl, { theta, phi, contrast, colorFamily: _colorFamily });
     }
@@ -365,10 +371,8 @@ function startTrial() {
 
   clearDirectionHighlights();
   _currentDirection = game.pickDirection();
-  const { displayDurationMs, contrast } = game.getCurrentLevelConfig();
-
   updateStats();
-  runStimulusPhase(_currentDirection, contrast, displayDurationMs);
+  runStimulusPhase(_currentDirection, game.getCurrentLevelConfig());
 }
 
 /**
@@ -509,11 +513,11 @@ function beginGameSession() {
  */
 const PRACTICE_CONTROLS = Object.freeze({
   showGameArea,
-  playTrial({ direction, contrast, displayDurationMs }, onStimulusEnd) {
+  playTrial(trial, onStimulusEnd) {
     clearDirectionHighlights();
-    _currentDirection = direction;
+    _currentDirection = trial.direction;
     _colorFamily = pickColorFamily();
-    runStimulusPhase(direction, contrast, displayDurationMs, onStimulusEnd);
+    runStimulusPhase(trial.direction, trial, onStimulusEnd);
   },
   stopTrial() {
     clearAsyncHandles();

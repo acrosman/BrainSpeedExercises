@@ -2,7 +2,7 @@
 name: fix-issue
 description: Resolve a GitHub issue end to end — read it, plan, implement, test, and open a PR. Use when the user runs /fix-issue <number>.
 argument-hint: <issue-number>
-disable-model-invocation: true
+disable-model-invocation: false
 allowed-tools: Bash(gh issue view:*), Bash(gh issue comment:*), Bash(gh pr create:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git checkout:*), Bash(git switch:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*)
 ---
 

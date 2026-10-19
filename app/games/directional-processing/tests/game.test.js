@@ -17,6 +17,8 @@ import {
   WRONG_STREAK_TO_DROP,
   LEVEL_DROP,
   LEVELS,
+  DISPLAY_BANDS,
+  DRIFT_SPEED_MULTIPLIERS,
   initGame,
   startGame,
   stopGame,
@@ -77,6 +79,37 @@ describe('exported constants', () => {
   test('LEVELS are ordered from longest to shortest display duration', () => {
     for (let i = 1; i < LEVELS.length; i += 1) {
       expect(LEVELS[i].displayDurationMs).toBeLessThanOrEqual(LEVELS[i - 1].displayDurationMs);
+    }
+  });
+
+  test('DRIFT_SPEED_MULTIPLIERS start at the base speed and rise', () => {
+    expect(DRIFT_SPEED_MULTIPLIERS[0]).toBe(1);
+    expect(DRIFT_SPEED_MULTIPLIERS.length).toBeGreaterThan(1);
+    for (let i = 1; i < DRIFT_SPEED_MULTIPLIERS.length; i += 1) {
+      expect(DRIFT_SPEED_MULTIPLIERS[i]).toBeGreaterThan(DRIFT_SPEED_MULTIPLIERS[i - 1]);
+    }
+  });
+
+  test('LEVELS plays every display band at each drift speed tier', () => {
+    expect(LEVELS).toHaveLength(DISPLAY_BANDS.length * DRIFT_SPEED_MULTIPLIERS.length);
+    DISPLAY_BANDS.forEach((band, b) => {
+      DRIFT_SPEED_MULTIPLIERS.forEach((driftSpeedMultiplier, s) => {
+        expect(LEVELS[b * DRIFT_SPEED_MULTIPLIERS.length + s])
+          .toEqual({ ...band, driftSpeedMultiplier });
+      });
+    });
+  });
+
+  test('each level speeds up the motion or shortens the display, never both', () => {
+    for (let i = 1; i < LEVELS.length; i += 1) {
+      const prev = LEVELS[i - 1];
+      const next = LEVELS[i];
+      if (next.displayDurationMs === prev.displayDurationMs) {
+        expect(next.driftSpeedMultiplier).toBeGreaterThan(prev.driftSpeedMultiplier);
+      } else {
+        expect(next.displayDurationMs).toBeLessThan(prev.displayDurationMs);
+        expect(next.driftSpeedMultiplier).toBe(DRIFT_SPEED_MULTIPLIERS[0]);
+      }
     }
   });
 });
@@ -154,7 +187,9 @@ describe('pickDirection', () => {
 describe('generatePracticeTrial', () => {
   test('uses the easiest level: 500 ms at full contrast', () => {
     const trial = generatePracticeTrial();
-    expect(trial).toEqual(expect.objectContaining({ displayDurationMs: 500, contrast: 1 }));
+    expect(trial).toEqual(expect.objectContaining({
+      displayDurationMs: 500, contrast: 1, driftSpeedMultiplier: 1,
+    }));
     expect(DIRECTIONS).toContain(trial.direction);
   });
 
