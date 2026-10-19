@@ -479,6 +479,8 @@ function beginGameSession() {
   game.startGame();
   attachGlobalKeyListener();
   showGameArea();
+  // The Start or Play Again button is now hidden; move focus into the game (WCAG 2.4.3).
+  if (_reactionZoneBtn) _reactionZoneBtn.focus();
 
   timerService.startTimer((elapsedMs) => {
     if (_sessionTimerEl) {

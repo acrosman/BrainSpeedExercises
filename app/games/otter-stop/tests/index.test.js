@@ -278,6 +278,15 @@ describe('start()', () => {
     expect(gameArea.hidden).toBe(false);
   });
 
+  it('moves focus to the stimulus', async () => {
+    const container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    await plugin.start();
+    expect(document.activeElement).toBe(container.querySelector('#os-stimulus'));
+    container.remove();
+  });
+
   it('hides the instructions panel', async () => {
     const container = buildContainer();
     plugin.init(container);

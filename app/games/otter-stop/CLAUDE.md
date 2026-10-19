@@ -58,7 +58,8 @@ picks from and records to `game.js`. `stopTrials()` ends a run and is the cleanu
 click on the stimulus (`respond`) ends the trial early. `endTrial` records the result. Feedback
 (800 ms) appears only after a no-go trial or a missed go. Trials are separated by a 120 ms
 `ISI_MS`. Only one of these timeouts is pending at a time, so they share `_timer`. The Space
-listener is attached only while a run is playing.
+listener is attached only while a run is playing. A session starts with focus on the stimulus
+(`#os-stimulus`).
 
 ## Tutorial
 

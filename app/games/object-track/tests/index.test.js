@@ -43,6 +43,7 @@ const audioServiceMock = await import('../../../components/audioService.js');
 
 jest.unstable_mockModule('../../../components/gameUtils.js', () => ({
   focusHeading: jest.fn(),
+  keepFocusInside: jest.fn((container, rebuild) => rebuild()),
   returnToMainMenu: jest.fn(),
 }));
 const gameUtilsMock = await import('../../../components/gameUtils.js');
@@ -178,7 +179,7 @@ function buildContainer() {
     <div id="mot-instructions"></div>
     <div id="mot-play-area" hidden></div>
     <div id="mot-end-panel" hidden></div>
-    <div id="mot-arena"></div>
+    <div id="mot-arena" tabindex="-1"></div>
     <strong id="mot-score">0</strong>
     <strong id="mot-level">1</strong>
     <strong id="mot-round">1</strong>
@@ -292,6 +293,15 @@ describe('start()', () => {
     await plugin.start();
     expect(container.querySelector('#mot-instructions').hidden).toBe(true);
     expect(container.querySelector('#mot-play-area').hidden).toBe(false);
+  });
+
+  it('moves focus to the arena', async () => {
+    const container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    await plugin.start();
+    expect(document.activeElement).toBe(container.querySelector('#mot-arena'));
+    container.remove();
   });
 
   it('creates the first round at the current level (via beginRound)', async () => {
@@ -910,6 +920,8 @@ describe('playRound(roundCircles, trackingDurationMs)', () => {
       { id: 2, x: 300, y: 300, radius: 30, isTarget: false },
     ], 4000);
     expect(container.querySelectorAll('#mot-arena .mot-circle')).toHaveLength(3);
+    expect(gameUtilsMock.keepFocusInside)
+      .toHaveBeenCalledWith(container.querySelector('#mot-arena'), expect.any(Function));
     expect(container.querySelector('#mot-circle-1').classList
       .contains('mot-circle--target-reveal')).toBe(true);
     expect(gameMock.createRoundCircles).not.toHaveBeenCalled();

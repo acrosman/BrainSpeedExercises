@@ -3,7 +3,7 @@
  */
 
 import { afterEach, describe, it, expect, jest } from '@jest/globals';
-import { focusHeading, returnToMainMenu } from '../gameUtils.js';
+import { focusHeading, keepFocusInside, returnToMainMenu } from '../gameUtils.js';
 
 describe('returnToMainMenu()', () => {
   it('dispatches bsx:return-to-main-menu on window', () => {
@@ -59,5 +59,72 @@ describe('focusHeading()', () => {
   it('returns false when the root is missing', () => {
     expect(focusHeading(null)).toBe(false);
     expect(focusHeading(undefined)).toBe(false);
+  });
+});
+
+describe('keepFocusInside()', () => {
+  /** Build a container with one button in it and an outside button, and return them. */
+  function setup() {
+    document.body.innerHTML =
+      '<button id="outside">Outside</button>'
+      + '<div id="box" tabindex="-1"><button id="old">Old</button></div>'
+      + '<button id="next">Next</button>';
+    return {
+      box: document.getElementById('box'),
+      outside: document.getElementById('outside'),
+      next: document.getElementById('next'),
+    };
+  }
+
+  /** Replace the box's children, as a round rebuild does. */
+  function rebuild() {
+    document.getElementById('box').innerHTML = '<button id="new">New</button>';
+  }
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('runs the rebuild', () => {
+    const { box } = setup();
+    const spy = jest.fn(rebuild);
+    keepFocusInside(box, spy);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(box.querySelector('#new')).not.toBeNull();
+  });
+
+  it('moves focus to the container when the focused control is removed', () => {
+    const { box } = setup();
+    document.getElementById('old').focus();
+    keepFocusInside(box, rebuild);
+    expect(document.activeElement).toBe(box);
+  });
+
+  it('moves focus to the given target instead of the container', () => {
+    const { box, next } = setup();
+    document.getElementById('old').focus();
+    keepFocusInside(box, rebuild, next);
+    expect(document.activeElement).toBe(next);
+  });
+
+  it('leaves focus alone when it was outside the container', () => {
+    const { box, outside } = setup();
+    outside.focus();
+    keepFocusInside(box, rebuild);
+    expect(document.activeElement).toBe(outside);
+  });
+
+  it('leaves focus alone when the focused control survives the rebuild', () => {
+    const { box } = setup();
+    const old = document.getElementById('old');
+    old.focus();
+    keepFocusInside(box, () => box.appendChild(document.createElement('span')));
+    expect(document.activeElement).toBe(old);
+  });
+
+  it('still runs the rebuild when the container is missing', () => {
+    const spy = jest.fn();
+    expect(() => keepFocusInside(null, spy)).not.toThrow();
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

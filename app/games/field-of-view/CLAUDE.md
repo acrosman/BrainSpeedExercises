@@ -73,3 +73,7 @@ Stimulus surfaces keep their own colors and never take theme tokens:
 All responses use native buttons: two kitten buttons (`aria-pressed`) and the location grid built
 by `render.renderLocationGrid`. There is no custom key handler. The response is submitted
 automatically once both a kitten and a location are selected.
+
+A session starts with focus on the first kitten button (`#fov-center-primary`). Every trial
+rebuilds the board and the location squares inside `keepFocusInside`, so a removed square or
+cell passes focus to that kitten button, the next trial's first answer.

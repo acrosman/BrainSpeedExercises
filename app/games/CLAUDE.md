@@ -82,6 +82,13 @@ Games use the shared services in `app/components/`. Their APIs are in
 - **Precise stimulus timing:** stimuli shown for tens of milliseconds are driven with
   `requestAnimationFrame` and `performance.now()`, not `setTimeout`. Cancel every rAF handle
   and timeout in `stop()` and `reset()`.
+- **Focus:** Start and Play Again sit in panels that hide when the session starts, so
+  `beginGameSession()` must move focus into the game area. Focus goes to the main response
+  control, or to the element that holds the round's controls (given `tabindex="-1"` in
+  `interface.html`). When a round removes or replaces controls, wrap that in
+  `keepFocusInside()` from `gameUtils.js` so focus does not fall to `<body>`. The end panel
+  takes focus as described under "Shared screen markup". Each game's `CLAUDE.md` names its
+  targets.
 - **Keyboard handlers on `document`** outlive the game: the shell only replaces the
   container's HTML, and the module stays cached. A handler must do nothing, and must not call
   `preventDefault()`, unless a session (or practice round) is running. Remove it before adding

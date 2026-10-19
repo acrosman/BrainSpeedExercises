@@ -304,6 +304,15 @@ describe('init', () => {
 });
 
 describe('start', () => {
+  test('moves focus to the reaction zone', async () => {
+    const container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    await plugin.start();
+    expect(document.activeElement).toBe(container.querySelector('#cr-reaction-zone'));
+    container.remove();
+  });
+
   test('shows game area and hides instructions', async () => {
     const container = buildContainer();
     plugin.init(container);

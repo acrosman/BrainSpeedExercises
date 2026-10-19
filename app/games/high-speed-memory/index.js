@@ -11,7 +11,11 @@ import * as game from './game.js';
 import { playFailureSound, playSuccessSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore } from '../../components/scoreService.js';
-import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
+import {
+  focusHeading,
+  keepFocusInside,
+  returnToMainMenu,
+} from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
   finishPracticeRound,
@@ -336,7 +340,8 @@ function playRound(grid, displayMs) {
   _primaryFound = 0;
   _flipLock = true;
   _roundGrid = grid;
-  renderGrid();
+  // Each round replaces the cards, so keep focus in the grid if a card had it.
+  keepFocusInside(_gridEl, renderGrid);
   updateFoundDisplay();
   _hideTimer = setTimeout(hideAllCards, displayMs);
 }
@@ -530,6 +535,8 @@ function beginGameSession() {
 
   showGameArea();
   startRound();
+  // The Start or Play Again button is now hidden; move focus into the game (WCAG 2.4.3).
+  if (_gridEl) _gridEl.focus();
 }
 
 /**

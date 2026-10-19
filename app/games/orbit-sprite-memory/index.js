@@ -10,7 +10,11 @@ import * as game from './game.js';
 import { playFeedbackSound } from '../../components/audioService.js';
 import * as timerService from '../../components/timerService.js';
 import { saveScore, loadGameScore } from '../../components/scoreService.js';
-import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
+import {
+  focusHeading,
+  keepFocusInside,
+  returnToMainMenu,
+} from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
   finishPracticeRound,
@@ -250,8 +254,10 @@ export function clearTimers() {
  */
 export function clearChoiceButtons() {
   if (!_boardEl) return;
-  const choices = _boardEl.querySelectorAll('.osm-choice-btn');
-  choices.forEach((choice) => choice.remove());
+  // Keep focus on the board if one of the removed buttons had it.
+  keepFocusInside(_boardEl, () => {
+    _boardEl.querySelectorAll('.osm-choice-btn').forEach((choice) => choice.remove());
+  });
 }
 
 /**
@@ -591,6 +597,8 @@ function beginGameSession() {
 
   showGameArea();
   startRound();
+  // The Start or Play Again button is now hidden; move focus into the game (WCAG 2.4.3).
+  if (_boardEl) _boardEl.focus();
 }
 
 /**

@@ -42,6 +42,9 @@ Circles are native `<button type="button">` elements with `aria-pressed`, so Ent
 fire the same delegated arena `click` handler that the mouse uses. Keep them as buttons rather
 than `div role="button"`, which would need its own key handling.
 
+A session starts with focus on the arena (`#mot-arena`, `tabindex="-1"`). `playRound` renders
+each round's circles inside `keepFocusInside`, so a replaced circle passes focus to the arena.
+
 ## Physics (`game.js`)
 
 All physics is pure: `createCircles` (no overlap at spawn, up to `MAX_SPAWN_ATTEMPTS`),

@@ -184,7 +184,7 @@ function buildContainer() {
     <button id="osm-stop-btn" type="button"></button>
     <button id="osm-play-again-btn" type="button"></button>
     <button id="osm-return-btn" type="button"></button>
-    <div id="osm-board">
+    <div id="osm-board" tabindex="-1">
       <div id="osm-active-sprite" hidden></div>
       <div id="osm-feedback"></div>
     </div>
@@ -258,6 +258,17 @@ describe('exported helper utilities', () => {
 
     clearChoiceButtons();
     expect(document.querySelectorAll('.osm-choice-btn')).toHaveLength(0);
+  });
+
+  test('clearChoiceButtons moves focus from a removed button to the board', () => {
+    const board = document.querySelector('#osm-board');
+    const btn = document.createElement('button');
+    btn.className = 'osm-choice-btn';
+    board.appendChild(btn);
+    btn.focus();
+
+    clearChoiceButtons();
+    expect(document.activeElement).toBe(board);
   });
 
   test('renderChoiceButtons adds selectable nodes', () => {
@@ -464,6 +475,7 @@ describe('plugin contract and lifecycle', () => {
     expect(gameMock.startGame).toHaveBeenCalled();
     expect(container.querySelector('#osm-game-area').hidden).toBe(false);
     expect(container.querySelector('#osm-instructions').hidden).toBe(true);
+    expect(document.activeElement).toBe(container.querySelector('#osm-board'));
   });
 
   test('start button click is wired to start gameplay', async () => {

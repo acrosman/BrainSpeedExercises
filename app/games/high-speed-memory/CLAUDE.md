@@ -53,4 +53,6 @@ See [tutorial/CLAUDE.md](tutorial/CLAUDE.md). `game.createPracticeRound()` retur
 
 ## Controls
 
-Cards are focusable and respond to click, Enter, or Space.
+Cards are focusable and respond to click, Enter, or Space. A session starts with focus on the
+grid (`#hsm-grid`, `tabindex="-1"`). Each round replaces the cards, so `startRound()` renders the
+grid inside `keepFocusInside`, and a replaced card passes focus to the grid.

@@ -39,3 +39,20 @@ export function focusHeading(root) {
   heading.focus();
   return true;
 }
+
+/**
+ * Run `rebuild`, which removes or replaces controls inside `container`, without letting focus
+ * fall to `<body>`. When focus was inside `container` and the focused control is gone
+ * afterwards, `target` takes focus. A container used as the target needs `tabindex="-1"` in
+ * its markup.
+ *
+ * @param {Element|null|undefined} container - The element whose controls are rebuilt.
+ * @param {function(): void} rebuild - Removes or replaces the controls.
+ * @param {HTMLElement|null|undefined} [target=container] - Where focus goes if it was lost.
+ * @returns {void}
+ */
+export function keepFocusInside(container, rebuild, target = container) {
+  const hadFocus = Boolean(container && container.contains(document.activeElement));
+  rebuild();
+  if (hadFocus && target && !container.contains(document.activeElement)) target.focus();
+}

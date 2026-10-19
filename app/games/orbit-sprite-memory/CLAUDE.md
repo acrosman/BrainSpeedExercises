@@ -51,6 +51,9 @@ sheet layout, update those constants and `TOTAL_SPRITES` together.
   position is chosen, and the player cannot select more than 3.
 - After each answer, `showRoundReveal` shows all positions for `REVEAL_ALL_MS` (700), and the
   next round starts after `NEXT_ROUND_DELAY_MS` (900).
+- A session starts with focus on the board (`#osm-board`, `tabindex="-1"`).
+  `clearChoiceButtons()` removes the buttons inside `keepFocusInside`, so a removed button
+  passes focus to the board.
 
 ## Best stats
 

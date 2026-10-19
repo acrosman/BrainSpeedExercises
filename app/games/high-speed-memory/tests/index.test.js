@@ -145,7 +145,7 @@ function buildContainer() {
     <button id="hsm-stop-btn" type="button"></button>
     <button id="hsm-play-again-btn" type="button"></button>
     <button id="hsm-return-btn" type="button"></button>
-    <div id="hsm-grid"></div>
+    <div id="hsm-grid" tabindex="-1"></div>
     <strong id="hsm-score">0</strong>
     <strong id="hsm-level">1</strong>
     <strong id="hsm-found">0</strong>
@@ -204,6 +204,13 @@ describe('start', () => {
     await plugin.start();
     expect(container.querySelector('#hsm-game-area').hidden).toBe(false);
     expect(container.querySelector('#hsm-instructions').hidden).toBe(true);
+  });
+
+  test('moves focus to the card grid', async () => {
+    document.body.appendChild(container);
+    await plugin.start();
+    expect(document.activeElement).toBe(container.querySelector('#hsm-grid'));
+    container.remove();
   });
 
   test('does nothing when called without a container', async () => {
@@ -471,6 +478,19 @@ describe('renderGrid', () => {
   test('does not throw when grid element is absent', () => {
     plugin.init(document.createElement('div'));
     expect(() => renderGrid()).not.toThrow();
+  });
+
+  test('a new round moves focus from a replaced card to the grid', () => {
+    jest.useFakeTimers();
+    const container = buildContainer();
+    document.body.appendChild(container);
+    plugin.init(container);
+    startRound();
+    container.querySelector('#hsm-grid button').focus();
+    startRound();
+    expect(document.activeElement).toBe(container.querySelector('#hsm-grid'));
+    container.remove();
+    jest.useRealTimers();
   });
 
   test('buttons have data-id attributes', () => {

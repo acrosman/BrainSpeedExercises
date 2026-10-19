@@ -269,6 +269,18 @@ describe('field-of-view index', () => {
     ]);
   });
 
+  test('start moves focus to the first kitten button', async () => {
+    await plugin.start();
+    expect(document.activeElement).toBe(document.querySelector('#fov-center-primary'));
+  });
+
+  test('rebuilding the board moves focus from a removed cell to the first kitten', async () => {
+    await plugin.start();
+    document.querySelector('#fov-board button').focus();
+    jest.runAllTimers();
+    expect(document.activeElement).toBe(document.querySelector('#fov-center-primary'));
+  });
+
   test('start enters game area and eventually shows response phase', async () => {
     await plugin.start();
 

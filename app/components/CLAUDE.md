@@ -23,7 +23,7 @@ Rules for every component:
 | `syllableService.js` | games | Synthesized speech syllables and background noise |
 | `adaptiveDifficultyService.js` | games | Staircase counter math |
 | `trendChartService.js` | games | In-game SVG trend line |
-| `gameUtils.js` | games, shell | `returnToMainMenu()`, `focusHeading()` |
+| `gameUtils.js` | games, shell | `returnToMainMenu()` and the focus helpers |
 | `gameCard.js` | shell | One card on the game selector |
 | `historyView.js` | shell | Contents of the History modal |
 | `tutorialService.js` | tutorial launcher | Tutorial slides, the seen flag, guided practice |
@@ -129,6 +129,11 @@ game should leave.
 heading has no tabindex, and returns whether it found one. Call it after a screen change hides
 the focused control, so focus does not fall to `<body>`. The shell uses it on the game title,
 and games use it on the end panel.
+
+`keepFocusInside(container, rebuild, target = container)` runs `rebuild`, which removes or
+replaces controls in `container`. If focus was inside `container` and its control is gone
+afterwards, `target` takes focus. Games use it wherever a round rebuilds its answer controls.
+A container used as the target needs `tabindex="-1"` in its markup.
 
 ## `gameCard.js`
 

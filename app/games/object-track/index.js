@@ -11,7 +11,11 @@ import * as game from './game.js';
 import { saveScore } from '../../components/scoreService.js';
 import * as timerService from '../../components/timerService.js';
 import { playSuccessSound, playFailureSound } from '../../components/audioService.js';
-import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
+import {
+  focusHeading,
+  keepFocusInside,
+  returnToMainMenu,
+} from '../../components/gameUtils.js';
 import { renderTrendChart } from '../../components/trendChartService.js';
 import {
   finishPracticeRound,
@@ -504,7 +508,8 @@ export function playRound(roundCircles, trackingDurationMs) {
   _currentPalette = CIRCLE_PALETTES[Math.floor(Math.random() * CIRCLE_PALETTES.length)];
   setRandomBackground(_arenaEl);
   unhighlightTargets();
-  renderCircles(_roundCircles);
+  // Each round replaces the circles, so keep focus in the arena if a circle had it.
+  keepFocusInside(_arenaEl, () => renderCircles(_roundCircles));
   if (_phaseLabel) _phaseLabel.textContent = 'Watch for targets!';
   highlightTargets();
   _markingTimer = setTimeout(() => endMarkingPhase(), MARKING_DURATION_MS);
@@ -632,6 +637,8 @@ function beginGameSession() {
   });
   showGameArea();
   beginRound();
+  // The Start or Play Again button is now hidden; move focus into the game (WCAG 2.4.3).
+  if (_arenaEl) _arenaEl.focus();
 }
 
 /**
