@@ -1,6 +1,6 @@
 {
   "name": "brain-speed-exercises",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Brain Speed Exercise Games",
   "main": "main.js",
   "type": "module",
