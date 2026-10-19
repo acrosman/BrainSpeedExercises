@@ -32,11 +32,18 @@ On `DOMContentLoaded` it:
 3. Loads progress for the `'default'` player and the game manifests, and renders one
    `createGameCard` per manifest.
 4. Listens for `game:select` (dispatched by a game card). It removes the selector, hides the
-   play-time bar, and loads the game (`loadAndInitGame`).
+   play-time bar, remembers the game ID, and loads the game (`loadAndInitGame`). After
+   `init()`, focus moves to the game's title `<h2>` (`focusHeading`).
 5. Listens for `bsx:return-to-main-menu`. It clears the container, removes the game's
    stylesheet (`#active-game-stylesheet`), rebuilds `#game-selector` **inside
    `#game-container`**, reloads progress and manifests, and refreshes the cards, play-time bar,
-   and History button handler.
+   and History button handler. When it returns from a game, `focusGameCard` moves focus to the
+   Play button of that game's card (found by `data-game-id`). After Clear History no game was
+   open, so focus stays on View History.
+
+Each of these screen changes removes or hides the control that had focus. Without a new
+target, focus falls to `<body>` and a screen reader announces nothing (WCAG 2.4.3). Any new
+screen change must move focus too.
 
 The selector is built twice: once from `index.html` and again in the return-to-menu handler.
 Any menu change must keep both paths identical, including the `game:select` listener.

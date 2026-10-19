@@ -10,6 +10,7 @@ import { createGameCard } from './components/gameCard.js';
 import { buildHistoryPanel } from './components/historyView.js';
 import { formatDuration, getTodayDateString } from './components/timerService.js';
 import { clearHistory } from './components/scoreService.js';
+import { focusHeading } from './components/gameUtils.js';
 import { logger } from './components/logService.js';
 
 /**
@@ -95,7 +96,26 @@ async function loadAndInitGame(gameId, gameContainer, announcer) {
   announcer.textContent = `${result.manifest.name} loaded. Get ready to play!`;
   const mod = await import(`./games/${gameId}/${result.manifest.entryPoint}`);
   mod.default.init(gameContainer);
+  // The card that had focus is gone, so move focus to the game's title (WCAG 2.4.3).
+  focusHeading(gameContainer);
   return mod.default;
+}
+
+/**
+ * Move focus to the Play button of one game's card on the selector.
+ * Used on return to the menu, so focus goes back to the game just played.
+ *
+ * @param {HTMLElement} selector - The #game-selector section holding the cards.
+ * @param {string} gameId - ID of the game whose card should take focus.
+ * @returns {boolean} True when a Play button received focus.
+ */
+export function focusGameCard(selector, gameId) {
+  const card = Array.from(selector.querySelectorAll('.game-card'))
+    .find((el) => el.dataset.gameId === gameId);
+  const button = card ? card.querySelector('button') : null;
+  if (!button) return false;
+  button.focus();
+  return true;
 }
 
 /**
@@ -190,6 +210,13 @@ document.addEventListener('DOMContentLoaded', async () => {
    * @type {object|null}
    */
   let activePlugin = null;
+
+  /**
+   * ID of the game opened from the selector, kept until the menu is rebuilt so focus can
+   * return to its card. Null when no game has been opened since the last menu render.
+   * @type {string|null}
+   */
+  let lastGameId = null;
 
   // Register the before-quit handler so any mid-game progress is saved when the
   // user quits the application. The renderer calls stop() on the active plugin
@@ -311,6 +338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
    */
   gameSelector.addEventListener('game:select', async (event) => {
     const { gameId } = event.detail;
+    lastGameId = gameId;
     gameSelector.remove();
     hidePlayTimeSummary();
     try {
@@ -322,6 +350,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Listen for custom event to return to main menu from any game
   window.addEventListener('bsx:return-to-main-menu', () => {
     activePlugin = null;
+    const returningFromGameId = lastGameId;
+    lastGameId = null;
     // Remove any game UI and its stylesheet
     gameContainer.innerHTML = '';
     removeGameStylesheet();
@@ -354,6 +384,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           historyBtnHandler = () => openHistoryPanel(progress, manifests);
           viewHistoryBtn.addEventListener('click', historyBtnHandler);
         }
+        // Coming back from a game, the button that had focus is gone: return focus to the
+        // card of the game just played (WCAG 2.4.3). Clear History keeps focus where it is.
+        if (returningFromGameId) focusGameCard(selector, returningFromGameId);
       }).catch((err) => {
         logger.error('Failed to reload progress or game list after returning to menu.', err);
         updatePlayTimeSummary({});
@@ -361,6 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Re-attach event listener for game selection
       selector.addEventListener('game:select', async (event) => {
         const { gameId } = event.detail;
+        lastGameId = gameId;
         selector.remove();
         hidePlayTimeSummary();
         try {

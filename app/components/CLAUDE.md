@@ -23,7 +23,7 @@ Rules for every component:
 | `syllableService.js` | games | Synthesized speech syllables and background noise |
 | `adaptiveDifficultyService.js` | games | Staircase counter math |
 | `trendChartService.js` | games | In-game SVG trend line |
-| `gameUtils.js` | games | `returnToMainMenu()` |
+| `gameUtils.js` | games, shell | `returnToMainMenu()`, `focusHeading()` |
 | `gameCard.js` | shell | One card on the game selector |
 | `historyView.js` | shell | Contents of the History modal |
 | `tutorialService.js` | tutorial launcher | Tutorial slides, the seen flag, guided practice |
@@ -125,12 +125,18 @@ the math and is exported for tests.
 `returnToMainMenu()` dispatches `bsx:return-to-main-menu` on `window`. It is the only way a
 game should leave.
 
+`focusHeading(root)` focuses the first heading inside `root`, adding `tabindex="-1"` if the
+heading has no tabindex, and returns whether it found one. Call it after a screen change hides
+the focused control, so focus does not fall to `<body>`. The shell uses it on the game title,
+and games use it on the end panel.
+
 ## `gameCard.js`
 
-`createGameCard(manifest, progress)` returns an `<article class="game-card">` with the
-thumbnail (inside `.game-card__frame`), name, description, a stats list, and a "Play →" button
-whose accessible name is "Play <name>" (the arrow is `aria-hidden`). A click anywhere on the
-card dispatches a bubbling `game:select` event with `detail.gameId`.
+`createGameCard(manifest, progress)` returns an `<article class="game-card">`, with
+`data-game-id` set to `manifest.id`. It holds the thumbnail (inside `.game-card__frame`), name,
+description, a stats list, and a "Play →" button whose accessible name is "Play <name>" (the
+arrow is `aria-hidden`). A click anywhere on the card dispatches a bubbling `game:select` event
+with `detail.gameId`.
 
 The stats list is a `<dl class="game-high-score game-card__stats">` labelled "Stats for <name>",
 with one `.game-card__stat` (`dt` + `dd`) for each stat present, in this order: Top score, Max

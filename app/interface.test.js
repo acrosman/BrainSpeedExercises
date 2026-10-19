@@ -257,6 +257,21 @@ describe('interface.js', () => {
       expect(announcer.textContent).toContain('Test Game');
     });
 
+    it('moves focus to the game title once the game is loaded', async () => {
+      setupApi({
+        gameLoad: {
+          html: '<section><h2>Test Game</h2><button>Start</button></section>',
+          manifest: { name: 'Test Game', entryPoint: 'index.js' },
+        },
+      });
+      await domReadyCallback();
+      dispatchGameSelect();
+      await flush();
+      const title = document.querySelector('#game-container h2');
+      expect(document.activeElement).toBe(title);
+      expect(title.getAttribute('tabindex')).toBe('-1');
+    });
+
     it('hides the play-time bar when a game is selected', async () => {
       setupApi();
       await domReadyCallback();
@@ -351,6 +366,40 @@ describe('interface.js', () => {
       expect(scoreElem).not.toBeNull();
       expect(scoreElem.textContent).toContain('77');
     });
+
+    it('moves focus to the Play button of the game just played', async () => {
+      const manifests = [
+        { id: 'other-game', name: 'Other Game', description: 'Another.' },
+        ...MANIFESTS,
+      ];
+      setupApi({ manifests });
+      await domReadyCallback();
+      dispatchGameSelect('fast-piggie');
+      await flush();
+      window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+      await flush();
+      const card = document.querySelector('.game-card[data-game-id="fast-piggie"]');
+      expect(document.activeElement).toBe(card.querySelector('button'));
+    });
+
+    it('returns focus to the last game card after a game played from the rebuilt menu',
+      async () => {
+        setupApi();
+        await domReadyCallback();
+        dispatchGameSelect();
+        await flush();
+        window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+        await flush();
+        document.getElementById('game-selector').dispatchEvent(
+          new CustomEvent('game:select', { bubbles: true, detail: { gameId: 'fast-piggie' } }),
+        );
+        await flush();
+        document.body.focus();
+        window.dispatchEvent(new Event('bsx:return-to-main-menu'));
+        await flush();
+        const card = document.querySelector('.game-card[data-game-id="fast-piggie"]');
+        expect(document.activeElement).toBe(card.querySelector('button'));
+      });
 
     it('handles game:select on the recreated selector after returning to menu', async () => {
       const invoke = setupApi();
@@ -505,6 +554,19 @@ describe('interface.js', () => {
       expect(mockClearHistory).toHaveBeenCalledTimes(1);
       expect(panel.hidden).toBe(true);
     });
+
+    it('keeps focus on View History after Clear History rebuilds the menu', async () => {
+      setupApi();
+      await domReadyCallback();
+
+      document.getElementById('view-history-btn').click();
+      document.getElementById('clear-history-btn').click();
+      document.getElementById('clear-history-ok-btn').click();
+      await flush();
+      await flush();
+
+      expect(document.activeElement).toBe(document.getElementById('view-history-btn'));
+    });
     it('resets the confirm zone to hidden when the panel is re-opened', async () => {
       setupApi();
       await domReadyCallback();
@@ -595,6 +657,27 @@ describe('interface.js', () => {
       const { openHistoryPanel } = await import('./interface.js');
       document.getElementById('history-panel').remove();
       expect(() => openHistoryPanel({}, MANIFESTS)).not.toThrow();
+    });
+  });
+
+  describe('focusGameCard()', () => {
+    it('focuses the Play button of the matching card', async () => {
+      const { focusGameCard } = await import('./interface.js');
+      const selector = document.getElementById('game-selector');
+      selector.innerHTML =
+        '<article class="game-card" data-game-id="a"><button>Play A</button></article>'
+        + '<article class="game-card" data-game-id="b"><button>Play B</button></article>';
+      expect(focusGameCard(selector, 'b')).toBe(true);
+      expect(document.activeElement.textContent).toBe('Play B');
+    });
+
+    it('returns false when no card matches the game ID', async () => {
+      const { focusGameCard } = await import('./interface.js');
+      const selector = document.getElementById('game-selector');
+      selector.innerHTML =
+        '<article class="game-card" data-game-id="a"><button>Play A</button></article>';
+      expect(focusGameCard(selector, 'missing')).toBe(false);
+      expect(document.activeElement).toBe(document.body);
     });
   });
 

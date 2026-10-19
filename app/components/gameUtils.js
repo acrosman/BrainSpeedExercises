@@ -20,3 +20,22 @@ export function returnToMainMenu() {
     window.dispatchEvent(new CustomEvent('bsx:return-to-main-menu'));
   }
 }
+
+/**
+ * Move keyboard focus to the first heading inside `root`, so focus does not fall to
+ * `<body>` when the screen changes (WCAG 2.4.3). A heading without a tabindex gets
+ * `tabindex="-1"`, which lets it take focus from script without joining the Tab order.
+ *
+ * Does nothing when `root` is missing or holds no heading.
+ *
+ * @param {Element|null|undefined} root - The element to search, such as a panel or screen.
+ * @returns {boolean} True when a heading received focus.
+ */
+export function focusHeading(root) {
+  if (!root) return false;
+  const heading = root.querySelector('h1, h2, h3, h4, h5, h6');
+  if (!heading) return false;
+  if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+  heading.focus();
+  return true;
+}
