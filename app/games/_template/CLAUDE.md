@@ -13,7 +13,7 @@ and it is excluded from coverage.
    is the only place the ID is written.
 4. Replace `LEVELS` and the placeholder play area with the real game. Call
    `handleResponse(success)` from the game's input handlers after each trial. Keep the
-   photosensitivity warning in the welcome panel unless the game is audio-only; then delete
-   it and add the game to `AUDIO_ONLY_GAMES` in `../flashWarning.test.js`.
+   photosensitivity warning in the welcome panel unless the game flashes nothing; then delete
+   it and add the game to `NO_FLASH_GAMES` in `../flashWarning.test.js`.
 5. Add a `CLAUDE.md` for the new game that covers only what is specific to it, including a
    list of its stimulus surfaces (see "Colors" in [../CLAUDE.md](../CLAUDE.md)).

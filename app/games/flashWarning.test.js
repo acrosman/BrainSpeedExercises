@@ -1,6 +1,6 @@
 /**
  * @file Checks that every game with visual stimuli shows the photosensitivity warning on its
- * welcome panel, and that audio-only games do not.
+ * welcome panel, and that games without flashing stimuli do not.
  */
 import { readdir, readFile } from 'fs/promises';
 import path from 'path';
@@ -8,8 +8,8 @@ import { fileURLToPath } from 'url';
 
 const GAMES_PATH = path.dirname(fileURLToPath(import.meta.url));
 
-/** Games with no visual stimuli. Every other game must show the warning. */
-const AUDIO_ONLY_GAMES = ['fine-tuning', 'sound-sweep'];
+/** Games that flash nothing: audio-only games and Object Track (moving balls). */
+const NO_FLASH_GAMES = ['fine-tuning', 'object-track', 'sound-sweep'];
 
 /**
  * Lists the game directories the registry would scan (skipping `_` directories).
@@ -37,13 +37,13 @@ async function loadInterface(gameId) {
 }
 
 describe('photosensitivity warning', () => {
-  test('the audio-only list names real games', async () => {
+  test('the no-flash list names real games', async () => {
     const ids = await listGameIds();
-    AUDIO_ONLY_GAMES.forEach((id) => expect(ids).toContain(id));
+    NO_FLASH_GAMES.forEach((id) => expect(ids).toContain(id));
   });
 
   test('every visual game shows the warning in its welcome panel, before Start', async () => {
-    const ids = (await listGameIds()).filter((id) => !AUDIO_ONLY_GAMES.includes(id));
+    const ids = (await listGameIds()).filter((id) => !NO_FLASH_GAMES.includes(id));
     expect(ids.length).toBeGreaterThan(0);
     for (const id of ids) {
       const container = await loadInterface(id);
@@ -57,8 +57,8 @@ describe('photosensitivity warning', () => {
     }
   });
 
-  test('audio-only games do not show the warning', async () => {
-    for (const id of AUDIO_ONLY_GAMES) {
+  test('games that do not flash do not show the warning', async () => {
+    for (const id of NO_FLASH_GAMES) {
       const container = await loadInterface(id);
       expect(container.querySelector('.game-flash-warning')).toBeNull();
     }
