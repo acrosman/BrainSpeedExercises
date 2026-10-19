@@ -32,7 +32,9 @@ jest.unstable_mockModule('../game.js', () => ({
   pickDirection:       jest.fn(() => 'right'),
   recordTrial:         jest.fn(() => ({ level: 2, consecutiveCorrect: 1, consecutiveWrong: 0 })),
   getCurrentLevel:     jest.fn(() => 2),
-  getCurrentLevelConfig: jest.fn(() => ({ displayDurationMs: 200, contrast: 0.8 })),
+  getCurrentLevelConfig: jest.fn(() => ({
+    displayDurationMs: 200, contrast: 0.8, driftSpeedMultiplier: 1,
+  })),
   getScore:            jest.fn(() => 5),
   getTrialsCompleted:  jest.fn(() => 8),
   getConsecutiveCorrect: jest.fn(() => 1),
@@ -40,7 +42,7 @@ jest.unstable_mockModule('../game.js', () => ({
   isRunning:           jest.fn(() => true),
   getSpeedHistory:     jest.fn(() => []),
   generatePracticeTrial: jest.fn(() => ({
-    direction: 'left', displayDurationMs: 500, contrast: 1,
+    direction: 'left', displayDurationMs: 500, contrast: 1, driftSpeedMultiplier: 1,
   })),
 }));
 
@@ -286,6 +288,29 @@ describe('directional-processing plugin', () => {
     jest.runOnlyPendingTimers(); // fires the first rAF tick (elapsed ~10 ms)
 
     expect(gaborMock.drawGabor).toHaveBeenCalled();
+    jest.clearAllTimers();
+  });
+
+  it('stimulus drifts at the level\'s multiple of the base phase speed', async () => {
+    let t = 0;
+    nowSpy.mockRestore();
+    nowSpy = jest.spyOn(performance, 'now').mockImplementation(() => {
+      t += 10;
+      return t;
+    });
+    gameMock.getCurrentLevelConfig.mockReturnValue({
+      displayDurationMs: 200, contrast: 0.8, driftSpeedMultiplier: 2,
+    });
+    gaborMock.drawGabor.mockClear();
+
+    await plugin.start();
+    jest.runOnlyPendingTimers(); // first stimulus tick
+    jest.runOnlyPendingTimers(); // second tick
+
+    // The rAF stub and the tick each read the clock, so ticks are 20 ms apart:
+    // phiDirection (-1) × base speed (0.015) × multiplier (2) × 20 ms.
+    const [first, second] = gaborMock.drawGabor.mock.calls.map(([, opts]) => opts.phi);
+    expect(second - first).toBeCloseTo(-0.6);
     jest.clearAllTimers();
   });
 
@@ -707,7 +732,9 @@ describe('directional-processing plugin', () => {
       return t;
     });
     // Force stimulus to end immediately on first tick.
-    gameMock.getCurrentLevelConfig.mockReturnValueOnce({ displayDurationMs: 1, contrast: 1.0 });
+    gameMock.getCurrentLevelConfig.mockReturnValueOnce({
+      displayDurationMs: 1, contrast: 1.0, driftSpeedMultiplier: 1,
+    });
 
     await plugin.start();
     jest.runAllTimers();
@@ -727,7 +754,9 @@ describe('directional-processing plugin', () => {
       t += 1;
       return t;
     });
-    gameMock.getCurrentLevelConfig.mockReturnValue({ displayDurationMs: 1, contrast: 1.0 });
+    gameMock.getCurrentLevelConfig.mockReturnValue({
+      displayDurationMs: 1, contrast: 1.0, driftSpeedMultiplier: 1,
+    });
 
     await plugin.start();
     jest.runOnlyPendingTimers(); // fires stimulus rAF → switches to mask rAF

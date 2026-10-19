@@ -82,9 +82,10 @@ export function getTutorialSteps() {
  *
  * @typedef {object} PracticeTrialControls
  * @property {() => void} showGameArea - Show the game area in place of the other panels.
- * @property {(trial: { direction: string, contrast: number, displayDurationMs: number },
- *   onStimulusEnd: () => void) => void} playTrial - Play `trial` with the real stimulus, mask,
- *   and response phase, calling `onStimulusEnd` when the stimulus gives way to the mask.
+ * @property {(trial: { direction: string, contrast: number, displayDurationMs: number,
+ *   driftSpeedMultiplier: number }, onStimulusEnd: () => void) => void} playTrial - Play
+ *   `trial` with the real stimulus, mask, and response phase, calling `onStimulusEnd` when the
+ *   stimulus gives way to the mask.
  * @property {() => void} stopTrial - Cancel the trial's frames and timers and close responses.
  * @property {(direction: string) => HTMLElement} getDirectionButton - The button for a
  *   direction.

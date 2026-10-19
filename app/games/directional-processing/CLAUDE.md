@@ -14,14 +14,21 @@ the speed-of-processing training used in the ACTIVE study.
 - `game.js`: the level table and the staircase. It knows nothing about rendering.
   `generatePracticeTrial()` returns a random direction at `LEVELS[0]` without changing state.
 - `index.js`: runs the trial cycle: stimulus (rAF, animating phase at
-  `gabor.PHASE_SPEED_RAD_PER_MS`) → mask (`MASK_DURATION_MS` 150) → short pause → response
-  enabled → feedback flash.
+  `gabor.PHASE_SPEED_RAD_PER_MS` times the level's `driftSpeedMultiplier`) → mask
+  (`MASK_DURATION_MS` 150) → short pause → response enabled → feedback flash.
 - `tutorial/`: the first-run tutorial. See [tutorial/CLAUDE.md](tutorial/CLAUDE.md).
 
 ## Difficulty
 
-`LEVELS` in `game.js` has 10 entries. Each one lowers `displayDurationMs` (500 → 40 ms), and
-from level 3 on it also lowers `contrast` (1.0 → 0.3). `level` is an index into `LEVELS`.
+`LEVELS` in `game.js` is built from two tables, and `level` is an index into it:
+
+- `DISPLAY_BANDS` has 10 entries. Each one lowers `displayDurationMs` (500 → 40 ms), and from
+  the fourth on it also lowers `contrast` (1.0 → 0.3).
+- `DRIFT_SPEED_MULTIPLIERS` (`[1, 2]`) are the drift speed tiers played within each band.
+
+Each band is played at every speed tier, slowest first, before the display time drops, so
+`LEVELS` has 20 entries. Motion speed rises separately from display time, and display time
+falls half as fast per level as it would with one level per band.
 
 ## Saved fields
 
