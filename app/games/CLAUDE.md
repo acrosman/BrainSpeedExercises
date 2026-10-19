@@ -116,6 +116,11 @@ Shared classes are defined in `app/styles/game-shared.css`. Do not duplicate the
   stating the goal, then a `<ul>` or `<ol>` of steps. Do not mention implementation details such
   as asset file names. The `h3` renders as a clay eyebrow label, and key names in `<kbd>` use
   the global key cap from `base.css`. The Start button is `game-btn game-btn--primary`.
+- **Photosensitivity warning** `<p class="game-flash-warning">`: every game with visual
+  stimuli puts this highlighted box in its welcome panel, just above the Start button. Copy
+  the text from `_template/interface.html`. Only games that flash nothing leave it out: the
+  audio-only Fine Tuning and Sound Sweep, and Object Track, whose balls move but do not
+  flash. `flashWarning.test.js` checks every game against its `NO_FLASH_GAMES` list.
 - **Buttons:** `game-btn--primary` is the forest fill for the main action. `game-btn--secondary`
   is an outlined ink button for non-destructive actions: "End Game", "Return to Menu", and
   "Replay Tutorial". Never use it, or red, for anything else; the only destructive button in

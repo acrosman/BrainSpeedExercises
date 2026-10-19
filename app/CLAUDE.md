@@ -88,7 +88,7 @@ which keep their own frozen `--stim-*` colors (see below and
 | `layout.css` | Paper masthead (`.masthead__title`), nav, main, footer, game-selector grid |
 | `game-card.css` | Game cards (specimen plates: framed thumbnail, stats list, Play button) and the play-time ledger strip |
 | `history.css` | History modal (uses `--scrim` for its backdrop), charts, table |
-| `game-shared.css` | Shared game title rule, stats strip (`.game-hud`), welcome and end panels, results ledger, buttons, trend chart, tutorial overlay, callout halo (`.tutorial-callout`), practice coach and marker |
+| `game-shared.css` | Shared game title rule, stats strip (`.game-hud`), welcome panel and its photosensitivity warning (`.game-flash-warning`), end panel, results ledger, buttons, trend chart, tutorial overlay, callout halo (`.tutorial-callout`), practice coach and marker |
 
 - Use `var(--token)` instead of hard-coded colors, radii, or transitions. When you add a token
   to `variables.css`, record its contrast ratio in a comment, as the text tokens do. All
