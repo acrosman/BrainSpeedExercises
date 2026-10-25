@@ -222,7 +222,6 @@ export function updateTrendChart() {
 export function renderCard(card) {
   if (!_cardEl) return;
 
-  _cardEl.classList.remove('card-rat__card--cleared');
   const label = getCardLabel(card);
   _cardEl.setAttribute('aria-label', `Current card: ${label}`);
 
@@ -319,21 +318,15 @@ export function beginDealLoop() {
 }
 
 /**
- * Clear the table after the last card of a pass, then pause before shuffling.
+ * Shuffle a fresh deck after the last card of a pass, pausing before the shuffle starts.
  *
- * The status area reads "Shuffling" until the next deal replaces it.
+ * The last card stays on the table and slaps on it score as usual. The status area reads
+ * "Shuffling" until a slap or the next deal replaces it.
  */
 export function beginShuffle() {
   if (!game.isRunning()) return;
 
-  const { missedTrigger } = game.shuffleForNextPass();
-  if (missedTrigger) {
-    playFailureSound();
-  }
-  if (_cardEl) {
-    _cardEl.classList.add('card-rat__card--cleared');
-    _cardEl.setAttribute('aria-label', 'No card showing');
-  }
+  game.shuffleForNextPass();
   if (_feedbackEl) _feedbackEl.textContent = 'Shuffling';
   updateStats();
 

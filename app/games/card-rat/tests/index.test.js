@@ -82,7 +82,7 @@ jest.unstable_mockModule('../game.js', () => ({
     deckIndex: 1,
     deckPasses: 0,
   })),
-  shuffleForNextPass: jest.fn(() => ({ missedTrigger: false, deckPasses: 1 })),
+  shuffleForNextPass: jest.fn(() => 1),
   respondToCurrentCard: jest.fn(() => 'hit'),
   getScore: jest.fn(() => 3),
   getTriggerHits: jest.fn(() => 2),
@@ -610,8 +610,8 @@ describe('shuffling between deck passes', () => {
     expect(gameMock.shuffleForNextPass).toHaveBeenCalledTimes(1);
     expect(gameMock.dealNextCard).not.toHaveBeenCalled();
     expect(container.querySelector('#cr-feedback').textContent).toBe('Shuffling');
-    expect(container.querySelector('#cr-card').classList.contains('card-rat__card--cleared'))
-      .toBe(true);
+    expect(container.querySelector('#cr-card').getAttribute('aria-label'))
+      .toBe('Current card: K♠');
   });
 
   test('pauses, plays the shuffle, then deals the first card of the new pass', async () => {
@@ -620,7 +620,6 @@ describe('shuffling between deck passes', () => {
     gameMock.dealNextCard.mockReturnValueOnce(LAST_CARD_DEAL);
     await plugin.start();
     const deckCard = container.querySelector('#cr-deck-card');
-    const card = container.querySelector('#cr-card');
 
     jest.advanceTimersByTime(1200);
     jest.advanceTimersByTime(499);
@@ -635,17 +634,19 @@ describe('shuffling between deck passes', () => {
     jest.advanceTimersByTime(1);
     expect(gameMock.dealNextCard).toHaveBeenCalledTimes(1);
     expect(deckCard.classList.contains('card-rat__card--shuffling')).toBe(false);
-    expect(card.classList.contains('card-rat__card--cleared')).toBe(false);
     expect(container.querySelector('#cr-feedback').textContent).not.toBe('Shuffling');
   });
 
-  test('beginShuffle plays the failure sound when the last card was a missed trigger', () => {
-    plugin.init(buildContainer());
-    gameMock.shuffleForNextPass.mockReturnValueOnce({ missedTrigger: true, deckPasses: 1 });
-
+  test('a slap during the shuffle is scored and shown as usual', () => {
+    const container = buildContainer();
+    plugin.init(container);
     beginShuffle();
 
+    gameMock.respondToCurrentCard.mockReturnValueOnce('false-alarm');
+    handleReaction();
+
     expect(audioMock.playFailureSound).toHaveBeenCalled();
+    expect(container.querySelector('#cr-feedback').textContent).toContain('Too soon');
   });
 
   test('beginShuffle does nothing when the game is not running', () => {

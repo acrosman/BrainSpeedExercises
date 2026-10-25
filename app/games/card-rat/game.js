@@ -42,7 +42,7 @@ export const DISPLAY_SPEED_FACTOR = 0.85;
 /** Upper bound on the speed level (prevents runaway acceleration). */
 export const MAX_SPEED_LEVEL = 50;
 
-/** Pause (ms) after the last card of a pass is cleared, before the shuffle starts. */
+/** Pause (ms) after the last card of a pass, before the shuffle starts. */
 export const SHUFFLE_PAUSE_MS = 500;
 
 /** Time (ms) the shuffle takes, from the start of its sound to the next deal. */
@@ -352,13 +352,12 @@ function startNewDeckPass() {
 }
 
 /**
- * Clear the table and shuffle a fresh deck for the next pass.
+ * Shuffle a fresh deck for the next pass.
  *
- * Finalizes the last card first, so an unslapped trigger counts as a miss. Then no card is
- * showing, so slaps are ignored until the next deal, and the first card of the new pass
- * cannot form a pair or sandwich with cards from the old one.
+ * Only the deck changes. The last card dealt stays current, so slaps on it score as usual,
+ * and the first card of the new pass can form a pair or sandwich with the cards before it.
  *
- * @returns {{ missedTrigger: boolean, deckPasses: number }}
+ * @returns {number} The number of completed deck passes.
  * @throws {Error} If the game is not running.
  */
 export function shuffleForNextPass() {
@@ -366,14 +365,8 @@ export function shuffleForNextPass() {
     throw new Error('Game is not running.');
   }
 
-  const missedTrigger = finalizeCurrentCard();
   startNewDeckPass();
-  currentCard = null;
-  previousCard = null;
-  twoCardsAgo = null;
-  lateSlapPending = false;
-
-  return { missedTrigger, deckPasses };
+  return deckPasses;
 }
 
 /**
@@ -382,7 +375,7 @@ export function shuffleForNextPass() {
  * This function finalizes the previous card window first, then deals the next
  * card. `deckExhausted` is true once the last card of the pass is dealt; the
  * caller then runs {@link shuffleForNextPass}. If it deals again instead, the
- * deck is reshuffled here without clearing the table.
+ * deck is reshuffled here.
  *
  * @returns {{
  *   card: { rank: string, suit: string, isJoker: boolean, jokerVariant?: string },

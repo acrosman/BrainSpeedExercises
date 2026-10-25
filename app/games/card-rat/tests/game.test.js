@@ -535,41 +535,50 @@ describe('deal and response flow', () => {
     expect(flags.filter(Boolean)).toHaveLength(1);
   });
 
-  test('shuffleForNextPass starts a new pass with no card showing', () => {
+  test('shuffleForNextPass starts a new pass and leaves the last card current', () => {
     startGame();
+    let last = null;
     for (let i = 0; i < getDeckSize(); i += 1) {
-      dealNextCard();
+      last = dealNextCard().card;
     }
 
-    expect(shuffleForNextPass()).toEqual({ missedTrigger: false, deckPasses: 1 });
+    expect(shuffleForNextPass()).toBe(1);
     expect(getDeckIndex()).toBe(0);
     expect(getDeckPasses()).toBe(1);
-    expect(getCurrentCard()).toBeNull();
-    expect(shouldReactNow()).toBe(false);
-    expect(respondToCurrentCard()).toBe('ignored');
-    expect(getFalseAlarms()).toBe(0);
+    expect(getCurrentCard()).toBe(last);
   });
 
-  test('shuffleForNextPass scores an unslapped trigger as a miss', () => {
-    startGame();
-    expect(dealUntilTrigger()).toBe(true);
-
-    expect(shuffleForNextPass().missedTrigger).toBe(true);
-    expect(getMisses()).toBe(1);
-  });
-
-  test('a slap on the first card after a shuffle is not a late slap', () => {
+  test('a slap during the shuffle scores against the last card as usual', () => {
     startGame();
     expect(dealUntilTrigger()).toBe(true);
     shuffleForNextPass();
-    const { card, mustReact } = dealNextCard();
-    expect(card.isJoker).toBe(false);
-    expect(mustReact).toBe(false);
 
-    expect(respondToCurrentCard()).toBe('false-alarm');
+    expect(respondToCurrentCard()).toBe('hit');
+    expect(respondToCurrentCard()).toBe('ignored');
+    expect(getTriggerHits()).toBe(1);
   });
 
-  test('the first card after a shuffle never pairs with the last card before it', () => {
+  test('a false alarm during the shuffle counts as usual', () => {
+    startGame();
+    dealNextCard();
+    expect(shouldReactNow()).toBe(false);
+    shuffleForNextPass();
+
+    expect(respondToCurrentCard()).toBe('false-alarm');
+    expect(getFalseAlarms()).toBe(1);
+  });
+
+  test('an unslapped trigger before the shuffle is a miss when the next card is dealt', () => {
+    startGame();
+    expect(dealUntilTrigger()).toBe(true);
+    shuffleForNextPass();
+    expect(getMisses()).toBe(0);
+
+    expect(dealNextCard().missedTrigger).toBe(true);
+    expect(getMisses()).toBe(1);
+  });
+
+  test('the first card after a shuffle pairs with the last card before it', () => {
     startGame();
     let last = null;
     for (let i = 0; i < getDeckSize(); i += 1) {
@@ -582,7 +591,7 @@ describe('deal and response flow', () => {
     const next = dealNextCard();
 
     expect(next.card).toEqual(last);
-    expect(next.mustReact).toBe(false);
+    expect(next.mustReact).toBe(true);
   });
 
   test('shuffleForNextPass throws when the game is not running', () => {

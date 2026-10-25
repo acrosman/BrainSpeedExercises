@@ -62,11 +62,6 @@
   transform: rotate(-8deg);
 }
 
-/* The table is empty while the deck is shuffled between passes. */
-.card-rat__card--cleared {
-  visibility: hidden;
-}
-
 .card-rat__card--deck.card-rat__card--shuffling {
   animation: card-rat-shuffle 0.3s ease-in-out 4;
 }

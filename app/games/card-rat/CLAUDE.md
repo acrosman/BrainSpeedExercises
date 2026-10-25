@@ -13,9 +13,9 @@ A joker never forms a pair or sandwich with a card next to it.
 
 - `game.js`: builds a 55-card deck (52 + `joker1..3`), reshuffles after each full pass
   (`deckPasses`), and detects triggers. `dealNextCard()` sets `deckExhausted` on the last card
-  of a pass; the controller then calls `shuffleForNextPass()`, which scores that card, starts
-  the new pass, and clears the table. With no card showing, slaps are `'ignored'`, and the
-  first card of the new pass never pairs or sandwiches with cards from the old one.
+  of a pass; the controller then calls `shuffleForNextPass()`, which only replaces the deck.
+  The last card stays current through the shuffle, so slaps on it score as usual, and pairs
+  and sandwiches carry across into the new pass.
   `dealNextCard()` first calls `finalizeCurrentCard()`, so **a miss is scored when the next
   card is dealt**, not when a timer fires.
   `respondToCurrentCard()` returns `'hit' | 'false-alarm' | 'ignored'`. A second slap on the
@@ -33,8 +33,8 @@ A joker never forms a pair or sandwich with a card next to it.
 
 ## Shuffling between passes
 
-After the last card's display time, `beginShuffle()` in `index.js` hides the current card
-(`card-rat__card--cleared`) and sets the status line to "Shuffling". After `SHUFFLE_PAUSE_MS`,
+After the last card's display time, `beginShuffle()` in `index.js` shuffles a new deck and sets
+the status line to "Shuffling"; the last card stays on the table. After `SHUFFLE_PAUSE_MS`,
 `playShuffle()` wiggles the deck card (`card-rat__card--shuffling`, off under reduced motion)
 and plays `playShuffleSound()` unless Card sound is off. The next deal comes
 `SHUFFLE_DURATION_MS` later. Both steps run on `_dealTimer`, so End Game cancels them.
