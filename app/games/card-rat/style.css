@@ -62,6 +62,30 @@
   transform: rotate(-8deg);
 }
 
+/* The table is empty while the deck is shuffled between passes. */
+.card-rat__card--cleared {
+  visibility: hidden;
+}
+
+.card-rat__card--deck.card-rat__card--shuffling {
+  animation: card-rat-shuffle 0.3s ease-in-out 4;
+}
+
+@keyframes card-rat-shuffle {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+
+  25% {
+    transform: translateX(-6px) rotate(-14deg);
+  }
+
+  75% {
+    transform: translateX(6px) rotate(-2deg);
+  }
+}
+
 @media (width <=720px) {
   .card-rat__card {
     width: min(50vw, 158px);
@@ -144,4 +168,11 @@
   width: 34.1%;
   height: 9.6%;
   color: var(--callout-3);
+}
+
+/* The shuffle wiggle is decoration between passes, not part of a trial. */
+@media (prefers-reduced-motion: reduce) {
+  .card-rat__card--deck.card-rat__card--shuffling {
+    animation: none;
+  }
 }

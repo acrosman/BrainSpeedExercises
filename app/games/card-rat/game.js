@@ -42,6 +42,12 @@ export const DISPLAY_SPEED_FACTOR = 0.85;
 /** Upper bound on the speed level (prevents runaway acceleration). */
 export const MAX_SPEED_LEVEL = 50;
 
+/** Pause (ms) after the last card of a pass is cleared, before the shuffle starts. */
+export const SHUFFLE_PAUSE_MS = 500;
+
+/** Time (ms) the shuffle takes, from the start of its sound to the next deal. */
+export const SHUFFLE_DURATION_MS = 1200;
+
 /** @type {number} */
 let score = 0;
 
@@ -337,10 +343,46 @@ export function finalizeCurrentCard() {
 }
 
 /**
+ * Replace the deck with a freshly shuffled one and count the finished pass.
+ */
+function startNewDeckPass() {
+  deck = shuffleDeck(createGameplayDeck());
+  deckIndex = 0;
+  deckPasses += 1;
+}
+
+/**
+ * Clear the table and shuffle a fresh deck for the next pass.
+ *
+ * Finalizes the last card first, so an unslapped trigger counts as a miss. Then no card is
+ * showing, so slaps are ignored until the next deal, and the first card of the new pass
+ * cannot form a pair or sandwich with cards from the old one.
+ *
+ * @returns {{ missedTrigger: boolean, deckPasses: number }}
+ * @throws {Error} If the game is not running.
+ */
+export function shuffleForNextPass() {
+  if (!running) {
+    throw new Error('Game is not running.');
+  }
+
+  const missedTrigger = finalizeCurrentCard();
+  startNewDeckPass();
+  currentCard = null;
+  previousCard = null;
+  twoCardsAgo = null;
+  lateSlapPending = false;
+
+  return { missedTrigger, deckPasses };
+}
+
+/**
  * Draw the next card to show.
  *
  * This function finalizes the previous card window first, then deals the next
- * card. The full 55-card deck is reshuffled after each complete pass.
+ * card. `deckExhausted` is true once the last card of the pass is dealt; the
+ * caller then runs {@link shuffleForNextPass}. If it deals again instead, the
+ * deck is reshuffled here without clearing the table.
  *
  * @returns {{
  *   card: { rank: string, suit: string, isJoker: boolean, jokerVariant?: string },
@@ -349,6 +391,7 @@ export function finalizeCurrentCard() {
  *   displayDurationMs: number,
  *   deckIndex: number,
  *   deckPasses: number,
+ *   deckExhausted: boolean,
  * }}
  * @throws {Error} If the game is not running.
  */
@@ -360,9 +403,7 @@ export function dealNextCard() {
   const missedTrigger = finalizeCurrentCard();
 
   if (deckIndex >= deck.length) {
-    deck = shuffleDeck(createGameplayDeck());
-    deckIndex = 0;
-    deckPasses += 1;
+    startNewDeckPass();
   }
 
   const card = deck[deckIndex];
@@ -383,6 +424,7 @@ export function dealNextCard() {
     displayDurationMs,
     deckIndex,
     deckPasses,
+    deckExhausted: deckIndex >= deck.length,
   };
 }
 
