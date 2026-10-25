@@ -107,8 +107,13 @@ let reactedToCurrentCard = false;
  */
 let lateSlapPending = false;
 
-/** @type {number[]} */
-let speedHistory = [];
+/**
+ * Session level history, one point per scored card: the 1-based level after any
+ * staircase adjustment, and whether it is the maximum level.
+ * Used to render the in-game level trend chart.
+ * @type {Array<{ level: number, atMax: boolean }>}
+ */
+let levelHistory = [];
 
 /** Integer speed level — higher means faster. Clamped to [0, MAX_SPEED_LEVEL]. */
 let speedLevel = 0;
@@ -279,7 +284,7 @@ export function initGame() {
   mustReactToCurrentCard = false;
   reactedToCurrentCard = false;
   lateSlapPending = false;
-  speedHistory = [];
+  levelHistory = [];
   speedLevel = 0;
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
@@ -320,10 +325,14 @@ function applyStaircaseStep(wasCorrect) {
   if (result.valueDelta !== 0) {
     displayDurationMs = calculateDisplayDuration(speedLevel);
     lowestDisplayTimeMs = Math.min(lowestDisplayTimeMs, displayDurationMs);
-    if (wasCorrect) {
-      speedHistory.push(displayDurationMs);
-    }
   }
+
+  // The level is the maximum once the display time has reached its floor, since higher
+  // levels are no faster.
+  levelHistory.push({
+    level: speedLevel + 1,
+    atMax: displayDurationMs === MIN_DISPLAY_DURATION_MS,
+  });
 }
 
 /**
@@ -575,11 +584,11 @@ export function getLowestDisplayTimeMs() {
 }
 
 /**
- * Return display-duration history captured after successful reactions.
- * @returns {number[]}
+ * Return the session level history, one point per scored card.
+ * @returns {Array<{ level: number, atMax: boolean }>}
  */
-export function getSpeedHistory() {
-  return speedHistory.slice();
+export function getLevelHistory() {
+  return levelHistory.slice();
 }
 
 /**

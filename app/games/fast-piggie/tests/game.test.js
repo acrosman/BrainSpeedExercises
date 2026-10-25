@@ -21,7 +21,7 @@ import {
   getConsecutiveWrong,
   getCurrentDifficulty,
   isRunning,
-  getSpeedHistory,
+  getLevelHistory,
 } from '../game.js';
 import manifest from '../manifest.json' with { type: 'json' };
 
@@ -338,7 +338,7 @@ describe('generatePracticeRound()', () => {
       rounds: getRoundsPlayed(),
       level: getLevel(),
       speedLevel: getSpeedLevel(),
-      history: getSpeedHistory(),
+      history: getLevelHistory(),
     };
     expect(before.level).toBeGreaterThan(0);
 
@@ -350,7 +350,7 @@ describe('generatePracticeRound()', () => {
       rounds: getRoundsPlayed(),
       level: getLevel(),
       speedLevel: getSpeedLevel(),
-      history: getSpeedHistory(),
+      history: getLevelHistory(),
     }).toEqual(before);
     stopGame();
   });
@@ -679,23 +679,32 @@ describe('getBestStats()', () => {
   });
 });
 
-// ── getSpeedHistory ───────────────────────────────────────────────────────────
+// ── getLevelHistory ───────────────────────────────────────────────────────────
 
-describe('getSpeedHistory()', () => {
+describe('getLevelHistory()', () => {
   it('appends an entry after addScore()', () => {
     startGame();
     generateRound();
     addScore(3, 0);
-    const history = getSpeedHistory();
-    expect(history).toHaveLength(1);
-    expect(typeof history[0]).toBe('number');
+    expect(getLevelHistory()).toEqual([{ level: 1, atMax: false }]);
+  });
+
+  it('plots the image level and marks the maximum once display time hits 10 ms', () => {
+    startGame();
+    for (let i = 0; i < 150; i += 1) {
+      addScore(3, 0);
+    }
+    expect(getCurrentDifficulty().displayDurationMs).toBe(10);
+    const history = getLevelHistory();
+    expect(history[history.length - 1]).toEqual({ level: getLevel() + 1, atMax: true });
+    expect(history[0].atMax).toBe(false);
   });
 
   it('appends an entry after addMiss()', () => {
     startGame();
     generateRound();
     addMiss(0);
-    const history = getSpeedHistory();
+    const history = getLevelHistory();
     expect(history).toHaveLength(1);
   });
 
@@ -703,9 +712,9 @@ describe('getSpeedHistory()', () => {
     startGame();
     generateRound();
     addScore(3, 0);
-    const h = getSpeedHistory();
+    const h = getLevelHistory();
     h.pop();
-    expect(getSpeedHistory()).toHaveLength(1);
+    expect(getLevelHistory()).toHaveLength(1);
   });
 
   it('resets to empty after initGame()', () => {
@@ -713,7 +722,7 @@ describe('getSpeedHistory()', () => {
     generateRound();
     addScore(3, 0);
     initGame();
-    expect(getSpeedHistory()).toEqual([]);
+    expect(getLevelHistory()).toEqual([]);
   });
 });
 

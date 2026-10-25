@@ -70,7 +70,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getMaxSequenceLength: jest.fn(() => 5),
   isRunning: jest.fn(() => true),
   setGoKeys: jest.fn(),
-  getSpeedHistory: jest.fn(() => []),
+  getLevelHistory: jest.fn(() => []),
   getAverageResponseMs: jest.fn(() => null),
   recordGoResponseTime: jest.fn(),
   IMAGE_KEYS: ['go-1.png', 'go-2.png', 'go-3.png', 'no-go'],

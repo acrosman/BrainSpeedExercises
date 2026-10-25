@@ -45,6 +45,10 @@ Display time per card is `round(1400 × 0.85^level)`, with a floor of 120 ms and
 of 50. Hits count as correct. Misses and false alarms both count as wrong, so the standard
 3-up / 3-down staircase applies to both.
 
+Each hit, miss, and false alarm adds a point to the level history (`speedLevel + 1`). The trend
+chart marks the level as the maximum once display time reaches the 120 ms floor (level 17),
+since the levels above it are no faster.
+
 ## Saved fields
 
 `score`, `sessionDurationMs`, and `lowestDisplayTime`, plus `bestTriggerHits` (max) through

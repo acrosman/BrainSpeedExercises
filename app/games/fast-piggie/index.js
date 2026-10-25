@@ -267,6 +267,8 @@ let _sessionTimerEl = null;
 
 /** @type {SVGPolylineElement|null} */
 let _trendLineEl = null;
+/** @type {SVGPathElement|null} */
+let _trendMaxLineEl = null;
 /** @type {HTMLElement|null} */
 let _trendEmptyEl = null;
 /** @type {HTMLElement|null} */
@@ -293,13 +295,18 @@ function _updateStats() {
 }
 
 /**
- * Renders the speed trend chart with the latest history.
+ * Render the level trend chart with the latest level history.
  */
 function _updateTrendChart() {
   renderTrendChart(
-    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
-    game.getSpeedHistory(),
-    game.getCurrentDifficulty().displayDurationMs,
+    {
+      lineEl: _trendLineEl,
+      maxLineEl: _trendMaxLineEl,
+      emptyEl: _trendEmptyEl,
+      latestEl: _trendLatestEl,
+    },
+    game.getLevelHistory(),
+    game.getLevel() + 1,
   );
 }
 
@@ -722,6 +729,7 @@ export default {
     _finalHighScoreEl = container.querySelector('#fp-final-high-score');
     _sessionTimerEl = container.querySelector('#fp-session-timer');
     _trendLineEl = container.querySelector('#fp-trend-line');
+    _trendMaxLineEl = container.querySelector('#fp-trend-max');
     _trendEmptyEl = container.querySelector('#fp-trend-empty');
     _trendLatestEl = container.querySelector('#fp-trend-latest');
 

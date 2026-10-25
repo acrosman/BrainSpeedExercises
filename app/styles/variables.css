@@ -94,8 +94,9 @@
   --callout-5:    #1d6b6b;  /* teal   5.5 / 6.2 */
   --callout-halo: #ffffff;  /* 2px ring around every callout */
 
-  /* ── Speed-trend chart ──────────────────────────────────────────────────── */
-  --trend-line:         #2f5d46;  /* Polyline stroke via currentColor (7.4 card, 6.1 sunken) */
+  /* ── Level-trend chart ──────────────────────────────────────────────────── */
+  --trend-line:         #4a5650;  /* Polyline stroke via currentColor (7.5 card, 6.2 sunken) */
+  --trend-line-max:     #2e8540;  /* Thicker green stroke at the max level (4.5 card)        */
   --trend-border:       var(--border-color);
   --trend-bg:           var(--bg-sunken);
   --trend-text:         var(--text-heading);  /* 9.9 on sunken */

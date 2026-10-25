@@ -66,13 +66,18 @@ Games use the shared services in `app/components/`. Their APIs are in
 
 - **game.js holds the rules.** It keeps module-level state, which `initGame()` resets.
   `startGame()` and `stopGame()` bracket a session, and `stopGame()` returns the result object.
-  Getters (`getScore`, `getLevel`, `getSpeedHistory`, and so on) expose state. `index.js` never
+  Getters (`getScore`, `getLevel`, `getLevelHistory`, and so on) expose state. `index.js` never
   changes game state directly.
 - **Adaptive difficulty:** `updateAdaptiveDifficultyState` from `adaptiveDifficultyService.js`.
   The house rule is 3 correct in a row → one step harder, 3 wrong in a row → two steps easier.
   Change difficulty by editing the game's level table or formula, not with special cases.
-- **Speed history:** push the game's speed metric to a `speedHistory` array after each trial,
-  and draw it with `renderTrendChart` in the shared `.game-trend` markup.
+- **Level history:** after each trial, push `{ level, atMax }` to a `levelHistory` array, where
+  `level` is 1-based (as the stats show it). `atMax` is true at the game's last level, or from
+  the level where its speed setting reaches its floor, since higher levels are no faster. A game
+  with neither always passes `false`, and a game without levels simulates one from its
+  difficulty value. Each game's `CLAUDE.md` states its rule. `getLevelHistory()` returns a copy,
+  and `index.js` draws it with `renderTrendChart`, passing the current 1-based level for the
+  empty chart.
 - **Session timing:** `startTimer(onTick)` in `start()`; `stopTimer()` in `stop()` gives
   `sessionDurationMs`.
 - **Audio:** only through `audioService.js`, or `syllableService.js` for speech sounds. Never
@@ -148,8 +153,12 @@ Shared classes are defined in `app/styles/game-shared.css`. Do not duplicate the
   `game-btn--primary` and "Return to Menu" is `game-btn--secondary`. Right after unhiding the
   panel, call `focusHeading(_endPanelEl)` from `gameUtils.js`. The End Game button is hidden
   with the game area, so without it focus falls to `<body>`.
-- **Trend chart** `.game-trend`: the polyline must use `stroke="currentColor"`. The chart's
-  `color` is `--trend-line`.
+- **Trend chart** `.game-trend`: a "Level Trend" heading, the SVG, the empty message, and
+  "Latest level: <strong>". Inside the SVG, the polyline (`<prefix>-trend-line`,
+  `stroke-width="2"`) is followed by `<path id="<prefix>-trend-max" class="game-trend__max">`
+  (`stroke-width="4"`, round caps and joins). Both use `stroke="currentColor"`. The chart's
+  `color` is `--trend-line`, and `.game-trend__max` sets `--trend-line-max`. Copy the markup
+  from `_template/interface.html`.
 - Feedback and score changes go to an `aria-live="polite"` region, usually through an
   `announce(message)` helper in `index.js`.
 

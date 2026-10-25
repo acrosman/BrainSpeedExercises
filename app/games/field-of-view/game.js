@@ -375,6 +375,32 @@ export function getThresholdHistory() {
 }
 
 /**
+ * Convert an SOA into the simulated level shown on the trend chart.
+ *
+ * Level 1 is START_SOA_MS, and each 60 Hz frame faster adds one level, up to the level
+ * of MIN_SOA_MS. An SOA slower than the start is still level 1.
+ *
+ * @param {number} soaMs - SOA in milliseconds.
+ * @returns {number} 1-based simulated level.
+ */
+export function getSimulatedLevel(soaMs) {
+  return Math.max(1, 1 + Math.round((START_SOA_MS - soaMs) / DEFAULT_STEP_DOWN_MS));
+}
+
+/**
+ * Get the session level history, one point per trial, derived from the threshold history.
+ * A point is at the maximum level when its SOA is MIN_SOA_MS.
+ *
+ * @returns {Array<{ level: number, atMax: boolean }>}
+ */
+export function getLevelHistory() {
+  return thresholdHistory.map((entry) => ({
+    level: getSimulatedLevel(entry.thresholdMs),
+    atMax: entry.thresholdMs <= MIN_SOA_MS,
+  }));
+}
+
+/**
  * Get the fixed correct-streak target used for SOA decrease.
  * This is the shared cross-game constant rule target (3).
  *

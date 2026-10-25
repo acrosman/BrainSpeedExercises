@@ -35,6 +35,11 @@ milliseconds:
 
 Timing values are fractional. Round them only for display, with `render.formatMs`.
 
+The game has no levels, so the trend chart plots a simulated one. `getSimulatedLevel(soaMs)` is
+1 at the 500 ms start plus one per frame faster, and never below 1 when the SOA is slower than
+the start. The fastest SOA (16.67 ms) is level 30, the maximum. `getLevelHistory()` derives the
+points from `thresholdHistory`.
+
 ## Saved fields
 
 `score` is `round(1000 / thresholdMs)`. `lowestDisplayTime` is the threshold in milliseconds.

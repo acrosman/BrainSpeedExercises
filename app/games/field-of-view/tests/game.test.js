@@ -23,6 +23,8 @@ import {
   getRecentAccuracy,
   getAccuracyBuffer,
   getThresholdHistory,
+  getSimulatedLevel,
+  getLevelHistory,
   getDownAfterSuccesses,
   isRunning,
   getTrialsCompleted,
@@ -310,5 +312,54 @@ describe('recordTrial staircase behavior', () => {
 describe('GAME_ID', () => {
   test('is the id from manifest.json', () => {
     expect(GAME_ID).toBe(manifest.id);
+  });
+});
+
+describe('getSimulatedLevel', () => {
+  test('is level 1 at the starting SOA', () => {
+    expect(getSimulatedLevel(START_SOA_MS)).toBe(1);
+  });
+
+  test('adds one level per frame faster than the start', () => {
+    expect(getSimulatedLevel(START_SOA_MS - DEFAULT_STEP_DOWN_MS)).toBe(2);
+    expect(getSimulatedLevel(START_SOA_MS - 3 * DEFAULT_STEP_DOWN_MS)).toBe(4);
+  });
+
+  test('never falls below level 1 when the SOA is slower than the start', () => {
+    expect(getSimulatedLevel(START_SOA_MS + 2 * DEFAULT_STEP_UP_MS)).toBe(1);
+    expect(getSimulatedLevel(MAX_SOA_MS)).toBe(1);
+  });
+
+  test('tops out at level 30 at the fastest SOA', () => {
+    expect(getSimulatedLevel(MIN_SOA_MS)).toBe(30);
+  });
+});
+
+describe('getLevelHistory', () => {
+  test('is empty before any trial', () => {
+    expect(getLevelHistory()).toEqual([]);
+  });
+
+  test('derives one simulated level per trial from the threshold history', () => {
+    startGame();
+    for (let i = 0; i < 3; i += 1) {
+      recordTrial({ success: true });
+    }
+    expect(getLevelHistory()).toEqual([
+      { level: 1, atMax: false },
+      { level: 1, atMax: false },
+      { level: 2, atMax: false },
+    ]);
+  });
+
+  test('marks trials at the fastest SOA as the maximum level', () => {
+    startGame();
+    for (let i = 0; i < 200; i += 1) {
+      recordTrial({ success: true });
+    }
+    expect(getCurrentSoaMs()).toBe(MIN_SOA_MS);
+    const history = getLevelHistory();
+    expect(history[history.length - 1]).toEqual({ level: 30, atMax: true });
+    expect(history[0].atMax).toBe(false);
   });
 });

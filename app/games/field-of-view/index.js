@@ -68,6 +68,8 @@ let _finalThresholdEl = null;
 let _finalAccuracyEl = null;
 /** @type {SVGPolylineElement|null} */
 let _trendLineEl = null;
+/** @type {SVGPathElement|null} */
+let _trendMaxLineEl = null;
 /** @type {HTMLElement|null} */
 let _trendEmptyEl = null;
 /** @type {HTMLElement|null} */
@@ -181,12 +183,15 @@ function updateThresholdTrend() {
   render.renderThresholdTrend(
     {
       trendLineEl: _trendLineEl,
+      trendMaxLineEl: _trendMaxLineEl,
       trendEmptyEl: _trendEmptyEl,
       trendLatestEl: _trendLatestEl,
       finalBestThresholdEl: _finalBestThresholdEl,
     },
     game.getThresholdHistory(),
     game.getCurrentSoaMs(),
+    game.getLevelHistory(),
+    game.getSimulatedLevel(game.getCurrentSoaMs()),
   );
 }
 
@@ -602,6 +607,7 @@ function init(gameContainer) {
   _finalThresholdEl = _container.querySelector('#fov-final-threshold');
   _finalAccuracyEl = _container.querySelector('#fov-final-accuracy');
   _trendLineEl = _container.querySelector('#fov-trend-line');
+  _trendMaxLineEl = _container.querySelector('#fov-trend-max');
   _trendEmptyEl = _container.querySelector('#fov-trend-empty');
   _trendLatestEl = _container.querySelector('#fov-trend-latest');
   _finalBestThresholdEl = _container.querySelector('#fov-final-best-threshold');

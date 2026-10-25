@@ -185,28 +185,38 @@ describe('updateStats', () => {
 describe('renderThresholdTrend', () => {
   test('populates trend elements with history data', () => {
     const trendLineEl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    const trendMaxLineEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const trendEmptyEl = document.createElement('p');
     const trendLatestEl = document.createElement('strong');
     const finalBestThresholdEl = document.createElement('strong');
 
     const history = [
-      { thresholdMs: 300, trial: 1, success: true },
-      { thresholdMs: 250, trial: 2, success: true },
+      { thresholdMs: 33.34, trial: 1, success: true },
+      { thresholdMs: 16.67, trial: 2, success: true },
+      { thresholdMs: 16.67, trial: 3, success: true },
+    ];
+    const levelHistory = [
+      { level: 29, atMax: false },
+      { level: 30, atMax: true },
+      { level: 30, atMax: true },
     ];
 
     renderThresholdTrend(
-      { trendLineEl, trendEmptyEl, trendLatestEl, finalBestThresholdEl },
+      { trendLineEl, trendMaxLineEl, trendEmptyEl, trendLatestEl, finalBestThresholdEl },
       history,
-      500,
+      16.67,
+      levelHistory,
+      30,
     );
 
-    expect(trendLatestEl.textContent).toBe('250');
-    expect(finalBestThresholdEl.textContent).toBe('250');
+    expect(trendLatestEl.textContent).toBe('30 (max)');
+    expect(finalBestThresholdEl.textContent).toBe('16.67');
     expect(trendLineEl.getAttribute('points')).not.toBe('');
+    expect(trendMaxLineEl.getAttribute('d')).not.toBe('');
     expect(trendEmptyEl.hidden).toBe(true);
   });
 
-  test('uses currentSoaMs when history is empty', () => {
+  test('uses currentLevel for the latest value and currentSoaMs for the best when empty', () => {
     const trendLatestEl = document.createElement('strong');
     const finalBestThresholdEl = document.createElement('strong');
     const trendEmptyEl = document.createElement('p');
@@ -216,9 +226,12 @@ describe('renderThresholdTrend', () => {
       { trendLineEl, trendEmptyEl, trendLatestEl, finalBestThresholdEl },
       [],
       400,
+      [],
+      7,
     );
 
-    expect(trendLatestEl.textContent).toBe('400');
+    expect(trendLatestEl.textContent).toBe('7');
+    expect(finalBestThresholdEl.textContent).toBe('400');
     expect(trendEmptyEl.hidden).toBe(false);
   });
 
@@ -232,6 +245,8 @@ describe('renderThresholdTrend', () => {
       },
       [],
       500,
+      [],
+      1,
     )).not.toThrow();
   });
 });

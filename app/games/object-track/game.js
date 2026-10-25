@@ -68,11 +68,12 @@ let startTimeMs = 0;
 let roundsPlayed = 0;
 
 /**
- * Session history of speed values (px/sec) at the end of each round.
- * Used to render the in-game speed trend chart.
- * @type {number[]}
+ * Session level history, one point per completed round: the 1-based level after
+ * any staircase adjustment, and whether it is the maximum level.
+ * Used to render the in-game level trend chart.
+ * @type {Array<{ level: number, atMax: boolean }>}
  */
-let speedHistory = [];
+let levelHistory = [];
 
 // ── Level configuration ───────────────────────────────────────────────────────
 
@@ -310,7 +311,8 @@ export function recordRoundResult(correct) {
   const levelDelta = staircaseState.valueDelta;
 
   roundsPlayed++;
-  speedHistory.push(getLevelConfig(level).speedPxPerSec);
+  // Circle speed keeps rising with the level, so no level is the maximum.
+  levelHistory.push({ level: level + 1, atMax: false });
   return { levelDelta, newLevel: level };
 }
 
@@ -379,7 +381,7 @@ export function initGame() {
   consecutiveWrong = 0;
   startTimeMs = 0;
   roundsPlayed = 0;
-  speedHistory = [];
+  levelHistory = [];
 }
 
 /**
@@ -427,8 +429,7 @@ export function getConsecutiveWrong() { return consecutiveWrong; }
 export function getRoundsPlayed() { return roundsPlayed; }
 
 /**
- * Get the session speed history as an array of circle speed values (px/sec).
- * One entry is appended per completed round after any staircase adjustment.
- * @returns {number[]}
+ * Get the session level history, one point per completed round.
+ * @returns {Array<{ level: number, atMax: boolean }>}
  */
-export function getSpeedHistory() { return [...speedHistory]; }
+export function getLevelHistory() { return [...levelHistory]; }

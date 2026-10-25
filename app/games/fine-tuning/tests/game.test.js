@@ -41,7 +41,7 @@ import {
   getConsecutiveCorrect,
   getConsecutiveWrong,
   isRunning,
-  getSpeedHistory,
+  getLevelHistory,
 } from '../game.js';
 import { SYLLABLE_IDS, VOICE_IDS } from '../../../components/syllableService.js';
 import manifest from '../manifest.json' with { type: 'json' };
@@ -162,7 +162,7 @@ describe('initGame / startGame / stopGame', () => {
     expect(getCurrentLevel()).toBe(0);
     expect(getConsecutiveCorrect()).toBe(0);
     expect(getConsecutiveWrong()).toBe(0);
-    expect(getSpeedHistory()).toEqual([]);
+    expect(getLevelHistory()).toEqual([]);
   });
 
   test('initGame keeps the voice setting', () => {
@@ -331,20 +331,28 @@ describe('recordTrial', () => {
     expect(getCurrentLevel()).toBe(LEVELS.length - 1);
   });
 
-  test('records the transition length after each trial', () => {
+  test('records the 1-based level after each trial', () => {
     recordTrial({ success: true });
     recordTrial({ success: true });
     recordTrial({ success: true });
-    expect(getSpeedHistory()).toEqual([
-      LEVELS[0].transitionMs,
-      LEVELS[0].transitionMs,
-      LEVELS[1].transitionMs,
+    expect(getLevelHistory()).toEqual([
+      { level: 1, atMax: false },
+      { level: 1, atMax: false },
+      { level: 2, atMax: false },
     ]);
   });
 
-  test('getSpeedHistory returns a copy', () => {
+  test('marks the last level in LEVELS as the maximum', () => {
+    for (let i = 0; i < 3 * LEVELS.length; i += 1) {
+      recordTrial({ success: true });
+    }
+    const history = getLevelHistory();
+    expect(history[history.length - 1]).toEqual({ level: LEVELS.length, atMax: true });
+  });
+
+  test('getLevelHistory returns a copy', () => {
     recordTrial({ success: true });
-    getSpeedHistory().push(999);
-    expect(getSpeedHistory()).toHaveLength(1);
+    getLevelHistory().push(999);
+    expect(getLevelHistory()).toHaveLength(1);
   });
 });

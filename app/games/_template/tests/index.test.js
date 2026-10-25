@@ -31,7 +31,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getScore: jest.fn(() => 4),
   getTrialsCompleted: jest.fn(() => 0),
   isRunning: jest.fn(() => true),
-  getSpeedHistory: jest.fn(() => [300]),
+  getLevelHistory: jest.fn(() => [{ level: 1, atMax: false }]),
 }));
 
 const pluginModule = await import('../index.js');
@@ -123,9 +123,12 @@ describe('start', () => {
     expect($('game-template-play-area').hidden).toBe(false);
     expect($('game-template-end-panel').hidden).toBe(true);
     expect(renderTrendChart).toHaveBeenCalledWith(
-      expect.objectContaining({ lineEl: $('game-template-trend-line') }),
-      [300],
-      300,
+      expect.objectContaining({
+        lineEl: $('game-template-trend-line'),
+        maxLineEl: $('game-template-trend-max'),
+      }),
+      [{ level: 1, atMax: false }],
+      3,
     );
   });
 });

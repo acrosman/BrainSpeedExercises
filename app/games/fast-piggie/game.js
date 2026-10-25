@@ -60,11 +60,12 @@ let topSpeedMs = null; // Lower is better — minimum answer response time (ms)
 let lowestRoundDisplayMs = null;
 
 /**
- * Session history of display durations in ms, one entry per round.
- * Used to render the in-game speed trend chart.
- * @type {number[]}
+ * Session level history, one point per round: the 1-based level after any
+ * staircase adjustment, and whether it is the maximum level.
+ * Used to render the in-game level trend chart.
+ * @type {Array<{ level: number, atMax: boolean }>}
  */
-let speedHistory = [];
+let levelHistory = [];
 
 /**
  * Initialize (or reset) all game state.
@@ -79,7 +80,7 @@ export function initGame() {
   speedIncreaseNext = false;
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
-  speedHistory = [];
+  levelHistory = [];
   lowestRoundDisplayMs = null;
 }
 
@@ -160,6 +161,17 @@ function calculateDisplayDuration(lv) {
     }
   }
   return duration;
+}
+
+/**
+ * Append the current image level to the level history. The level is the maximum once
+ * the display time has reached MIN_DISPLAY_MS, since no speed level is faster.
+ */
+function recordLevelPoint() {
+  levelHistory.push({
+    level: imageLevel + 1,
+    atMax: calculateDisplayDuration(speedLevel) === MIN_DISPLAY_MS,
+  });
 }
 
 /**
@@ -277,7 +289,7 @@ export function addScore(guineaPigsThisRound, answerSpeedMs, displayDurationMs) 
     && (lowestRoundDisplayMs === null || displayDurationMs < lowestRoundDisplayMs)) {
     lowestRoundDisplayMs = displayDurationMs;
   }
-  speedHistory.push(calculateDisplayDuration(speedLevel));
+  recordLevelPoint();
 }
 
 /**
@@ -318,7 +330,7 @@ export function addMiss(guineaPigsThisRound, displayDurationMs) {
     && (lowestRoundDisplayMs === null || displayDurationMs < lowestRoundDisplayMs)) {
     lowestRoundDisplayMs = displayDurationMs;
   }
-  speedHistory.push(calculateDisplayDuration(speedLevel));
+  recordLevelPoint();
 }
 
 /**
@@ -404,10 +416,9 @@ export function isRunning() {
 }
 
 /**
- * Get the session speed history as an array of display durations in ms.
- * One entry is appended per round (correct or missed) after any staircase adjustment.
- * @returns {number[]}
+ * Get the session level history, one point per round (correct or missed).
+ * @returns {Array<{ level: number, atMax: boolean }>}
  */
-export function getSpeedHistory() {
-  return [...speedHistory];
+export function getLevelHistory() {
+  return [...levelHistory];
 }

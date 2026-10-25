@@ -36,6 +36,8 @@ let _levelEl = null;
 let _sessionTimerEl = null;
 /** @type {SVGPolylineElement|null} */
 let _trendLineEl = null;
+/** @type {SVGPathElement|null} */
+let _trendMaxLineEl = null;
 /** @type {HTMLElement|null} */
 let _trendEmptyEl = null;
 /** @type {HTMLElement|null} */
@@ -65,13 +67,18 @@ export function updateStats() {
 }
 
 /**
- * Render the trend chart with the latest speed history.
+ * Render the level trend chart with the latest level history.
  */
 export function updateTrendChart() {
   renderTrendChart(
-    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
-    game.getSpeedHistory(),
-    game.getCurrentLevelConfig().displayTimeMs,
+    {
+      lineEl: _trendLineEl,
+      maxLineEl: _trendMaxLineEl,
+      emptyEl: _trendEmptyEl,
+      latestEl: _trendLatestEl,
+    },
+    game.getLevelHistory(),
+    game.getCurrentLevel() + 1,
   );
 }
 
@@ -112,6 +119,7 @@ function init(gameContainer) {
   _levelEl = q('#game-template-level');
   _sessionTimerEl = q('#game-template-timer');
   _trendLineEl = q('#game-template-trend-line');
+  _trendMaxLineEl = q('#game-template-trend-max');
   _trendEmptyEl = q('#game-template-trend-empty');
   _trendLatestEl = q('#game-template-trend-latest');
   _finalScoreEl = q('#game-template-final-score');

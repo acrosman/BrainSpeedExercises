@@ -29,6 +29,8 @@ images disappear, the player picks the wedge where the outlier was.
   with it. Below that threshold the speed level rises only on every other image-level increase
   (`speedIncreaseNext`). On 3 misses `speedLevel` drops by 2, and `imageLevel` snaps back to
   `canonicalImageLevel(speedLevel)`. Test both phases when you touch this logic.
+- The trend chart plots `imageLevel + 1` after each round. A point is at the maximum once
+  `speedLevel`'s display time reaches the 10 ms floor, whatever `imageLevel` is then.
 
 ## Saved fields
 

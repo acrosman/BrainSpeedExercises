@@ -31,7 +31,7 @@ import {
   getConsecutiveCorrect,
   getConsecutiveWrong,
   isRunning,
-  getSpeedHistory,
+  getLevelHistory,
 } from '../game.js';
 import manifest from '../manifest.json' with { type: 'json' };
 
@@ -165,7 +165,7 @@ describe('generatePracticeTrial', () => {
       score: getScore(),
       trials: getTrialsCompleted(),
       streak: getConsecutiveCorrect(),
-      history: getSpeedHistory(),
+      history: getLevelHistory(),
     });
     const before = snapshot();
     expect(before.level).toBeGreaterThan(0);
@@ -318,31 +318,42 @@ describe('getCurrentLevelConfig', () => {
   });
 });
 
-// ── getSpeedHistory ───────────────────────────────────────────────────────────
+// ── getLevelHistory ───────────────────────────────────────────────────────────
 
-describe('getSpeedHistory', () => {
+describe('getLevelHistory', () => {
   test('appends one entry per completed trial', () => {
     startGame();
     recordTrial({ success: true });
     recordTrial({ success: false });
-    const history = getSpeedHistory();
-    expect(history).toHaveLength(2);
-    history.forEach((v) => expect(typeof v).toBe('number'));
+    expect(getLevelHistory()).toEqual([
+      { level: 1, atMax: false },
+      { level: 1, atMax: false },
+    ]);
+  });
+
+  test('marks the last level in LEVELS as the maximum', () => {
+    startGame();
+    for (let i = 0; i < CORRECT_STREAK_TO_ADVANCE * LEVELS.length; i += 1) {
+      recordTrial({ success: true });
+    }
+    const history = getLevelHistory();
+    expect(history[history.length - 1]).toEqual({ level: LEVELS.length, atMax: true });
+    expect(history[0].atMax).toBe(false);
   });
 
   test('returns a copy so external mutations do not affect state', () => {
     startGame();
     recordTrial({ success: true });
-    const h = getSpeedHistory();
+    const h = getLevelHistory();
     h.pop();
-    expect(getSpeedHistory()).toHaveLength(1);
+    expect(getLevelHistory()).toHaveLength(1);
   });
 
   test('resets to empty after initGame', () => {
     startGame();
     recordTrial({ success: true });
     initGame();
-    expect(getSpeedHistory()).toEqual([]);
+    expect(getLevelHistory()).toEqual([]);
   });
 });
 

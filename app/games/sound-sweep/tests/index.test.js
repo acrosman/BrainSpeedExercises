@@ -49,7 +49,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getConsecutiveCorrect: jest.fn(() => 1),
   getConsecutiveWrong:   jest.fn(() => 0),
   isRunning:             jest.fn(() => true),
-  getSpeedHistory:       jest.fn(() => []),
+  getLevelHistory:       jest.fn(() => []),
   generatePracticeTrial: jest.fn(() => ({
     sequence: 'down-up', sweepDurationMs: 600, isiMs: 600,
   })),
