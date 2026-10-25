@@ -545,39 +545,40 @@ describe('playShuffleSound', () => {
     restore();
   });
 
-  test('fills the buffer with riffle clicks and a bridge swish', () => {
+  test('fills the buffer with a smooth riffle and a bridge swish', () => {
     const { mockCtx, restore } = useMockContext();
-    // 0.75 makes every noise sample 0.5 and shifts every click by the same jitter.
+    // 0.75 makes every raw noise sample 0.5, so the level shows the envelope alone.
     const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.75);
 
     playShuffleSound();
 
     const buffer = mockCtx.createBuffer.mock.results[0].value;
     const samples = buffer.getChannelData.mock.results[0].value;
-    const spacing = Math.round(44100 * (0.7 / 28));
-    const firstClick = Math.round(44100 * 0.25 * 0.4 * (0.7 / 28));
-    const riffleEnd = Math.floor(44100 * 0.7);
-    // Silence before the first click, a full-level onset, and a gap before the next click.
-    expect(samples[firstClick - 1]).toBe(0);
-    expect(samples[firstClick]).toBeCloseTo(0.5);
-    expect(samples[firstClick + spacing - 1]).toBe(0);
-    // The bridge swish rises from silence to a peak below the clicks.
-    const bridge = samples.subarray(riffleEnd);
+    const riffleEnd = Math.floor(44100 * 0.75);
+    const fadeEnd = Math.ceil(44100 * 0.06);
+    // The riffle fades in from silence.
+    expect(samples[0]).toBe(0);
+    // Between the fades the flutter dips the level but never to silence, so there are no clicks.
+    const middle = Array.from(samples.subarray(fadeEnd, riffleEnd - fadeEnd));
+    expect(Math.min(...middle)).toBeGreaterThan(0.5 * (1 - 0.45) * 0.99);
+    expect(Math.max(...middle)).toBeLessThanOrEqual(0.5);
+    // The bridge swish rises from silence to a peak below the riffle.
+    const bridge = Array.from(samples.subarray(riffleEnd));
     expect(bridge[0]).toBe(0);
-    expect(Math.max(...bridge)).toBeCloseTo(0.5 * 0.35, 3);
+    expect(Math.max(...bridge)).toBeCloseTo(0.5 * 0.6, 3);
     randomSpy.mockRestore();
     restore();
   });
 
-  test('routes the noise through a band-pass filter', () => {
+  test('routes the noise through a low-pass filter', () => {
     const { mockCtx, restore } = useMockContext();
 
     playShuffleSound();
 
     const filter = mockCtx.createBiquadFilter.mock.results[0].value;
-    expect(filter.type).toBe('bandpass');
-    expect(filter.frequency.setValueAtTime).toHaveBeenCalledWith(2500, 0);
-    expect(filter.Q.setValueAtTime).toHaveBeenCalledWith(0.7, 0);
+    expect(filter.type).toBe('lowpass');
+    expect(filter.frequency.setValueAtTime).toHaveBeenCalledWith(3000, 0);
+    expect(filter.Q.setValueAtTime).toHaveBeenCalledWith(0.5, 0);
     restore();
   });
 
