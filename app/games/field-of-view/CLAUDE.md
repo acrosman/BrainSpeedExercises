@@ -1,7 +1,7 @@
 # Field of View (`field-of-view`)
 
 A Useful Field of View (UFOV)-style task that trains divided attention. Each trial briefly shows
-a grid with a kitten in the center and a cat toy on the outer ring. A full-field mask follows.
+a grid with a kitten in the center and a cat toy elsewhere on the grid. A full-field mask follows.
 The player must then do two things: identify which kitten was in the center (the sitting
 `primary-kitten` or the leaping `secondary-kitten`), and click the grid cell where the toy
 appeared. A trial counts as correct only when **both** answers are right.
@@ -32,6 +32,9 @@ milliseconds:
 - 3 correct in a row lowers the SOA by one frame. 3 wrong in a row raises it by two frames.
 - The grid is 3×3 while the SOA is above 300 ms and 5×5 at or below it
   (`getGridSizeForCurrentSoa`), so the toy can appear farther out as the player improves.
+- The toy sits on the outer ring of the grid while the SOA is above `ANY_CELL_SOA_MS` (150 ms).
+  At or below it (`isAnyCellPlacementForCurrentSoa`), the toy can be in any cell except the
+  center. The practice trial always uses the outer ring.
 
 Timing values are fractional. Round them only for display, with `render.formatMs`.
 
