@@ -41,7 +41,7 @@ import {
   getDeckSize,
   getDisplayDurationMs,
   getLowestDisplayTimeMs,
-  getSpeedHistory,
+  getLevelHistory,
   getSpeedLevel,
   getConsecutiveCorrect,
   getConsecutiveWrong,
@@ -272,7 +272,8 @@ describe('deal and response flow', () => {
     expect(getTriggerHits()).toBe(1);
     // Speed only changes after a complete staircase step (3 consecutive hits).
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
-    expect(getSpeedHistory()).toHaveLength(0);
+    // Each scored card adds a point to the level history, even without a level change.
+    expect(getLevelHistory()).toEqual([{ level: 1, atMax: false }]);
     expect(getConsecutiveCorrect()).toBe(1);
     expect(getConsecutiveWrong()).toBe(0);
   });
@@ -286,7 +287,11 @@ describe('deal and response flow', () => {
     }
 
     expect(getDisplayDurationMs()).toBeLessThan(BASE_DISPLAY_DURATION_MS);
-    expect(getSpeedHistory()).toHaveLength(1);
+    expect(getLevelHistory()).toEqual([
+      { level: 1, atMax: false },
+      { level: 1, atMax: false },
+      { level: 2, atMax: false },
+    ]);
     expect(getConsecutiveCorrect()).toBe(0); // reset after step
     expect(getSpeedLevel()).toBe(1);
   });
@@ -418,7 +423,11 @@ describe('deal and response flow', () => {
     // Correct counter was reset by the miss.
     expect(getConsecutiveCorrect()).toBe(0);
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
-    expect(getSpeedHistory()).toHaveLength(0);
+    expect(getLevelHistory()).toEqual([
+      { level: 1, atMax: false },
+      { level: 1, atMax: false },
+      { level: 1, atMax: false },
+    ]);
   });
 
   test('three consecutive misses slow down the game', () => {
@@ -462,7 +471,11 @@ describe('deal and response flow', () => {
     expect(getConsecutiveCorrect()).toBe(0);
     expect(getConsecutiveWrong()).toBe(1);
     expect(getDisplayDurationMs()).toBe(BASE_DISPLAY_DURATION_MS);
-    expect(getSpeedHistory()).toHaveLength(0);
+    expect(getLevelHistory()).toEqual([
+      { level: 1, atMax: false },
+      { level: 1, atMax: false },
+      { level: 1, atMax: false },
+    ]);
   });
 
   test('three consecutive false alarms slow down the game', () => {
@@ -606,15 +619,27 @@ describe('deal and response flow', () => {
     expect(getDisplayDurationMs()).toBeGreaterThanOrEqual(MIN_DISPLAY_DURATION_MS);
   });
 
-  test('getSpeedHistory returns a defensive copy', () => {
+  test('level history marks the level as the maximum once display time hits its floor', () => {
+    startGame();
+    for (let i = 0; i < 90; i += 1) {
+      expect(hitNextTrigger()).toBe(true);
+    }
+    expect(getDisplayDurationMs()).toBe(MIN_DISPLAY_DURATION_MS);
+
+    const history = getLevelHistory();
+    expect(history[history.length - 1]).toEqual({ level: getSpeedLevel() + 1, atMax: true });
+    expect(history[0].atMax).toBe(false);
+  });
+
+  test('getLevelHistory returns a defensive copy', () => {
     startGame();
     expect(dealUntilTrigger()).toBe(true);
     respondToCurrentCard();
 
-    const history = getSpeedHistory();
+    const history = getLevelHistory();
     history.push(9999);
 
-    expect(getSpeedHistory()).not.toContain(9999);
+    expect(getLevelHistory()).not.toContain(9999);
   });
 });
 

@@ -47,8 +47,9 @@ speech: no level goes below `MIN_SNR_DB` (0 dB, reached only at level 14). Make 
 harder through timing or voices, not louder noise. The service also fades the noise in and out
 and caps its gain at the 0 dB level.
 
-The standard staircase applies, and trials are 500 ms apart. The trend chart tracks
-`transitionMs`. `tests/game.test.js` checks that no level is easier than the one before it.
+The standard staircase applies, and trials are 500 ms apart. The trend chart's maximum is the
+last entry in `LEVELS`. `tests/game.test.js` checks that no level is easier than the one before
+it.
 
 ## Voices
 

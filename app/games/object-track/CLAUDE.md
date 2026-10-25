@@ -65,7 +65,7 @@ level, and `stepCircles(circles, deltaMs, bounds)` runs one frame of motion and 
 | Speed (px/s)       | `250 + 15 × level`                           |
 | Tracking time (ms) | `min(5000 + 500 × floor(level / 2), 10000)`  |
 
-The speed history and trend chart track px/s. Unlike other games, higher values mean harder.
+Speed keeps rising with the level, so the trend chart never marks a level as the maximum.
 
 ## Assets
 

@@ -56,7 +56,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getRoundsCompleted: jest.fn(() => 6),
   getConsecutiveCorrectRounds: jest.fn(() => 1),
   isRunning: jest.fn(() => true),
-  getSpeedHistory: jest.fn(() => []),
+  getLevelHistory: jest.fn(() => []),
 }));
 
 jest.unstable_mockModule('../../../components/tutorialService.js', () => ({

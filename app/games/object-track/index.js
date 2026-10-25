@@ -100,6 +100,8 @@ let _finalRoundsEl = null;
 let _sessionTimerEl = null;
 /** @type {SVGPolylineElement|null} */
 let _trendLineEl = null;
+/** @type {SVGPathElement|null} */
+let _trendMaxLineEl = null;
 /** @type {HTMLElement|null} */
 let _trendEmptyEl = null;
 /** @type {HTMLElement|null} */
@@ -181,15 +183,20 @@ export function updateStats() {
 }
 
 /**
- * Render the speed trend chart with the latest speed history.
+ * Render the level trend chart with the latest level history.
  *
  * @returns {void}
  */
 export function updateTrendChart() {
   renderTrendChart(
-    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
-    game.getSpeedHistory(),
-    game.getLevelConfig(game.getLevel()).speedPxPerSec,
+    {
+      lineEl: _trendLineEl,
+      maxLineEl: _trendMaxLineEl,
+      emptyEl: _trendEmptyEl,
+      latestEl: _trendLatestEl,
+    },
+    game.getLevelHistory(),
+    game.getLevel() + 1,
   );
 }
 
@@ -592,6 +599,7 @@ function init(gameContainer) {
   _finalRoundsEl = q('#mot-final-rounds');
   _sessionTimerEl = q('#mot-session-timer');
   _trendLineEl = q('#mot-trend-line');
+  _trendMaxLineEl = q('#mot-trend-max');
   _trendEmptyEl = q('#mot-trend-empty');
   _trendLatestEl = q('#mot-trend-latest');
 

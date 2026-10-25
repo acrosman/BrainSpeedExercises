@@ -178,20 +178,26 @@ export function updateStats(els, stats) {
  *
  * @param {{
  *   trendLineEl: SVGPolylineElement|null,
+ *   trendMaxLineEl: SVGPathElement|null,
  *   trendEmptyEl: HTMLElement|null,
  *   trendLatestEl: HTMLElement|null,
  *   finalBestThresholdEl: HTMLElement|null,
  * }} els - Chart and summary display elements.
  * @param {Array<{ thresholdMs: number }>} history - Threshold history entries.
  * @param {number} currentSoaMs - Current SOA used when history is empty.
+ * @param {Array<{ level: number, atMax: boolean }>} levelHistory - Simulated level history.
+ * @param {number} currentLevel - Simulated level shown when levelHistory is empty.
  */
-export function renderThresholdTrend(els, history, currentSoaMs) {
-  const values = history.map((entry) => entry.thresholdMs);
-
+export function renderThresholdTrend(els, history, currentSoaMs, levelHistory, currentLevel) {
   renderTrendChart(
-    { lineEl: els.trendLineEl, emptyEl: els.trendEmptyEl, latestEl: els.trendLatestEl },
-    values,
-    currentSoaMs,
+    {
+      lineEl: els.trendLineEl,
+      maxLineEl: els.trendMaxLineEl,
+      emptyEl: els.trendEmptyEl,
+      latestEl: els.trendLatestEl,
+    },
+    levelHistory,
+    currentLevel,
   );
 
   if (els.finalBestThresholdEl) {

@@ -42,7 +42,8 @@ sheet layout, update those constants and `TOTAL_SPRITES` together.
 ## Difficulty and flow
 
 - Each sprite shows for `1100 − 90 × level` ms, with a floor of 250 ms. The standard 3-up
-  (+1) / 3-down (−2) staircase applies.
+  (+1) / 3-down (−2) staircase applies. The trend chart marks the level as the maximum from
+  the floor on (level 11).
 - `startRound()` hands the level's round to `playRound(round)`, which sets the target preview
   and plays any round without touching session state. `stopRound()` cancels a round at any
   phase and clears the board.

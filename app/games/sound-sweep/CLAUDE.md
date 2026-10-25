@@ -33,8 +33,9 @@ together. `stopTrial()` cancels the trial's timers and closes responses.
 ## Difficulty
 
 `LEVELS` in `game.js` has 14 entries. Each one shortens `sweepDurationMs` (600 → 15 ms) and the
-inter-stimulus interval `isiMs` (600 → 10 ms). At the top levels the sweeps are chirp-like. The
-standard staircase applies, and trials are 500 ms apart. Sequences are the strings in
+inter-stimulus interval `isiMs` (600 → 10 ms). At the top levels the sweeps are chirp-like, and
+the last entry is the trend chart's maximum. The standard staircase applies, and trials are
+500 ms apart. Sequences are the strings in
 `SEQUENCES` (`'up-down'` and so on). Split them on `-` to get the direction array, and use
 `formatSequence()` for the label the player sees (`'Up-Down'`).
 

@@ -50,14 +50,16 @@
 
     <!-- Speed trend chart -->
     <section class="game-trend" aria-labelledby="mot-trend-title">
-      <h4 id="mot-trend-title">Speed Trend (px/s)</h4>
+      <h4 id="mot-trend-title">Level Trend</h4>
       <svg id="mot-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
-        aria-label="Circle speed trend over recent rounds">
+        aria-label="Level over recent rounds">
         <polyline id="mot-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+        <path id="mot-trend-max" class="game-trend__max" fill="none" stroke="currentColor"
+          stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d=""></path>
       </svg>
       <p id="mot-trend-empty" class="game-trend__empty">Complete a round to populate chart.</p>
       <p class="game-trend__meta">
-        Latest: <strong id="mot-trend-latest">--</strong> px/s
+        Latest level: <strong id="mot-trend-latest">--</strong>
       </p>
     </section>
 

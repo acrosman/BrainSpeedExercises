@@ -36,7 +36,8 @@ after `completeRound()`. If you change the staircase in `game.js`, update that c
 ## Difficulty
 
 - Grid is `(level + 3)²` cards, with no upper limit.
-- Display time is `1500 − 25 × level` ms, with a floor of 20 ms.
+- Display time is `1500 − 25 × level` ms, with a floor of 20 ms. The trend chart marks the
+  level as the maximum from the floor on (level 61), although the grid keeps growing.
 - A level is gained after 3 clean rounds in a row (`ROUNDS_TO_LEVEL_UP`). Three wrong rounds in
   a row cost two levels.
 - `score` goes up by 1 for each Primary card found, not for each round completed.

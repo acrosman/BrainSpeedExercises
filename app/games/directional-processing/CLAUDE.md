@@ -28,7 +28,8 @@ the speed-of-processing training used in the ACTIVE study.
 
 Each band is played at every speed tier, slowest first, before the display time drops, so
 `LEVELS` has 20 entries. Motion speed rises separately from display time, and display time
-falls half as fast per level as it would with one level per band.
+falls half as fast per level as it would with one level per band. The trend chart's maximum is
+the last entry.
 
 ## Saved fields
 

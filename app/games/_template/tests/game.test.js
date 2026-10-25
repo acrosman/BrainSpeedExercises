@@ -14,7 +14,7 @@ import {
   getScore,
   getTrialsCompleted,
   isRunning,
-  getSpeedHistory,
+  getLevelHistory,
 } from '../game.js';
 import manifest from '../manifest.json' with { type: 'json' };
 
@@ -41,7 +41,7 @@ describe('initGame', () => {
     expect(getScore()).toBe(0);
     expect(getCurrentLevel()).toBe(0);
     expect(getTrialsCompleted()).toBe(0);
-    expect(getSpeedHistory()).toEqual([]);
+    expect(getLevelHistory()).toEqual([]);
   });
 });
 
@@ -102,11 +102,17 @@ describe('recordTrial', () => {
     expect(getCurrentLevel()).toBe(LEVELS.length - 1);
   });
 
-  test('appends the current display time to the speed history', () => {
+  test('appends the 1-based level to the level history', () => {
     recordMany(true, CORRECT_STREAK_TO_ADVANCE);
-    const history = getSpeedHistory();
+    const history = getLevelHistory();
     expect(history).toHaveLength(CORRECT_STREAK_TO_ADVANCE);
-    expect(history[history.length - 1]).toBe(LEVELS[1].displayTimeMs);
+    expect(history[history.length - 1]).toEqual({ level: 2, atMax: false });
+  });
+
+  test('marks the last level in LEVELS as the maximum', () => {
+    recordMany(true, CORRECT_STREAK_TO_ADVANCE * LEVELS.length);
+    const history = getLevelHistory();
+    expect(history[history.length - 1]).toEqual({ level: LEVELS.length, atMax: true });
   });
 });
 
@@ -116,11 +122,11 @@ describe('getCurrentLevelConfig', () => {
   });
 });
 
-describe('getSpeedHistory', () => {
+describe('getLevelHistory', () => {
   test('returns a copy', () => {
     recordTrial({ success: true });
-    getSpeedHistory().push(999);
-    expect(getSpeedHistory()).toHaveLength(1);
+    getLevelHistory().push(999);
+    expect(getLevelHistory()).toHaveLength(1);
   });
 });
 

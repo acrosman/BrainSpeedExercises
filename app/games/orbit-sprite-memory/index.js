@@ -113,6 +113,8 @@ let _finalBestScoreEl = null;
 let _sessionTimerEl = null;
 /** @type {SVGPolylineElement|null} */
 let _trendLineEl = null;
+/** @type {SVGPathElement|null} */
+let _trendMaxLineEl = null;
 /** @type {HTMLElement|null} */
 let _trendEmptyEl = null;
 /** @type {HTMLElement|null} */
@@ -211,13 +213,18 @@ export function updateStats() {
 }
 
 /**
- * Renders the speed trend chart with the latest display-duration history.
+ * Render the level trend chart with the latest level history.
  */
 export function updateTrendChart() {
   renderTrendChart(
-    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
-    game.getSpeedHistory(),
-    game.getDisplayDurationMs(game.getLevel()),
+    {
+      lineEl: _trendLineEl,
+      maxLineEl: _trendMaxLineEl,
+      emptyEl: _trendEmptyEl,
+      latestEl: _trendLatestEl,
+    },
+    game.getLevelHistory(),
+    game.getLevel() + 1,
   );
 }
 
@@ -575,6 +582,7 @@ function init(gameContainer) {
   _finalBestScoreEl = _container.querySelector('#osm-final-best-score');
   _sessionTimerEl = _container.querySelector('#osm-session-timer');
   _trendLineEl = _container.querySelector('#osm-trend-line');
+  _trendMaxLineEl = _container.querySelector('#osm-trend-max');
   _trendEmptyEl = _container.querySelector('#osm-trend-empty');
   _trendLatestEl = _container.querySelector('#osm-trend-latest');
 

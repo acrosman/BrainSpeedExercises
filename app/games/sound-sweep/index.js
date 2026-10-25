@@ -60,6 +60,8 @@ let _streakEl = null;
 let _sessionTimerEl = null;
 /** @type {SVGPolylineElement|null} */
 let _trendLineEl = null;
+/** @type {SVGPathElement|null} */
+let _trendMaxLineEl = null;
 /** @type {HTMLElement|null} */
 let _trendEmptyEl = null;
 /** @type {HTMLElement|null} */
@@ -179,13 +181,18 @@ export function updateStats() {
 }
 
 /**
- * Render the speed trend chart with the latest sweep-duration history.
+ * Render the level trend chart with the latest level history.
  */
 export function updateTrendChart() {
   renderTrendChart(
-    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
-    game.getSpeedHistory(),
-    game.getCurrentLevelConfig().sweepDurationMs,
+    {
+      lineEl: _trendLineEl,
+      maxLineEl: _trendMaxLineEl,
+      emptyEl: _trendEmptyEl,
+      latestEl: _trendLatestEl,
+    },
+    game.getLevelHistory(),
+    game.getCurrentLevel() + 1,
   );
 }
 
@@ -430,6 +437,7 @@ function init(gameContainer) {
   _streakEl        = _container.querySelector('#ss-streak');
   _sessionTimerEl  = _container.querySelector('#ss-session-timer');
   _trendLineEl     = _container.querySelector('#ss-trend-line');
+  _trendMaxLineEl  = _container.querySelector('#ss-trend-max');
   _trendEmptyEl    = _container.querySelector('#ss-trend-empty');
   _trendLatestEl   = _container.querySelector('#ss-trend-latest');
   _finalLevelEl    = _container.querySelector('#ss-final-level');

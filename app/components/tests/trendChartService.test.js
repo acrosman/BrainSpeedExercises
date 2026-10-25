@@ -2,14 +2,18 @@
 /**
  * trendChartService.test.js — Unit tests for the centralized trend chart service.
  *
- * Exercises buildPolylinePoints and renderTrendChart against simple inputs,
+ * Exercises buildPolylinePoints, buildMaxLevelPath, and renderTrendChart against simple inputs,
  * edge cases, and null-element guards.
  *
  * @file Tests for app/components/trendChartService.js
  */
 
 import { describe, test, expect } from '@jest/globals';
-import { buildPolylinePoints, renderTrendChart } from '../trendChartService.js';
+import {
+  buildMaxLevelPath,
+  buildPolylinePoints,
+  renderTrendChart,
+} from '../trendChartService.js';
 
 // ── buildPolylinePoints ───────────────────────────────────────────────────────
 
@@ -70,59 +74,129 @@ describe('buildPolylinePoints', () => {
   });
 });
 
+// ── buildMaxLevelPath ─────────────────────────────────────────────────────────
+
+/**
+ * Build level points from levels and a matching list of at-max flags.
+ *
+ * @param {number[]} levels
+ * @param {boolean[]} [atMax]
+ * @returns {Array<{ level: number, atMax: boolean }>}
+ */
+function points(levels, atMax = []) {
+  return levels.map((level, index) => ({ level, atMax: Boolean(atMax[index]) }));
+}
+
+describe('buildMaxLevelPath', () => {
+  test('returns empty string for an empty or null history', () => {
+    expect(buildMaxLevelPath([])).toBe('');
+    expect(buildMaxLevelPath(null)).toBe('');
+  });
+
+  test('returns empty string when no point is at the maximum level', () => {
+    expect(buildMaxLevelPath(points([1, 2, 3]))).toBe('');
+  });
+
+  test('leaves out a lone at-max point, which has no segment', () => {
+    expect(buildMaxLevelPath(points([1, 5, 4], [false, true, false]))).toBe('');
+  });
+
+  test('traces a run of at-max points over the polyline coordinates', () => {
+    const history = points([3, 5, 5, 5], [false, true, true, true]);
+    const coords = buildPolylinePoints([3, 5, 5, 5]).split(' ');
+
+    expect(buildMaxLevelPath(history)).toBe(`M ${coords[1]} L ${coords[2]} L ${coords[3]}`);
+  });
+
+  test('starts a new subpath for each separate run at the maximum level', () => {
+    const history = points([5, 5, 4, 5, 5], [true, true, false, true, true]);
+    const coords = buildPolylinePoints([5, 5, 4, 5, 5]).split(' ');
+
+    expect(buildMaxLevelPath(history)).toBe(
+      `M ${coords[0]} L ${coords[1]} M ${coords[3]} L ${coords[4]}`,
+    );
+  });
+});
+
 // ── renderTrendChart ──────────────────────────────────────────────────────────
 
 describe('renderTrendChart', () => {
-  test('updates lineEl points attribute for a non-empty values array', () => {
+  test('plots the levels and hides emptyEl for a non-empty history', () => {
     const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     const emptyEl = document.createElement('p');
     const latestEl = document.createElement('strong');
 
-    renderTrendChart({ lineEl, emptyEl, latestEl }, [200, 150, 100], 500);
+    renderTrendChart({ lineEl, emptyEl, latestEl }, points([1, 2, 3]), 1);
 
-    expect(lineEl.getAttribute('points')).not.toBe('');
+    expect(lineEl.getAttribute('points')).toBe(buildPolylinePoints([1, 2, 3]));
     expect(emptyEl.hidden).toBe(true);
-    expect(latestEl.textContent).toBe('100');
+    expect(latestEl.textContent).toBe('3');
   });
 
-  test('clears the lineEl and shows emptyEl when values array is empty', () => {
+  test('clears the lineEl and shows emptyEl when the history is empty', () => {
     const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     lineEl.setAttribute('points', '10,10 20,20');
     const emptyEl = document.createElement('p');
     const latestEl = document.createElement('strong');
 
-    renderTrendChart({ lineEl, emptyEl, latestEl }, [], 400);
+    renderTrendChart({ lineEl, emptyEl, latestEl }, [], 1);
 
     expect(lineEl.getAttribute('points')).toBe('');
     expect(emptyEl.hidden).toBe(false);
-    expect(latestEl.textContent).toBe('400');
+    expect(latestEl.textContent).toBe('1');
   });
 
-  test('uses currentValue for latestEl when values array is empty', () => {
+  test('uses currentLevel for latestEl when the history is empty', () => {
+    const latestEl = document.createElement('strong');
+    renderTrendChart({ lineEl: null, emptyEl: null, latestEl }, [], '4');
+    expect(latestEl.textContent).toBe('4');
+  });
+
+  test('uses the last point in the history as the latest level', () => {
+    const latestEl = document.createElement('strong');
+    renderTrendChart({ lineEl: null, emptyEl: null, latestEl }, points([1, 2, 2]), 1);
+    expect(latestEl.textContent).toBe('2');
+  });
+
+  test('marks the latest level as the maximum when the last point is at max', () => {
     const latestEl = document.createElement('strong');
     renderTrendChart(
       { lineEl: null, emptyEl: null, latestEl },
-      [],
-      '350',
+      points([9, 10], [false, true]),
+      1,
     );
-    expect(latestEl.textContent).toBe('350');
+    expect(latestEl.textContent).toBe('10 (max)');
   });
 
-  test('uses the last value in the array as the latest value', () => {
-    const latestEl = document.createElement('strong');
+  test('writes the at-max path to maxLineEl', () => {
+    const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    const maxLineEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const history = points([4, 5, 5], [false, true, true]);
+
+    renderTrendChart({ lineEl, maxLineEl, emptyEl: null, latestEl: null }, history, 1);
+
+    expect(maxLineEl.getAttribute('d')).toBe(buildMaxLevelPath(history));
+    expect(maxLineEl.getAttribute('d')).not.toBe('');
+  });
+
+  test('clears maxLineEl when the history has no at-max segment', () => {
+    const maxLineEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    maxLineEl.setAttribute('d', 'M 1,1 L 2,2');
+
     renderTrendChart(
-      { lineEl: null, emptyEl: null, latestEl },
-      [500, 450, 380],
-      500,
+      { lineEl: null, maxLineEl, emptyEl: null, latestEl: null },
+      points([1, 2]),
+      1,
     );
-    expect(latestEl.textContent).toBe('380');
+
+    expect(maxLineEl.getAttribute('d')).toBe('');
   });
 
   test('tolerates null lineEl without throwing', () => {
     expect(() => renderTrendChart(
       { lineEl: null, emptyEl: null, latestEl: null },
-      [100, 200],
-      300,
+      points([1, 2]),
+      1,
     )).not.toThrow();
   });
 
@@ -130,8 +204,8 @@ describe('renderTrendChart', () => {
     const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     expect(() => renderTrendChart(
       { lineEl, emptyEl: null, latestEl: null },
-      [100, 200],
-      300,
+      points([1, 2]),
+      1,
     )).not.toThrow();
   });
 
@@ -140,11 +214,11 @@ describe('renderTrendChart', () => {
     expect(() => renderTrendChart(
       { lineEl, emptyEl: null, latestEl: null },
       [],
-      300,
+      1,
     )).not.toThrow();
   });
 
-  test('renders empty string for latestEl when currentValue is null and values is empty', () => {
+  test('renders empty string for latestEl when currentLevel is null and history is empty', () => {
     const latestEl = document.createElement('strong');
     renderTrendChart({ lineEl: null, emptyEl: null, latestEl }, [], null);
     expect(latestEl.textContent).toBe('');

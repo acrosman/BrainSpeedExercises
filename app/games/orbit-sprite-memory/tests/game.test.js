@@ -39,7 +39,7 @@ import {
   getConsecutiveCorrect,
   getConsecutiveWrong,
   isRunning,
-  getSpeedHistory,
+  getLevelHistory,
 } from '../game.js';
 import manifest from '../manifest.json' with { type: 'json' };
 
@@ -202,10 +202,10 @@ describe('round generation', () => {
   test('createPracticeRound does not change game state, even mid-session', () => {
     startGame();
     for (let i = 0; i < STREAK_TO_LEVEL_UP; i += 1) recordCorrectRound();
-    const before = { level: getLevel(), score: getScore(), history: getSpeedHistory() };
+    const before = { level: getLevel(), score: getScore(), history: getLevelHistory() };
 
     createPracticeRound();
-    expect({ level: getLevel(), score: getScore(), history: getSpeedHistory() }).toEqual(before);
+    expect({ level: getLevel(), score: getScore(), history: getLevelHistory() }).toEqual(before);
     expect(isRunning()).toBe(true);
   });
 });
@@ -285,36 +285,45 @@ describe('selection and scoring', () => {
   });
 });
 
-// ── getSpeedHistory ───────────────────────────────────────────────────────────
+// ── getLevelHistory ───────────────────────────────────────────────────────────
 
-describe('getSpeedHistory', () => {
+describe('getLevelHistory', () => {
   test('appends an entry after recordCorrectRound', () => {
     startGame();
     recordCorrectRound();
-    const history = getSpeedHistory();
-    expect(history).toHaveLength(1);
-    expect(typeof history[0]).toBe('number');
+    expect(getLevelHistory()).toEqual([{ level: 1, atMax: false }]);
+  });
+
+  test('marks the level as the maximum once display time hits MIN_DISPLAY_MS', () => {
+    startGame();
+    for (let i = 0; i < STREAK_TO_LEVEL_UP * 15; i += 1) {
+      recordCorrectRound();
+    }
+    expect(getDisplayDurationMs(getLevel())).toBe(MIN_DISPLAY_MS);
+    const history = getLevelHistory();
+    expect(history[history.length - 1]).toEqual({ level: getLevel() + 1, atMax: true });
+    expect(history[0].atMax).toBe(false);
   });
 
   test('appends an entry after recordIncorrectRound', () => {
     startGame();
     recordIncorrectRound();
-    expect(getSpeedHistory()).toHaveLength(1);
+    expect(getLevelHistory()).toHaveLength(1);
   });
 
   test('returns a copy so external mutations do not affect state', () => {
     startGame();
     recordCorrectRound();
-    const h = getSpeedHistory();
+    const h = getLevelHistory();
     h.pop();
-    expect(getSpeedHistory()).toHaveLength(1);
+    expect(getLevelHistory()).toHaveLength(1);
   });
 
   test('resets to empty after initGame', () => {
     startGame();
     recordCorrectRound();
     initGame();
-    expect(getSpeedHistory()).toEqual([]);
+    expect(getLevelHistory()).toEqual([]);
   });
 });
 

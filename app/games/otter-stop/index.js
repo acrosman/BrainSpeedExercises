@@ -91,6 +91,8 @@ let _intervalEl = null;
 let _sessionTimerEl = null;
 /** @type {SVGPolylineElement|null} */
 let _trendLineEl = null;
+/** @type {SVGPathElement|null} */
+let _trendMaxLineEl = null;
 /** @type {HTMLElement|null} */
 let _trendEmptyEl = null;
 /** @type {HTMLElement|null} */
@@ -195,13 +197,18 @@ export function updateStats() {
 }
 
 /**
- * Render the speed trend chart with the latest interval history.
+ * Render the level trend chart with the latest level history.
  */
 export function updateTrendChart() {
   renderTrendChart(
-    { lineEl: _trendLineEl, emptyEl: _trendEmptyEl, latestEl: _trendLatestEl },
-    game.getSpeedHistory(),
-    game.getCurrentIntervalMs(),
+    {
+      lineEl: _trendLineEl,
+      maxLineEl: _trendMaxLineEl,
+      emptyEl: _trendEmptyEl,
+      latestEl: _trendLatestEl,
+    },
+    game.getLevelHistory(),
+    game.getLevel() + 1,
   );
 }
 
@@ -478,6 +485,7 @@ function init(container) {
   _intervalEl = container.querySelector('#os-interval');
   _sessionTimerEl = container.querySelector('#os-session-timer');
   _trendLineEl = container.querySelector('#os-trend-line');
+  _trendMaxLineEl = container.querySelector('#os-trend-max');
   _trendEmptyEl = container.querySelector('#os-trend-empty');
   _trendLatestEl = container.querySelector('#os-trend-latest');
   _avgResponseEl = container.querySelector('#os-avg-response');

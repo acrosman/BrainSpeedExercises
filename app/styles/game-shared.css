@@ -315,14 +315,16 @@
   border-color: var(--btn-secondary-text);
 }
 
-/* ── In-game speed/difficulty trend chart ────────────────────────────────── */
+/* ── In-game level trend chart ───────────────────────────────────────────── */
 /*
  * Apply .game-trend to the <section> that wraps the SVG polyline chart.
  * The inner SVG uses .game-trend__chart; status messages use .game-trend__meta /
  * .game-trend__empty.
  *
  * The chart is plain card paper. Its polyline must use stroke="currentColor", so the
- * line takes --trend-line from the chart's colour.
+ * line takes --trend-line from the chart's colour. The .game-trend__max path, drawn over
+ * the polyline wherever the player is at the maximum level, also uses currentColor and
+ * takes --trend-line-max. It is drawn thicker, so it does not rely on colour alone.
  */
 
 .game-trend {
@@ -350,6 +352,10 @@
   border-radius: var(--radius-md);
   background-color: var(--bg-card);
   color: var(--trend-line);
+}
+
+.game-trend__max {
+  color: var(--trend-line-max);
 }
 
 .game-trend__empty,

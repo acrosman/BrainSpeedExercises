@@ -40,7 +40,7 @@ import {
   getConsecutiveCorrect,
   getConsecutiveWrong,
   getRoundsPlayed,
-  getSpeedHistory,
+  getLevelHistory,
 } from '../game.js';
 import manifest from '../manifest.json' with { type: 'json' };
 
@@ -422,7 +422,7 @@ describe('createRoundCircles', () => {
     createRoundCircles(3, 600, 400);
     expect(getLevel()).toBe(0);
     expect(getRoundsPlayed()).toBe(0);
-    expect(getSpeedHistory()).toEqual([]);
+    expect(getLevelHistory()).toEqual([]);
   });
 });
 
@@ -583,30 +583,36 @@ describe('getters', () => {
   });
 });
 
-// ── getSpeedHistory ───────────────────────────────────────────────────────────
+// ── getLevelHistory ───────────────────────────────────────────────────────────
 
-describe('getSpeedHistory', () => {
+describe('getLevelHistory', () => {
   test('appends an entry after recordRoundResult', () => {
     startGame();
     recordRoundResult(true);
-    const history = getSpeedHistory();
-    expect(history).toHaveLength(1);
-    expect(typeof history[0]).toBe('number');
+    expect(getLevelHistory()).toEqual([{ level: 1, atMax: false }]);
+  });
+
+  test('never marks a level as the maximum, since speed keeps rising', () => {
+    startGame();
+    for (let i = 0; i < 300; i += 1) {
+      recordRoundResult(true);
+    }
+    expect(getLevelHistory().some((point) => point.atMax)).toBe(false);
   });
 
   test('returns a copy so external mutations do not affect state', () => {
     startGame();
     recordRoundResult(false);
-    const h = getSpeedHistory();
+    const h = getLevelHistory();
     h.pop();
-    expect(getSpeedHistory()).toHaveLength(1);
+    expect(getLevelHistory()).toHaveLength(1);
   });
 
   test('resets to empty after initGame', () => {
     startGame();
     recordRoundResult(true);
     initGame();
-    expect(getSpeedHistory()).toEqual([]);
+    expect(getLevelHistory()).toEqual([]);
   });
 });
 

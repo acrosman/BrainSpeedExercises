@@ -22,7 +22,7 @@ Rules for every component:
 | `audioService.js` | games | The shared `AudioContext` and every sound effect |
 | `syllableService.js` | games | Synthesized speech syllables and background noise |
 | `adaptiveDifficultyService.js` | games | Staircase counter math |
-| `trendChartService.js` | games | In-game SVG trend line |
+| `trendChartService.js` | games | In-game SVG level trend line |
 | `gameUtils.js` | games, shell | `returnToMainMenu()` and the focus helpers |
 | `gameCard.js` | shell | One card on the game selector |
 | `historyView.js` | shell | Contents of the History modal |
@@ -120,11 +120,14 @@ other clamping.
 
 ## `trendChartService.js`
 
-`renderTrendChart({ lineEl, emptyEl, latestEl }, values, currentValue)` fills the shared
-`.game-trend` markup: it writes the polyline `points`, hides the empty message once there is
-data, and shows the latest value (or `currentValue` when `values` is empty). Any element may be
-`null`. The chart scales to the history's own minimum and maximum. `buildPolylinePoints` does
-the math and is exported for tests.
+`renderTrendChart({ lineEl, maxLineEl, emptyEl, latestEl }, history, currentLevel)` fills the
+shared `.game-trend` markup from a level history of `{ level, atMax }` points. It writes the
+polyline `points`, hides the empty message once there is data, and shows the latest level, with
+" (max)" when that point is at the maximum (or `currentLevel` when `history` is empty). It writes
+every run of two or more consecutive `atMax` points to `maxLineEl`'s `d` as its own subpath, on
+the same coordinates as the polyline; a lone at-max point draws nothing. Any element may be
+`null`. The chart scales to the history's own minimum and maximum. `buildPolylinePoints` and
+`buildMaxLevelPath` do the math and are exported for tests.
 
 ## `gameUtils.js`
 
@@ -219,7 +222,7 @@ onComplete }`. Games call these only through a launcher (next section).
   with `correct: true`, moves on.
 - `signal` aborts when the tutorial ends for any reason. Cancel practice timers and clear
   practice state in its `abort` listener.
-- A practice round must not score, change difficulty, add speed history, start the session
+- A practice round must not score, change difficulty, add level history, start the session
   timer, or save. Build it from `game.js` helpers that have no side effects, and never call
   `startGame()`. `game.isRunning()` stays `false`, so `stop()` must handle an idle game.
 - `setInstructions` text goes to an `aria-live` region. When it describes a click, also give

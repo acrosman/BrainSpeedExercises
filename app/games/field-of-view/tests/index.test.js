@@ -80,6 +80,8 @@ jest.unstable_mockModule('../game.js', () => ({
   getRecentAccuracy: jest.fn(() => 0.8),
   getTrialsCompleted: jest.fn(() => 4),
   getThresholdHistory: jest.fn(() => [{ trial: 1, thresholdMs: 200, success: true }]),
+  getLevelHistory: jest.fn(() => [{ level: 19, atMax: false }]),
+  getSimulatedLevel: jest.fn(() => 26),
 }));
 
 jest.unstable_mockModule('../../../components/audioService.js', () => ({
@@ -185,6 +187,7 @@ function buildContainer() {
     <strong id="fov-trials"></strong>
     <svg id="fov-trend-chart" viewBox="0 0 300 120">
       <polyline id="fov-trend-line" points=""></polyline>
+      <path id="fov-trend-max" d=""></path>
     </svg>
     <p id="fov-trend-empty"></p>
     <strong id="fov-trend-latest"></strong>

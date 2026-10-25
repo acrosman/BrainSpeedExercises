@@ -124,11 +124,12 @@ let consecutiveCorrect = 0;
 let consecutiveWrong = 0;
 
 /**
- * Session history of interval values in ms, one entry per completed trial.
- * Used to render the in-game speed trend chart.
- * @type {number[]}
+ * Session level history, one point per completed trial: the 1-based level after
+ * any staircase adjustment, and whether it is the maximum level.
+ * Used to render the in-game level trend chart.
+ * @type {Array<{ level: number, atMax: boolean }>}
  */
-let speedHistory = [];
+let levelHistory = [];
 
 /**
  * Response times (ms) for go trials where the player actually responded.
@@ -183,7 +184,7 @@ export function initGame() {
   consecutiveCorrect = 0;
   consecutiveWrong = 0;
   forceGoNext = false;
-  speedHistory = [];
+  levelHistory = [];
   goResponseTimes = [];
   sequencePosition = 0;
   currentSequenceLength = generateSequenceLength();
@@ -366,7 +367,7 @@ export function recordResponse(isNoGo, spacePressed) {
     currentSequenceLength = newMax;
   }
 
-  speedHistory.push(getCurrentIntervalMs());
+  levelHistory.push({ level: level + 1, atMax: getCurrentIntervalMs() === MIN_INTERVAL_MS });
 
   return correct ? 'correct' : 'wrong';
 }
@@ -503,12 +504,11 @@ export function isRunning() {
 }
 
 /**
- * Get the session speed history as an array of interval values in ms.
- * One entry is appended per completed trial after any staircase adjustment.
- * @returns {number[]}
+ * Get the session level history, one point per completed trial.
+ * @returns {Array<{ level: number, atMax: boolean }>}
  */
-export function getSpeedHistory() {
-  return [...speedHistory];
+export function getLevelHistory() {
+  return [...levelHistory];
 }
 
 /**

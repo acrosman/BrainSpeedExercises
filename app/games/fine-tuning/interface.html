@@ -83,14 +83,16 @@
 
     <!-- Speed trend chart -->
     <section class="game-trend" aria-labelledby="ft-trend-title">
-      <h4 id="ft-trend-title">Transition Speed (ms)</h4>
+      <h4 id="ft-trend-title">Level Trend</h4>
       <svg id="ft-trend-chart" class="game-trend__chart" viewBox="0 0 300 120" role="img"
-        aria-label="Consonant transition length trend over recent rounds">
+        aria-label="Level over recent rounds">
         <polyline id="ft-trend-line" fill="none" stroke="currentColor" stroke-width="2" points=""></polyline>
+        <path id="ft-trend-max" class="game-trend__max" fill="none" stroke="currentColor"
+          stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d=""></path>
       </svg>
       <p id="ft-trend-empty" class="game-trend__empty">Complete a round to populate chart.</p>
       <p class="game-trend__meta">
-        Latest: <strong id="ft-trend-latest">--</strong> ms
+        Latest level: <strong id="ft-trend-latest">--</strong>
       </p>
     </section>
 

@@ -29,7 +29,7 @@ import {
   NO_GO_KEY,
   GO_KEYS,
   setGoKeys,
-  getSpeedHistory,
+  getLevelHistory,
   recordGoResponseTime,
   getAverageResponseMs,
 } from '../game.js';
@@ -750,30 +750,40 @@ describe('isRunning()', () => {
   });
 });
 
-// ── getSpeedHistory ───────────────────────────────────────────────────────────
+// ── getLevelHistory ───────────────────────────────────────────────────────────
 
-describe('getSpeedHistory()', () => {
+describe('getLevelHistory()', () => {
   it('appends an entry after recordResponse', () => {
     startGame();
     recordResponse(false, true);
-    const history = getSpeedHistory();
-    expect(history).toHaveLength(1);
-    expect(typeof history[0]).toBe('number');
+    expect(getLevelHistory()).toEqual([{ level: 1, atMax: false }]);
+  });
+
+  it('marks the level as the maximum once the interval hits its floor', () => {
+    startGame();
+    // Stopping for the fish is the only outcome that counts toward a level-up.
+    for (let i = 0; i < 90; i += 1) {
+      recordResponse(true, false);
+    }
+    expect(getCurrentIntervalMs()).toBe(150);
+    const history = getLevelHistory();
+    expect(history[history.length - 1]).toEqual({ level: getLevel() + 1, atMax: true });
+    expect(history[0].atMax).toBe(false);
   });
 
   it('returns a copy so external mutations do not affect state', () => {
     startGame();
     recordResponse(false, true);
-    const h = getSpeedHistory();
+    const h = getLevelHistory();
     h.pop();
-    expect(getSpeedHistory()).toHaveLength(1);
+    expect(getLevelHistory()).toHaveLength(1);
   });
 
   it('resets to empty after initGame', () => {
     startGame();
     recordResponse(false, true);
     initGame();
-    expect(getSpeedHistory()).toEqual([]);
+    expect(getLevelHistory()).toEqual([]);
   });
 });
 

@@ -102,7 +102,7 @@ which keep their own frozen `--stim-*` colors (see below and
   - status: `--color-*` warning and danger;
   - game chrome: `--feedback-correct-*`, `--feedback-wrong-*`, and `--selected-bg` for answer
     states; `--game-results-*`; `--tutorial-marker`; `--callout-1..5` and `--callout-halo` for
-    tutorial screenshot callouts; `--trend-*`, including `--trend-line`;
+    tutorial screenshot callouts; `--trend-*`, including `--trend-line` and `--trend-line-max`;
   - charts: `--chart-color-0..9` and `--chart-color-total`.
 - `--stim-*` tokens hold the colors and corners of stimulus surfaces (what the player sees during
   a trial). They are frozen: changing them changes difficulty and makes saved thresholds

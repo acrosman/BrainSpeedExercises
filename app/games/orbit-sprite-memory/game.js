@@ -68,11 +68,12 @@ let running = false;
 let startTime = null;
 
 /**
- * Session history of display durations in ms, one entry per completed round.
- * Used to render the in-game speed trend chart.
- * @type {number[]}
+ * Session level history, one point per completed round: the 1-based level after
+ * any staircase adjustment, and whether it is the maximum level.
+ * Used to render the in-game level trend chart.
+ * @type {Array<{ level: number, atMax: boolean }>}
  */
-let speedHistory = [];
+let levelHistory = [];
 
 /**
  * Resets all gameplay state.
@@ -85,7 +86,7 @@ export function initGame() {
   consecutiveWrong = 0;
   running = false;
   startTime = null;
-  speedHistory = [];
+  levelHistory = [];
 }
 
 /**
@@ -128,6 +129,14 @@ export function stopGame() {
  */
 export function getDisplayDurationMs(lvl) {
   return Math.max(BASE_DISPLAY_MS - lvl * DISPLAY_DECREMENT_MS, MIN_DISPLAY_MS);
+}
+
+/**
+ * Append the current level to the level history. The level is the maximum once the
+ * display time has reached MIN_DISPLAY_MS, since higher levels are no faster.
+ */
+function recordLevelPoint() {
+  levelHistory.push({ level: level + 1, atMax: getDisplayDurationMs(level) === MIN_DISPLAY_MS });
 }
 
 /**
@@ -312,7 +321,7 @@ export function recordCorrectRound() {
   level = staircaseState.value;
   consecutiveCorrect = staircaseState.consecutiveCorrect;
   consecutiveWrong = staircaseState.consecutiveWrong;
-  speedHistory.push(getDisplayDurationMs(level));
+  recordLevelPoint();
 }
 
 /**
@@ -337,7 +346,7 @@ export function recordIncorrectRound() {
   level = staircaseState.value;
   consecutiveCorrect = staircaseState.consecutiveCorrect;
   consecutiveWrong = staircaseState.consecutiveWrong;
-  speedHistory.push(getDisplayDurationMs(level));
+  recordLevelPoint();
 }
 
 /**
@@ -391,10 +400,9 @@ export function isRunning() {
 }
 
 /**
- * Get the session speed history as an array of display durations in ms.
- * One entry is appended per completed round after any staircase adjustment.
- * @returns {number[]}
+ * Get the session level history, one point per completed round.
+ * @returns {Array<{ level: number, atMax: boolean }>}
  */
-export function getSpeedHistory() {
-  return [...speedHistory];
+export function getLevelHistory() {
+  return [...levelHistory];
 }

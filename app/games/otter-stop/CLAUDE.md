@@ -42,7 +42,9 @@ Stimulus surfaces keep their own colors and never take theme tokens:
   - No-go + press: a no-go hit.
 
   Three wrong in a row costs two levels.
-- The display interval is `1500 × 0.88^level` ms, with a floor of 150 ms.
+- The display interval is `1500 × 0.88^level` ms, with a floor of 150 ms. The trend chart
+  marks the level as the maximum from the floor on (level 19), although runs keep getting
+  longer.
 - Go reaction times feed `getAverageResponseMs()`. The UI refreshes the average only after a
   no-go trial.
 - `sessionBestScore` deliberately survives `initGame()`.
