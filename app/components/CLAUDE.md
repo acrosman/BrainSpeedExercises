@@ -80,7 +80,8 @@ Add new sounds here, with their tuning values as named constants at the top of t
 sounds go in `syllableService.js` instead. `npm run sound-harness` (in `scripts/sound-harness/`)
 plays every sound here without a game. Each exported `play*` function that takes no arguments
 gets a button by itself. A sound that needs arguments needs an entry in `SOUND_PRESETS` in
-`harness.js`; `harness.test.js` fails until it has one.
+`harness.js`, or in `SOUND_WRAPPERS` if it only picks between other sounds (as
+`playFeedbackSound` does); `harness.test.js` fails until it has one.
 
 ## `syllableService.js`
 

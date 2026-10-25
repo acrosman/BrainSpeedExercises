@@ -11,6 +11,7 @@ import {
 const {
   DEFAULT_SWEEP_SETTINGS,
   SOUND_PRESETS,
+  SOUND_WRAPPERS,
   listSoundEffects,
   listUncoveredSounds,
   getSoundLabel,
@@ -63,6 +64,14 @@ describe('the real audio service', () => {
     ]));
   });
 
+  test('every wrapper only chooses between sounds that have their own buttons', () => {
+    const buttonSounds = listSoundEffects(audio);
+    Object.entries(SOUND_WRAPPERS).forEach(([wrapper, sounds]) => {
+      expect(typeof audio[wrapper]).toBe('function');
+      expect(buttonSounds).toEqual(expect.arrayContaining(sounds));
+    });
+  });
+
   test('every preset names a function the service exports', () => {
     SOUND_PRESETS.forEach((preset) => {
       expect(typeof audio[preset.exportName]).toBe('function');
@@ -80,6 +89,10 @@ describe('listSoundEffects', () => {
 });
 
 describe('listUncoveredSounds', () => {
+  test('skips wrappers, which have no buttons of their own', () => {
+    expect(listUncoveredSounds(buildSoundModule())).toEqual([]);
+  });
+
   test('names a sound that needs arguments and has no preset', () => {
     const sounds = { ...buildSoundModule(), playChordSound: (notes) => notes };
     expect(listUncoveredSounds(sounds)).toEqual(['playChordSound']);
@@ -117,8 +130,6 @@ describe('renderSoundButtons', () => {
     expect(labels).toEqual([
       'Card flick',
       'Shuffle',
-      'Feedback: success',
-      'Feedback: failure',
       'Sweeps: Up-Up',
       'Sweeps: Up-Down',
       'Sweeps: Down-Up',
@@ -137,7 +148,7 @@ describe('renderSoundButtons', () => {
     expect(sounds.playCardFlickSound).not.toHaveBeenCalled();
   });
 
-  test('preset buttons pass their arguments and read the sweep timing on each click', () => {
+  test('sweep buttons pass their sequence and read the sweep timing on each click', () => {
     const list = document.createElement('ul');
     const sounds = buildSoundModule();
     const readSettings = jest.fn()
@@ -149,9 +160,7 @@ describe('renderSoundButtons', () => {
 
     byLabel('Sweeps: Up-Down').click();
     byLabel('Sweeps: Down-Down').click();
-    byLabel('Feedback: failure').click();
 
-    expect(sounds.playFeedbackSound).toHaveBeenCalledWith(false);
     expect(sounds.playSweepPair).toHaveBeenNthCalledWith(
       1,
       ['up', 'down'],

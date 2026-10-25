@@ -4,8 +4,9 @@
  * Builds one button per sound that audioService.js can make. Every exported
  * `play*` function that takes no arguments gets a button without changes to
  * the harness. A sound that needs arguments gets its buttons from
- * SOUND_PRESETS; `listUncoveredSounds` names any that are missing, and the
- * harness test fails until a preset is added.
+ * SOUND_PRESETS, unless SOUND_WRAPPERS lists it as only choosing between
+ * other sounds. `listUncoveredSounds` names any that are missing, and the
+ * harness test fails until one is added.
  *
  * @file Sound harness page.
  */
@@ -31,6 +32,16 @@ function capitalize(word) {
 }
 
 /**
+ * Functions that only play other sounds, mapped to the sounds they choose between. They get
+ * no buttons of their own, so each sound has exactly one button.
+ *
+ * @type {Readonly<Record<string, ReadonlyArray<string>>>}
+ */
+export const SOUND_WRAPPERS = Object.freeze({
+  playFeedbackSound: Object.freeze(['playSuccessSound', 'playFailureSound']),
+});
+
+/**
  * Buttons for sounds that need arguments. `getArgs(settings)` returns the arguments to pass,
  * where `settings` is the page's current sweep timing from {@link readSweepSettings}.
  *
@@ -41,8 +52,6 @@ function capitalize(word) {
  * }>}
  */
 export const SOUND_PRESETS = Object.freeze([
-  { exportName: 'playFeedbackSound', label: 'Feedback: success', getArgs: () => [true] },
-  { exportName: 'playFeedbackSound', label: 'Feedback: failure', getArgs: () => [false] },
   ...SWEEP_SEQUENCES.map((sequence) => ({
     exportName: 'playSweepPair',
     label: `Sweeps: ${sequence.map(capitalize).join('-')}`,
@@ -73,7 +82,8 @@ export function listSoundEffects(soundModule) {
 }
 
 /**
- * List the sounds that need arguments but have no preset, so the harness cannot play them.
+ * List the sounds that need arguments but have no preset and are not wrappers, so the
+ * harness cannot play them.
  *
  * @param {Record<string, unknown>} soundModule
  * @returns {string[]} Export names, sorted.
@@ -81,7 +91,9 @@ export function listSoundEffects(soundModule) {
 export function listUncoveredSounds(soundModule) {
   const presetNames = new Set(SOUND_PRESETS.map((preset) => preset.exportName));
   return listPlayFunctions(soundModule)
-    .filter((key) => soundModule[key].length > 0 && !presetNames.has(key));
+    .filter((key) => soundModule[key].length > 0
+      && !presetNames.has(key)
+      && !Object.hasOwn(SOUND_WRAPPERS, key));
 }
 
 /**
