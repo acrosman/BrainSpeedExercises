@@ -43,6 +43,9 @@ export const DEFAULT_DOWN_AFTER_SUCCESSES = 3;
 /** Grid sizes used by the game. */
 export const GRID_SIZES = [3, 5];
 
+/** SOA in ms at or below which the toy can appear in any non-center cell, not just the edge. */
+export const ANY_CELL_SOA_MS = 150;
+
 /** Central stimulus set (kitten variants). */
 export const CENTRAL_TARGET_SET = [
   { id: 'primary-kitten', file: 'primaryKitten.png', width: 220, height: 220 },
@@ -205,13 +208,24 @@ export function getGridSizeForCurrentSoa() {
 }
 
 /**
+ * Whether the toy can appear in any non-center cell at the current SOA. Above
+ * ANY_CELL_SOA_MS it stays on the outer edge of the grid.
+ *
+ * @returns {boolean}
+ */
+export function isAnyCellPlacementForCurrentSoa() {
+  return currentSoaMs <= ANY_CELL_SOA_MS;
+}
+
+/**
  * Build a randomized layout for a grid of the given size, with one central kitten and one
- * toy target on the outer edge.
+ * toy target on the outer edge, or in any non-center cell when `anyCell` is true.
  *
  * @param {number} gridSize - Number of rows and columns.
+ * @param {boolean} [anyCell=false] - Allow the toy in inner cells as well as the edge.
  * @returns {ReturnType<typeof createTrialLayout>}
  */
-function buildTrialLayout(gridSize) {
+function buildTrialLayout(gridSize, anyCell = false) {
   const totalCells = gridSize * gridSize;
   const centerIndex = Math.floor(totalCells / 2);
   const centerIcon = CENTRAL_TARGET_SET[Math.floor(Math.random() * CENTRAL_TARGET_SET.length)];
@@ -221,6 +235,7 @@ function buildTrialLayout(gridSize) {
 
   const candidateIndices = Array.from({ length: totalCells }, (_, i) => i).filter((i) => {
     if (i === centerIndex) return false;
+    if (anyCell) return true;
     const row = Math.floor(i / gridSize);
     const col = i % gridSize;
     return row === 0 || row === gridSize - 1 || col === 0 || col === gridSize - 1;
@@ -251,8 +266,9 @@ function buildTrialLayout(gridSize) {
 }
 
 /**
- * Build a randomized trial layout with one central kitten and one toy target
- * on the outer edge of the grid, sized for the current SOA.
+ * Build a randomized trial layout with one central kitten and one toy target, sized for the
+ * current SOA. The toy is on the outer edge of the grid until the SOA reaches
+ * ANY_CELL_SOA_MS, then in any cell except the center.
  *
  * @returns {{
  *   gridSize: number,
@@ -268,7 +284,7 @@ function buildTrialLayout(gridSize) {
  * }}
  */
 export function createTrialLayout() {
-  return buildTrialLayout(getGridSizeForCurrentSoa());
+  return buildTrialLayout(getGridSizeForCurrentSoa(), isAnyCellPlacementForCurrentSoa());
 }
 
 /**

@@ -1,4 +1,5 @@
 /** @jest-environment node */
+import { jest } from '@jest/globals';
 import {
   GAME_ID,
   START_SOA_MS,
@@ -9,6 +10,7 @@ import {
   DEFAULT_ACCURACY_BUFFER_SIZE,
   DEFAULT_DOWN_AFTER_SUCCESSES,
   GRID_SIZES,
+  ANY_CELL_SOA_MS,
   CENTRAL_TARGET_SET,
   PERIPHERAL_TARGET_SET,
   MASK_SPEC,
@@ -16,6 +18,7 @@ import {
   startGame,
   stopGame,
   getGridSizeForCurrentSoa,
+  isAnyCellPlacementForCurrentSoa,
   createTrialLayout,
   createPracticeTrial,
   recordTrial,
@@ -35,6 +38,39 @@ import manifest from '../manifest.json' with { type: 'json' };
 beforeEach(() => {
   initGame();
 });
+
+/**
+ * Record three-success chunks until the SOA is at or below the target.
+ *
+ * @param {number} targetMs - SOA in ms to reach.
+ */
+function lowerSoaTo(targetMs) {
+  const chunksNeeded = Math.ceil((START_SOA_MS - targetMs) / DEFAULT_STEP_DOWN_MS);
+  for (let i = 0; i < chunksNeeded * 3; i += 1) {
+    recordTrial({ success: true });
+  }
+}
+
+/**
+ * Build one layout per candidate slot by steering Math.random, and return the distinct toy
+ * cells in ascending order.
+ *
+ * @param {number} slots - Number of candidate slots to sample evenly.
+ * @returns {number[]}
+ */
+function sampleToyIndices(slots) {
+  const indices = new Set();
+  const spy = jest.spyOn(Math, 'random');
+  try {
+    for (let k = 0; k < slots; k += 1) {
+      spy.mockReturnValue((k + 0.5) / slots);
+      indices.add(createTrialLayout().peripheralIndex);
+    }
+  } finally {
+    spy.mockRestore();
+  }
+  return [...indices].sort((a, b) => a - b);
+}
 
 describe('asset specs', () => {
   test('defines kitten, toy, and field-mask specs', () => {
@@ -191,6 +227,42 @@ describe('createTrialLayout', () => {
         expect(cell.icon).toBeNull();
       }
     });
+  });
+});
+
+describe('isAnyCellPlacementForCurrentSoa', () => {
+  test('is false at the starting SOA', () => {
+    expect(isAnyCellPlacementForCurrentSoa()).toBe(false);
+  });
+
+  test('becomes true once SOA drops to ANY_CELL_SOA_MS or lower', () => {
+    lowerSoaTo(ANY_CELL_SOA_MS + DEFAULT_STEP_DOWN_MS);
+    expect(getCurrentSoaMs()).toBeGreaterThan(ANY_CELL_SOA_MS);
+    expect(isAnyCellPlacementForCurrentSoa()).toBe(false);
+
+    lowerSoaTo(ANY_CELL_SOA_MS);
+    expect(getCurrentSoaMs()).toBeLessThanOrEqual(ANY_CELL_SOA_MS);
+    expect(isAnyCellPlacementForCurrentSoa()).toBe(true);
+  });
+});
+
+describe('toy placement', () => {
+  test('keeps the toy on the outer edge of the 5x5 grid above ANY_CELL_SOA_MS', () => {
+    lowerSoaTo(ANY_CELL_SOA_MS + DEFAULT_STEP_DOWN_MS);
+    expect(getGridSizeForCurrentSoa()).toBe(5);
+
+    const edgeCells = [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24];
+    expect(sampleToyIndices(edgeCells.length)).toEqual(edgeCells);
+  });
+
+  test('places the toy in any cell but the center at or below ANY_CELL_SOA_MS', () => {
+    lowerSoaTo(ANY_CELL_SOA_MS);
+    const layout = createTrialLayout();
+    expect(layout.gridSize).toBe(5);
+
+    const nonCenterCells = Array.from({ length: 25 }, (_, i) => i)
+      .filter((i) => i !== layout.centerIndex);
+    expect(sampleToyIndices(nonCenterCells.length)).toEqual(nonCenterCells);
   });
 });
 
