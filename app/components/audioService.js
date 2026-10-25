@@ -134,7 +134,7 @@ const SHUFFLE_RIFFLE_FADE_S = 0.06;
  * Coefficient (0–1) of the one-pole low-pass applied to the raw noise.
  * Lower values give a darker, softer hiss.
  */
-const SHUFFLE_NOISE_SMOOTHING = 0.35;
+const SHUFFLE_NOISE_SMOOTHING = 0.2;
 
 /** Duration (s) of the soft swish as the riffled halves are pushed together. */
 const SHUFFLE_BRIDGE_DURATION_S = 0.3;
@@ -143,13 +143,13 @@ const SHUFFLE_BRIDGE_DURATION_S = 0.3;
 const SHUFFLE_BRIDGE_LEVEL = 0.6;
 
 /** Cutoff frequency (Hz) of the low-pass filter that takes the edge off the noise. */
-const SHUFFLE_FILTER_FREQ_HZ = 3000;
+const SHUFFLE_FILTER_FREQ_HZ = 2000;
 
 /** Q of the shuffle low-pass filter. Below 0.707 so the cutoff has no resonant peak. */
 const SHUFFLE_FILTER_Q = 0.5;
 
 /** Overall gain of the shuffle sound. */
-const SHUFFLE_PEAK_GAIN = 0.25;
+const SHUFFLE_PEAK_GAIN = 0.15;
 
 /** Total duration (s) of the shuffle sound: the riffle, then the bridge swish. */
 export const SHUFFLE_SOUND_DURATION_S = SHUFFLE_RIFFLE_DURATION_S + SHUFFLE_BRIDGE_DURATION_S;

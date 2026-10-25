@@ -577,8 +577,18 @@ describe('playShuffleSound', () => {
 
     const filter = mockCtx.createBiquadFilter.mock.results[0].value;
     expect(filter.type).toBe('lowpass');
-    expect(filter.frequency.setValueAtTime).toHaveBeenCalledWith(3000, 0);
+    expect(filter.frequency.setValueAtTime).toHaveBeenCalledWith(2000, 0);
     expect(filter.Q.setValueAtTime).toHaveBeenCalledWith(0.5, 0);
+    restore();
+  });
+
+  test('plays at the shuffle gain', () => {
+    const { mockCtx, restore } = useMockContext();
+
+    playShuffleSound();
+
+    const gain = mockCtx.createGain.mock.results[0].value;
+    expect(gain.gain.setValueAtTime).toHaveBeenCalledWith(0.15, 0);
     restore();
   });
 
