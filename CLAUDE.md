@@ -35,7 +35,7 @@ npm test               # Jest (runs with --experimental-vm-modules for native ES
 npm test -- app/games/fast-piggie   # run a subset of tests by path
 npm run test:coverage  # enforces the coverage thresholds below
 npm run make           # build installers with Electron Forge (forge.config.cjs)
-npm run sound-harness  # window with a button per audioService sound, to hear one alone
+npm run sound-harness  # window that plays each audioService sound on its own
 ```
 
 Before calling work done, run `npm run lint` and `npm test`. Run `npm audit` before merging.

@@ -78,8 +78,9 @@ where Web Audio is missing. Every sound resumes a suspended context and swallows
 
 Add new sounds here, with their tuning values as named constants at the top of the file. Speech
 sounds go in `syllableService.js` instead. `npm run sound-harness` (in `scripts/sound-harness/`)
-shows a button for every exported `play*` function that takes no arguments, so a new sound
-can be heard and tuned without playing a game.
+plays every sound here without a game. Each exported `play*` function that takes no arguments
+gets a button by itself. A sound that needs arguments needs an entry in `SOUND_PRESETS` in
+`harness.js`; `harness.test.js` fails until it has one.
 
 ## `syllableService.js`
 

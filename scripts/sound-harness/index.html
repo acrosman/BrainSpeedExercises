@@ -11,7 +11,18 @@
 <body>
   <main>
     <h1>Sound Harness</h1>
-    <p>Play each sound effect from <code>audioService.js</code> on its own.</p>
+    <p>Play each sound from <code>audioService.js</code> on its own.</p>
+    <fieldset class="sound-harness__settings">
+      <legend>Sweep timing</legend>
+      <label for="sweep-duration-ms">
+        Sweep length (ms)
+        <input id="sweep-duration-ms" type="number" min="1" step="1" value="600">
+      </label>
+      <label for="sweep-isi-ms">
+        Gap between sweeps (ms)
+        <input id="sweep-isi-ms" type="number" min="1" step="1" value="600">
+      </label>
+    </fieldset>
     <ul id="sound-list"></ul>
   </main>
 </body>
