@@ -30,6 +30,15 @@ export default [
       'no-console': 'off',
     },
   },
+  // Sound harness page script (runs in the browser)
+  {
+    files: ['scripts/sound-harness/harness.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+    },
+  },
   // Main process and Node.js backend — use electron-log, not console
   {
     files: ['main.js', 'app/games/registry.js', 'app/progress/**/*.js'],

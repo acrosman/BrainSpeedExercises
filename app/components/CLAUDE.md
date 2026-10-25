@@ -77,7 +77,9 @@ where Web Audio is missing. Every sound resumes a suspended context and swallows
   returns at once. Invalid input schedules nothing.
 
 Add new sounds here, with their tuning values as named constants at the top of the file. Speech
-sounds go in `syllableService.js` instead.
+sounds go in `syllableService.js` instead. `npm run sound-harness` (in `scripts/sound-harness/`)
+shows a button for every exported `play*` function that takes no arguments, so a new sound
+can be heard and tuned without playing a game.
 
 ## `syllableService.js`
 
