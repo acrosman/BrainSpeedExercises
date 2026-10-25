@@ -1,0 +1,33 @@
+/* Sound harness layout. Buttons use the app's shared .game-btn styles. */
+
+.sound-harness__settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.sound-harness__settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.sound-harness__settings input {
+  width: 8rem;
+  padding: 0.35rem 0.5rem;
+  font: inherit;
+}
+
+#sound-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}

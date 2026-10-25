@@ -29,6 +29,7 @@ import {
   stopGame,
   finalizeCurrentCard,
   dealNextCard,
+  shuffleForNextPass,
   respondToCurrentCard,
   getScore,
   getTriggerHits,
@@ -522,6 +523,79 @@ describe('deal and response flow', () => {
       dealNextCard();
     }
     expect(getDeckPasses()).toBeGreaterThanOrEqual(1);
+  });
+
+  test('dealNextCard reports deckExhausted only on the last card of a pass', () => {
+    startGame();
+    const flags = [];
+    for (let i = 0; i < getDeckSize(); i += 1) {
+      flags.push(dealNextCard().deckExhausted);
+    }
+    expect(flags.indexOf(true)).toBe(getDeckSize() - 1);
+    expect(flags.filter(Boolean)).toHaveLength(1);
+  });
+
+  test('shuffleForNextPass starts a new pass and leaves the last card current', () => {
+    startGame();
+    let last = null;
+    for (let i = 0; i < getDeckSize(); i += 1) {
+      last = dealNextCard().card;
+    }
+
+    expect(shuffleForNextPass()).toBe(1);
+    expect(getDeckIndex()).toBe(0);
+    expect(getDeckPasses()).toBe(1);
+    expect(getCurrentCard()).toBe(last);
+  });
+
+  test('a slap during the shuffle scores against the last card as usual', () => {
+    startGame();
+    expect(dealUntilTrigger()).toBe(true);
+    shuffleForNextPass();
+
+    expect(respondToCurrentCard()).toBe('hit');
+    expect(respondToCurrentCard()).toBe('ignored');
+    expect(getTriggerHits()).toBe(1);
+  });
+
+  test('a false alarm during the shuffle counts as usual', () => {
+    startGame();
+    dealNextCard();
+    expect(shouldReactNow()).toBe(false);
+    shuffleForNextPass();
+
+    expect(respondToCurrentCard()).toBe('false-alarm');
+    expect(getFalseAlarms()).toBe(1);
+  });
+
+  test('an unslapped trigger before the shuffle is a miss when the next card is dealt', () => {
+    startGame();
+    expect(dealUntilTrigger()).toBe(true);
+    shuffleForNextPass();
+    expect(getMisses()).toBe(0);
+
+    expect(dealNextCard().missedTrigger).toBe(true);
+    expect(getMisses()).toBe(1);
+  });
+
+  test('the first card after a shuffle pairs with the last card before it', () => {
+    startGame();
+    let last = null;
+    for (let i = 0; i < getDeckSize(); i += 1) {
+      last = dealNextCard().card;
+    }
+    // Math.random() near 1 makes the shuffle keep the deck in order, so the new pass starts
+    // with the same card that ended the old one.
+    randomSpy.mockReturnValue(0.999999);
+    shuffleForNextPass();
+    const next = dealNextCard();
+
+    expect(next.card).toEqual(last);
+    expect(next.mustReact).toBe(true);
+  });
+
+  test('shuffleForNextPass throws when the game is not running', () => {
+    expect(() => shuffleForNextPass()).toThrow('Game is not running.');
   });
 
   test('display duration does not go below minimum', () => {

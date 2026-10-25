@@ -42,6 +42,12 @@ export const DISPLAY_SPEED_FACTOR = 0.85;
 /** Upper bound on the speed level (prevents runaway acceleration). */
 export const MAX_SPEED_LEVEL = 50;
 
+/** Pause (ms) after the last card of a pass, before the shuffle starts. */
+export const SHUFFLE_PAUSE_MS = 500;
+
+/** Time (ms) the shuffle takes, from the start of its sound to the next deal. */
+export const SHUFFLE_DURATION_MS = 1200;
+
 /** @type {number} */
 let score = 0;
 
@@ -337,10 +343,39 @@ export function finalizeCurrentCard() {
 }
 
 /**
+ * Replace the deck with a freshly shuffled one and count the finished pass.
+ */
+function startNewDeckPass() {
+  deck = shuffleDeck(createGameplayDeck());
+  deckIndex = 0;
+  deckPasses += 1;
+}
+
+/**
+ * Shuffle a fresh deck for the next pass.
+ *
+ * Only the deck changes. The last card dealt stays current, so slaps on it score as usual,
+ * and the first card of the new pass can form a pair or sandwich with the cards before it.
+ *
+ * @returns {number} The number of completed deck passes.
+ * @throws {Error} If the game is not running.
+ */
+export function shuffleForNextPass() {
+  if (!running) {
+    throw new Error('Game is not running.');
+  }
+
+  startNewDeckPass();
+  return deckPasses;
+}
+
+/**
  * Draw the next card to show.
  *
  * This function finalizes the previous card window first, then deals the next
- * card. The full 55-card deck is reshuffled after each complete pass.
+ * card. `deckExhausted` is true once the last card of the pass is dealt; the
+ * caller then runs {@link shuffleForNextPass}. If it deals again instead, the
+ * deck is reshuffled here.
  *
  * @returns {{
  *   card: { rank: string, suit: string, isJoker: boolean, jokerVariant?: string },
@@ -349,6 +384,7 @@ export function finalizeCurrentCard() {
  *   displayDurationMs: number,
  *   deckIndex: number,
  *   deckPasses: number,
+ *   deckExhausted: boolean,
  * }}
  * @throws {Error} If the game is not running.
  */
@@ -360,9 +396,7 @@ export function dealNextCard() {
   const missedTrigger = finalizeCurrentCard();
 
   if (deckIndex >= deck.length) {
-    deck = shuffleDeck(createGameplayDeck());
-    deckIndex = 0;
-    deckPasses += 1;
+    startNewDeckPass();
   }
 
   const card = deck[deckIndex];
@@ -383,6 +417,7 @@ export function dealNextCard() {
     displayDurationMs,
     deckIndex,
     deckPasses,
+    deckExhausted: deckIndex >= deck.length,
   };
 }
 

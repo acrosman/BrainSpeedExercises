@@ -106,6 +106,54 @@ const CARD_SWISH_PEAK_GAIN = 0.075;
  */
 const CARD_FLIP_ATTACK_S = 0.002;
 
+// ── Deck shuffle sound constants ──────────────────────────────────────────────
+
+/** Duration (s) of the riffle, while the two halves fall together. */
+const SHUFFLE_RIFFLE_DURATION_S = 0.75;
+
+/**
+ * Flutter rate (Hz) at the start of the riffle: how many times a second the
+ * level dips as cards fall. It slows to SHUFFLE_FLUTTER_END_HZ as the last
+ * cards drop.
+ */
+const SHUFFLE_FLUTTER_START_HZ = 45;
+
+/** Flutter rate (Hz) at the end of the riffle. */
+const SHUFFLE_FLUTTER_END_HZ = 18;
+
+/**
+ * How far each flutter dips the level, from 0 (steady noise) to 1 (separate
+ * clicks). Keeping it well below 1 gives a smooth paper texture.
+ */
+const SHUFFLE_FLUTTER_DEPTH = 0.45;
+
+/** Fade-in and fade-out time (s) at each end of the riffle. */
+const SHUFFLE_RIFFLE_FADE_S = 0.06;
+
+/**
+ * Coefficient (0–1) of the one-pole low-pass applied to the raw noise.
+ * Lower values give a darker, softer hiss.
+ */
+const SHUFFLE_NOISE_SMOOTHING = 0.2;
+
+/** Duration (s) of the soft swish as the riffled halves are pushed together. */
+const SHUFFLE_BRIDGE_DURATION_S = 0.3;
+
+/** Loudness of the bridge swish relative to the riffle. */
+const SHUFFLE_BRIDGE_LEVEL = 0.6;
+
+/** Cutoff frequency (Hz) of the low-pass filter that takes the edge off the noise. */
+const SHUFFLE_FILTER_FREQ_HZ = 2000;
+
+/** Q of the shuffle low-pass filter. Below 0.707 so the cutoff has no resonant peak. */
+const SHUFFLE_FILTER_Q = 0.5;
+
+/** Overall gain of the shuffle sound. */
+const SHUFFLE_PEAK_GAIN = 0.15;
+
+/** Total duration (s) of the shuffle sound: the riffle, then the bridge swish. */
+export const SHUFFLE_SOUND_DURATION_S = SHUFFLE_RIFFLE_DURATION_S + SHUFFLE_BRIDGE_DURATION_S;
+
 // ── Frequency sweep constants ─────────────────────────────────────────────────
 
 /**
@@ -345,6 +393,87 @@ export function playCardFlickSound() {
     );
     snapOsc.start(snapStartTime);
     snapOsc.stop(snapStartTime + CARD_SNAP_DURATION_S);
+  } catch {
+    // Ignore audio errors in unsupported environments.
+  }
+}
+
+/**
+ * Write the shuffle waveform into a sample buffer.
+ *
+ * The riffle is softened noise whose level flutters smoothly, quickly at first
+ * and slower as the last cards fall, with a fade at each end. A gentler noise
+ * swish follows, rising and falling over SHUFFLE_BRIDGE_DURATION_S.
+ *
+ * @param {Float32Array} channelData - Buffer of SHUFFLE_SOUND_DURATION_S worth of samples.
+ * @param {number} sampleRate - Samples per second.
+ */
+function fillShuffleSamples(channelData, sampleRate) {
+  const riffleLength = Math.floor(SHUFFLE_RIFFLE_DURATION_S * sampleRate);
+  const fadeLength = SHUFFLE_RIFFLE_FADE_S * sampleRate;
+  const bridgeLength = channelData.length - riffleLength;
+  const flutterSpanHz = SHUFFLE_FLUTTER_END_HZ - SHUFFLE_FLUTTER_START_HZ;
+  let noise = 0;
+  let flutterPhase = 0;
+
+  for (let i = 0; i < channelData.length; i += 1) {
+    noise += SHUFFLE_NOISE_SMOOTHING * (Math.random() * 2 - 1 - noise);
+
+    if (i < riffleLength) {
+      const flutterHz = SHUFFLE_FLUTTER_START_HZ + flutterSpanHz * (i / riffleLength);
+      flutterPhase += (2 * Math.PI * flutterHz) / sampleRate;
+      const flutter = 1 - SHUFFLE_FLUTTER_DEPTH * (0.5 + 0.5 * Math.cos(flutterPhase));
+      const fade = Math.min(1, i / fadeLength, (riffleLength - i) / fadeLength);
+      channelData[i] = noise * flutter * fade;
+    } else {
+      const envelope = Math.sin((Math.PI * (i - riffleLength)) / bridgeLength);
+      channelData[i] = noise * SHUFFLE_BRIDGE_LEVEL * envelope;
+    }
+  }
+}
+
+/**
+ * Play a synthesized deck-shuffling sound: the flutter of a riffle, then the
+ * swish of the two halves being pushed together.
+ *
+ * The waveform is generated noise (see {@link fillShuffleSamples}) played
+ * through a low-pass filter, so no audio file is needed. It lasts
+ * SHUFFLE_SOUND_DURATION_S.
+ *
+ * Uses the shared AudioContext from {@link getAudioContext}.
+ */
+export function playShuffleSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => { });
+    }
+
+    const now = ctx.currentTime;
+
+    const bufferSize = Math.ceil(ctx.sampleRate * SHUFFLE_SOUND_DURATION_S);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    fillShuffleSamples(buffer.getChannelData(0), ctx.sampleRate);
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(SHUFFLE_FILTER_FREQ_HZ, now);
+    filter.Q.setValueAtTime(SHUFFLE_FILTER_Q, now);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(SHUFFLE_PEAK_GAIN, now);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    source.start(now);
+    source.stop(now + SHUFFLE_SOUND_DURATION_S);
   } catch {
     // Ignore audio errors in unsupported environments.
   }

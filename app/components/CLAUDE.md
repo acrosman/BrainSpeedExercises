@@ -70,12 +70,18 @@ where Web Audio is missing. Every sound resumes a suspended context and swallows
 
 - Feedback: `playSuccessSound()`, `playFailureSound()`, and `playFeedbackSound(isSuccess)`.
 - `playCardFlickSound()`: a short card snap.
+- `playShuffleSound()`: a deck riffle, generated as softened noise that flutters as the cards
+  fall, then a soft swish. It lasts `SHUFFLE_SOUND_DURATION_S`.
 - `playSweepPair(['up' | 'down', 'up' | 'down'], { sweepDurationMs, isiMs })` schedules two
   frequency sweeps between `SWEEP_LOW_FREQ_HZ` and `SWEEP_HIGH_FREQ_HZ` on the context clock and
   returns at once. Invalid input schedules nothing.
 
 Add new sounds here, with their tuning values as named constants at the top of the file. Speech
-sounds go in `syllableService.js` instead.
+sounds go in `syllableService.js` instead. `npm run sound-harness` (in `scripts/sound-harness/`)
+plays every sound here without a game. Each exported `play*` function that takes no arguments
+gets a button by itself. A sound that needs arguments needs an entry in `SOUND_PRESETS` in
+`harness.js`, or in `SOUND_WRAPPERS` if it only picks between other sounds (as
+`playFeedbackSound` does); `harness.test.js` fails until it has one.
 
 ## `syllableService.js`
 

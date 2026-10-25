@@ -32,6 +32,7 @@ jest.unstable_mockModule('../../../components/audioService.js', () => ({
   playSuccessSound: jest.fn(),
   playFailureSound: jest.fn(),
   playCardFlickSound: jest.fn(),
+  playShuffleSound: jest.fn(),
 }));
 
 jest.unstable_mockModule('../../../components/trendChartService.js', () => ({
@@ -59,6 +60,8 @@ jest.unstable_mockModule('../game.js', () => ({
   GAME_ID: 'card-rat',
   RANKS: ['A', '2', '3'],
   SUITS: ['hearts', 'spades'],
+  SHUFFLE_PAUSE_MS: 500,
+  SHUFFLE_DURATION_MS: 1200,
   initGame: jest.fn(),
   startGame: jest.fn(),
   stopGame: jest.fn(() => ({
@@ -79,6 +82,7 @@ jest.unstable_mockModule('../game.js', () => ({
     deckIndex: 1,
     deckPasses: 0,
   })),
+  shuffleForNextPass: jest.fn(() => 1),
   respondToCurrentCard: jest.fn(() => 'hit'),
   getScore: jest.fn(() => 3),
   getTriggerHits: jest.fn(() => 2),
@@ -123,6 +127,8 @@ const {
   renderCard,
   renderDeckBack,
   beginDealLoop,
+  beginShuffle,
+  playShuffle,
   handleReaction,
   handleKeyDown,
   attachGlobalKeyListener,
@@ -579,6 +585,106 @@ describe('hint toggle', () => {
   });
 });
 
+
+describe('shuffling between deck passes', () => {
+  /** The deal result for the last card of a pass. */
+  const LAST_CARD_DEAL = {
+    card: { rank: 'K', suit: 'spades', isJoker: false },
+    mustReact: false,
+    missedTrigger: false,
+    displayDurationMs: 1200,
+    deckIndex: 55,
+    deckPasses: 0,
+    deckExhausted: true,
+  };
+
+  test('the last card of a pass leads to a shuffle, not another deal', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.dealNextCard.mockReturnValueOnce(LAST_CARD_DEAL);
+    await plugin.start();
+
+    gameMock.dealNextCard.mockClear();
+    jest.advanceTimersByTime(1200);
+
+    expect(gameMock.shuffleForNextPass).toHaveBeenCalledTimes(1);
+    expect(gameMock.dealNextCard).not.toHaveBeenCalled();
+    expect(container.querySelector('#cr-feedback').textContent).toBe('Shuffling');
+    expect(container.querySelector('#cr-card').getAttribute('aria-label'))
+      .toBe('Current card: K♠');
+  });
+
+  test('pauses, plays the shuffle, then deals the first card of the new pass', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.dealNextCard.mockReturnValueOnce(LAST_CARD_DEAL);
+    await plugin.start();
+    const deckCard = container.querySelector('#cr-deck-card');
+
+    jest.advanceTimersByTime(1200);
+    jest.advanceTimersByTime(499);
+    expect(audioMock.playShuffleSound).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    expect(audioMock.playShuffleSound).toHaveBeenCalledTimes(1);
+    expect(deckCard.classList.contains('card-rat__card--shuffling')).toBe(true);
+
+    gameMock.dealNextCard.mockClear();
+    jest.advanceTimersByTime(1199);
+    expect(gameMock.dealNextCard).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    expect(gameMock.dealNextCard).toHaveBeenCalledTimes(1);
+    expect(deckCard.classList.contains('card-rat__card--shuffling')).toBe(false);
+    expect(container.querySelector('#cr-feedback').textContent).not.toBe('Shuffling');
+  });
+
+  test('a slap during the shuffle is scored and shown as usual', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    beginShuffle();
+
+    gameMock.respondToCurrentCard.mockReturnValueOnce('false-alarm');
+    handleReaction();
+
+    expect(audioMock.playFailureSound).toHaveBeenCalled();
+    expect(container.querySelector('#cr-feedback').textContent).toContain('Too soon');
+  });
+
+  test('beginShuffle does nothing when the game is not running', () => {
+    plugin.init(buildContainer());
+    gameMock.isRunning.mockReturnValueOnce(false);
+
+    beginShuffle();
+
+    expect(gameMock.shuffleForNextPass).not.toHaveBeenCalled();
+  });
+
+  test('playShuffle skips the shuffle sound when card sounds are off', () => {
+    const container = buildContainer();
+    plugin.init(container);
+    container.querySelector('#cr-card-sound-toggle').checked = false;
+
+    playShuffle();
+
+    expect(audioMock.playShuffleSound).not.toHaveBeenCalled();
+    expect(container.querySelector('#cr-deck-card').classList
+      .contains('card-rat__card--shuffling')).toBe(true);
+  });
+
+  test('ending the game during the shuffle cancels the next deal', async () => {
+    const container = buildContainer();
+    plugin.init(container);
+    gameMock.dealNextCard.mockReturnValueOnce(LAST_CARD_DEAL);
+    await plugin.start();
+    jest.advanceTimersByTime(1200);
+
+    plugin.stop();
+    gameMock.dealNextCard.mockClear();
+    jest.advanceTimersByTime(5000);
+
+    expect(audioMock.playShuffleSound).not.toHaveBeenCalled();
+    expect(gameMock.dealNextCard).not.toHaveBeenCalled();
+  });
+});
 
 describe('beginDealLoop guard', () => {
   test('returns early when game is not running', () => {

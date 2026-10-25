@@ -12,6 +12,7 @@ import {
   playSuccessSound,
   playFailureSound,
   playCardFlickSound,
+  playShuffleSound,
 } from '../../components/audioService.js';
 import { saveScore } from '../../components/scoreService.js';
 import { focusHeading, returnToMainMenu } from '../../components/gameUtils.js';
@@ -247,6 +248,7 @@ export function renderCard(card) {
  */
 export function renderDeckBack() {
   if (!_deckCardEl) return;
+  _deckCardEl.classList.remove('card-rat__card--shuffling');
   _deckCardEl.setAttribute('aria-label', 'Deck back');
   applyCardImage(_deckCardEl, getDeckBackImagePath());
 }
@@ -260,10 +262,19 @@ export function updateHintVisibility() {
 }
 
 /**
+ * Return whether card sounds (dealing and shuffling) are on.
+ *
+ * @returns {boolean}
+ */
+function areCardSoundsOn() {
+  return !_cardSoundToggleEl || _cardSoundToggleEl.checked;
+}
+
+/**
  * Play the card flick sound, unless the player turned card sounds off.
  */
 function playDealSound() {
-  if (!_cardSoundToggleEl || _cardSoundToggleEl.checked) {
+  if (areCardSoundsOn()) {
     playCardFlickSound();
   }
 }
@@ -298,8 +309,44 @@ export function beginDealLoop() {
 
   clearDealTimer();
   _dealTimer = setTimeout(() => {
-    beginDealLoop();
+    if (next.deckExhausted) {
+      beginShuffle();
+    } else {
+      beginDealLoop();
+    }
   }, next.displayDurationMs);
+}
+
+/**
+ * Shuffle a fresh deck after the last card of a pass, pausing before the shuffle starts.
+ *
+ * The last card stays on the table and slaps on it score as usual. The status area reads
+ * "Shuffling" until a slap or the next deal replaces it.
+ */
+export function beginShuffle() {
+  if (!game.isRunning()) return;
+
+  game.shuffleForNextPass();
+  if (_feedbackEl) _feedbackEl.textContent = 'Shuffling';
+  updateStats();
+
+  clearDealTimer();
+  _dealTimer = setTimeout(playShuffle, game.SHUFFLE_PAUSE_MS);
+}
+
+/**
+ * Shuffle the deck with its sound and animation, then deal the first card of the new pass.
+ */
+export function playShuffle() {
+  if (_deckCardEl) _deckCardEl.classList.add('card-rat__card--shuffling');
+  if (areCardSoundsOn()) {
+    playShuffleSound();
+  }
+
+  _dealTimer = setTimeout(() => {
+    renderDeckBack();
+    beginDealLoop();
+  }, game.SHUFFLE_DURATION_MS);
 }
 
 /**
