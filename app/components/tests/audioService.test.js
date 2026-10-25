@@ -3,7 +3,8 @@
  * audioService.test.js - Unit tests for the central audio service.
  *
  * Covers all exported functions: getAudioContext, playSuccessSound,
- * playFailureSound, playFeedbackSound, playCardFlickSound, and playSweepPair.
+ * playFailureSound, playFeedbackSound, playCardFlickSound, playShuffleSound, and
+ * playSweepPair.
  */
 import {
   jest,
@@ -54,6 +55,9 @@ function buildMockAudioContext(state = 'running') {
     frequency: {
       setValueAtTime: jest.fn(),
     },
+    Q: {
+      setValueAtTime: jest.fn(),
+    },
   });
 
   const mockCtx = {
@@ -83,6 +87,8 @@ const {
   playFailureSound,
   playFeedbackSound,
   playCardFlickSound,
+  playShuffleSound,
+  SHUFFLE_SOUND_DURATION_S,
   playSweepPair,
   SWEEP_LOW_FREQ_HZ,
   SWEEP_HIGH_FREQ_HZ,
@@ -508,6 +514,121 @@ describe('playCardFlickSound', () => {
   });
 });
 
+
+describe('playShuffleSound', () => {
+  /**
+   * Install a fresh mock AudioContext for one test.
+   *
+   * @param {string} [state='running']
+   * @returns {{ mockCtx: object, restore: () => void }}
+   */
+  function useMockContext(state = 'running') {
+    const { mockCtx, MockAC } = buildMockAudioContext(state);
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = MockAC;
+    return { mockCtx, restore: () => { globalThis.AudioContext = original; } };
+  }
+
+  test('plays one generated buffer for the full shuffle duration', () => {
+    const { mockCtx, restore } = useMockContext();
+
+    playShuffleSound();
+
+    const expectedLength = Math.ceil(44100 * SHUFFLE_SOUND_DURATION_S);
+    expect(mockCtx.createBuffer).toHaveBeenCalledWith(1, expectedLength, 44100);
+    const source = mockCtx.createBufferSource.mock.results[0].value;
+    expect(source.buffer).toBe(mockCtx.createBuffer.mock.results[0].value);
+    expect(source.start).toHaveBeenCalledWith(0);
+    expect(source.stop).toHaveBeenCalledWith(SHUFFLE_SOUND_DURATION_S);
+    restore();
+  });
+
+  test('fills the buffer with riffle clicks and a bridge swish', () => {
+    const { mockCtx, restore } = useMockContext();
+    // 0.75 makes every noise sample 0.5 and shifts every click by the same jitter.
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.75);
+
+    playShuffleSound();
+
+    const buffer = mockCtx.createBuffer.mock.results[0].value;
+    const samples = buffer.getChannelData.mock.results[0].value;
+    const spacing = Math.round(44100 * (0.7 / 28));
+    const firstClick = Math.round(44100 * 0.25 * 0.4 * (0.7 / 28));
+    const riffleEnd = Math.floor(44100 * 0.7);
+    // Silence before the first click, a full-level onset, and a gap before the next click.
+    expect(samples[firstClick - 1]).toBe(0);
+    expect(samples[firstClick]).toBeCloseTo(0.5);
+    expect(samples[firstClick + spacing - 1]).toBe(0);
+    // The bridge swish rises from silence to a peak below the clicks.
+    const bridge = samples.subarray(riffleEnd);
+    expect(bridge[0]).toBe(0);
+    expect(Math.max(...bridge)).toBeCloseTo(0.5 * 0.35, 3);
+    randomSpy.mockRestore();
+    restore();
+  });
+
+  test('routes the noise through a band-pass filter', () => {
+    const { mockCtx, restore } = useMockContext();
+
+    playShuffleSound();
+
+    const filter = mockCtx.createBiquadFilter.mock.results[0].value;
+    expect(filter.type).toBe('bandpass');
+    expect(filter.frequency.setValueAtTime).toHaveBeenCalledWith(2500, 0);
+    expect(filter.Q.setValueAtTime).toHaveBeenCalledWith(0.7, 0);
+    restore();
+  });
+
+  test('resumes a suspended context before playing', () => {
+    const { mockCtx, restore } = useMockContext('suspended');
+
+    playShuffleSound();
+
+    expect(mockCtx.resume).toHaveBeenCalled();
+    restore();
+  });
+
+  test('handles resume rejection gracefully', async () => {
+    const { mockCtx, restore } = useMockContext('suspended');
+    mockCtx.resume = jest.fn().mockRejectedValue(new Error('cannot resume'));
+
+    expect(() => playShuffleSound()).not.toThrow();
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+
+    restore();
+  });
+
+  test('does not throw when no AudioContext is available', () => {
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+    const original = globalThis.AudioContext;
+    delete globalThis.AudioContext;
+    if (globalThis.window) delete globalThis.window.webkitAudioContext;
+
+    expect(() => playShuffleSound()).not.toThrow();
+
+    globalThis.AudioContext = original;
+  });
+
+  test('swallows errors thrown during audio node setup', () => {
+    const existing = getAudioContext();
+    if (existing) existing.state = 'closed';
+    const original = globalThis.AudioContext;
+    globalThis.AudioContext = jest.fn(() => ({
+      state: 'running',
+      currentTime: 0,
+      sampleRate: 44100,
+      destination: {},
+      createBuffer: jest.fn(() => { throw new Error('buffer error'); }),
+    }));
+
+    expect(() => playShuffleSound()).not.toThrow();
+
+    globalThis.AudioContext = original;
+  });
+});
 
 describe('playSweepPair', () => {
   test('exported frequency constants are positive numbers', () => {

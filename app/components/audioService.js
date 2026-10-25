@@ -106,6 +106,41 @@ const CARD_SWISH_PEAK_GAIN = 0.075;
  */
 const CARD_FLIP_ATTACK_S = 0.002;
 
+// ── Deck shuffle sound constants ──────────────────────────────────────────────
+
+/** Number of card clicks in the riffle (about half a deck, as the halves interleave). */
+const SHUFFLE_RIFFLE_CLICKS = 28;
+
+/** Duration (s) of the riffle, from the first card click to the last. */
+const SHUFFLE_RIFFLE_DURATION_S = 0.7;
+
+/**
+ * Largest random shift of each click, as a fraction of the click spacing.
+ * The unevenness keeps the riffle from sounding like a mechanical ticker.
+ */
+const SHUFFLE_CLICK_JITTER = 0.4;
+
+/** Decay time constant (s) of each click. Each click lasts five time constants. */
+const SHUFFLE_CLICK_DECAY_S = 0.004;
+
+/** Duration (s) of the soft swish as the riffled halves are pushed together. */
+const SHUFFLE_BRIDGE_DURATION_S = 0.25;
+
+/** Loudness of the bridge swish relative to a click. */
+const SHUFFLE_BRIDGE_LEVEL = 0.35;
+
+/** Center frequency (Hz) of the band-pass filter that gives the clicks a papery tone. */
+const SHUFFLE_FILTER_FREQ_HZ = 2500;
+
+/** Q of the shuffle band-pass filter. A low Q keeps the band wide. */
+const SHUFFLE_FILTER_Q = 0.7;
+
+/** Overall gain of the shuffle sound. */
+const SHUFFLE_PEAK_GAIN = 0.12;
+
+/** Total duration (s) of the shuffle sound: the riffle, then the bridge swish. */
+export const SHUFFLE_SOUND_DURATION_S = SHUFFLE_RIFFLE_DURATION_S + SHUFFLE_BRIDGE_DURATION_S;
+
 // ── Frequency sweep constants ─────────────────────────────────────────────────
 
 /**
@@ -345,6 +380,84 @@ export function playCardFlickSound() {
     );
     snapOsc.start(snapStartTime);
     snapOsc.stop(snapStartTime + CARD_SNAP_DURATION_S);
+  } catch {
+    // Ignore audio errors in unsupported environments.
+  }
+}
+
+/**
+ * Write the shuffle waveform into a sample buffer.
+ *
+ * The riffle is a run of short, decaying noise clicks spread unevenly over
+ * SHUFFLE_RIFFLE_DURATION_S, one per card falling. A softer noise swish
+ * follows, rising and falling over SHUFFLE_BRIDGE_DURATION_S.
+ *
+ * @param {Float32Array} channelData - Buffer of SHUFFLE_SOUND_DURATION_S worth of samples.
+ * @param {number} sampleRate - Samples per second.
+ */
+function fillShuffleSamples(channelData, sampleRate) {
+  const riffleEnd = Math.floor(SHUFFLE_RIFFLE_DURATION_S * sampleRate);
+  const clickSpacingS = SHUFFLE_RIFFLE_DURATION_S / SHUFFLE_RIFFLE_CLICKS;
+  const decaySamples = SHUFFLE_CLICK_DECAY_S * sampleRate;
+  const clickLength = Math.ceil(decaySamples * 5);
+
+  for (let k = 0; k < SHUFFLE_RIFFLE_CLICKS; k += 1) {
+    const jitterS = (Math.random() - 0.5) * SHUFFLE_CLICK_JITTER * clickSpacingS;
+    const start = Math.max(0, Math.round((k * clickSpacingS + jitterS) * sampleRate));
+    for (let i = 0; i < clickLength && start + i < riffleEnd; i += 1) {
+      channelData[start + i] += (Math.random() * 2 - 1) * Math.exp(-i / decaySamples);
+    }
+  }
+
+  const bridgeLength = channelData.length - riffleEnd;
+  for (let i = 0; i < bridgeLength; i += 1) {
+    const envelope = Math.sin((Math.PI * i) / bridgeLength);
+    channelData[riffleEnd + i] = (Math.random() * 2 - 1) * SHUFFLE_BRIDGE_LEVEL * envelope;
+  }
+}
+
+/**
+ * Play a synthesized deck-shuffling sound: a riffle of card clicks, then the
+ * swish of the two halves being pushed together.
+ *
+ * The waveform is generated noise (see {@link fillShuffleSamples}) played
+ * through a band-pass filter, so no audio file is needed. It lasts
+ * SHUFFLE_SOUND_DURATION_S.
+ *
+ * Uses the shared AudioContext from {@link getAudioContext}.
+ */
+export function playShuffleSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => { });
+    }
+
+    const now = ctx.currentTime;
+
+    const bufferSize = Math.ceil(ctx.sampleRate * SHUFFLE_SOUND_DURATION_S);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    fillShuffleSamples(buffer.getChannelData(0), ctx.sampleRate);
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(SHUFFLE_FILTER_FREQ_HZ, now);
+    filter.Q.setValueAtTime(SHUFFLE_FILTER_Q, now);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(SHUFFLE_PEAK_GAIN, now);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    source.start(now);
+    source.stop(now + SHUFFLE_SOUND_DURATION_S);
   } catch {
     // Ignore audio errors in unsupported environments.
   }

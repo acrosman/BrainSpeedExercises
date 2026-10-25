@@ -70,6 +70,8 @@ where Web Audio is missing. Every sound resumes a suspended context and swallows
 
 - Feedback: `playSuccessSound()`, `playFailureSound()`, and `playFeedbackSound(isSuccess)`.
 - `playCardFlickSound()`: a short card snap.
+- `playShuffleSound()`: a deck riffle, generated from noise clicks, then a soft swish. It lasts
+  `SHUFFLE_SOUND_DURATION_S`.
 - `playSweepPair(['up' | 'down', 'up' | 'down'], { sweepDurationMs, isiMs })` schedules two
   frequency sweeps between `SWEEP_LOW_FREQ_HZ` and `SWEEP_HIGH_FREQ_HZ` on the context clock and
   returns at once. Invalid input schedules nothing.
