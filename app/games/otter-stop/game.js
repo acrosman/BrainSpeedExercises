@@ -426,6 +426,14 @@ export function getMisses() {
 }
 
 /**
+ * Return the total number of errors: presses for the fish plus missed go images.
+ * @returns {number}
+ */
+export function getErrors() {
+  return noGoHits + misses;
+}
+
+/**
  * Return the total number of trials completed.
  * @returns {number}
  */

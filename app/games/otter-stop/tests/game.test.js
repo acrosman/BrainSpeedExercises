@@ -16,6 +16,7 @@ import {
   getScore,
   getNoGoHits,
   getMisses,
+  getErrors,
   getTrialsCompleted,
   getLevel,
   getConsecutiveCorrect,
@@ -649,6 +650,22 @@ describe('recordResponse()', () => {
       recordResponse(true, true); // false alarm, consecutiveWrong = 3 → level drops
       expect(getLevel()).toBe(0);
     });
+  });
+});
+
+// ── getErrors ─────────────────────────────────────────────────────────────────
+
+describe('getErrors()', () => {
+  it('returns 0 before any mistakes', () => {
+    expect(getErrors()).toBe(0);
+  });
+
+  it('counts no-go hits and misses together', () => {
+    recordResponse(true, true); // no-go hit
+    recordResponse(false, false); // miss
+    recordResponse(false, false); // miss
+    recordResponse(false, true); // correct go
+    expect(getErrors()).toBe(3);
   });
 });
 

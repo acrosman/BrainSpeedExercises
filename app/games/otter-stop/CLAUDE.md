@@ -41,6 +41,9 @@ Stimulus surfaces keep their own colors and never take theme tokens:
   - Go + no press: a miss.
   - No-go + press: a no-go hit.
 
+  The HUD and the end panel show no-go hits and misses together as one "Errors" count
+  (`getErrors()`); the tutorial's practice feedback still tells them apart.
+
   Three wrong in a row costs two levels.
 - The display interval is `1500 × 0.88^level` ms, with a floor of 150 ms. The trend chart
   marks the level as the maximum from the floor on (level 19), although runs keep getting
