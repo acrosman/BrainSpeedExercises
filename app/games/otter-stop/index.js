@@ -82,7 +82,7 @@ let _levelEl = null;
 let _scoreEl = null;
 
 /** @type {HTMLElement|null} */
-let _nogoHitsEl = null;
+let _errorsEl = null;
 
 /** @type {HTMLElement|null} */
 let _intervalEl = null;
@@ -108,10 +108,7 @@ let _finalScoreEl = null;
 let _finalBestEl = null;
 
 /** @type {HTMLElement|null} */
-let _finalNogoEl = null;
-
-/** @type {HTMLElement|null} */
-let _finalMissesEl = null;
+let _finalErrorsEl = null;
 
 /** @type {HTMLElement|null} */
 let _finalTrialsEl = null;
@@ -192,7 +189,7 @@ export async function loadGoImages() {
 export function updateStats() {
   if (_levelEl) _levelEl.textContent = game.getLevel() + 1;
   if (_scoreEl) _scoreEl.textContent = game.getScore();
-  if (_nogoHitsEl) _nogoHitsEl.textContent = game.getNoGoHits();
+  if (_errorsEl) _errorsEl.textContent = game.getErrors();
   if (_intervalEl) _intervalEl.textContent = game.getCurrentIntervalMs();
 }
 
@@ -288,15 +285,14 @@ export function hideFeedback() {
 }
 
 /**
- * Populate and display the end-of-game results panel.
+ * Populate and display the end-of-game results panel. Errors shows no-go hits plus misses.
  * @param {{ score: number, noGoHits: number, misses: number,
  *           trialsCompleted: number, bestScore: number }} result
  */
 export function showEndPanel(result) {
   if (_finalScoreEl) _finalScoreEl.textContent = result.score;
   if (_finalBestEl) _finalBestEl.textContent = result.bestScore;
-  if (_finalNogoEl) _finalNogoEl.textContent = result.noGoHits;
-  if (_finalMissesEl) _finalMissesEl.textContent = result.misses;
+  if (_finalErrorsEl) _finalErrorsEl.textContent = result.noGoHits + result.misses;
   if (_finalTrialsEl) _finalTrialsEl.textContent = result.trialsCompleted;
   if (_endPanelEl) _endPanelEl.hidden = false;
   // Move focus off the hidden game area so it does not fall to <body> (WCAG 2.4.3).
@@ -481,7 +477,7 @@ function init(container) {
   _returnBtn = container.querySelector('#os-return-btn');
   _levelEl = container.querySelector('#os-level');
   _scoreEl = container.querySelector('#os-score');
-  _nogoHitsEl = container.querySelector('#os-nogo-hits');
+  _errorsEl = container.querySelector('#os-errors');
   _intervalEl = container.querySelector('#os-interval');
   _sessionTimerEl = container.querySelector('#os-session-timer');
   _trendLineEl = container.querySelector('#os-trend-line');
@@ -491,8 +487,7 @@ function init(container) {
   _avgResponseEl = container.querySelector('#os-avg-response');
   _finalScoreEl = container.querySelector('#os-final-score');
   _finalBestEl = container.querySelector('#os-final-best');
-  _finalNogoEl = container.querySelector('#os-final-nogo');
-  _finalMissesEl = container.querySelector('#os-final-misses');
+  _finalErrorsEl = container.querySelector('#os-final-errors');
   _finalTrialsEl = container.querySelector('#os-final-trials');
 
   game.initGame();

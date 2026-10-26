@@ -62,6 +62,7 @@ jest.unstable_mockModule('../game.js', () => ({
   getScore: jest.fn(() => 5),
   getNoGoHits: jest.fn(() => 1),
   getMisses: jest.fn(() => 2),
+  getErrors: jest.fn(() => 3),
   getTrialsCompleted: jest.fn(() => 10),
   getLevel: jest.fn(() => 0),
   getConsecutiveCorrect: jest.fn(() => 0),
@@ -154,13 +155,12 @@ function buildContainer() {
     <button id="os-return-btn"></button>
     <strong id="os-level">1</strong>
     <strong id="os-score">0</strong>
-    <strong id="os-nogo-hits">0</strong>
+    <strong id="os-errors">0</strong>
     <strong id="os-interval">1500</strong>
     <strong id="os-avg-response">--</strong>
     <strong id="os-final-score">0</strong>
     <strong id="os-final-best">0</strong>
-    <strong id="os-final-nogo">0</strong>
-    <strong id="os-final-misses">0</strong>
+    <strong id="os-final-errors">0</strong>
     <strong id="os-final-trials">0</strong>
   `;
   return el;
@@ -391,12 +391,12 @@ describe('updateStats()', () => {
     expect(container.querySelector('#os-score').textContent).toBe('7');
   });
 
-  it('sets nogo-hits text', () => {
+  it('sets errors text', () => {
     const container = buildContainer();
     plugin.init(container);
-    gameMock.getNoGoHits.mockReturnValue(3);
+    gameMock.getErrors.mockReturnValue(4);
     updateStats();
-    expect(container.querySelector('#os-nogo-hits').textContent).toBe('3');
+    expect(container.querySelector('#os-errors').textContent).toBe('4');
   });
 
   it('sets interval text', () => {
@@ -576,8 +576,7 @@ describe('showEndPanel()', () => {
     });
     expect(container.querySelector('#os-final-score').textContent).toBe('8');
     expect(container.querySelector('#os-final-best').textContent).toBe('10');
-    expect(container.querySelector('#os-final-nogo').textContent).toBe('1');
-    expect(container.querySelector('#os-final-misses').textContent).toBe('2');
+    expect(container.querySelector('#os-final-errors').textContent).toBe('3');
     expect(container.querySelector('#os-final-trials').textContent).toBe('15');
     expect(container.querySelector('#os-end-panel').hidden).toBe(false);
   });
